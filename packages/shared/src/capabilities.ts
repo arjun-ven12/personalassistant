@@ -1,0 +1,68 @@
+import { z } from "zod";
+
+export const CapabilitySchema = z.enum([
+  "app.open",
+  "app.focus",
+  "app.inspect_window",
+  "app.capture_window",
+  "app.automate",
+  "workspace.read",
+  "repository.index",
+  "workspace.validate",
+  "workspace.write",
+  "workspace.create_file",
+  "workspace.modify_file",
+  "workspace.move_file",
+  "workspace.delete_file",
+  "terminal.run_registered_script",
+  "terminal.run_registered_command",
+  "shell.execute_arbitrary",
+  "filesystem.read_arbitrary",
+  "filesystem.delete_permanently",
+  "system.run_sudo",
+  "credentials.read",
+  "keychain.read",
+  "banking.perform_action",
+  "authentication_code.read",
+  "security.disable_controls",
+  "git.status",
+  "git.diff",
+  "git.create_branch",
+  "git.commit",
+  "git.push",
+  "codex.start_readonly",
+  "codex.start_write",
+  "browser.navigate",
+  "browser.read_page",
+  "browser.capture",
+  "browser.interact",
+  "screen.capture",
+  "gesture.detect",
+  "gesture.cursor",
+  "gesture.assistant_control",
+  "email.read",
+  "email.draft",
+  "email.send",
+  "calendar.read",
+  "calendar.create",
+  "calendar.modify",
+  "figma.read",
+  "figma.write",
+  "security.view",
+  "security.modify",
+  "device.register",
+  "device.revoke",
+]);
+
+export type Capability = z.infer<typeof CapabilitySchema>;
+export type JsonValue = z.infer<ReturnType<typeof z.json>>;
+
+export const ApplicationCapabilitySchema = z.enum([
+  "app.open",
+  "app.focus",
+  "app.inspect_window",
+  "app.capture_window",
+  "app.automate",
+]);
+
+export type ApplicationCapability = z.infer<typeof ApplicationCapabilitySchema>;

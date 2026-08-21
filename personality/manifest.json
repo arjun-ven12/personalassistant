@@ -1,0 +1,29 @@
+{
+  "corpusId": "alexa-personality-seed-corpus",
+  "corpusVersion": "v4-coverage-safety",
+  "schemaVersion": "19A.3",
+  "createdAt": "2026-08-07T08:59:18.786Z",
+  "source": {
+    "kind": "canonical_markdown",
+    "path": "/Users/arjunaravapalli/Downloads/Alexa_Personality_Seed_Corpus_v4_coverage_safety.md",
+    "checksum": "96d24935bb82bca1cb34f8437475812fbc8bbe5aa690a1793786ebd662a907c7"
+  },
+  "checksum": "96d24935bb82bca1cb34f8437475812fbc8bbe5aa690a1793786ebd662a907c7",
+  "entryCounts": {
+    "identity": 1,
+    "trait": 25,
+    "intent_example": 427,
+    "response_template": 30,
+    "personality_profile": 7,
+    "asr_example": 12,
+    "negative_intent_example": 12
+  },
+  "intentCount": 61,
+  "aliasCount": 427,
+  "exampleCount": 451,
+  "negativeExampleCount": 12,
+  "vectorSeedCount": 451,
+  "profileCount": 7,
+  "breakingChanges": [],
+  "minimumRuntimeVersion": "19A"
+}

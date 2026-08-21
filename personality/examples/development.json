@@ -1,0 +1,916 @@
+[
+  {
+    "id": "human.10.001",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "open the repo",
+    "normalizedUtterance": "open the repo",
+    "intent": "OPEN_REPOSITORY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.10 Coding and development",
+    "sourceLine": 5535,
+    "raw": {
+      "id": "human.10.001",
+      "utterance": "open the repo",
+      "intent": "OPEN_REPOSITORY",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.10.002",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "open my repo",
+    "normalizedUtterance": "open my repo",
+    "intent": "OPEN_REPOSITORY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.10 Coding and development",
+    "sourceLine": 5546,
+    "raw": {
+      "id": "human.10.002",
+      "utterance": "open my repo",
+      "intent": "OPEN_REPOSITORY",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.10.003",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "open the project",
+    "normalizedUtterance": "open the project",
+    "intent": "OPEN_REPOSITORY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.10 Coding and development",
+    "sourceLine": 5557,
+    "raw": {
+      "id": "human.10.003",
+      "utterance": "open the project",
+      "intent": "OPEN_REPOSITORY",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.10.004",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "open the backend",
+    "normalizedUtterance": "open the backend",
+    "intent": "OPEN_REPOSITORY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.10 Coding and development",
+    "sourceLine": 5568,
+    "raw": {
+      "id": "human.10.004",
+      "utterance": "open the backend",
+      "intent": "OPEN_REPOSITORY",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.10.005",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "open the frontend",
+    "normalizedUtterance": "open the frontend",
+    "intent": "OPEN_REPOSITORY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.10 Coding and development",
+    "sourceLine": 5579,
+    "raw": {
+      "id": "human.10.005",
+      "utterance": "open the frontend",
+      "intent": "OPEN_REPOSITORY",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.10.006",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "find the login code",
+    "normalizedUtterance": "find the login code",
+    "intent": "SEARCH_CODE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.10 Coding and development",
+    "sourceLine": 5590,
+    "raw": {
+      "id": "human.10.006",
+      "utterance": "find the login code",
+      "intent": "SEARCH_CODE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.10.007",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "where's the auth function",
+    "normalizedUtterance": "where's the auth function",
+    "intent": "SEARCH_CODE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.10 Coding and development",
+    "sourceLine": 5601,
+    "raw": {
+      "id": "human.10.007",
+      "utterance": "where's the auth function",
+      "intent": "SEARCH_CODE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.10.008",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "search for this function",
+    "normalizedUtterance": "search for this function",
+    "intent": "SEARCH_CODE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.10 Coding and development",
+    "sourceLine": 5612,
+    "raw": {
+      "id": "human.10.008",
+      "utterance": "search for this function",
+      "intent": "SEARCH_CODE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.10.009",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "find that class",
+    "normalizedUtterance": "find that class",
+    "intent": "SEARCH_CODE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.10 Coding and development",
+    "sourceLine": 5623,
+    "raw": {
+      "id": "human.10.009",
+      "utterance": "find that class",
+      "intent": "SEARCH_CODE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.10.010",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "run tests",
+    "normalizedUtterance": "run tests",
+    "intent": "RUN_TESTS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "medium",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.10 Coding and development",
+    "sourceLine": 5634,
+    "raw": {
+      "id": "human.10.010",
+      "utterance": "run tests",
+      "intent": "RUN_TESTS",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.10.011",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "run the tests",
+    "normalizedUtterance": "run the tests",
+    "intent": "RUN_TESTS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "medium",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.10 Coding and development",
+    "sourceLine": 5645,
+    "raw": {
+      "id": "human.10.011",
+      "utterance": "run the tests",
+      "intent": "RUN_TESTS",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.10.012",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "test it",
+    "normalizedUtterance": "test it",
+    "intent": "RUN_TESTS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "medium",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.10 Coding and development",
+    "sourceLine": 5656,
+    "raw": {
+      "id": "human.10.012",
+      "utterance": "test it",
+      "intent": "RUN_TESTS",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.10.013",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "build it",
+    "normalizedUtterance": "build it",
+    "intent": "BUILD_PROJECT",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "medium",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.10 Coding and development",
+    "sourceLine": 5667,
+    "raw": {
+      "id": "human.10.013",
+      "utterance": "build it",
+      "intent": "BUILD_PROJECT",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.10.014",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "build the project",
+    "normalizedUtterance": "build the project",
+    "intent": "BUILD_PROJECT",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "medium",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.10 Coding and development",
+    "sourceLine": 5678,
+    "raw": {
+      "id": "human.10.014",
+      "utterance": "build the project",
+      "intent": "BUILD_PROJECT",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.10.015",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "start the dev server",
+    "normalizedUtterance": "start the dev server",
+    "intent": "START_DEV_SERVER",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.10 Coding and development",
+    "sourceLine": 5689,
+    "raw": {
+      "id": "human.10.015",
+      "utterance": "start the dev server",
+      "intent": "START_DEV_SERVER",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.10.016",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "run the app",
+    "normalizedUtterance": "run the app",
+    "intent": "START_DEV_SERVER",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.10 Coding and development",
+    "sourceLine": 5700,
+    "raw": {
+      "id": "human.10.016",
+      "utterance": "run the app",
+      "intent": "START_DEV_SERVER",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.10.017",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "start localhost",
+    "normalizedUtterance": "start localhost",
+    "intent": "START_DEV_SERVER",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.10 Coding and development",
+    "sourceLine": 5711,
+    "raw": {
+      "id": "human.10.017",
+      "utterance": "start localhost",
+      "intent": "START_DEV_SERVER",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.10.020",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "show diagnostics",
+    "normalizedUtterance": "show diagnostics",
+    "intent": "SHOW_DIAGNOSTICS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.10 Coding and development",
+    "sourceLine": 5744,
+    "raw": {
+      "id": "human.10.020",
+      "utterance": "show diagnostics",
+      "intent": "SHOW_DIAGNOSTICS",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "relative.003",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "open the most recent project",
+    "normalizedUtterance": "open the most recent project",
+    "intent": "OPEN_REPOSITORY",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "56. Comparative and Relative References",
+    "sourceLine": 6449,
+    "raw": {
+      "id": "relative.003",
+      "utterance": "open the most recent project",
+      "intent": "OPEN_REPOSITORY",
+      "requires_ranked_context": true,
+      "fallback": "clarify"
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "relative.008",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "open the previous project",
+    "normalizedUtterance": "open the previous project",
+    "intent": "OPEN_REPOSITORY",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "56. Comparative and Relative References",
+    "sourceLine": 6484,
+    "raw": {
+      "id": "relative.008",
+      "utterance": "open the previous project",
+      "intent": "OPEN_REPOSITORY",
+      "requires_ranked_context": true,
+      "fallback": "clarify"
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "asr.011",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "asr_example",
+    "domain": "development",
+    "utterance": "run the taste",
+    "normalizedUtterance": "run the taste",
+    "intent": "RUN_TESTS",
+    "entities": {
+      "target": "tests"
+    },
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "medium",
+    "reason": null,
+    "tags": [
+      "asr_example",
+      "corpus"
+    ],
+    "sourceSection": "60. Speech Recognition Noise / ASR Recovery",
+    "sourceLine": 6894,
+    "raw": {
+      "id": "asr.011",
+      "utterance": "run the taste",
+      "intent": "RUN_TESTS",
+      "candidate_target": "tests",
+      "phonetic_similarity_allowed": true,
+      "vector_seed": true,
+      "clarify_if_low_confidence": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "asr.012",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "asr_example",
+    "domain": "development",
+    "utterance": "open repo quants trade",
+    "normalizedUtterance": "open repo quants trade",
+    "intent": "OPEN_REPOSITORY",
+    "entities": {
+      "target": "Quant's Trade"
+    },
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "asr_example",
+      "corpus"
+    ],
+    "sourceSection": "60. Speech Recognition Noise / ASR Recovery",
+    "sourceLine": 6903,
+    "raw": {
+      "id": "asr.012",
+      "utterance": "open repo quants trade",
+      "intent": "OPEN_REPOSITORY",
+      "candidate_target": "Quant's Trade",
+      "phonetic_similarity_allowed": true,
+      "vector_seed": true,
+      "clarify_if_low_confidence": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "indirect.004",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "can you get the repo up",
+    "normalizedUtterance": "get the repo up",
+    "intent": "OPEN_REPOSITORY",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "63. Indirect Requests",
+    "sourceLine": 7107,
+    "raw": {
+      "id": "indirect.004",
+      "utterance": "can you get the repo up",
+      "intent": "OPEN_REPOSITORY",
+      "speech_act": "request",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "indirect.005",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "development",
+    "utterance": "could you run the tests",
+    "normalizedUtterance": "run the tests",
+    "intent": "RUN_TESTS",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "medium",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "63. Indirect Requests",
+    "sourceLine": 7114,
+    "raw": {
+      "id": "indirect.005",
+      "utterance": "could you run the tests",
+      "intent": "RUN_TESTS",
+      "speech_act": "request",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  }
+]

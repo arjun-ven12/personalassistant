@@ -1,0 +1,6016 @@
+[
+  {
+    "id": "intent.GREETING.177.0",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "hi",
+    "normalizedUtterance": "hi",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.1 GREETING",
+    "sourceLine": 177,
+    "raw": {
+      "intent": "GREETING",
+      "aliases": [
+        "hi",
+        "hello",
+        "hey",
+        "yo",
+        "sup",
+        "morning",
+        "good morning",
+        "good afternoon",
+        "good evening",
+        "what's up"
+      ],
+      "responses": [
+        "Hello boss.",
+        "Hey boss.",
+        "Ready when you are.",
+        "Good to see you boss."
+      ],
+      "policy": "Acknowledge naturally. Do not invoke AI.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.GREETING.177.1",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "hello",
+    "normalizedUtterance": "hello",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.1 GREETING",
+    "sourceLine": 177,
+    "raw": {
+      "intent": "GREETING",
+      "aliases": [
+        "hi",
+        "hello",
+        "hey",
+        "yo",
+        "sup",
+        "morning",
+        "good morning",
+        "good afternoon",
+        "good evening",
+        "what's up"
+      ],
+      "responses": [
+        "Hello boss.",
+        "Hey boss.",
+        "Ready when you are.",
+        "Good to see you boss."
+      ],
+      "policy": "Acknowledge naturally. Do not invoke AI.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.GREETING.177.2",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "hey",
+    "normalizedUtterance": "hey",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.1 GREETING",
+    "sourceLine": 177,
+    "raw": {
+      "intent": "GREETING",
+      "aliases": [
+        "hi",
+        "hello",
+        "hey",
+        "yo",
+        "sup",
+        "morning",
+        "good morning",
+        "good afternoon",
+        "good evening",
+        "what's up"
+      ],
+      "responses": [
+        "Hello boss.",
+        "Hey boss.",
+        "Ready when you are.",
+        "Good to see you boss."
+      ],
+      "policy": "Acknowledge naturally. Do not invoke AI.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.GREETING.177.3",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "yo",
+    "normalizedUtterance": "yo",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.1 GREETING",
+    "sourceLine": 177,
+    "raw": {
+      "intent": "GREETING",
+      "aliases": [
+        "hi",
+        "hello",
+        "hey",
+        "yo",
+        "sup",
+        "morning",
+        "good morning",
+        "good afternoon",
+        "good evening",
+        "what's up"
+      ],
+      "responses": [
+        "Hello boss.",
+        "Hey boss.",
+        "Ready when you are.",
+        "Good to see you boss."
+      ],
+      "policy": "Acknowledge naturally. Do not invoke AI.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.GREETING.177.4",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "sup",
+    "normalizedUtterance": "sup",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.1 GREETING",
+    "sourceLine": 177,
+    "raw": {
+      "intent": "GREETING",
+      "aliases": [
+        "hi",
+        "hello",
+        "hey",
+        "yo",
+        "sup",
+        "morning",
+        "good morning",
+        "good afternoon",
+        "good evening",
+        "what's up"
+      ],
+      "responses": [
+        "Hello boss.",
+        "Hey boss.",
+        "Ready when you are.",
+        "Good to see you boss."
+      ],
+      "policy": "Acknowledge naturally. Do not invoke AI.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.GREETING.177.5",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "morning",
+    "normalizedUtterance": "morning",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.1 GREETING",
+    "sourceLine": 177,
+    "raw": {
+      "intent": "GREETING",
+      "aliases": [
+        "hi",
+        "hello",
+        "hey",
+        "yo",
+        "sup",
+        "morning",
+        "good morning",
+        "good afternoon",
+        "good evening",
+        "what's up"
+      ],
+      "responses": [
+        "Hello boss.",
+        "Hey boss.",
+        "Ready when you are.",
+        "Good to see you boss."
+      ],
+      "policy": "Acknowledge naturally. Do not invoke AI.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.GREETING.177.6",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "good morning",
+    "normalizedUtterance": "good morning",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.1 GREETING",
+    "sourceLine": 177,
+    "raw": {
+      "intent": "GREETING",
+      "aliases": [
+        "hi",
+        "hello",
+        "hey",
+        "yo",
+        "sup",
+        "morning",
+        "good morning",
+        "good afternoon",
+        "good evening",
+        "what's up"
+      ],
+      "responses": [
+        "Hello boss.",
+        "Hey boss.",
+        "Ready when you are.",
+        "Good to see you boss."
+      ],
+      "policy": "Acknowledge naturally. Do not invoke AI.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.GREETING.177.7",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "good afternoon",
+    "normalizedUtterance": "good afternoon",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.1 GREETING",
+    "sourceLine": 177,
+    "raw": {
+      "intent": "GREETING",
+      "aliases": [
+        "hi",
+        "hello",
+        "hey",
+        "yo",
+        "sup",
+        "morning",
+        "good morning",
+        "good afternoon",
+        "good evening",
+        "what's up"
+      ],
+      "responses": [
+        "Hello boss.",
+        "Hey boss.",
+        "Ready when you are.",
+        "Good to see you boss."
+      ],
+      "policy": "Acknowledge naturally. Do not invoke AI.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.GREETING.177.8",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "good evening",
+    "normalizedUtterance": "good evening",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.1 GREETING",
+    "sourceLine": 177,
+    "raw": {
+      "intent": "GREETING",
+      "aliases": [
+        "hi",
+        "hello",
+        "hey",
+        "yo",
+        "sup",
+        "morning",
+        "good morning",
+        "good afternoon",
+        "good evening",
+        "what's up"
+      ],
+      "responses": [
+        "Hello boss.",
+        "Hey boss.",
+        "Ready when you are.",
+        "Good to see you boss."
+      ],
+      "policy": "Acknowledge naturally. Do not invoke AI.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.GREETING.177.9",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "what's up",
+    "normalizedUtterance": "what's up",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.1 GREETING",
+    "sourceLine": 177,
+    "raw": {
+      "intent": "GREETING",
+      "aliases": [
+        "hi",
+        "hello",
+        "hey",
+        "yo",
+        "sup",
+        "morning",
+        "good morning",
+        "good afternoon",
+        "good evening",
+        "what's up"
+      ],
+      "responses": [
+        "Hello boss.",
+        "Hey boss.",
+        "Ready when you are.",
+        "Good to see you boss."
+      ],
+      "policy": "Acknowledge naturally. Do not invoke AI.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.FAREWELL.199.0",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "bye",
+    "normalizedUtterance": "bye",
+    "intent": "FAREWELL",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.2 FAREWELL",
+    "sourceLine": 199,
+    "raw": {
+      "intent": "FAREWELL",
+      "aliases": [
+        "bye",
+        "goodbye",
+        "see you",
+        "later",
+        "catch you later",
+        "that's all",
+        "talk later"
+      ],
+      "responses": [
+        "See you later boss.",
+        "Alright boss.",
+        "I'll be here."
+      ],
+      "policy": "End conversational session only when context indicates the user is leaving.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.FAREWELL.199.1",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "goodbye",
+    "normalizedUtterance": "goodbye",
+    "intent": "FAREWELL",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.2 FAREWELL",
+    "sourceLine": 199,
+    "raw": {
+      "intent": "FAREWELL",
+      "aliases": [
+        "bye",
+        "goodbye",
+        "see you",
+        "later",
+        "catch you later",
+        "that's all",
+        "talk later"
+      ],
+      "responses": [
+        "See you later boss.",
+        "Alright boss.",
+        "I'll be here."
+      ],
+      "policy": "End conversational session only when context indicates the user is leaving.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.FAREWELL.199.2",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "see you",
+    "normalizedUtterance": "see you",
+    "intent": "FAREWELL",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.2 FAREWELL",
+    "sourceLine": 199,
+    "raw": {
+      "intent": "FAREWELL",
+      "aliases": [
+        "bye",
+        "goodbye",
+        "see you",
+        "later",
+        "catch you later",
+        "that's all",
+        "talk later"
+      ],
+      "responses": [
+        "See you later boss.",
+        "Alright boss.",
+        "I'll be here."
+      ],
+      "policy": "End conversational session only when context indicates the user is leaving.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.FAREWELL.199.3",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "later",
+    "normalizedUtterance": "later",
+    "intent": "FAREWELL",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.2 FAREWELL",
+    "sourceLine": 199,
+    "raw": {
+      "intent": "FAREWELL",
+      "aliases": [
+        "bye",
+        "goodbye",
+        "see you",
+        "later",
+        "catch you later",
+        "that's all",
+        "talk later"
+      ],
+      "responses": [
+        "See you later boss.",
+        "Alright boss.",
+        "I'll be here."
+      ],
+      "policy": "End conversational session only when context indicates the user is leaving.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.FAREWELL.199.4",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "catch you later",
+    "normalizedUtterance": "catch you later",
+    "intent": "FAREWELL",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.2 FAREWELL",
+    "sourceLine": 199,
+    "raw": {
+      "intent": "FAREWELL",
+      "aliases": [
+        "bye",
+        "goodbye",
+        "see you",
+        "later",
+        "catch you later",
+        "that's all",
+        "talk later"
+      ],
+      "responses": [
+        "See you later boss.",
+        "Alright boss.",
+        "I'll be here."
+      ],
+      "policy": "End conversational session only when context indicates the user is leaving.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.FAREWELL.199.5",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "that's all",
+    "normalizedUtterance": "that's all",
+    "intent": "FAREWELL",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.2 FAREWELL",
+    "sourceLine": 199,
+    "raw": {
+      "intent": "FAREWELL",
+      "aliases": [
+        "bye",
+        "goodbye",
+        "see you",
+        "later",
+        "catch you later",
+        "that's all",
+        "talk later"
+      ],
+      "responses": [
+        "See you later boss.",
+        "Alright boss.",
+        "I'll be here."
+      ],
+      "policy": "End conversational session only when context indicates the user is leaving.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.FAREWELL.199.6",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "talk later",
+    "normalizedUtterance": "talk later",
+    "intent": "FAREWELL",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.2 FAREWELL",
+    "sourceLine": 199,
+    "raw": {
+      "intent": "FAREWELL",
+      "aliases": [
+        "bye",
+        "goodbye",
+        "see you",
+        "later",
+        "catch you later",
+        "that's all",
+        "talk later"
+      ],
+      "responses": [
+        "See you later boss.",
+        "Alright boss.",
+        "I'll be here."
+      ],
+      "policy": "End conversational session only when context indicates the user is leaving.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.THANKS.217.0",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "thanks",
+    "normalizedUtterance": "thanks",
+    "intent": "THANKS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.3 THANKS",
+    "sourceLine": 217,
+    "raw": {
+      "intent": "THANKS",
+      "aliases": [
+        "thanks",
+        "thank you",
+        "cheers",
+        "appreciate it",
+        "perfect",
+        "good job",
+        "nice"
+      ],
+      "responses": [
+        "You're welcome boss.",
+        "Anytime.",
+        "Happy to help.",
+        "No problem."
+      ],
+      "policy": "Keep acknowledgement short.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.THANKS.217.1",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "thank you",
+    "normalizedUtterance": "thank you",
+    "intent": "THANKS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.3 THANKS",
+    "sourceLine": 217,
+    "raw": {
+      "intent": "THANKS",
+      "aliases": [
+        "thanks",
+        "thank you",
+        "cheers",
+        "appreciate it",
+        "perfect",
+        "good job",
+        "nice"
+      ],
+      "responses": [
+        "You're welcome boss.",
+        "Anytime.",
+        "Happy to help.",
+        "No problem."
+      ],
+      "policy": "Keep acknowledgement short.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.THANKS.217.2",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "cheers",
+    "normalizedUtterance": "cheers",
+    "intent": "THANKS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.3 THANKS",
+    "sourceLine": 217,
+    "raw": {
+      "intent": "THANKS",
+      "aliases": [
+        "thanks",
+        "thank you",
+        "cheers",
+        "appreciate it",
+        "perfect",
+        "good job",
+        "nice"
+      ],
+      "responses": [
+        "You're welcome boss.",
+        "Anytime.",
+        "Happy to help.",
+        "No problem."
+      ],
+      "policy": "Keep acknowledgement short.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.THANKS.217.3",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "appreciate it",
+    "normalizedUtterance": "appreciate it",
+    "intent": "THANKS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.3 THANKS",
+    "sourceLine": 217,
+    "raw": {
+      "intent": "THANKS",
+      "aliases": [
+        "thanks",
+        "thank you",
+        "cheers",
+        "appreciate it",
+        "perfect",
+        "good job",
+        "nice"
+      ],
+      "responses": [
+        "You're welcome boss.",
+        "Anytime.",
+        "Happy to help.",
+        "No problem."
+      ],
+      "policy": "Keep acknowledgement short.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.THANKS.217.4",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "perfect",
+    "normalizedUtterance": "perfect",
+    "intent": "THANKS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.3 THANKS",
+    "sourceLine": 217,
+    "raw": {
+      "intent": "THANKS",
+      "aliases": [
+        "thanks",
+        "thank you",
+        "cheers",
+        "appreciate it",
+        "perfect",
+        "good job",
+        "nice"
+      ],
+      "responses": [
+        "You're welcome boss.",
+        "Anytime.",
+        "Happy to help.",
+        "No problem."
+      ],
+      "policy": "Keep acknowledgement short.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.THANKS.217.5",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "good job",
+    "normalizedUtterance": "good job",
+    "intent": "THANKS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.3 THANKS",
+    "sourceLine": 217,
+    "raw": {
+      "intent": "THANKS",
+      "aliases": [
+        "thanks",
+        "thank you",
+        "cheers",
+        "appreciate it",
+        "perfect",
+        "good job",
+        "nice"
+      ],
+      "responses": [
+        "You're welcome boss.",
+        "Anytime.",
+        "Happy to help.",
+        "No problem."
+      ],
+      "policy": "Keep acknowledgement short.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.THANKS.217.6",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "nice",
+    "normalizedUtterance": "nice",
+    "intent": "THANKS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.3 THANKS",
+    "sourceLine": 217,
+    "raw": {
+      "intent": "THANKS",
+      "aliases": [
+        "thanks",
+        "thank you",
+        "cheers",
+        "appreciate it",
+        "perfect",
+        "good job",
+        "nice"
+      ],
+      "responses": [
+        "You're welcome boss.",
+        "Anytime.",
+        "Happy to help.",
+        "No problem."
+      ],
+      "policy": "Keep acknowledgement short.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.APOLOGY.236.0",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "sorry",
+    "normalizedUtterance": "sorry",
+    "intent": "APOLOGY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.4 APOLOGY",
+    "sourceLine": 236,
+    "raw": {
+      "intent": "APOLOGY",
+      "aliases": [
+        "sorry",
+        "my bad",
+        "oops",
+        "didn't mean that"
+      ],
+      "responses": [
+        "No worries.",
+        "All good.",
+        "Understood."
+      ],
+      "policy": "Do not guilt the user.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.APOLOGY.236.1",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "my bad",
+    "normalizedUtterance": "my bad",
+    "intent": "APOLOGY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.4 APOLOGY",
+    "sourceLine": 236,
+    "raw": {
+      "intent": "APOLOGY",
+      "aliases": [
+        "sorry",
+        "my bad",
+        "oops",
+        "didn't mean that"
+      ],
+      "responses": [
+        "No worries.",
+        "All good.",
+        "Understood."
+      ],
+      "policy": "Do not guilt the user.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.APOLOGY.236.2",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "oops",
+    "normalizedUtterance": "oops",
+    "intent": "APOLOGY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.4 APOLOGY",
+    "sourceLine": 236,
+    "raw": {
+      "intent": "APOLOGY",
+      "aliases": [
+        "sorry",
+        "my bad",
+        "oops",
+        "didn't mean that"
+      ],
+      "responses": [
+        "No worries.",
+        "All good.",
+        "Understood."
+      ],
+      "policy": "Do not guilt the user.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.APOLOGY.236.3",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "didn't mean that",
+    "normalizedUtterance": "didn't mean that",
+    "intent": "APOLOGY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.4 APOLOGY",
+    "sourceLine": 236,
+    "raw": {
+      "intent": "APOLOGY",
+      "aliases": [
+        "sorry",
+        "my bad",
+        "oops",
+        "didn't mean that"
+      ],
+      "responses": [
+        "No worries.",
+        "All good.",
+        "Understood."
+      ],
+      "policy": "Do not guilt the user.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.STOP_SPEAKING.251.0",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "stop",
+    "normalizedUtterance": "stop",
+    "intent": "STOP_SPEAKING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.5 STOP_SPEAKING",
+    "sourceLine": 251,
+    "raw": {
+      "intent": "STOP_SPEAKING",
+      "aliases": [
+        "stop",
+        "stop talking",
+        "shut up",
+        "quiet",
+        "be quiet",
+        "silence",
+        "enough",
+        "that's enough"
+      ],
+      "responses": [
+        "null"
+      ],
+      "policy": "Stop TTS immediately. Do not verbally respond.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.STOP_SPEAKING.251.1",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "stop talking",
+    "normalizedUtterance": "stop talking",
+    "intent": "STOP_SPEAKING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.5 STOP_SPEAKING",
+    "sourceLine": 251,
+    "raw": {
+      "intent": "STOP_SPEAKING",
+      "aliases": [
+        "stop",
+        "stop talking",
+        "shut up",
+        "quiet",
+        "be quiet",
+        "silence",
+        "enough",
+        "that's enough"
+      ],
+      "responses": [
+        "null"
+      ],
+      "policy": "Stop TTS immediately. Do not verbally respond.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.STOP_SPEAKING.251.2",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "shut up",
+    "normalizedUtterance": "shut up",
+    "intent": "STOP_SPEAKING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.5 STOP_SPEAKING",
+    "sourceLine": 251,
+    "raw": {
+      "intent": "STOP_SPEAKING",
+      "aliases": [
+        "stop",
+        "stop talking",
+        "shut up",
+        "quiet",
+        "be quiet",
+        "silence",
+        "enough",
+        "that's enough"
+      ],
+      "responses": [
+        "null"
+      ],
+      "policy": "Stop TTS immediately. Do not verbally respond.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.STOP_SPEAKING.251.3",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "quiet",
+    "normalizedUtterance": "quiet",
+    "intent": "STOP_SPEAKING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.5 STOP_SPEAKING",
+    "sourceLine": 251,
+    "raw": {
+      "intent": "STOP_SPEAKING",
+      "aliases": [
+        "stop",
+        "stop talking",
+        "shut up",
+        "quiet",
+        "be quiet",
+        "silence",
+        "enough",
+        "that's enough"
+      ],
+      "responses": [
+        "null"
+      ],
+      "policy": "Stop TTS immediately. Do not verbally respond.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.STOP_SPEAKING.251.4",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "be quiet",
+    "normalizedUtterance": "be quiet",
+    "intent": "STOP_SPEAKING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.5 STOP_SPEAKING",
+    "sourceLine": 251,
+    "raw": {
+      "intent": "STOP_SPEAKING",
+      "aliases": [
+        "stop",
+        "stop talking",
+        "shut up",
+        "quiet",
+        "be quiet",
+        "silence",
+        "enough",
+        "that's enough"
+      ],
+      "responses": [
+        "null"
+      ],
+      "policy": "Stop TTS immediately. Do not verbally respond.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.STOP_SPEAKING.251.5",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "silence",
+    "normalizedUtterance": "silence",
+    "intent": "STOP_SPEAKING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.5 STOP_SPEAKING",
+    "sourceLine": 251,
+    "raw": {
+      "intent": "STOP_SPEAKING",
+      "aliases": [
+        "stop",
+        "stop talking",
+        "shut up",
+        "quiet",
+        "be quiet",
+        "silence",
+        "enough",
+        "that's enough"
+      ],
+      "responses": [
+        "null"
+      ],
+      "policy": "Stop TTS immediately. Do not verbally respond.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.STOP_SPEAKING.251.6",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "enough",
+    "normalizedUtterance": "enough",
+    "intent": "STOP_SPEAKING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.5 STOP_SPEAKING",
+    "sourceLine": 251,
+    "raw": {
+      "intent": "STOP_SPEAKING",
+      "aliases": [
+        "stop",
+        "stop talking",
+        "shut up",
+        "quiet",
+        "be quiet",
+        "silence",
+        "enough",
+        "that's enough"
+      ],
+      "responses": [
+        "null"
+      ],
+      "policy": "Stop TTS immediately. Do not verbally respond.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.STOP_SPEAKING.251.7",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "that's enough",
+    "normalizedUtterance": "that's enough",
+    "intent": "STOP_SPEAKING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.5 STOP_SPEAKING",
+    "sourceLine": 251,
+    "raw": {
+      "intent": "STOP_SPEAKING",
+      "aliases": [
+        "stop",
+        "stop talking",
+        "shut up",
+        "quiet",
+        "be quiet",
+        "silence",
+        "enough",
+        "that's enough"
+      ],
+      "responses": [
+        "null"
+      ],
+      "policy": "Stop TTS immediately. Do not verbally respond.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.STOP_LISTENING.268.0",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "stop listening",
+    "normalizedUtterance": "stop listening",
+    "intent": "STOP_LISTENING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.6 STOP_LISTENING",
+    "sourceLine": 268,
+    "raw": {
+      "intent": "STOP_LISTENING",
+      "aliases": [
+        "stop listening",
+        "go to sleep",
+        "sleep",
+        "turn voice off",
+        "disable voice",
+        "stop voice"
+      ],
+      "responses": [
+        "Voice control off."
+      ],
+      "policy": "Stop voice runtime and require wake word next time.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.STOP_LISTENING.268.1",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "go to sleep",
+    "normalizedUtterance": "go to sleep",
+    "intent": "STOP_LISTENING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.6 STOP_LISTENING",
+    "sourceLine": 268,
+    "raw": {
+      "intent": "STOP_LISTENING",
+      "aliases": [
+        "stop listening",
+        "go to sleep",
+        "sleep",
+        "turn voice off",
+        "disable voice",
+        "stop voice"
+      ],
+      "responses": [
+        "Voice control off."
+      ],
+      "policy": "Stop voice runtime and require wake word next time.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.STOP_LISTENING.268.2",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "sleep",
+    "normalizedUtterance": "sleep",
+    "intent": "STOP_LISTENING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.6 STOP_LISTENING",
+    "sourceLine": 268,
+    "raw": {
+      "intent": "STOP_LISTENING",
+      "aliases": [
+        "stop listening",
+        "go to sleep",
+        "sleep",
+        "turn voice off",
+        "disable voice",
+        "stop voice"
+      ],
+      "responses": [
+        "Voice control off."
+      ],
+      "policy": "Stop voice runtime and require wake word next time.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.STOP_LISTENING.268.3",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "turn voice off",
+    "normalizedUtterance": "turn voice off",
+    "intent": "STOP_LISTENING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.6 STOP_LISTENING",
+    "sourceLine": 268,
+    "raw": {
+      "intent": "STOP_LISTENING",
+      "aliases": [
+        "stop listening",
+        "go to sleep",
+        "sleep",
+        "turn voice off",
+        "disable voice",
+        "stop voice"
+      ],
+      "responses": [
+        "Voice control off."
+      ],
+      "policy": "Stop voice runtime and require wake word next time.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.STOP_LISTENING.268.4",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "disable voice",
+    "normalizedUtterance": "disable voice",
+    "intent": "STOP_LISTENING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.6 STOP_LISTENING",
+    "sourceLine": 268,
+    "raw": {
+      "intent": "STOP_LISTENING",
+      "aliases": [
+        "stop listening",
+        "go to sleep",
+        "sleep",
+        "turn voice off",
+        "disable voice",
+        "stop voice"
+      ],
+      "responses": [
+        "Voice control off."
+      ],
+      "policy": "Stop voice runtime and require wake word next time.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.STOP_LISTENING.268.5",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "stop voice",
+    "normalizedUtterance": "stop voice",
+    "intent": "STOP_LISTENING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.6 STOP_LISTENING",
+    "sourceLine": 268,
+    "raw": {
+      "intent": "STOP_LISTENING",
+      "aliases": [
+        "stop listening",
+        "go to sleep",
+        "sleep",
+        "turn voice off",
+        "disable voice",
+        "stop voice"
+      ],
+      "responses": [
+        "Voice control off."
+      ],
+      "policy": "Stop voice runtime and require wake word next time.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.CANCEL.283.0",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "cancel",
+    "normalizedUtterance": "cancel",
+    "intent": "CANCEL",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.7 CANCEL",
+    "sourceLine": 283,
+    "raw": {
+      "intent": "CANCEL",
+      "aliases": [
+        "cancel",
+        "never mind",
+        "nevermind",
+        "forget it",
+        "abort",
+        "stop that",
+        "scratch that"
+      ],
+      "responses": [
+        "Cancelled.",
+        "Understood."
+      ],
+      "policy": "Cancel only the contextually referenced action or workflow.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.CANCEL.283.1",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "never mind",
+    "normalizedUtterance": "never mind",
+    "intent": "CANCEL",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.7 CANCEL",
+    "sourceLine": 283,
+    "raw": {
+      "intent": "CANCEL",
+      "aliases": [
+        "cancel",
+        "never mind",
+        "nevermind",
+        "forget it",
+        "abort",
+        "stop that",
+        "scratch that"
+      ],
+      "responses": [
+        "Cancelled.",
+        "Understood."
+      ],
+      "policy": "Cancel only the contextually referenced action or workflow.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.CANCEL.283.2",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "nevermind",
+    "normalizedUtterance": "nevermind",
+    "intent": "CANCEL",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.7 CANCEL",
+    "sourceLine": 283,
+    "raw": {
+      "intent": "CANCEL",
+      "aliases": [
+        "cancel",
+        "never mind",
+        "nevermind",
+        "forget it",
+        "abort",
+        "stop that",
+        "scratch that"
+      ],
+      "responses": [
+        "Cancelled.",
+        "Understood."
+      ],
+      "policy": "Cancel only the contextually referenced action or workflow.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.CANCEL.283.3",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "forget it",
+    "normalizedUtterance": "forget it",
+    "intent": "CANCEL",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.7 CANCEL",
+    "sourceLine": 283,
+    "raw": {
+      "intent": "CANCEL",
+      "aliases": [
+        "cancel",
+        "never mind",
+        "nevermind",
+        "forget it",
+        "abort",
+        "stop that",
+        "scratch that"
+      ],
+      "responses": [
+        "Cancelled.",
+        "Understood."
+      ],
+      "policy": "Cancel only the contextually referenced action or workflow.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.CANCEL.283.4",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "abort",
+    "normalizedUtterance": "abort",
+    "intent": "CANCEL",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.7 CANCEL",
+    "sourceLine": 283,
+    "raw": {
+      "intent": "CANCEL",
+      "aliases": [
+        "cancel",
+        "never mind",
+        "nevermind",
+        "forget it",
+        "abort",
+        "stop that",
+        "scratch that"
+      ],
+      "responses": [
+        "Cancelled.",
+        "Understood."
+      ],
+      "policy": "Cancel only the contextually referenced action or workflow.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.CANCEL.283.5",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "stop that",
+    "normalizedUtterance": "stop that",
+    "intent": "CANCEL",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.7 CANCEL",
+    "sourceLine": 283,
+    "raw": {
+      "intent": "CANCEL",
+      "aliases": [
+        "cancel",
+        "never mind",
+        "nevermind",
+        "forget it",
+        "abort",
+        "stop that",
+        "scratch that"
+      ],
+      "responses": [
+        "Cancelled.",
+        "Understood."
+      ],
+      "policy": "Cancel only the contextually referenced action or workflow.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.CANCEL.283.6",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "scratch that",
+    "normalizedUtterance": "scratch that",
+    "intent": "CANCEL",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.7 CANCEL",
+    "sourceLine": 283,
+    "raw": {
+      "intent": "CANCEL",
+      "aliases": [
+        "cancel",
+        "never mind",
+        "nevermind",
+        "forget it",
+        "abort",
+        "stop that",
+        "scratch that"
+      ],
+      "responses": [
+        "Cancelled.",
+        "Understood."
+      ],
+      "policy": "Cancel only the contextually referenced action or workflow.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.REPEAT.300.0",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "repeat",
+    "normalizedUtterance": "repeat",
+    "intent": "REPEAT",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.8 REPEAT",
+    "sourceLine": 300,
+    "raw": {
+      "intent": "REPEAT",
+      "aliases": [
+        "repeat",
+        "say that again",
+        "again",
+        "what did you say",
+        "repeat that"
+      ],
+      "responses": [
+        "null"
+      ],
+      "policy": "Repeat the previous assistant response without AI.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.REPEAT.300.1",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "say that again",
+    "normalizedUtterance": "say that again",
+    "intent": "REPEAT",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.8 REPEAT",
+    "sourceLine": 300,
+    "raw": {
+      "intent": "REPEAT",
+      "aliases": [
+        "repeat",
+        "say that again",
+        "again",
+        "what did you say",
+        "repeat that"
+      ],
+      "responses": [
+        "null"
+      ],
+      "policy": "Repeat the previous assistant response without AI.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.REPEAT.300.2",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "again",
+    "normalizedUtterance": "again",
+    "intent": "REPEAT",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.8 REPEAT",
+    "sourceLine": 300,
+    "raw": {
+      "intent": "REPEAT",
+      "aliases": [
+        "repeat",
+        "say that again",
+        "again",
+        "what did you say",
+        "repeat that"
+      ],
+      "responses": [
+        "null"
+      ],
+      "policy": "Repeat the previous assistant response without AI.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.REPEAT.300.3",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "what did you say",
+    "normalizedUtterance": "what did you say",
+    "intent": "REPEAT",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.8 REPEAT",
+    "sourceLine": 300,
+    "raw": {
+      "intent": "REPEAT",
+      "aliases": [
+        "repeat",
+        "say that again",
+        "again",
+        "what did you say",
+        "repeat that"
+      ],
+      "responses": [
+        "null"
+      ],
+      "policy": "Repeat the previous assistant response without AI.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.REPEAT.300.4",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "repeat that",
+    "normalizedUtterance": "repeat that",
+    "intent": "REPEAT",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.8 REPEAT",
+    "sourceLine": 300,
+    "raw": {
+      "intent": "REPEAT",
+      "aliases": [
+        "repeat",
+        "say that again",
+        "again",
+        "what did you say",
+        "repeat that"
+      ],
+      "responses": [
+        "null"
+      ],
+      "policy": "Repeat the previous assistant response without AI.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.HELP.314.0",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "help",
+    "normalizedUtterance": "help",
+    "intent": "HELP",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.9 HELP",
+    "sourceLine": 314,
+    "raw": {
+      "intent": "HELP",
+      "aliases": [
+        "help",
+        "help me",
+        "what can you do",
+        "commands",
+        "show commands",
+        "what can I say"
+      ],
+      "responses": [
+        "null"
+      ],
+      "policy": "Return context-sensitive capabilities.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.HELP.314.1",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "help me",
+    "normalizedUtterance": "help me",
+    "intent": "HELP",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.9 HELP",
+    "sourceLine": 314,
+    "raw": {
+      "intent": "HELP",
+      "aliases": [
+        "help",
+        "help me",
+        "what can you do",
+        "commands",
+        "show commands",
+        "what can I say"
+      ],
+      "responses": [
+        "null"
+      ],
+      "policy": "Return context-sensitive capabilities.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.HELP.314.2",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "what can you do",
+    "normalizedUtterance": "what do",
+    "intent": "HELP",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.9 HELP",
+    "sourceLine": 314,
+    "raw": {
+      "intent": "HELP",
+      "aliases": [
+        "help",
+        "help me",
+        "what can you do",
+        "commands",
+        "show commands",
+        "what can I say"
+      ],
+      "responses": [
+        "null"
+      ],
+      "policy": "Return context-sensitive capabilities.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.HELP.314.3",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "commands",
+    "normalizedUtterance": "commands",
+    "intent": "HELP",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.9 HELP",
+    "sourceLine": 314,
+    "raw": {
+      "intent": "HELP",
+      "aliases": [
+        "help",
+        "help me",
+        "what can you do",
+        "commands",
+        "show commands",
+        "what can I say"
+      ],
+      "responses": [
+        "null"
+      ],
+      "policy": "Return context-sensitive capabilities.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.HELP.314.4",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "show commands",
+    "normalizedUtterance": "show commands",
+    "intent": "HELP",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.9 HELP",
+    "sourceLine": 314,
+    "raw": {
+      "intent": "HELP",
+      "aliases": [
+        "help",
+        "help me",
+        "what can you do",
+        "commands",
+        "show commands",
+        "what can I say"
+      ],
+      "responses": [
+        "null"
+      ],
+      "policy": "Return context-sensitive capabilities.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.HELP.314.5",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "what can I say",
+    "normalizedUtterance": "what can i say",
+    "intent": "HELP",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.9 HELP",
+    "sourceLine": 314,
+    "raw": {
+      "intent": "HELP",
+      "aliases": [
+        "help",
+        "help me",
+        "what can you do",
+        "commands",
+        "show commands",
+        "what can I say"
+      ],
+      "responses": [
+        "null"
+      ],
+      "policy": "Return context-sensitive capabilities.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.CONFIRM.329.0",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "yes",
+    "normalizedUtterance": "yes",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.10 CONFIRM",
+    "sourceLine": 329,
+    "raw": {
+      "intent": "CONFIRM",
+      "aliases": [
+        "yes",
+        "yeah",
+        "yep",
+        "sure",
+        "okay",
+        "ok",
+        "go ahead",
+        "do it",
+        "proceed",
+        "correct",
+        "exactly"
+      ],
+      "responses": [
+        "Understood.",
+        "On it."
+      ],
+      "policy": "Apply only to the current pending clarification or approval context.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.CONFIRM.329.1",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "yeah",
+    "normalizedUtterance": "yeah",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.10 CONFIRM",
+    "sourceLine": 329,
+    "raw": {
+      "intent": "CONFIRM",
+      "aliases": [
+        "yes",
+        "yeah",
+        "yep",
+        "sure",
+        "okay",
+        "ok",
+        "go ahead",
+        "do it",
+        "proceed",
+        "correct",
+        "exactly"
+      ],
+      "responses": [
+        "Understood.",
+        "On it."
+      ],
+      "policy": "Apply only to the current pending clarification or approval context.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.CONFIRM.329.2",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "yep",
+    "normalizedUtterance": "yep",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.10 CONFIRM",
+    "sourceLine": 329,
+    "raw": {
+      "intent": "CONFIRM",
+      "aliases": [
+        "yes",
+        "yeah",
+        "yep",
+        "sure",
+        "okay",
+        "ok",
+        "go ahead",
+        "do it",
+        "proceed",
+        "correct",
+        "exactly"
+      ],
+      "responses": [
+        "Understood.",
+        "On it."
+      ],
+      "policy": "Apply only to the current pending clarification or approval context.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.CONFIRM.329.3",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "sure",
+    "normalizedUtterance": "sure",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.10 CONFIRM",
+    "sourceLine": 329,
+    "raw": {
+      "intent": "CONFIRM",
+      "aliases": [
+        "yes",
+        "yeah",
+        "yep",
+        "sure",
+        "okay",
+        "ok",
+        "go ahead",
+        "do it",
+        "proceed",
+        "correct",
+        "exactly"
+      ],
+      "responses": [
+        "Understood.",
+        "On it."
+      ],
+      "policy": "Apply only to the current pending clarification or approval context.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.CONFIRM.329.4",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "okay",
+    "normalizedUtterance": "okay",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.10 CONFIRM",
+    "sourceLine": 329,
+    "raw": {
+      "intent": "CONFIRM",
+      "aliases": [
+        "yes",
+        "yeah",
+        "yep",
+        "sure",
+        "okay",
+        "ok",
+        "go ahead",
+        "do it",
+        "proceed",
+        "correct",
+        "exactly"
+      ],
+      "responses": [
+        "Understood.",
+        "On it."
+      ],
+      "policy": "Apply only to the current pending clarification or approval context.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.CONFIRM.329.5",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "ok",
+    "normalizedUtterance": "ok",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.10 CONFIRM",
+    "sourceLine": 329,
+    "raw": {
+      "intent": "CONFIRM",
+      "aliases": [
+        "yes",
+        "yeah",
+        "yep",
+        "sure",
+        "okay",
+        "ok",
+        "go ahead",
+        "do it",
+        "proceed",
+        "correct",
+        "exactly"
+      ],
+      "responses": [
+        "Understood.",
+        "On it."
+      ],
+      "policy": "Apply only to the current pending clarification or approval context.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.CONFIRM.329.6",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "go ahead",
+    "normalizedUtterance": "go ahead",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.10 CONFIRM",
+    "sourceLine": 329,
+    "raw": {
+      "intent": "CONFIRM",
+      "aliases": [
+        "yes",
+        "yeah",
+        "yep",
+        "sure",
+        "okay",
+        "ok",
+        "go ahead",
+        "do it",
+        "proceed",
+        "correct",
+        "exactly"
+      ],
+      "responses": [
+        "Understood.",
+        "On it."
+      ],
+      "policy": "Apply only to the current pending clarification or approval context.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.CONFIRM.329.7",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "do it",
+    "normalizedUtterance": "do it",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.10 CONFIRM",
+    "sourceLine": 329,
+    "raw": {
+      "intent": "CONFIRM",
+      "aliases": [
+        "yes",
+        "yeah",
+        "yep",
+        "sure",
+        "okay",
+        "ok",
+        "go ahead",
+        "do it",
+        "proceed",
+        "correct",
+        "exactly"
+      ],
+      "responses": [
+        "Understood.",
+        "On it."
+      ],
+      "policy": "Apply only to the current pending clarification or approval context.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.CONFIRM.329.8",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "proceed",
+    "normalizedUtterance": "proceed",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.10 CONFIRM",
+    "sourceLine": 329,
+    "raw": {
+      "intent": "CONFIRM",
+      "aliases": [
+        "yes",
+        "yeah",
+        "yep",
+        "sure",
+        "okay",
+        "ok",
+        "go ahead",
+        "do it",
+        "proceed",
+        "correct",
+        "exactly"
+      ],
+      "responses": [
+        "Understood.",
+        "On it."
+      ],
+      "policy": "Apply only to the current pending clarification or approval context.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.CONFIRM.329.9",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "correct",
+    "normalizedUtterance": "correct",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.10 CONFIRM",
+    "sourceLine": 329,
+    "raw": {
+      "intent": "CONFIRM",
+      "aliases": [
+        "yes",
+        "yeah",
+        "yep",
+        "sure",
+        "okay",
+        "ok",
+        "go ahead",
+        "do it",
+        "proceed",
+        "correct",
+        "exactly"
+      ],
+      "responses": [
+        "Understood.",
+        "On it."
+      ],
+      "policy": "Apply only to the current pending clarification or approval context.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.CONFIRM.329.10",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "exactly",
+    "normalizedUtterance": "exactly",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.10 CONFIRM",
+    "sourceLine": 329,
+    "raw": {
+      "intent": "CONFIRM",
+      "aliases": [
+        "yes",
+        "yeah",
+        "yep",
+        "sure",
+        "okay",
+        "ok",
+        "go ahead",
+        "do it",
+        "proceed",
+        "correct",
+        "exactly"
+      ],
+      "responses": [
+        "Understood.",
+        "On it."
+      ],
+      "policy": "Apply only to the current pending clarification or approval context.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.DENY.350.0",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "no",
+    "normalizedUtterance": "no",
+    "intent": "DENY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.11 DENY",
+    "sourceLine": 350,
+    "raw": {
+      "intent": "DENY",
+      "aliases": [
+        "no",
+        "nope",
+        "don't",
+        "wrong",
+        "not that",
+        "cancel that"
+      ],
+      "responses": [
+        "Understood."
+      ],
+      "policy": "Reject only the active candidate/action.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.DENY.350.1",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "nope",
+    "normalizedUtterance": "nope",
+    "intent": "DENY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.11 DENY",
+    "sourceLine": 350,
+    "raw": {
+      "intent": "DENY",
+      "aliases": [
+        "no",
+        "nope",
+        "don't",
+        "wrong",
+        "not that",
+        "cancel that"
+      ],
+      "responses": [
+        "Understood."
+      ],
+      "policy": "Reject only the active candidate/action.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.DENY.350.2",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "don't",
+    "normalizedUtterance": "don't",
+    "intent": "DENY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.11 DENY",
+    "sourceLine": 350,
+    "raw": {
+      "intent": "DENY",
+      "aliases": [
+        "no",
+        "nope",
+        "don't",
+        "wrong",
+        "not that",
+        "cancel that"
+      ],
+      "responses": [
+        "Understood."
+      ],
+      "policy": "Reject only the active candidate/action.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.DENY.350.3",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "wrong",
+    "normalizedUtterance": "wrong",
+    "intent": "DENY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.11 DENY",
+    "sourceLine": 350,
+    "raw": {
+      "intent": "DENY",
+      "aliases": [
+        "no",
+        "nope",
+        "don't",
+        "wrong",
+        "not that",
+        "cancel that"
+      ],
+      "responses": [
+        "Understood."
+      ],
+      "policy": "Reject only the active candidate/action.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.DENY.350.4",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "not that",
+    "normalizedUtterance": "not that",
+    "intent": "DENY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.11 DENY",
+    "sourceLine": 350,
+    "raw": {
+      "intent": "DENY",
+      "aliases": [
+        "no",
+        "nope",
+        "don't",
+        "wrong",
+        "not that",
+        "cancel that"
+      ],
+      "responses": [
+        "Understood."
+      ],
+      "policy": "Reject only the active candidate/action.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "intent.DENY.350.5",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "cancel that",
+    "normalizedUtterance": "cancel that",
+    "intent": "DENY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "social",
+      "intent_example"
+    ],
+    "sourceSection": "5.11 DENY",
+    "sourceLine": 350,
+    "raw": {
+      "intent": "DENY",
+      "aliases": [
+        "no",
+        "nope",
+        "don't",
+        "wrong",
+        "not that",
+        "cancel that"
+      ],
+      "responses": [
+        "Understood."
+      ],
+      "policy": "Reject only the active candidate/action.",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.01.002",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "hey there",
+    "normalizedUtterance": "hey there",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "38.2 Navigation Utterances",
+    "sourceLine": 4052,
+    "raw": {
+      "id": "human.01.002",
+      "utterance": "hey there",
+      "intent": "GREETING",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.01.003",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "yo alexa",
+    "normalizedUtterance": null,
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "38.2 Navigation Utterances",
+    "sourceLine": 4063,
+    "raw": {
+      "id": "human.01.003",
+      "utterance": "yo alexa",
+      "intent": "GREETING",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.01.004",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "you there",
+    "normalizedUtterance": "you there",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "38.2 Navigation Utterances",
+    "sourceLine": 4074,
+    "raw": {
+      "id": "human.01.004",
+      "utterance": "you there",
+      "intent": "GREETING",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.01.005",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "are you there",
+    "normalizedUtterance": "are you there",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "38.2 Navigation Utterances",
+    "sourceLine": 4085,
+    "raw": {
+      "id": "human.01.005",
+      "utterance": "are you there",
+      "intent": "GREETING",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.01.006",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "morning alexa",
+    "normalizedUtterance": "morning",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "38.2 Navigation Utterances",
+    "sourceLine": 4096,
+    "raw": {
+      "id": "human.01.006",
+      "utterance": "morning alexa",
+      "intent": "GREETING",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.01.007",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "good morning",
+    "normalizedUtterance": "good morning",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "38.2 Navigation Utterances",
+    "sourceLine": 4107,
+    "raw": {
+      "id": "human.01.007",
+      "utterance": "good morning",
+      "intent": "GREETING",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.01.008",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "evening",
+    "normalizedUtterance": "evening",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "38.2 Navigation Utterances",
+    "sourceLine": 4118,
+    "raw": {
+      "id": "human.01.008",
+      "utterance": "evening",
+      "intent": "GREETING",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.01.009",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "hello again",
+    "normalizedUtterance": "hello again",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "38.2 Navigation Utterances",
+    "sourceLine": 4129,
+    "raw": {
+      "id": "human.01.009",
+      "utterance": "hello again",
+      "intent": "GREETING",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.01.010",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "I'm back",
+    "normalizedUtterance": "i'm back",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "38.2 Navigation Utterances",
+    "sourceLine": 4140,
+    "raw": {
+      "id": "human.01.010",
+      "utterance": "I'm back",
+      "intent": "GREETING",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.01.011",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "back",
+    "normalizedUtterance": "back",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "38.2 Navigation Utterances",
+    "sourceLine": 4151,
+    "raw": {
+      "id": "human.01.011",
+      "utterance": "back",
+      "intent": "GREETING",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.01.012",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "what's good",
+    "normalizedUtterance": "what's good",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "38.2 Navigation Utterances",
+    "sourceLine": 4162,
+    "raw": {
+      "id": "human.01.012",
+      "utterance": "what's good",
+      "intent": "GREETING",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.01.013",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "what's up",
+    "normalizedUtterance": "what's up",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "38.2 Navigation Utterances",
+    "sourceLine": 4173,
+    "raw": {
+      "id": "human.01.013",
+      "utterance": "what's up",
+      "intent": "GREETING",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.01.014",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "sup",
+    "normalizedUtterance": "sup",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "38.2 Navigation Utterances",
+    "sourceLine": 4184,
+    "raw": {
+      "id": "human.01.014",
+      "utterance": "sup",
+      "intent": "GREETING",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.01.015",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "hiya",
+    "normalizedUtterance": "hiya",
+    "intent": "GREETING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "38.2 Navigation Utterances",
+    "sourceLine": 4195,
+    "raw": {
+      "id": "human.01.015",
+      "utterance": "hiya",
+      "intent": "GREETING",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.02.001",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "thanks",
+    "normalizedUtterance": "thanks",
+    "intent": "THANKS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.2 Thanks and acknowledgement",
+    "sourceLine": 4207,
+    "raw": {
+      "id": "human.02.001",
+      "utterance": "thanks",
+      "intent": "THANKS",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.02.002",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "thank you",
+    "normalizedUtterance": "thank you",
+    "intent": "THANKS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.2 Thanks and acknowledgement",
+    "sourceLine": 4218,
+    "raw": {
+      "id": "human.02.002",
+      "utterance": "thank you",
+      "intent": "THANKS",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.02.003",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "thanks a lot",
+    "normalizedUtterance": "thanks a lot",
+    "intent": "THANKS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.2 Thanks and acknowledgement",
+    "sourceLine": 4229,
+    "raw": {
+      "id": "human.02.003",
+      "utterance": "thanks a lot",
+      "intent": "THANKS",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.02.004",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "appreciate it",
+    "normalizedUtterance": "appreciate it",
+    "intent": "THANKS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.2 Thanks and acknowledgement",
+    "sourceLine": 4240,
+    "raw": {
+      "id": "human.02.004",
+      "utterance": "appreciate it",
+      "intent": "THANKS",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.02.005",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "nice one",
+    "normalizedUtterance": "nice one",
+    "intent": "THANKS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.2 Thanks and acknowledgement",
+    "sourceLine": 4251,
+    "raw": {
+      "id": "human.02.005",
+      "utterance": "nice one",
+      "intent": "THANKS",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.02.006",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "perfect",
+    "normalizedUtterance": "perfect",
+    "intent": "THANKS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.2 Thanks and acknowledgement",
+    "sourceLine": 4262,
+    "raw": {
+      "id": "human.02.006",
+      "utterance": "perfect",
+      "intent": "THANKS",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.02.007",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "great",
+    "normalizedUtterance": "great",
+    "intent": "THANKS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.2 Thanks and acknowledgement",
+    "sourceLine": 4273,
+    "raw": {
+      "id": "human.02.007",
+      "utterance": "great",
+      "intent": "THANKS",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.02.008",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "that's good",
+    "normalizedUtterance": "that's good",
+    "intent": "THANKS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.2 Thanks and acknowledgement",
+    "sourceLine": 4284,
+    "raw": {
+      "id": "human.02.008",
+      "utterance": "that's good",
+      "intent": "THANKS",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.02.009",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "good stuff",
+    "normalizedUtterance": "good stuff",
+    "intent": "THANKS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.2 Thanks and acknowledgement",
+    "sourceLine": 4295,
+    "raw": {
+      "id": "human.02.009",
+      "utterance": "good stuff",
+      "intent": "THANKS",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.02.010",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "cheers",
+    "normalizedUtterance": "cheers",
+    "intent": "THANKS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.2 Thanks and acknowledgement",
+    "sourceLine": 4306,
+    "raw": {
+      "id": "human.02.010",
+      "utterance": "cheers",
+      "intent": "THANKS",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.02.011",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "legend",
+    "normalizedUtterance": "legend",
+    "intent": "THANKS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.2 Thanks and acknowledgement",
+    "sourceLine": 4317,
+    "raw": {
+      "id": "human.02.011",
+      "utterance": "legend",
+      "intent": "THANKS",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.02.012",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "nice",
+    "normalizedUtterance": "nice",
+    "intent": "THANKS",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.2 Thanks and acknowledgement",
+    "sourceLine": 4328,
+    "raw": {
+      "id": "human.02.012",
+      "utterance": "nice",
+      "intent": "THANKS",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.03.001",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "stop",
+    "normalizedUtterance": "stop",
+    "intent": "STOP_SPEAKING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.3 Stop and interruption",
+    "sourceLine": 4340,
+    "raw": {
+      "id": "human.03.001",
+      "utterance": "stop",
+      "intent": "STOP_SPEAKING",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.03.002",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "stop talking",
+    "normalizedUtterance": "stop talking",
+    "intent": "STOP_SPEAKING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.3 Stop and interruption",
+    "sourceLine": 4351,
+    "raw": {
+      "id": "human.03.002",
+      "utterance": "stop talking",
+      "intent": "STOP_SPEAKING",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.03.003",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "shut up",
+    "normalizedUtterance": "shut up",
+    "intent": "STOP_SPEAKING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.3 Stop and interruption",
+    "sourceLine": 4362,
+    "raw": {
+      "id": "human.03.003",
+      "utterance": "shut up",
+      "intent": "STOP_SPEAKING",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.03.004",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "quiet",
+    "normalizedUtterance": "quiet",
+    "intent": "STOP_SPEAKING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.3 Stop and interruption",
+    "sourceLine": 4373,
+    "raw": {
+      "id": "human.03.004",
+      "utterance": "quiet",
+      "intent": "STOP_SPEAKING",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.03.005",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "enough",
+    "normalizedUtterance": "enough",
+    "intent": "STOP_SPEAKING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.3 Stop and interruption",
+    "sourceLine": 4384,
+    "raw": {
+      "id": "human.03.005",
+      "utterance": "enough",
+      "intent": "STOP_SPEAKING",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.03.006",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "that's enough",
+    "normalizedUtterance": "that's enough",
+    "intent": "STOP_SPEAKING",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.3 Stop and interruption",
+    "sourceLine": 4395,
+    "raw": {
+      "id": "human.03.006",
+      "utterance": "that's enough",
+      "intent": "STOP_SPEAKING",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.03.012",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "don't do that",
+    "normalizedUtterance": "don't do that",
+    "intent": "CANCEL",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.3 Stop and interruption",
+    "sourceLine": 4461,
+    "raw": {
+      "id": "human.03.012",
+      "utterance": "don't do that",
+      "intent": "CANCEL",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.03.013",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "cancel that",
+    "normalizedUtterance": "cancel that",
+    "intent": "CANCEL",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.3 Stop and interruption",
+    "sourceLine": 4472,
+    "raw": {
+      "id": "human.03.013",
+      "utterance": "cancel that",
+      "intent": "CANCEL",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.03.014",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "nah forget it",
+    "normalizedUtterance": "nah forget it",
+    "intent": "CANCEL",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.3 Stop and interruption",
+    "sourceLine": 4483,
+    "raw": {
+      "id": "human.03.014",
+      "utterance": "nah forget it",
+      "intent": "CANCEL",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.03.015",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "never mind",
+    "normalizedUtterance": "never mind",
+    "intent": "CANCEL",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.3 Stop and interruption",
+    "sourceLine": 4494,
+    "raw": {
+      "id": "human.03.015",
+      "utterance": "never mind",
+      "intent": "CANCEL",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.04.001",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "yeah",
+    "normalizedUtterance": "yeah",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.4 Confirmation",
+    "sourceLine": 4506,
+    "raw": {
+      "id": "human.04.001",
+      "utterance": "yeah",
+      "intent": "CONFIRM",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.04.002",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "yep",
+    "normalizedUtterance": "yep",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.4 Confirmation",
+    "sourceLine": 4517,
+    "raw": {
+      "id": "human.04.002",
+      "utterance": "yep",
+      "intent": "CONFIRM",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.04.003",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "yup",
+    "normalizedUtterance": "yup",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.4 Confirmation",
+    "sourceLine": 4528,
+    "raw": {
+      "id": "human.04.003",
+      "utterance": "yup",
+      "intent": "CONFIRM",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.04.004",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "sure",
+    "normalizedUtterance": "sure",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.4 Confirmation",
+    "sourceLine": 4539,
+    "raw": {
+      "id": "human.04.004",
+      "utterance": "sure",
+      "intent": "CONFIRM",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.04.005",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "okay",
+    "normalizedUtterance": "okay",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.4 Confirmation",
+    "sourceLine": 4550,
+    "raw": {
+      "id": "human.04.005",
+      "utterance": "okay",
+      "intent": "CONFIRM",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.04.006",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "ok",
+    "normalizedUtterance": "ok",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.4 Confirmation",
+    "sourceLine": 4561,
+    "raw": {
+      "id": "human.04.006",
+      "utterance": "ok",
+      "intent": "CONFIRM",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.04.007",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "go ahead",
+    "normalizedUtterance": "go ahead",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.4 Confirmation",
+    "sourceLine": 4572,
+    "raw": {
+      "id": "human.04.007",
+      "utterance": "go ahead",
+      "intent": "CONFIRM",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.04.008",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "do it",
+    "normalizedUtterance": "do it",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.4 Confirmation",
+    "sourceLine": 4583,
+    "raw": {
+      "id": "human.04.008",
+      "utterance": "do it",
+      "intent": "CONFIRM",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.04.009",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "that's right",
+    "normalizedUtterance": "that's right",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.4 Confirmation",
+    "sourceLine": 4594,
+    "raw": {
+      "id": "human.04.009",
+      "utterance": "that's right",
+      "intent": "CONFIRM",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.04.010",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "correct",
+    "normalizedUtterance": "correct",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.4 Confirmation",
+    "sourceLine": 4605,
+    "raw": {
+      "id": "human.04.010",
+      "utterance": "correct",
+      "intent": "CONFIRM",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.04.011",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "exactly",
+    "normalizedUtterance": "exactly",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.4 Confirmation",
+    "sourceLine": 4616,
+    "raw": {
+      "id": "human.04.011",
+      "utterance": "exactly",
+      "intent": "CONFIRM",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.04.012",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "sounds good",
+    "normalizedUtterance": "sounds good",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.4 Confirmation",
+    "sourceLine": 4627,
+    "raw": {
+      "id": "human.04.012",
+      "utterance": "sounds good",
+      "intent": "CONFIRM",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.04.013",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "fine by me",
+    "normalizedUtterance": "fine by me",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.4 Confirmation",
+    "sourceLine": 4638,
+    "raw": {
+      "id": "human.04.013",
+      "utterance": "fine by me",
+      "intent": "CONFIRM",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.04.014",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "proceed",
+    "normalizedUtterance": "proceed",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.4 Confirmation",
+    "sourceLine": 4649,
+    "raw": {
+      "id": "human.04.014",
+      "utterance": "proceed",
+      "intent": "CONFIRM",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.05.001",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "no",
+    "normalizedUtterance": "no",
+    "intent": "DENY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.5 Denial and correction",
+    "sourceLine": 4661,
+    "raw": {
+      "id": "human.05.001",
+      "utterance": "no",
+      "intent": "DENY",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.05.002",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "nope",
+    "normalizedUtterance": "nope",
+    "intent": "DENY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.5 Denial and correction",
+    "sourceLine": 4672,
+    "raw": {
+      "id": "human.05.002",
+      "utterance": "nope",
+      "intent": "DENY",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.05.003",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "nah",
+    "normalizedUtterance": "nah",
+    "intent": "DENY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.5 Denial and correction",
+    "sourceLine": 4683,
+    "raw": {
+      "id": "human.05.003",
+      "utterance": "nah",
+      "intent": "DENY",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.05.004",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "not that",
+    "normalizedUtterance": "not that",
+    "intent": "DENY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.5 Denial and correction",
+    "sourceLine": 4694,
+    "raw": {
+      "id": "human.05.004",
+      "utterance": "not that",
+      "intent": "DENY",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.05.005",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "wrong one",
+    "normalizedUtterance": "wrong one",
+    "intent": "DENY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.5 Denial and correction",
+    "sourceLine": 4705,
+    "raw": {
+      "id": "human.05.005",
+      "utterance": "wrong one",
+      "intent": "DENY",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.05.006",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "that's wrong",
+    "normalizedUtterance": "that's wrong",
+    "intent": "DENY",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.5 Denial and correction",
+    "sourceLine": 4716,
+    "raw": {
+      "id": "human.05.006",
+      "utterance": "that's wrong",
+      "intent": "DENY",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "relative.004",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "pick the first result",
+    "normalizedUtterance": "pick the first result",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "56. Comparative and Relative References",
+    "sourceLine": 6456,
+    "raw": {
+      "id": "relative.004",
+      "utterance": "pick the first result",
+      "intent": "CONFIRM",
+      "requires_ranked_context": true,
+      "fallback": "clarify"
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "relative.005",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "open the second one",
+    "normalizedUtterance": "open the second one",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "56. Comparative and Relative References",
+    "sourceLine": 6463,
+    "raw": {
+      "id": "relative.005",
+      "utterance": "open the second one",
+      "intent": "CONFIRM",
+      "requires_ranked_context": true,
+      "fallback": "clarify"
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "recovery.008",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "undo that",
+    "normalizedUtterance": "undo that",
+    "intent": "CANCEL",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "58. Error Recovery and Retry Language",
+    "sourceLine": 6658,
+    "raw": {
+      "id": "recovery.008",
+      "utterance": "undo that",
+      "intent": "CANCEL",
+      "use_recent_execution_context": true,
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "recovery.009",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "go back to how it was",
+    "normalizedUtterance": "go back to how it was",
+    "intent": "CANCEL",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "58. Error Recovery and Retry Language",
+    "sourceLine": 6665,
+    "raw": {
+      "id": "recovery.009",
+      "utterance": "go back to how it was",
+      "intent": "CANCEL",
+      "use_recent_execution_context": true,
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "recovery.010",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "restore the previous version",
+    "normalizedUtterance": "restore the previous version",
+    "intent": "CANCEL",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "58. Error Recovery and Retry Language",
+    "sourceLine": 6672,
+    "raw": {
+      "id": "recovery.010",
+      "utterance": "restore the previous version",
+      "intent": "CANCEL",
+      "use_recent_execution_context": true,
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "recovery.011",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "don't retry",
+    "normalizedUtterance": "don't retry",
+    "intent": "DENY",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "58. Error Recovery and Retry Language",
+    "sourceLine": 6679,
+    "raw": {
+      "id": "recovery.011",
+      "utterance": "don't retry",
+      "intent": "DENY",
+      "use_recent_execution_context": true,
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "frustration.002",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "just do it man",
+    "normalizedUtterance": "do it man",
+    "intent": "CONFIRM",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "59. Frustration and Casual Speech",
+    "sourceLine": 6707,
+    "raw": {
+      "id": "frustration.002",
+      "utterance": "just do it man",
+      "intent": "CONFIRM",
+      "tone_response": "neutral",
+      "do_not_lecture": true,
+      "extract_action_semantics": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "frustration.008",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "just stop talking",
+    "normalizedUtterance": "stop talking",
+    "intent": "STOP_SPEAKING",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "59. Frustration and Casual Speech",
+    "sourceLine": 6755,
+    "raw": {
+      "id": "frustration.008",
+      "utterance": "just stop talking",
+      "intent": "STOP_SPEAKING",
+      "tone_response": "neutral",
+      "do_not_lecture": true,
+      "extract_action_semantics": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "frustration.009",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "social",
+    "utterance": "bro cancel it",
+    "normalizedUtterance": "cancel it",
+    "intent": "CANCEL",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "59. Frustration and Casual Speech",
+    "sourceLine": 6763,
+    "raw": {
+      "id": "frustration.009",
+      "utterance": "bro cancel it",
+      "intent": "CANCEL",
+      "tone_response": "neutral",
+      "do_not_lecture": true,
+      "extract_action_semantics": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  }
+]

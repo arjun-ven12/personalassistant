@@ -1,0 +1,3249 @@
+[
+  {
+    "id": "utterance.application.01.3274",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "open VS Code",
+    "normalizedUtterance": "open vs code",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3274,
+    "raw": {
+      "id": "utterance.application.01.3274",
+      "domain": "application",
+      "utterance": "open VS Code",
+      "intent": "LAUNCH_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3283",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "open Chrome",
+    "normalizedUtterance": "open chrome",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "chrome"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3283,
+    "raw": {
+      "id": "utterance.application.01.3283",
+      "domain": "application",
+      "utterance": "open Chrome",
+      "intent": "LAUNCH_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3292",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "open Quant's Trade",
+    "normalizedUtterance": "open quant's trade",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3292,
+    "raw": {
+      "id": "utterance.application.01.3292",
+      "domain": "application",
+      "utterance": "open Quant's Trade",
+      "intent": "LAUNCH_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3301",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "open meeting notes",
+    "normalizedUtterance": "open meeting notes",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3301,
+    "raw": {
+      "id": "utterance.application.01.3301",
+      "domain": "application",
+      "utterance": "open meeting notes",
+      "intent": "LAUNCH_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3310",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "open marketing",
+    "normalizedUtterance": "open marketing",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3310,
+    "raw": {
+      "id": "utterance.application.01.3310",
+      "domain": "application",
+      "utterance": "open marketing",
+      "intent": "LAUNCH_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3319",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "open backend",
+    "normalizedUtterance": "open backend",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3319,
+    "raw": {
+      "id": "utterance.application.01.3319",
+      "domain": "application",
+      "utterance": "open backend",
+      "intent": "LAUNCH_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3328",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "launch VS Code",
+    "normalizedUtterance": "launch vs code",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3328,
+    "raw": {
+      "id": "utterance.application.01.3328",
+      "domain": "application",
+      "utterance": "launch VS Code",
+      "intent": "LAUNCH_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3337",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "launch Chrome",
+    "normalizedUtterance": "launch chrome",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "chrome"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3337,
+    "raw": {
+      "id": "utterance.application.01.3337",
+      "domain": "application",
+      "utterance": "launch Chrome",
+      "intent": "LAUNCH_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3346",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "launch Quant's Trade",
+    "normalizedUtterance": "launch quant's trade",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3346,
+    "raw": {
+      "id": "utterance.application.01.3346",
+      "domain": "application",
+      "utterance": "launch Quant's Trade",
+      "intent": "LAUNCH_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3355",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "launch meeting notes",
+    "normalizedUtterance": "launch meeting notes",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3355,
+    "raw": {
+      "id": "utterance.application.01.3355",
+      "domain": "application",
+      "utterance": "launch meeting notes",
+      "intent": "LAUNCH_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3364",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "launch marketing",
+    "normalizedUtterance": "launch marketing",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3364,
+    "raw": {
+      "id": "utterance.application.01.3364",
+      "domain": "application",
+      "utterance": "launch marketing",
+      "intent": "LAUNCH_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3373",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "launch backend",
+    "normalizedUtterance": "launch backend",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3373,
+    "raw": {
+      "id": "utterance.application.01.3373",
+      "domain": "application",
+      "utterance": "launch backend",
+      "intent": "LAUNCH_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3382",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "start VS Code",
+    "normalizedUtterance": "start vs code",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3382,
+    "raw": {
+      "id": "utterance.application.01.3382",
+      "domain": "application",
+      "utterance": "start VS Code",
+      "intent": "LAUNCH_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3391",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "start Chrome",
+    "normalizedUtterance": "start chrome",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "chrome"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3391,
+    "raw": {
+      "id": "utterance.application.01.3391",
+      "domain": "application",
+      "utterance": "start Chrome",
+      "intent": "LAUNCH_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3400",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "start Quant's Trade",
+    "normalizedUtterance": "start quant's trade",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3400,
+    "raw": {
+      "id": "utterance.application.01.3400",
+      "domain": "application",
+      "utterance": "start Quant's Trade",
+      "intent": "LAUNCH_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3409",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "start meeting notes",
+    "normalizedUtterance": "start meeting notes",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3409,
+    "raw": {
+      "id": "utterance.application.01.3409",
+      "domain": "application",
+      "utterance": "start meeting notes",
+      "intent": "LAUNCH_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3418",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "start marketing",
+    "normalizedUtterance": "start marketing",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3418,
+    "raw": {
+      "id": "utterance.application.01.3418",
+      "domain": "application",
+      "utterance": "start marketing",
+      "intent": "LAUNCH_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3427",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "start backend",
+    "normalizedUtterance": "start backend",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3427,
+    "raw": {
+      "id": "utterance.application.01.3427",
+      "domain": "application",
+      "utterance": "start backend",
+      "intent": "LAUNCH_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3436",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "focus VS Code",
+    "normalizedUtterance": "focus vs code",
+    "intent": "FOCUS_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3436,
+    "raw": {
+      "id": "utterance.application.01.3436",
+      "domain": "application",
+      "utterance": "focus VS Code",
+      "intent": "FOCUS_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3445",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "focus Chrome",
+    "normalizedUtterance": "focus chrome",
+    "intent": "FOCUS_APPLICATION",
+    "entities": {
+      "application": "chrome"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3445,
+    "raw": {
+      "id": "utterance.application.01.3445",
+      "domain": "application",
+      "utterance": "focus Chrome",
+      "intent": "FOCUS_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3454",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "focus Quant's Trade",
+    "normalizedUtterance": "focus quant's trade",
+    "intent": "FOCUS_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3454,
+    "raw": {
+      "id": "utterance.application.01.3454",
+      "domain": "application",
+      "utterance": "focus Quant's Trade",
+      "intent": "FOCUS_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3463",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "focus meeting notes",
+    "normalizedUtterance": "focus meeting notes",
+    "intent": "FOCUS_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3463,
+    "raw": {
+      "id": "utterance.application.01.3463",
+      "domain": "application",
+      "utterance": "focus meeting notes",
+      "intent": "FOCUS_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3472",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "focus marketing",
+    "normalizedUtterance": "focus marketing",
+    "intent": "FOCUS_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3472,
+    "raw": {
+      "id": "utterance.application.01.3472",
+      "domain": "application",
+      "utterance": "focus marketing",
+      "intent": "FOCUS_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3481",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "focus backend",
+    "normalizedUtterance": "focus backend",
+    "intent": "FOCUS_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3481,
+    "raw": {
+      "id": "utterance.application.01.3481",
+      "domain": "application",
+      "utterance": "focus backend",
+      "intent": "FOCUS_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3490",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "switch to VS Code",
+    "normalizedUtterance": "switch to vs code",
+    "intent": "FOCUS_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3490,
+    "raw": {
+      "id": "utterance.application.01.3490",
+      "domain": "application",
+      "utterance": "switch to VS Code",
+      "intent": "FOCUS_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3499",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "switch to Chrome",
+    "normalizedUtterance": "switch to chrome",
+    "intent": "FOCUS_APPLICATION",
+    "entities": {
+      "application": "chrome"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3499,
+    "raw": {
+      "id": "utterance.application.01.3499",
+      "domain": "application",
+      "utterance": "switch to Chrome",
+      "intent": "FOCUS_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3508",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "switch to Quant's Trade",
+    "normalizedUtterance": "switch to quant's trade",
+    "intent": "FOCUS_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3508,
+    "raw": {
+      "id": "utterance.application.01.3508",
+      "domain": "application",
+      "utterance": "switch to Quant's Trade",
+      "intent": "FOCUS_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3517",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "switch to meeting notes",
+    "normalizedUtterance": "switch to meeting notes",
+    "intent": "FOCUS_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3517,
+    "raw": {
+      "id": "utterance.application.01.3517",
+      "domain": "application",
+      "utterance": "switch to meeting notes",
+      "intent": "FOCUS_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3526",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "switch to marketing",
+    "normalizedUtterance": "switch to marketing",
+    "intent": "FOCUS_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3526,
+    "raw": {
+      "id": "utterance.application.01.3526",
+      "domain": "application",
+      "utterance": "switch to marketing",
+      "intent": "FOCUS_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3535",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "switch to backend",
+    "normalizedUtterance": "switch to backend",
+    "intent": "FOCUS_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3535,
+    "raw": {
+      "id": "utterance.application.01.3535",
+      "domain": "application",
+      "utterance": "switch to backend",
+      "intent": "FOCUS_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3544",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "close VS Code",
+    "normalizedUtterance": "close vs code",
+    "intent": "CLOSE_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3544,
+    "raw": {
+      "id": "utterance.application.01.3544",
+      "domain": "application",
+      "utterance": "close VS Code",
+      "intent": "CLOSE_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3553",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "close Chrome",
+    "normalizedUtterance": "close chrome",
+    "intent": "CLOSE_APPLICATION",
+    "entities": {
+      "application": "chrome"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3553,
+    "raw": {
+      "id": "utterance.application.01.3553",
+      "domain": "application",
+      "utterance": "close Chrome",
+      "intent": "CLOSE_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3562",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "close Quant's Trade",
+    "normalizedUtterance": "close quant's trade",
+    "intent": "CLOSE_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3562,
+    "raw": {
+      "id": "utterance.application.01.3562",
+      "domain": "application",
+      "utterance": "close Quant's Trade",
+      "intent": "CLOSE_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3571",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "close meeting notes",
+    "normalizedUtterance": "close meeting notes",
+    "intent": "CLOSE_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3571,
+    "raw": {
+      "id": "utterance.application.01.3571",
+      "domain": "application",
+      "utterance": "close meeting notes",
+      "intent": "CLOSE_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3580",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "close marketing",
+    "normalizedUtterance": "close marketing",
+    "intent": "CLOSE_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3580,
+    "raw": {
+      "id": "utterance.application.01.3580",
+      "domain": "application",
+      "utterance": "close marketing",
+      "intent": "CLOSE_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3589",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "close backend",
+    "normalizedUtterance": "close backend",
+    "intent": "CLOSE_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3589,
+    "raw": {
+      "id": "utterance.application.01.3589",
+      "domain": "application",
+      "utterance": "close backend",
+      "intent": "CLOSE_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3598",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "quit VS Code",
+    "normalizedUtterance": "quit vs code",
+    "intent": "CLOSE_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3598,
+    "raw": {
+      "id": "utterance.application.01.3598",
+      "domain": "application",
+      "utterance": "quit VS Code",
+      "intent": "CLOSE_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3607",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "quit Chrome",
+    "normalizedUtterance": "quit chrome",
+    "intent": "CLOSE_APPLICATION",
+    "entities": {
+      "application": "chrome"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3607,
+    "raw": {
+      "id": "utterance.application.01.3607",
+      "domain": "application",
+      "utterance": "quit Chrome",
+      "intent": "CLOSE_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3616",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "quit Quant's Trade",
+    "normalizedUtterance": "quit quant's trade",
+    "intent": "CLOSE_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3616,
+    "raw": {
+      "id": "utterance.application.01.3616",
+      "domain": "application",
+      "utterance": "quit Quant's Trade",
+      "intent": "CLOSE_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3625",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "quit meeting notes",
+    "normalizedUtterance": "quit meeting notes",
+    "intent": "CLOSE_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3625,
+    "raw": {
+      "id": "utterance.application.01.3625",
+      "domain": "application",
+      "utterance": "quit meeting notes",
+      "intent": "CLOSE_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3634",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "quit marketing",
+    "normalizedUtterance": "quit marketing",
+    "intent": "CLOSE_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3634,
+    "raw": {
+      "id": "utterance.application.01.3634",
+      "domain": "application",
+      "utterance": "quit marketing",
+      "intent": "CLOSE_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "utterance.application.01.3643",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "quit backend",
+    "normalizedUtterance": "quit backend",
+    "intent": "CLOSE_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "application"
+    ],
+    "sourceSection": "38.1 Application Utterances",
+    "sourceLine": 3643,
+    "raw": {
+      "id": "utterance.application.01.3643",
+      "domain": "application",
+      "utterance": "quit backend",
+      "intent": "CLOSE_APPLICATION",
+      "deterministic": true,
+      "vector_seed": true,
+      "confidence_target": 0.95
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.06.001",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "open vscode",
+    "normalizedUtterance": "open vscode",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.6 Application launch",
+    "sourceLine": 4794,
+    "raw": {
+      "id": "human.06.001",
+      "utterance": "open vscode",
+      "intent": "LAUNCH_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.06.002",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "open code",
+    "normalizedUtterance": "open code",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.6 Application launch",
+    "sourceLine": 4805,
+    "raw": {
+      "id": "human.06.002",
+      "utterance": "open code",
+      "intent": "LAUNCH_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.06.003",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "launch code",
+    "normalizedUtterance": "launch code",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.6 Application launch",
+    "sourceLine": 4816,
+    "raw": {
+      "id": "human.06.003",
+      "utterance": "launch code",
+      "intent": "LAUNCH_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.06.004",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "start vscode",
+    "normalizedUtterance": "start vscode",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.6 Application launch",
+    "sourceLine": 4827,
+    "raw": {
+      "id": "human.06.004",
+      "utterance": "start vscode",
+      "intent": "LAUNCH_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.06.005",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "can you open vscode",
+    "normalizedUtterance": "open vscode",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.6 Application launch",
+    "sourceLine": 4838,
+    "raw": {
+      "id": "human.06.005",
+      "utterance": "can you open vscode",
+      "intent": "LAUNCH_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.06.006",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "please open vscode",
+    "normalizedUtterance": "open vscode",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.6 Application launch",
+    "sourceLine": 4849,
+    "raw": {
+      "id": "human.06.006",
+      "utterance": "please open vscode",
+      "intent": "LAUNCH_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.06.007",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "open up vscode",
+    "normalizedUtterance": "open up vscode",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.6 Application launch",
+    "sourceLine": 4860,
+    "raw": {
+      "id": "human.06.007",
+      "utterance": "open up vscode",
+      "intent": "LAUNCH_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.06.008",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "bring up vscode",
+    "normalizedUtterance": "bring up vscode",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.6 Application launch",
+    "sourceLine": 4871,
+    "raw": {
+      "id": "human.06.008",
+      "utterance": "bring up vscode",
+      "intent": "LAUNCH_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.06.009",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "get vscode open",
+    "normalizedUtterance": "get vscode open",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.6 Application launch",
+    "sourceLine": 4882,
+    "raw": {
+      "id": "human.06.009",
+      "utterance": "get vscode open",
+      "intent": "LAUNCH_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.06.010",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "I need vscode",
+    "normalizedUtterance": "i need vscode",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.6 Application launch",
+    "sourceLine": 4893,
+    "raw": {
+      "id": "human.06.010",
+      "utterance": "I need vscode",
+      "intent": "LAUNCH_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.06.011",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "take me to vscode",
+    "normalizedUtterance": "take me to vscode",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.6 Application launch",
+    "sourceLine": 4904,
+    "raw": {
+      "id": "human.06.011",
+      "utterance": "take me to vscode",
+      "intent": "LAUNCH_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.06.012",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "fire up vscode",
+    "normalizedUtterance": "fire up vscode",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.6 Application launch",
+    "sourceLine": 4915,
+    "raw": {
+      "id": "human.06.012",
+      "utterance": "fire up vscode",
+      "intent": "LAUNCH_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.06.013",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "open chrome",
+    "normalizedUtterance": "open chrome",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "chrome"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.6 Application launch",
+    "sourceLine": 4926,
+    "raw": {
+      "id": "human.06.013",
+      "utterance": "open chrome",
+      "intent": "LAUNCH_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.06.014",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "launch chrome",
+    "normalizedUtterance": "launch chrome",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "chrome"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.6 Application launch",
+    "sourceLine": 4937,
+    "raw": {
+      "id": "human.06.014",
+      "utterance": "launch chrome",
+      "intent": "LAUNCH_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.06.015",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "bring up chrome",
+    "normalizedUtterance": "bring up chrome",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "chrome"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.6 Application launch",
+    "sourceLine": 4948,
+    "raw": {
+      "id": "human.06.015",
+      "utterance": "bring up chrome",
+      "intent": "LAUNCH_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.06.016",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "open finder",
+    "normalizedUtterance": "open finder",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "finder"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.6 Application launch",
+    "sourceLine": 4959,
+    "raw": {
+      "id": "human.06.016",
+      "utterance": "open finder",
+      "intent": "LAUNCH_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.06.017",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "open terminal",
+    "normalizedUtterance": "open terminal",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "terminal"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.6 Application launch",
+    "sourceLine": 4970,
+    "raw": {
+      "id": "human.06.017",
+      "utterance": "open terminal",
+      "intent": "LAUNCH_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.06.018",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "start terminal",
+    "normalizedUtterance": "start terminal",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "terminal"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.6 Application launch",
+    "sourceLine": 4981,
+    "raw": {
+      "id": "human.06.018",
+      "utterance": "start terminal",
+      "intent": "LAUNCH_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.06.019",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "open notes",
+    "normalizedUtterance": "open notes",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.6 Application launch",
+    "sourceLine": 4992,
+    "raw": {
+      "id": "human.06.019",
+      "utterance": "open notes",
+      "intent": "LAUNCH_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.06.020",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "open calendar",
+    "normalizedUtterance": "open calendar",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.6 Application launch",
+    "sourceLine": 5003,
+    "raw": {
+      "id": "human.06.020",
+      "utterance": "open calendar",
+      "intent": "LAUNCH_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.07.001",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "switch to chrome",
+    "normalizedUtterance": "switch to chrome",
+    "intent": "FOCUS_APPLICATION",
+    "entities": {
+      "application": "chrome"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.7 Application focus and close",
+    "sourceLine": 5015,
+    "raw": {
+      "id": "human.07.001",
+      "utterance": "switch to chrome",
+      "intent": "FOCUS_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.07.002",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "go back to chrome",
+    "normalizedUtterance": "go back to chrome",
+    "intent": "FOCUS_APPLICATION",
+    "entities": {
+      "application": "chrome"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.7 Application focus and close",
+    "sourceLine": 5026,
+    "raw": {
+      "id": "human.07.002",
+      "utterance": "go back to chrome",
+      "intent": "FOCUS_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.07.003",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "bring chrome forward",
+    "normalizedUtterance": "bring chrome forward",
+    "intent": "FOCUS_APPLICATION",
+    "entities": {
+      "application": "chrome"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.7 Application focus and close",
+    "sourceLine": 5037,
+    "raw": {
+      "id": "human.07.003",
+      "utterance": "bring chrome forward",
+      "intent": "FOCUS_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.07.004",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "focus vscode",
+    "normalizedUtterance": "focus vscode",
+    "intent": "FOCUS_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.7 Application focus and close",
+    "sourceLine": 5048,
+    "raw": {
+      "id": "human.07.004",
+      "utterance": "focus vscode",
+      "intent": "FOCUS_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.07.005",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "switch back to code",
+    "normalizedUtterance": "switch back to code",
+    "intent": "FOCUS_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.7 Application focus and close",
+    "sourceLine": 5059,
+    "raw": {
+      "id": "human.07.005",
+      "utterance": "switch back to code",
+      "intent": "FOCUS_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.07.006",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "close chrome",
+    "normalizedUtterance": "close chrome",
+    "intent": "CLOSE_APPLICATION",
+    "entities": {
+      "application": "chrome"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.7 Application focus and close",
+    "sourceLine": 5070,
+    "raw": {
+      "id": "human.07.006",
+      "utterance": "close chrome",
+      "intent": "CLOSE_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.07.007",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "quit chrome",
+    "normalizedUtterance": "quit chrome",
+    "intent": "CLOSE_APPLICATION",
+    "entities": {
+      "application": "chrome"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.7 Application focus and close",
+    "sourceLine": 5081,
+    "raw": {
+      "id": "human.07.007",
+      "utterance": "quit chrome",
+      "intent": "CLOSE_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.07.008",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "exit vscode",
+    "normalizedUtterance": "exit vscode",
+    "intent": "CLOSE_APPLICATION",
+    "entities": {
+      "application": "vscode"
+    },
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.7 Application focus and close",
+    "sourceLine": 5092,
+    "raw": {
+      "id": "human.07.008",
+      "utterance": "exit vscode",
+      "intent": "CLOSE_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.07.009",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "close that app",
+    "normalizedUtterance": "close that app",
+    "intent": "CLOSE_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.7 Application focus and close",
+    "sourceLine": 5103,
+    "raw": {
+      "id": "human.07.009",
+      "utterance": "close that app",
+      "intent": "CLOSE_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.07.010",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "kill the app",
+    "normalizedUtterance": "kill the app",
+    "intent": "CLOSE_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.7 Application focus and close",
+    "sourceLine": 5114,
+    "raw": {
+      "id": "human.07.010",
+      "utterance": "kill the app",
+      "intent": "CLOSE_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.07.011",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "get rid of this window",
+    "normalizedUtterance": "get rid of this window",
+    "intent": "CLOSE_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.7 Application focus and close",
+    "sourceLine": 5125,
+    "raw": {
+      "id": "human.07.011",
+      "utterance": "get rid of this window",
+      "intent": "CLOSE_APPLICATION",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "frustration.001",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "bro just open it",
+    "normalizedUtterance": "open it",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "59. Frustration and Casual Speech",
+    "sourceLine": 6699,
+    "raw": {
+      "id": "frustration.001",
+      "utterance": "bro just open it",
+      "intent": "LAUNCH_APPLICATION",
+      "tone_response": "neutral",
+      "do_not_lecture": true,
+      "extract_action_semantics": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "frustration.003",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "come on open chrome",
+    "normalizedUtterance": "come on open chrome",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "chrome"
+    },
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "59. Frustration and Casual Speech",
+    "sourceLine": 6715,
+    "raw": {
+      "id": "frustration.003",
+      "utterance": "come on open chrome",
+      "intent": "LAUNCH_APPLICATION",
+      "tone_response": "neutral",
+      "do_not_lecture": true,
+      "extract_action_semantics": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "asr.001",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "asr_example",
+    "domain": "application",
+    "utterance": "open vs coat",
+    "normalizedUtterance": "open vs coat",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "target": "VS Code"
+    },
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "asr_example",
+      "corpus"
+    ],
+    "sourceSection": "60. Speech Recognition Noise / ASR Recovery",
+    "sourceLine": 6804,
+    "raw": {
+      "id": "asr.001",
+      "utterance": "open vs coat",
+      "intent": "LAUNCH_APPLICATION",
+      "candidate_target": "VS Code",
+      "phonetic_similarity_allowed": true,
+      "vector_seed": true,
+      "clarify_if_low_confidence": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "asr.002",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "asr_example",
+    "domain": "application",
+    "utterance": "visual studio cold",
+    "normalizedUtterance": "visual studio cold",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "target": "VS Code"
+    },
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "asr_example",
+      "corpus"
+    ],
+    "sourceSection": "60. Speech Recognition Noise / ASR Recovery",
+    "sourceLine": 6813,
+    "raw": {
+      "id": "asr.002",
+      "utterance": "visual studio cold",
+      "intent": "LAUNCH_APPLICATION",
+      "candidate_target": "VS Code",
+      "phonetic_similarity_allowed": true,
+      "vector_seed": true,
+      "clarify_if_low_confidence": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "asr.003",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "asr_example",
+    "domain": "application",
+    "utterance": "open chrome please uh",
+    "normalizedUtterance": "open chrome",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "target": "Chrome"
+    },
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "asr_example",
+      "corpus"
+    ],
+    "sourceSection": "60. Speech Recognition Noise / ASR Recovery",
+    "sourceLine": 6822,
+    "raw": {
+      "id": "asr.003",
+      "utterance": "open chrome please uh",
+      "intent": "LAUNCH_APPLICATION",
+      "candidate_target": "Chrome",
+      "phonetic_similarity_allowed": true,
+      "vector_seed": true,
+      "clarify_if_low_confidence": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "asr.005",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "asr_example",
+    "domain": "application",
+    "utterance": "launch terminal terminal",
+    "normalizedUtterance": "launch terminal terminal",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "target": "Terminal"
+    },
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "asr_example",
+      "corpus"
+    ],
+    "sourceSection": "60. Speech Recognition Noise / ASR Recovery",
+    "sourceLine": 6840,
+    "raw": {
+      "id": "asr.005",
+      "utterance": "launch terminal terminal",
+      "intent": "LAUNCH_APPLICATION",
+      "candidate_target": "Terminal",
+      "phonetic_similarity_allowed": true,
+      "vector_seed": true,
+      "clarify_if_low_confidence": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "asr.006",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "asr_example",
+    "domain": "application",
+    "utterance": "open note app",
+    "normalizedUtterance": "open note app",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "target": "Apple Notes"
+    },
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "asr_example",
+      "corpus"
+    ],
+    "sourceSection": "60. Speech Recognition Noise / ASR Recovery",
+    "sourceLine": 6849,
+    "raw": {
+      "id": "asr.006",
+      "utterance": "open note app",
+      "intent": "LAUNCH_APPLICATION",
+      "candidate_target": "Apple Notes",
+      "phonetic_similarity_allowed": true,
+      "vector_seed": true,
+      "clarify_if_low_confidence": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "asr.009",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "asr_example",
+    "domain": "application",
+    "utterance": "close crome",
+    "normalizedUtterance": "close crome",
+    "intent": "CLOSE_APPLICATION",
+    "entities": {
+      "target": "Chrome"
+    },
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "asr_example",
+      "corpus"
+    ],
+    "sourceSection": "60. Speech Recognition Noise / ASR Recovery",
+    "sourceLine": 6876,
+    "raw": {
+      "id": "asr.009",
+      "utterance": "close crome",
+      "intent": "CLOSE_APPLICATION",
+      "candidate_target": "Chrome",
+      "phonetic_similarity_allowed": true,
+      "vector_seed": true,
+      "clarify_if_low_confidence": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "asr.010",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "asr_example",
+    "domain": "application",
+    "utterance": "open calender",
+    "normalizedUtterance": "open calender",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "target": "Calendar"
+    },
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "asr_example",
+      "corpus"
+    ],
+    "sourceSection": "60. Speech Recognition Noise / ASR Recovery",
+    "sourceLine": 6885,
+    "raw": {
+      "id": "asr.010",
+      "utterance": "open calender",
+      "intent": "LAUNCH_APPLICATION",
+      "candidate_target": "Calendar",
+      "phonetic_similarity_allowed": true,
+      "vector_seed": true,
+      "clarify_if_low_confidence": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "indirect.001",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "can you open Chrome",
+    "normalizedUtterance": "open chrome",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "chrome"
+    },
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "63. Indirect Requests",
+    "sourceLine": 7086,
+    "raw": {
+      "id": "indirect.001",
+      "utterance": "can you open Chrome",
+      "intent": "LAUNCH_APPLICATION",
+      "speech_act": "request",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "indirect.003",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "would you mind opening Finder",
+    "normalizedUtterance": "mind opening finder",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "finder"
+    },
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "63. Indirect Requests",
+    "sourceLine": 7100,
+    "raw": {
+      "id": "indirect.003",
+      "utterance": "would you mind opening Finder",
+      "intent": "LAUNCH_APPLICATION",
+      "speech_act": "request",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "conditional.001",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "application",
+    "utterance": "if Chrome is closed, open it",
+    "normalizedUtterance": "if chrome is closed, open it",
+    "intent": "LAUNCH_APPLICATION",
+    "entities": {
+      "application": "chrome"
+    },
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "64. Conditional and Hypothetical Language",
+    "sourceLine": 7148,
+    "raw": {
+      "id": "conditional.001",
+      "utterance": "if Chrome is closed, open it",
+      "intent": "LAUNCH_APPLICATION",
+      "conditional_parser_required": true,
+      "execute_only_if_condition_verified": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  }
+]

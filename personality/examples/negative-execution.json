@@ -1,0 +1,494 @@
+[
+  {
+    "id": "negative_execution.001",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "negative_intent_example",
+    "domain": "negative-execution",
+    "utterance": "I'm reading about how to delete a file",
+    "normalizedUtterance": "i'm reading about how to delete a file",
+    "intent": "NON_EXECUTION",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [
+      "DELETE_FILE"
+    ],
+    "blockedIntentCandidates": [
+      "DELETE_FILE"
+    ],
+    "riskLevel": "none",
+    "reason": "discussion",
+    "tags": [
+      "negative-execution",
+      "negative_intent_example"
+    ],
+    "sourceSection": "61. Negative Examples — Discussion Is Not Execution",
+    "sourceLine": 6920,
+    "raw": {
+      "id": "negative_execution.001",
+      "utterance": "I'm reading about how to delete a file",
+      "must_not_execute": [
+        "DELETE_FILE"
+      ],
+      "reason": "discussion",
+      "requires_execution": false,
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "negative_execution.002",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "negative_intent_example",
+    "domain": "negative-execution",
+    "utterance": "what happens if I close Chrome",
+    "normalizedUtterance": "what happens if i close chrome",
+    "intent": "NON_EXECUTION",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [
+      "CLOSE_APPLICATION"
+    ],
+    "blockedIntentCandidates": [
+      "CLOSE_APPLICATION"
+    ],
+    "riskLevel": "none",
+    "reason": "hypothetical_question",
+    "tags": [
+      "negative-execution",
+      "negative_intent_example"
+    ],
+    "sourceSection": "61. Negative Examples — Discussion Is Not Execution",
+    "sourceLine": 6929,
+    "raw": {
+      "id": "negative_execution.002",
+      "utterance": "what happens if I close Chrome",
+      "must_not_execute": [
+        "CLOSE_APPLICATION"
+      ],
+      "reason": "hypothetical_question",
+      "requires_execution": false,
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "negative_execution.003",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "negative_intent_example",
+    "domain": "negative-execution",
+    "utterance": "how do I open Terminal",
+    "normalizedUtterance": "how do i open terminal",
+    "intent": "NON_EXECUTION",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [
+      "LAUNCH_APPLICATION"
+    ],
+    "blockedIntentCandidates": [
+      "LAUNCH_APPLICATION"
+    ],
+    "riskLevel": "none",
+    "reason": "instruction_request",
+    "tags": [
+      "negative-execution",
+      "negative_intent_example"
+    ],
+    "sourceSection": "61. Negative Examples — Discussion Is Not Execution",
+    "sourceLine": 6938,
+    "raw": {
+      "id": "negative_execution.003",
+      "utterance": "how do I open Terminal",
+      "must_not_execute": [
+        "LAUNCH_APPLICATION"
+      ],
+      "reason": "instruction_request",
+      "requires_execution": false,
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "negative_execution.004",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "negative_intent_example",
+    "domain": "negative-execution",
+    "utterance": "tell me how to delete this note",
+    "normalizedUtterance": "tell me how to delete this note",
+    "intent": "NON_EXECUTION",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [
+      "DELETE_NOTE"
+    ],
+    "blockedIntentCandidates": [
+      "DELETE_NOTE"
+    ],
+    "riskLevel": "none",
+    "reason": "instruction_request",
+    "tags": [
+      "negative-execution",
+      "negative_intent_example"
+    ],
+    "sourceSection": "61. Negative Examples — Discussion Is Not Execution",
+    "sourceLine": 6947,
+    "raw": {
+      "id": "negative_execution.004",
+      "utterance": "tell me how to delete this note",
+      "must_not_execute": [
+        "DELETE_NOTE"
+      ],
+      "reason": "instruction_request",
+      "requires_execution": false,
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "negative_execution.005",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "negative_intent_example",
+    "domain": "negative-execution",
+    "utterance": "I don't want you to open Chrome",
+    "normalizedUtterance": "i don't want you to open chrome",
+    "intent": "NON_EXECUTION",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [
+      "LAUNCH_APPLICATION"
+    ],
+    "blockedIntentCandidates": [
+      "LAUNCH_APPLICATION"
+    ],
+    "riskLevel": "none",
+    "reason": "explicit_negation",
+    "tags": [
+      "negative-execution",
+      "negative_intent_example"
+    ],
+    "sourceSection": "61. Negative Examples — Discussion Is Not Execution",
+    "sourceLine": 6956,
+    "raw": {
+      "id": "negative_execution.005",
+      "utterance": "I don't want you to open Chrome",
+      "must_not_execute": [
+        "LAUNCH_APPLICATION"
+      ],
+      "reason": "explicit_negation",
+      "requires_execution": false,
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "negative_execution.006",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "negative_intent_example",
+    "domain": "negative-execution",
+    "utterance": "the guide says open Finder",
+    "normalizedUtterance": "the guide says open finder",
+    "intent": "NON_EXECUTION",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [
+      "LAUNCH_APPLICATION"
+    ],
+    "blockedIntentCandidates": [
+      "LAUNCH_APPLICATION"
+    ],
+    "riskLevel": "none",
+    "reason": "quoted_instruction",
+    "tags": [
+      "negative-execution",
+      "negative_intent_example"
+    ],
+    "sourceSection": "61. Negative Examples — Discussion Is Not Execution",
+    "sourceLine": 6965,
+    "raw": {
+      "id": "negative_execution.006",
+      "utterance": "the guide says open Finder",
+      "must_not_execute": [
+        "LAUNCH_APPLICATION"
+      ],
+      "reason": "quoted_instruction",
+      "requires_execution": false,
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "negative_execution.007",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "negative_intent_example",
+    "domain": "negative-execution",
+    "utterance": "someone told me to delete the folder",
+    "normalizedUtterance": "someone told me to delete the folder",
+    "intent": "NON_EXECUTION",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [
+      "DELETE_FILE"
+    ],
+    "blockedIntentCandidates": [
+      "DELETE_FILE"
+    ],
+    "riskLevel": "none",
+    "reason": "reported_speech",
+    "tags": [
+      "negative-execution",
+      "negative_intent_example"
+    ],
+    "sourceSection": "61. Negative Examples — Discussion Is Not Execution",
+    "sourceLine": 6974,
+    "raw": {
+      "id": "negative_execution.007",
+      "utterance": "someone told me to delete the folder",
+      "must_not_execute": [
+        "DELETE_FILE"
+      ],
+      "reason": "reported_speech",
+      "requires_execution": false,
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "negative_execution.008",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "negative_intent_example",
+    "domain": "negative-execution",
+    "utterance": "why would I close VS Code",
+    "normalizedUtterance": "why would i close vs code",
+    "intent": "NON_EXECUTION",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [
+      "CLOSE_APPLICATION"
+    ],
+    "blockedIntentCandidates": [
+      "CLOSE_APPLICATION"
+    ],
+    "riskLevel": "none",
+    "reason": "question",
+    "tags": [
+      "negative-execution",
+      "negative_intent_example"
+    ],
+    "sourceSection": "61. Negative Examples — Discussion Is Not Execution",
+    "sourceLine": 6983,
+    "raw": {
+      "id": "negative_execution.008",
+      "utterance": "why would I close VS Code",
+      "must_not_execute": [
+        "CLOSE_APPLICATION"
+      ],
+      "reason": "question",
+      "requires_execution": false,
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "negative_execution.009",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "negative_intent_example",
+    "domain": "negative-execution",
+    "utterance": "can Chrome be closed automatically",
+    "normalizedUtterance": "can chrome be closed automatically",
+    "intent": "NON_EXECUTION",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [
+      "CLOSE_APPLICATION"
+    ],
+    "blockedIntentCandidates": [
+      "CLOSE_APPLICATION"
+    ],
+    "riskLevel": "none",
+    "reason": "capability_question",
+    "tags": [
+      "negative-execution",
+      "negative_intent_example"
+    ],
+    "sourceSection": "61. Negative Examples — Discussion Is Not Execution",
+    "sourceLine": 6992,
+    "raw": {
+      "id": "negative_execution.009",
+      "utterance": "can Chrome be closed automatically",
+      "must_not_execute": [
+        "CLOSE_APPLICATION"
+      ],
+      "reason": "capability_question",
+      "requires_execution": false,
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "negative_execution.010",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "negative_intent_example",
+    "domain": "negative-execution",
+    "utterance": "what does 'run tests' mean",
+    "normalizedUtterance": "what does 'run tests' mean",
+    "intent": "NON_EXECUTION",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [
+      "RUN_TESTS"
+    ],
+    "blockedIntentCandidates": [
+      "RUN_TESTS"
+    ],
+    "riskLevel": "none",
+    "reason": "definition_question",
+    "tags": [
+      "negative-execution",
+      "negative_intent_example"
+    ],
+    "sourceSection": "61. Negative Examples — Discussion Is Not Execution",
+    "sourceLine": 7001,
+    "raw": {
+      "id": "negative_execution.010",
+      "utterance": "what does 'run tests' mean",
+      "must_not_execute": [
+        "RUN_TESTS"
+      ],
+      "reason": "definition_question",
+      "requires_execution": false,
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "negative_execution.011",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "negative_intent_example",
+    "domain": "negative-execution",
+    "utterance": "if I say delete it, what would happen",
+    "normalizedUtterance": "if i say delete it, what would happen",
+    "intent": "NON_EXECUTION",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [
+      "DELETE_FILE"
+    ],
+    "blockedIntentCandidates": [
+      "DELETE_FILE"
+    ],
+    "riskLevel": "none",
+    "reason": "meta_question",
+    "tags": [
+      "negative-execution",
+      "negative_intent_example"
+    ],
+    "sourceSection": "61. Negative Examples — Discussion Is Not Execution",
+    "sourceLine": 7010,
+    "raw": {
+      "id": "negative_execution.011",
+      "utterance": "if I say delete it, what would happen",
+      "must_not_execute": [
+        "DELETE_FILE"
+      ],
+      "reason": "meta_question",
+      "requires_execution": false,
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "negative_execution.012",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "negative_intent_example",
+    "domain": "negative-execution",
+    "utterance": "don't actually run this: rm -rf",
+    "normalizedUtterance": "don't actually run this: rm -rf",
+    "intent": "NON_EXECUTION",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [
+      "RUN_APPROVED_COMMAND"
+    ],
+    "blockedIntentCandidates": [
+      "RUN_APPROVED_COMMAND"
+    ],
+    "riskLevel": "none",
+    "reason": "quoted_or_negated_command",
+    "tags": [
+      "negative-execution",
+      "negative_intent_example"
+    ],
+    "sourceSection": "61. Negative Examples — Discussion Is Not Execution",
+    "sourceLine": 7019,
+    "raw": {
+      "id": "negative_execution.012",
+      "utterance": "don't actually run this: rm -rf",
+      "must_not_execute": [
+        "RUN_APPROVED_COMMAND"
+      ],
+      "reason": "quoted_or_negated_command",
+      "requires_execution": false,
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  }
+]

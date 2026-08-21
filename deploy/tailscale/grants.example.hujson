@@ -1,0 +1,37 @@
+{
+  // Illustrative only. Replace every example identity and tag owner.
+  "tagOwners": {
+    "tag:assistant-server": ["group:assistant-admins"],
+    "tag:assistant-mac-agent": ["group:assistant-admins"],
+  },
+  "groups": {
+    "group:assistant-admins": ["owner@example.com"],
+    "group:assistant-controllers": ["owner@example.com"],
+  },
+  "grants": [
+    {
+      "src": ["group:assistant-controllers"],
+      "dst": ["tag:assistant-server"],
+      "ip": ["tcp:443"],
+    },
+    {
+      "src": ["tag:assistant-mac-agent"],
+      "dst": ["tag:assistant-server"],
+      "ip": ["tcp:443"],
+    },
+  ],
+  "tests": [
+    {
+      "src": "owner@example.com",
+      "accept": ["tag:assistant-server:443"],
+    },
+    {
+      "src": "unapproved@example.com",
+      "deny": ["tag:assistant-server:443"],
+    },
+    {
+      "src": "tag:assistant-server",
+      "deny": ["owner@example.com:*"],
+    },
+  ],
+}

@@ -1,0 +1,35 @@
+import { parseApiEnvironment } from "@alexa-control/config";
+
+parseApiEnvironment({
+  NODE_ENV: "production",
+  API_HOST: "127.0.0.1",
+  WEB_ORIGIN: "https://assistant-host.example.ts.net",
+  ALLOWED_HOSTS: "assistant-host.example.ts.net",
+  STORE_MODE: "postgres",
+  DATABASE_URL: "postgresql://placeholder.invalid/assistant",
+  DATABASE_POOL_SIZE: "20",
+  DATABASE_SSL_MODE: "verify-full",
+  REDIS_URL: "https://placeholder.upstash.io",
+  REDIS_TOKEN: "placeholder-token",
+  REDIS_NAMESPACE: "personalassistant",
+  CACHE_ENABLED: "true",
+  EMBEDDING_PROVIDER: "disabled",
+  OPENAI_ENABLED: "false",
+  SEMANTIC_SEARCH_ENABLED: "true",
+  HYBRID_SEARCH_ENABLED: "true",
+  FEATURE_MEMORY: "true",
+  FEATURE_VECTOR_SEARCH: "true",
+  FEATURE_AUTONOMOUS_SUGGESTIONS: "false",
+  SESSION_COOKIE_NAME: "__Host-assistant_session",
+  AUTH_ALLOW_OWNER_BOOTSTRAP: "false",
+  PRIVATE_NETWORK_REQUIRED: "true",
+  TAILSCALE_REQUIRED: "true",
+  NETWORK_VERIFIER_MODE: "tailscale",
+  TAILSCALE_EXPECTED_DNS_NAME: "assistant-host.example.ts.net",
+  TAILSCALE_TRUST_SERVE_PROXY: "true",
+  TRUSTED_PROXY_MODE: "loopback",
+  LOG_REDACTION_ENABLED: "true",
+  PRIVILEGED_EXECUTION_ENABLED: "false",
+});
+
+process.stdout.write("Production configuration invariants validated.\n");

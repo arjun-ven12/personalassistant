@@ -1,0 +1,1019 @@
+[
+  {
+    "id": "human.09.001",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "open the file",
+    "normalizedUtterance": "open the file",
+    "intent": "OPEN_FILE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.9 Files",
+    "sourceLine": 5325,
+    "raw": {
+      "id": "human.09.001",
+      "utterance": "open the file",
+      "intent": "OPEN_FILE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.09.002",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "open that file",
+    "normalizedUtterance": "open that file",
+    "intent": "OPEN_FILE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.9 Files",
+    "sourceLine": 5336,
+    "raw": {
+      "id": "human.09.002",
+      "utterance": "open that file",
+      "intent": "OPEN_FILE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.09.003",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "find my file",
+    "normalizedUtterance": "find my file",
+    "intent": "SEARCH_FILE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.9 Files",
+    "sourceLine": 5347,
+    "raw": {
+      "id": "human.09.003",
+      "utterance": "find my file",
+      "intent": "SEARCH_FILE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.09.004",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "find the config file",
+    "normalizedUtterance": "find the config file",
+    "intent": "SEARCH_FILE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.9 Files",
+    "sourceLine": 5358,
+    "raw": {
+      "id": "human.09.004",
+      "utterance": "find the config file",
+      "intent": "SEARCH_FILE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.09.005",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "where's the readme",
+    "normalizedUtterance": "where's the readme",
+    "intent": "SEARCH_FILE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.9 Files",
+    "sourceLine": 5369,
+    "raw": {
+      "id": "human.09.005",
+      "utterance": "where's the readme",
+      "intent": "SEARCH_FILE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.09.006",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "open readme",
+    "normalizedUtterance": "open readme",
+    "intent": "OPEN_FILE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.9 Files",
+    "sourceLine": 5380,
+    "raw": {
+      "id": "human.09.006",
+      "utterance": "open readme",
+      "intent": "OPEN_FILE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.09.007",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "make a new file",
+    "normalizedUtterance": "make a new file",
+    "intent": "CREATE_FILE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "medium",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.9 Files",
+    "sourceLine": 5391,
+    "raw": {
+      "id": "human.09.007",
+      "utterance": "make a new file",
+      "intent": "CREATE_FILE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.09.008",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "create a file",
+    "normalizedUtterance": "create a file",
+    "intent": "CREATE_FILE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "medium",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.9 Files",
+    "sourceLine": 5402,
+    "raw": {
+      "id": "human.09.008",
+      "utterance": "create a file",
+      "intent": "CREATE_FILE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.09.009",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "save this",
+    "normalizedUtterance": "save this",
+    "intent": "SAVE_FILE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.9 Files",
+    "sourceLine": 5413,
+    "raw": {
+      "id": "human.09.009",
+      "utterance": "save this",
+      "intent": "SAVE_FILE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.09.010",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "save the file",
+    "normalizedUtterance": "save the file",
+    "intent": "SAVE_FILE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.9 Files",
+    "sourceLine": 5424,
+    "raw": {
+      "id": "human.09.010",
+      "utterance": "save the file",
+      "intent": "SAVE_FILE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.09.011",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "rename this file",
+    "normalizedUtterance": "rename this file",
+    "intent": "RENAME_FILE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "medium",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.9 Files",
+    "sourceLine": 5435,
+    "raw": {
+      "id": "human.09.011",
+      "utterance": "rename this file",
+      "intent": "RENAME_FILE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.09.012",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "move this file",
+    "normalizedUtterance": "move this file",
+    "intent": "MOVE_FILE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "medium",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.9 Files",
+    "sourceLine": 5446,
+    "raw": {
+      "id": "human.09.012",
+      "utterance": "move this file",
+      "intent": "MOVE_FILE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.09.013",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "copy that file",
+    "normalizedUtterance": "copy that file",
+    "intent": "COPY_FILE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.9 Files",
+    "sourceLine": 5457,
+    "raw": {
+      "id": "human.09.013",
+      "utterance": "copy that file",
+      "intent": "COPY_FILE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.09.014",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "delete this file",
+    "normalizedUtterance": "delete this file",
+    "intent": "DELETE_FILE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "high",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.9 Files",
+    "sourceLine": 5468,
+    "raw": {
+      "id": "human.09.014",
+      "utterance": "delete this file",
+      "intent": "DELETE_FILE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.09.015",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "trash it",
+    "normalizedUtterance": "trash it",
+    "intent": "DELETE_FILE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "high",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.9 Files",
+    "sourceLine": 5479,
+    "raw": {
+      "id": "human.09.015",
+      "utterance": "trash it",
+      "intent": "DELETE_FILE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.09.016",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "open downloads",
+    "normalizedUtterance": "open downloads",
+    "intent": "OPEN_FOLDER",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.9 Files",
+    "sourceLine": 5490,
+    "raw": {
+      "id": "human.09.016",
+      "utterance": "open downloads",
+      "intent": "OPEN_FOLDER",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.09.017",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "show desktop",
+    "normalizedUtterance": "show desktop",
+    "intent": "OPEN_FOLDER",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.9 Files",
+    "sourceLine": 5501,
+    "raw": {
+      "id": "human.09.017",
+      "utterance": "show desktop",
+      "intent": "OPEN_FOLDER",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.09.018",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "open this folder",
+    "normalizedUtterance": "open this folder",
+    "intent": "OPEN_FOLDER",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.9 Files",
+    "sourceLine": 5512,
+    "raw": {
+      "id": "human.09.018",
+      "utterance": "open this folder",
+      "intent": "OPEN_FOLDER",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.09.019",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "show me the folder",
+    "normalizedUtterance": "show me the folder",
+    "intent": "OPEN_FOLDER",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.9 Files",
+    "sourceLine": 5523,
+    "raw": {
+      "id": "human.09.019",
+      "utterance": "show me the folder",
+      "intent": "OPEN_FOLDER",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "relative.001",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "open the newest file",
+    "normalizedUtterance": "open the newest file",
+    "intent": "OPEN_FILE",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "56. Comparative and Relative References",
+    "sourceLine": 6435,
+    "raw": {
+      "id": "relative.001",
+      "utterance": "open the newest file",
+      "intent": "OPEN_FILE",
+      "requires_ranked_context": true,
+      "fallback": "clarify"
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "relative.006",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "go to the last file",
+    "normalizedUtterance": "go to the last file",
+    "intent": "OPEN_FILE",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "56. Comparative and Relative References",
+    "sourceLine": 6470,
+    "raw": {
+      "id": "relative.006",
+      "utterance": "go to the last file",
+      "intent": "OPEN_FILE",
+      "requires_ranked_context": true,
+      "fallback": "clarify"
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "relative.011",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "open the biggest folder",
+    "normalizedUtterance": "open the biggest folder",
+    "intent": "OPEN_FOLDER",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "56. Comparative and Relative References",
+    "sourceLine": 6505,
+    "raw": {
+      "id": "relative.011",
+      "utterance": "open the biggest folder",
+      "intent": "OPEN_FOLDER",
+      "requires_ranked_context": true,
+      "fallback": "clarify"
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "frustration.010",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "please just find the file",
+    "normalizedUtterance": "find the file",
+    "intent": "SEARCH_FILE",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "59. Frustration and Casual Speech",
+    "sourceLine": 6771,
+    "raw": {
+      "id": "frustration.010",
+      "utterance": "please just find the file",
+      "intent": "SEARCH_FILE",
+      "tone_response": "neutral",
+      "do_not_lecture": true,
+      "extract_action_semantics": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "asr.004",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "asr_example",
+    "domain": "files",
+    "utterance": "finder downloads",
+    "normalizedUtterance": "finder downloads",
+    "intent": "OPEN_FOLDER",
+    "entities": {
+      "target": "Downloads"
+    },
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "asr_example",
+      "corpus"
+    ],
+    "sourceSection": "60. Speech Recognition Noise / ASR Recovery",
+    "sourceLine": 6831,
+    "raw": {
+      "id": "asr.004",
+      "utterance": "finder downloads",
+      "intent": "OPEN_FOLDER",
+      "candidate_target": "Downloads",
+      "phonetic_similarity_allowed": true,
+      "vector_seed": true,
+      "clarify_if_low_confidence": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "quoted.005",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "save the phrase \"close finder\"",
+    "normalizedUtterance": "save the phrase \"close finder\"",
+    "intent": "SAVE_FILE",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "62. Quoted Speech and Mentioned Commands",
+    "sourceLine": 7059,
+    "raw": {
+      "id": "quoted.005",
+      "utterance": "save the phrase \"close finder\"",
+      "intent": "SAVE_FILE",
+      "quoted_text_is_not_command": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "indirect.007",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "could you find that file",
+    "normalizedUtterance": "find that file",
+    "intent": "SEARCH_FILE",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "63. Indirect Requests",
+    "sourceLine": 7128,
+    "raw": {
+      "id": "indirect.007",
+      "utterance": "could you find that file",
+      "intent": "SEARCH_FILE",
+      "speech_act": "request",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "conditional.004",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "files",
+    "utterance": "if the file exists, open it",
+    "normalizedUtterance": "if the file exists, open it",
+    "intent": "OPEN_FILE",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "64. Conditional and Hypothetical Language",
+    "sourceLine": 7169,
+    "raw": {
+      "id": "conditional.004",
+      "utterance": "if the file exists, open it",
+      "intent": "OPEN_FILE",
+      "conditional_parser_required": true,
+      "execute_only_if_condition_verified": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  }
+]

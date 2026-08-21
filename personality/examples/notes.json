@@ -1,0 +1,638 @@
+[
+  {
+    "id": "human.11.001",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "notes",
+    "utterance": "make a note",
+    "normalizedUtterance": "make a note",
+    "intent": "CREATE_NOTE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "medium",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.11 Notes",
+    "sourceLine": 5756,
+    "raw": {
+      "id": "human.11.001",
+      "utterance": "make a note",
+      "intent": "CREATE_NOTE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.11.002",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "notes",
+    "utterance": "create a note",
+    "normalizedUtterance": "create a note",
+    "intent": "CREATE_NOTE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "medium",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.11 Notes",
+    "sourceLine": 5767,
+    "raw": {
+      "id": "human.11.002",
+      "utterance": "create a note",
+      "intent": "CREATE_NOTE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.11.003",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "notes",
+    "utterance": "write this down",
+    "normalizedUtterance": "write this down",
+    "intent": "CREATE_NOTE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "medium",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.11 Notes",
+    "sourceLine": 5778,
+    "raw": {
+      "id": "human.11.003",
+      "utterance": "write this down",
+      "intent": "CREATE_NOTE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.11.004",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "notes",
+    "utterance": "note this",
+    "normalizedUtterance": "note this",
+    "intent": "CREATE_NOTE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "medium",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.11 Notes",
+    "sourceLine": 5789,
+    "raw": {
+      "id": "human.11.004",
+      "utterance": "note this",
+      "intent": "CREATE_NOTE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.11.005",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "notes",
+    "utterance": "save this as a note",
+    "normalizedUtterance": "save this as a note",
+    "intent": "CREATE_NOTE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "medium",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.11 Notes",
+    "sourceLine": 5800,
+    "raw": {
+      "id": "human.11.005",
+      "utterance": "save this as a note",
+      "intent": "CREATE_NOTE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.11.006",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "notes",
+    "utterance": "open my notes",
+    "normalizedUtterance": "open my notes",
+    "intent": "OPEN_NOTE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.11 Notes",
+    "sourceLine": 5811,
+    "raw": {
+      "id": "human.11.006",
+      "utterance": "open my notes",
+      "intent": "OPEN_NOTE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.11.007",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "notes",
+    "utterance": "find that note",
+    "normalizedUtterance": "find that note",
+    "intent": "SEARCH_NOTES",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.11 Notes",
+    "sourceLine": 5822,
+    "raw": {
+      "id": "human.11.007",
+      "utterance": "find that note",
+      "intent": "SEARCH_NOTES",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.11.008",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "notes",
+    "utterance": "search my notes",
+    "normalizedUtterance": "search my notes",
+    "intent": "SEARCH_NOTES",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.11 Notes",
+    "sourceLine": 5833,
+    "raw": {
+      "id": "human.11.008",
+      "utterance": "search my notes",
+      "intent": "SEARCH_NOTES",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.11.009",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "notes",
+    "utterance": "add this to the note",
+    "normalizedUtterance": "add this to the note",
+    "intent": "APPEND_NOTE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.11 Notes",
+    "sourceLine": 5844,
+    "raw": {
+      "id": "human.11.009",
+      "utterance": "add this to the note",
+      "intent": "APPEND_NOTE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.11.010",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "notes",
+    "utterance": "put this in my note",
+    "normalizedUtterance": "put this in my note",
+    "intent": "APPEND_NOTE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "none",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.11 Notes",
+    "sourceLine": 5855,
+    "raw": {
+      "id": "human.11.010",
+      "utterance": "put this in my note",
+      "intent": "APPEND_NOTE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.11.011",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "notes",
+    "utterance": "update the note",
+    "normalizedUtterance": "update the note",
+    "intent": "UPDATE_NOTE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "medium",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.11 Notes",
+    "sourceLine": 5866,
+    "raw": {
+      "id": "human.11.011",
+      "utterance": "update the note",
+      "intent": "UPDATE_NOTE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "human.11.012",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "notes",
+    "utterance": "delete that note",
+    "normalizedUtterance": "delete that note",
+    "intent": "DELETE_NOTE",
+    "entities": {},
+    "deterministicCandidate": true,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "high",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "41.11 Notes",
+    "sourceLine": 5877,
+    "raw": {
+      "id": "human.11.012",
+      "utterance": "delete that note",
+      "intent": "DELETE_NOTE",
+      "normalization": {
+        "remove_wake_word": true,
+        "preserve_negation": true,
+        "preserve_entity_terms": true
+      },
+      "vector_seed": true,
+      "deterministic_candidate": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "relative.002",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "notes",
+    "utterance": "show me the latest note",
+    "normalizedUtterance": "show me the latest note",
+    "intent": "OPEN_NOTE",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "56. Comparative and Relative References",
+    "sourceLine": 6442,
+    "raw": {
+      "id": "relative.002",
+      "utterance": "show me the latest note",
+      "intent": "OPEN_NOTE",
+      "requires_ranked_context": true,
+      "fallback": "clarify"
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "relative.007",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "notes",
+    "utterance": "show the oldest note",
+    "normalizedUtterance": "show the oldest note",
+    "intent": "OPEN_NOTE",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "56. Comparative and Relative References",
+    "sourceLine": 6477,
+    "raw": {
+      "id": "relative.007",
+      "utterance": "show the oldest note",
+      "intent": "OPEN_NOTE",
+      "requires_ranked_context": true,
+      "fallback": "clarify"
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "quoted.002",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "notes",
+    "utterance": "write \"open chrome\" in the note",
+    "normalizedUtterance": "write \"open chrome\" in the note",
+    "intent": "CREATE_NOTE",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "medium",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "62. Quoted Speech and Mentioned Commands",
+    "sourceLine": 7041,
+    "raw": {
+      "id": "quoted.002",
+      "utterance": "write \"open chrome\" in the note",
+      "intent": "CREATE_NOTE",
+      "quoted_text_is_not_command": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "quoted.003",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "notes",
+    "utterance": "type \"run tests\" into the document",
+    "normalizedUtterance": "type \"run tests\" into the document",
+    "intent": "UPDATE_NOTE",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "medium",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "62. Quoted Speech and Mentioned Commands",
+    "sourceLine": 7047,
+    "raw": {
+      "id": "quoted.003",
+      "utterance": "type \"run tests\" into the document",
+      "intent": "UPDATE_NOTE",
+      "quoted_text_is_not_command": true
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  },
+  {
+    "id": "indirect.002",
+    "corpusId": "alexa-personality-seed-corpus",
+    "corpusVersion": "v4-coverage-safety",
+    "entryType": "intent_example",
+    "domain": "notes",
+    "utterance": "could you show me my notes",
+    "normalizedUtterance": "show me my notes",
+    "intent": "OPEN_NOTE",
+    "entities": {},
+    "deterministicCandidate": false,
+    "vectorSeed": true,
+    "requiresAi": false,
+    "mustNotExecute": [],
+    "blockedIntentCandidates": [],
+    "riskLevel": "low",
+    "reason": null,
+    "tags": [
+      "intent_example",
+      "corpus"
+    ],
+    "sourceSection": "63. Indirect Requests",
+    "sourceLine": 7093,
+    "raw": {
+      "id": "indirect.002",
+      "utterance": "could you show me my notes",
+      "intent": "OPEN_NOTE",
+      "speech_act": "request",
+      "requires_ai": false
+    },
+    "enabled": true,
+    "createdAt": "2026-08-07T08:59:18.786Z",
+    "updatedAt": "2026-08-07T08:59:18.786Z"
+  }
+]
