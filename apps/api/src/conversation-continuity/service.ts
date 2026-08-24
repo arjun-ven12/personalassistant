@@ -27,6 +27,9 @@ const repeatRequest = /^(?:repeat that|say that again|what did you just say)$/i;
 const ambiguousUndo = /^(?:undo|undo that|reverse that|take that back)$/i;
 const destructiveReference = /\b(?:delete|remove|erase|overwrite|replace|send|share)\b/i;
 const referentialTarget = /\b(?:this|that|it|these|those|him|her|them|the other one|the previous option|the one from before)\b/i;
+const isApplicationInteractionProposal = (
+  proposal: ConversationActionProposal | null | undefined,
+) => proposal?.canonicalIntent.startsWith("application_interaction.") === true;
 
 const referenceHash = (value: string) => {
   let hash = 2_166_136_261;
@@ -233,7 +236,15 @@ export class ConversationContinuityService {
 
     if (confirmations.test(text)) {
       const proposal = state.actionProposal;
-      if (!proposal || proposal.status !== "PROPOSED")
+      const appInteractionProposal = proposal
+        ? isApplicationInteractionProposal(proposal)
+        : false;
+      const canRetryApprovedInteraction =
+        appInteractionProposal && proposal?.status === "CONFIRMED";
+      if (
+        !proposal ||
+        (proposal.status !== "PROPOSED" && !canRetryApprovedInteraction)
+      )
         return this.handled(state, input.turnId, "There is no current action awaiting confirmation.", null, ["CLARIFY"], now);
       if (expired(proposal.expiresAt, now)) {
         state.actionProposal = { ...proposal, status: "EXPIRED", updatedAt: now.toISOString() };
@@ -243,15 +254,20 @@ export class ConversationContinuityService {
         !this.sameCaptureContext(
           proposal,
           input,
-          proposal.sourceContextReferenceId !== null ||
-            proposal.targets.some((target) =>
-              ["ACTIVE_SELECTION", "ACTIVE_CONTEXT"].includes(target.source),
-            ),
+          !appInteractionProposal &&
+            (proposal.sourceContextReferenceId !== null ||
+              proposal.targets.some((target) =>
+                ["ACTIVE_SELECTION", "ACTIVE_CONTEXT"].includes(target.source),
+              )),
         )
       )
         return this.handled(state, input.turnId, "That proposal belongs to a different device context. Please ask again here.", null, ["ACTION_PROPOSAL", "CLARIFY"], now);
       const currentReferenceIds = this.currentContextReferenceIds(input);
-      if (proposal.sourceContextReferenceId && !currentReferenceIds.has(proposal.sourceContextReferenceId)) {
+      if (
+        !appInteractionProposal &&
+        proposal.sourceContextReferenceId &&
+        !currentReferenceIds.has(proposal.sourceContextReferenceId)
+      ) {
         state.actionProposal = {
           ...proposal,
           status: "CANCELLED",
@@ -259,11 +275,13 @@ export class ConversationContinuityService {
         };
         return this.handled(state, input.turnId, "The referenced context has changed, so I won’t run the old proposal. Please ask again.", null, ["ACTION_PROPOSAL", "CLARIFY"], now);
       }
-      const staleTarget = proposal.targets.some(
-        (target) =>
-          ["ACTIVE_SELECTION", "ACTIVE_CONTEXT"].includes(target.source) &&
-          !currentReferenceIds.has(target.id),
-      );
+      const staleTarget =
+        !appInteractionProposal &&
+        proposal.targets.some(
+          (target) =>
+            ["ACTIVE_SELECTION", "ACTIVE_CONTEXT"].includes(target.source) &&
+            !currentReferenceIds.has(target.id),
+        );
       if (staleTarget) {
         state.actionProposal = {
           ...proposal,
@@ -461,6 +479,7 @@ export class ConversationContinuityService {
       input.canonicalRequest &&
       (state.actionProposal?.status === "CONFIRMED" ||
         state.actionProposal?.status === "PLANNED") &&
+      !isApplicationInteractionProposal(state.actionProposal) &&
       state.actionProposal.governedCommandId === null
     )
       state.actionProposal = {
@@ -513,6 +532,12 @@ export class ConversationContinuityService {
       existing.processedTurns[0]?.turnId !== input.sourceTurnId
     )
       return null;
+    if (existing.pendingIntent?.status === "AWAITING_CLARIFICATION")
+      existing.pendingIntent = {
+        ...existing.pendingIntent,
+        status: "CANCELLED",
+        updatedAt: now.toISOString(),
+      };
     existing.actionProposal = ConversationActionProposalSchema.parse({
       id: crypto.randomUUID(),
       sourceTurnId: input.sourceTurnId ?? null,

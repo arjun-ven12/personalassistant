@@ -771,6 +771,7 @@ export const VoiceTranscriptResponseSchema = z
     responseSource: VoiceResponseSourceSchema,
     responseProviderId: z.string().min(1).max(80).nullable(),
     responseModelId: z.string().min(1).max(160).nullable(),
+    approvalRequestId: z.string().uuid().nullable().default(null),
     classification: AlexaConversationClassificationSchema,
     routeStages: z.array(ConversationRouteStageSchema).max(20),
   })

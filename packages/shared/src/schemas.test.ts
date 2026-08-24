@@ -163,6 +163,7 @@ describe("registry and tool contracts", () => {
     expect(result.permissions.deleteFile).toBe(false);
     expect(result.gitPermissions.commit).toBe(false);
     expect(result.gitPermissions.push).toBe(false);
+    expect(result.blockedPatterns).toContain("external-research/");
   });
 
   it("validates registered tools and rejects unknown risks", () => {

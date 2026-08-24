@@ -268,6 +268,204 @@ export class AgentOsService {
     return { session };
   }
 
+  async startIsolatedDelegation(input: {
+    ownerId: string;
+    managerAgentId: string;
+    specialistAgentId: string;
+    delegationId: string;
+    task: string;
+    contextSummary: string;
+    memoryRefs: string[];
+    memoryScopes: string[];
+    capabilityRefs: string[];
+    skillRefs: string[];
+    knowledgeSourceRefs: string[];
+    contextTokenBudget: number;
+    sandboxProfileId: string;
+    requestId: string;
+  }) {
+    await this.ensureBaseline(input.ownerId, input.requestId);
+    const [manager, specialist] = await Promise.all([
+      this.store.findManifest(input.ownerId, input.managerAgentId),
+      this.store.findManifest(input.ownerId, input.specialistAgentId),
+    ]);
+    if (!manager || !specialist) {
+      throw new ExecutionError(
+        404,
+        "AGENT_MANIFEST_NOT_FOUND",
+        "Delegation agent manifest was not found.",
+      );
+    }
+    if (specialist.status === "archived" || specialist.status === "failed") {
+      throw new ExecutionError(
+        403,
+        "AGENT_RUNTIME_UNAVAILABLE",
+        "The specialist runtime is not available.",
+      );
+    }
+    if (
+      input.capabilityRefs.some(
+        (capability) => !specialist.capabilityRefs.includes(capability),
+      ) ||
+      input.knowledgeSourceRefs.some(
+        (source) => !specialist.knowledgeSourceRefs.includes(source),
+      )
+    ) {
+      throw new ExecutionError(
+        403,
+        "DELEGATION_SCOPE_INVALID",
+        "Delegation scope exceeds the specialist manifest.",
+      );
+    }
+    for (const memoryId of input.memoryRefs) {
+      if (!(await this.memoryStore.findMemory(input.ownerId, memoryId))) {
+        throw new ExecutionError(
+          403,
+          "DELEGATION_MEMORY_INVALID",
+          "Delegation memory is unavailable to this owner.",
+        );
+      }
+    }
+    const at = this.now().toISOString();
+    const contextPackage = ContextPackageRecordSchema.parse({
+      id: crypto.randomUUID(),
+      ownerId: input.ownerId,
+      agentId: specialist.id,
+      workflowId: null,
+      repositoryRefs: [],
+      memoryRefs: input.memoryRefs,
+      decisionRefs: [],
+      knowledgeSourceRefs: input.knowledgeSourceRefs,
+      capabilityRefs: input.capabilityRefs,
+      summary: input.contextSummary,
+      createdAt: at,
+    });
+    const session = AgentSessionRecordSchema.parse({
+      id: crypto.randomUUID(),
+      ownerId: input.ownerId,
+      agentId: specialist.id,
+      workflowId: null,
+      status: "running",
+      inputSummary: input.task,
+      outputSummary: null,
+      toolCallCount: 0,
+      messageCount: 1,
+      errorCode: null,
+      delegation: {
+        delegationId: input.delegationId,
+        managerAgentId: manager.id,
+        memoryScopes: input.memoryScopes,
+        capabilityRefs: input.capabilityRefs,
+        skillRefs: input.skillRefs,
+        contextTokenBudget: input.contextTokenBudget,
+        sandboxProfileId: input.sandboxProfileId,
+        aiRequestId: null,
+        providerId: null,
+        modelId: null,
+        sandboxStatus: "PENDING",
+        artifactCount: 0,
+        resultConfidence: null,
+      },
+      reasoningStatistics: {
+        steps: 0,
+        confidence: 0,
+        memoryRetrievalCount: input.memoryRefs.length,
+        knowledgeRetrievalCount: input.knowledgeSourceRefs.length,
+      },
+      startedAt: at,
+      endedAt: null,
+    });
+    await this.store.saveContextPackage(contextPackage);
+    await this.store.saveSession(session);
+    await this.store.saveManifest({ ...specialist, status: "running", updatedAt: at });
+    await this.recordEvent({
+      ownerId: input.ownerId,
+      agentId: specialist.id,
+      sessionId: session.id,
+      eventType: "DelegationStarted",
+      summary: "Bounded isolated specialist delegation started.",
+      metadata: {
+        delegationId: input.delegationId,
+        managerAgentId: manager.id,
+        contextPackageId: contextPackage.id,
+        memoryCount: input.memoryRefs.length,
+        capabilityCount: input.capabilityRefs.length,
+        parentTranscriptIncluded: false,
+      },
+      requestId: input.requestId,
+    });
+    return { session, contextPackage, specialist };
+  }
+
+  async completeIsolatedDelegation(input: {
+    ownerId: string;
+    sessionId: string;
+    outputSummary: string;
+    confidence: number;
+    aiRequestId: string;
+    providerId: string;
+    modelId: string;
+    artifactCount: number;
+    sandboxStatus: "PASSED" | "FAILED" | "UNAVAILABLE";
+    errorCode: string | null;
+    requestId: string;
+  }) {
+    const session = await this.store.findSession(input.ownerId, input.sessionId);
+    if (!session?.delegation || session.status !== "running") {
+      throw new ExecutionError(
+        409,
+        "DELEGATION_SESSION_NOT_RUNNING",
+        "Delegation session is not running.",
+      );
+    }
+    const at = this.now().toISOString();
+    const completed = AgentSessionRecordSchema.parse({
+      ...session,
+      status: input.errorCode ? "failed" : "completed",
+      outputSummary: input.outputSummary,
+      errorCode: input.errorCode,
+      messageCount: 2,
+      delegation: {
+        ...session.delegation,
+        aiRequestId: input.aiRequestId,
+        providerId: input.providerId,
+        modelId: input.modelId,
+        sandboxStatus: input.sandboxStatus,
+        artifactCount: input.artifactCount,
+        resultConfidence: input.confidence,
+      },
+      reasoningStatistics: {
+        ...session.reasoningStatistics,
+        steps: 1,
+        confidence: input.confidence,
+      },
+      endedAt: at,
+    });
+    await this.store.saveSession(completed);
+    const manifest = await this.store.findManifest(input.ownerId, session.agentId);
+    if (manifest) {
+      await this.store.saveManifest({ ...manifest, status: "idle", updatedAt: at });
+    }
+    await this.recordEvent({
+      ownerId: input.ownerId,
+      agentId: session.agentId,
+      sessionId: session.id,
+      eventType: input.errorCode ? "DelegationFailed" : "DelegationCompleted",
+      summary: input.errorCode
+        ? "Isolated specialist delegation failed closed."
+        : "Isolated specialist delegation completed with a structured result.",
+      metadata: {
+        delegationId: session.delegation.delegationId,
+        providerId: input.providerId,
+        modelId: input.modelId,
+        sandboxStatus: input.sandboxStatus,
+        artifactCount: input.artifactCount,
+      },
+      requestId: input.requestId,
+    });
+    return completed;
+  }
+
   async listManifests(ownerId: string) {
     await this.ensureBaseline(ownerId);
     return this.store.listManifests(ownerId);

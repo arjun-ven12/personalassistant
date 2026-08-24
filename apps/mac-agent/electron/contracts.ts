@@ -21,11 +21,34 @@ import type {
 
 export const EmptyIpcPayloadSchema = z.undefined();
 
+export const DesktopSttProviderIdSchema = z.enum(["whisper_cpp", "apple_speech"]);
+
+export const DesktopSttProviderStatusSchema = z
+  .object({
+    primaryProviderId: DesktopSttProviderIdSchema,
+    fallbackProviderId: z.union([z.literal("apple_speech"), z.literal("disabled")]),
+    primaryAvailable: z.boolean(),
+    message: z.string().min(1).max(240),
+  })
+  .strict();
+
 export const NativeVoiceRecognitionEventSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("ready"), onDevice: z.boolean() }).strict(),
+  z
+    .object({
+      type: z.literal("ready"),
+      providerId: DesktopSttProviderIdSchema,
+      onDevice: z.boolean().optional(),
+    })
+    .strict(),
   z.object({ type: z.literal("audioLevel"), level: z.number().min(0).max(1) }).strict(),
   z.object({ type: z.literal("interim"), text: z.string().min(1).max(4_000) }).strict(),
-  z.object({ type: z.literal("final"), text: z.string().min(1).max(4_000) }).strict(),
+  z
+    .object({
+      type: z.literal("final"),
+      text: z.string().min(1).max(4_000),
+      latencyMs: z.number().int().min(0).max(120_000).optional(),
+    })
+    .strict(),
   z
     .object({
       type: z.literal("error"),
@@ -36,6 +59,7 @@ export const NativeVoiceRecognitionEventSchema = z.discriminatedUnion("type", [
         "STT_AUDIO_CAPTURE_ERROR",
         "STT_DICTATION_DISABLED",
         "STT_RECOGNITION_FAILED",
+        "STT_TRANSCRIPTION_FAILED",
       ]),
       diagnosticDomain: z.string().min(1).max(120).optional(),
       diagnosticCode: z.number().int().safe().optional(),
@@ -289,6 +313,7 @@ export interface AlexaAgentApi {
   refreshApplicationDiscovery: () => Promise<ApplicationDiscoverySyncResult>;
   showVoiceOverlay: () => Promise<void>;
   hideVoiceOverlay: () => Promise<void>;
+  openApprovalCenter: () => Promise<void>;
   startOverlayVoiceSession: () => Promise<z.infer<typeof VoiceDashboardResponseSchema>>;
   submitOverlayVoiceTranscript: (
     input: Extract<
@@ -342,6 +367,7 @@ export const IPC_CHANNELS = {
   refreshApplicationDiscovery: "agent:refresh-application-discovery",
   showVoiceOverlay: "agent:show-voice-overlay",
   hideVoiceOverlay: "agent:hide-voice-overlay",
+  openApprovalCenter: "agent:open-approval-center",
   startOverlayVoiceSession: "agent:start-overlay-voice-session",
   submitOverlayVoiceTranscript: "agent:submit-overlay-voice-transcript",
   cancelOverlayVoiceTurn: "agent:cancel-overlay-voice-turn",

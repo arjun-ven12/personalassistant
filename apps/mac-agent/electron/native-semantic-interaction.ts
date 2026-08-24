@@ -9,6 +9,7 @@ import {
 import { z } from "zod";
 
 export const NativeSemanticBridgeOperationSchema = z.enum([
+  "reload",
   "focus_semantic_control",
   "insert_text",
   "replace_selection",

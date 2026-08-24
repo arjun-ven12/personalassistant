@@ -3,24 +3,25 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   Activity,
   Bot,
+  BrainCircuit,
+  CircleGauge,
   Cpu,
   Database,
   GitBranch,
+  Lightbulb,
   Network,
   Radio,
   Shield,
   Sparkles,
+  Users,
   Workflow,
   Zap,
 } from "lucide-react";
 import { lazy, Suspense, useState } from "react";
 
 import type { ApiClient } from "./api.js";
-import type {
-  SceneAgentNode,
-  SceneRepositoryNode,
-  SceneWorkflowNode,
-} from "./HomeScene3D.js";
+import type { BrainRuntimeSummary } from "@alexa-control/shared";
+import type { SceneRepositoryNode, SceneWorkflowNode } from "./HomeScene3D.js";
 import { usePersistentVoiceRuntime } from "./PersistentVoiceRuntime.js";
 
 type TelemetryTone = "accent" | "success" | "warning" | "danger" | "muted";
@@ -95,59 +96,59 @@ const TelemetryWidget = ({ item }: { item: TelemetryItem }) => (
 
 const LazyHomeScene3D = lazy(() => import("./HomeScene3D.js"));
 
-const AgentConstellation = ({
-  agents,
-  selectedAgentId,
-  onSelectAgent,
+type BrainNode = BrainRuntimeSummary["nodes"][number];
+
+const BrainConstellation = ({
+  nodes,
+  selectedNodeId,
+  onSelectNode,
 }: {
-  agents: SceneAgentNode[];
-  selectedAgentId: string | null;
-  onSelectAgent: (agent: SceneAgentNode) => void;
+  nodes: BrainNode[];
+  selectedNodeId: string | null;
+  onSelectNode: (node: BrainNode) => void;
 }) => {
-  const displayAgents =
-    agents.length > 0
-      ? agents
+  const displayNodes =
+    nodes.length > 0
+      ? nodes
       : [
           {
-            id: "standby-agent",
-            label: "Engineering Manager",
-            status: "available",
-            health: "healthy",
-            taskTitle: "Standing by for owner-approved work",
-            progress: 0,
-            latencyLabel: "standby",
-            lastActivityLabel: "none",
-          } satisfies SceneAgentNode,
+            id: "agents",
+            label: "Agents",
+            status: "IDLE",
+            value: "Synchronizing",
+            detail: ["Awaiting Alexa brain state"],
+            active: false,
+          } satisfies BrainNode,
         ];
   return (
-    <div className="agent-constellation" aria-label="Agent constellation">
-      {displayAgents.map((agent, index) => {
-        const angle = (index / displayAgents.length) * Math.PI * 2 - Math.PI / 2;
+    <div className="agent-constellation brain-constellation" aria-label="Alexa cognitive systems">
+      {displayNodes.map((node, index) => {
+        const angle = (index / displayNodes.length) * Math.PI * 2 - Math.PI / 2;
         return (
           <button
-            aria-label={`${agent.label}: ${agent.status}, ${agent.progress}% progress`}
-            aria-pressed={selectedAgentId === agent.id}
-            className={`agent-star agent-status-${agent.status} agent-health-${agent.health} ${selectedAgentId === agent.id ? "selected" : ""}`}
-            key={agent.id}
+            aria-label={`${node.label}: ${node.status}, ${node.value}`}
+            aria-pressed={selectedNodeId === node.id}
+            className={`agent-star brain-node brain-status-${node.status.toLowerCase()} ${node.active ? "is-active" : ""} ${selectedNodeId === node.id ? "selected" : ""}`}
+            key={node.id}
             onClick={() => {
+              onSelectNode(node);
               window.dispatchEvent(
                 new CustomEvent("assistant:sound-hook", {
-                  detail: { event: "agent_select", agentId: agent.id },
+                  detail: { event: "brain_node_select", nodeId: node.id },
                 }),
               );
-              onSelectAgent(agent);
             }}
             style={
               {
                 "--node-x": `${Math.cos(angle) * 185}px`,
                 "--node-y": `${Math.sin(angle) * 118}px`,
-                "--progress": `${agent.progress}%`,
+                "--progress": node.active ? "100%" : "0%",
               } as React.CSSProperties
             }
             type="button"
           >
             <span />
-            <small>{agent.label}</small>
+            <small>{node.label}</small>
           </button>
         );
       })}
@@ -155,36 +156,32 @@ const AgentConstellation = ({
   );
 };
 
-const SelectedAgentCard = ({ agent }: { agent: SceneAgentNode | null }) => {
+const SelectedBrainNodeCard = ({ node }: { node: BrainNode | null }) => {
   const displayed =
-    agent ??
+    node ??
     ({
-      id: "standby",
-      label: "Agent Mesh",
-      status: "available",
-      health: "unknown",
-      taskTitle: "Click an orbiting node to inspect an agent.",
-      progress: 0,
-      latencyLabel: "standby",
-      lastActivityLabel: "none",
-    } satisfies SceneAgentNode);
+      id: "agents",
+      label: "Alexa Brain",
+      status: "IDLE",
+      value: "Select a cognitive system",
+      detail: ["Live bounded runtime state appears here."],
+      active: false,
+    } satisfies BrainNode);
   return (
     <aside className="selected-agent-card" aria-live="polite">
-      <p className="eyebrow">Selected agent</p>
+      <p className="eyebrow">Selected brain node</p>
       <strong>{displayed.label}</strong>
       <dl>
         <dt>Status</dt>
-        <dd>{displayed.status}</dd>
-        <dt>Working on</dt>
-        <dd>{displayed.taskTitle}</dd>
-        <dt>Progress</dt>
-        <dd>{displayed.progress}%</dd>
-        <dt>Health</dt>
-        <dd>{displayed.health}</dd>
-        <dt>Latency</dt>
-        <dd>{displayed.latencyLabel}</dd>
-        <dt>Last activity</dt>
-        <dd>{displayed.lastActivityLabel}</dd>
+        <dd><span className={`brain-status-dot status-${displayed.status.toLowerCase()}`} />{displayed.status}</dd>
+        <dt>Live state</dt>
+        <dd>{displayed.value}</dd>
+        {displayed.detail.map((detail, index) => (
+          <div className="brain-node-detail" key={`${displayed.id}-${index}`}>
+            <dt>{index === 0 ? "Evidence" : ""}</dt>
+            <dd>{detail}</dd>
+          </div>
+        ))}
       </dl>
     </aside>
   );
@@ -230,7 +227,7 @@ export const HomeCommandCenter = ({ apiClient }: { apiClient: ApiClient }) => {
   const reduceMotion = useReducedMotion();
   const voiceRuntime = usePersistentVoiceRuntime();
   const [localStopAsserted, setLocalStopAsserted] = useState(false);
-  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [selectedBrainNodeId, setSelectedBrainNodeId] = useState<string | null>(null);
 
   const health = useQuery({
     queryKey: ["health"],
@@ -278,6 +275,11 @@ export const HomeCommandCenter = ({ apiClient }: { apiClient: ApiClient }) => {
     queryKey: ["ai-runtime-health", "home-preview"],
     queryFn: apiClient.getAIRuntimeHealth,
     refetchInterval: 15_000,
+  });
+  const brain = useQuery({
+    queryKey: ["brain-runtime-summary"],
+    queryFn: apiClient.getBrainRuntimeSummary,
+    refetchInterval: 5_000,
   });
 
   const stop = useMutation({
@@ -357,42 +359,6 @@ export const HomeCommandCenter = ({ apiClient }: { apiClient: ApiClient }) => {
     ).length ?? 0;
   const trustedDeviceCount =
     devices.data?.filter((device) => device.trustStatus === "TRUSTED").length ?? 0;
-  const sceneAgents: SceneAgentNode[] =
-    agents.data?.agents.map((agent, index) => {
-      const task = agents.data?.tasks.find(
-        (candidate) =>
-          candidate.agentId === agent.id &&
-          !["completed", "cancelled", "failed"].includes(candidate.status),
-      );
-      const metrics = agents.data?.metrics.find(
-        (candidate) => candidate.agentId === agent.id,
-      );
-      const health = agents.data?.health.find(
-        (candidate) => candidate.agentId === agent.id,
-      );
-      const assigned = metrics?.assignedTaskCount ?? 0;
-      const completed = metrics?.completedTaskCount ?? 0;
-      const progress =
-        task?.status === "in_progress"
-          ? 72
-          : task?.status === "waiting_consensus"
-            ? 84
-            : task?.status === "blocked"
-              ? 41
-              : assigned > 0
-                ? Math.min(96, Math.round((completed / assigned) * 100))
-                : 0;
-      return {
-        id: agent.id,
-        label: agent.displayName,
-        status: task ? "busy" : agent.status,
-        health: health?.state ?? "unknown",
-        taskTitle: task?.title ?? "Standing by for owner-approved work",
-        progress,
-        latencyLabel: health?.state === "healthy" ? `${18 + index * 7}ms` : "degraded",
-        lastActivityLabel: relativeActivity(metrics?.lastActivityAt ?? agent.updatedAt),
-      };
-    }) ?? [];
   const sceneRepositories: SceneRepositoryNode[] =
     repositories.data?.map((repository, index) => ({
       id: repository.id,
@@ -410,10 +376,10 @@ export const HomeCommandCenter = ({ apiClient }: { apiClient: ApiClient }) => {
       status: workflow.status,
       progress: workflowProgressForStatus(workflow.status),
     })) ?? [];
-  const selectedAgent =
-    selectedAgentId === null
+  const selectedBrainNode =
+    selectedBrainNodeId === null
       ? null
-      : (sceneAgents.find((agent) => agent.id === selectedAgentId) ?? null);
+      : (brain.data?.nodes.find((node) => node.id === selectedBrainNodeId) ?? null);
   return (
     <section
       className="home-command-center home-command-center-structured"
@@ -437,8 +403,8 @@ export const HomeCommandCenter = ({ apiClient }: { apiClient: ApiClient }) => {
       <div className="command-hero-card">
         <div className="command-core-stage" aria-label="Interactive AI ecosystem core">
           <div className="mesh-stage-heading">
-            <span>Agent mesh</span>
-            <small>{numericStatus(sceneAgents.length)} agents · click a node</small>
+            <span>Alexa brain</span>
+            <small>{numericStatus(brain.data?.nodes.length)} cognitive systems · select a node</small>
           </div>
           <div className="scene-canvas command-core-canvas">
             {reduceMotion ? (
@@ -463,12 +429,12 @@ export const HomeCommandCenter = ({ apiClient }: { apiClient: ApiClient }) => {
           </div>
           <div className="ai-core-label command-core-tag">
             <Sparkles size={15} />
-            Core online
+            Alexa core online
           </div>
-          <AgentConstellation
-            agents={sceneAgents}
-            onSelectAgent={(agent) => setSelectedAgentId(agent.id)}
-            selectedAgentId={selectedAgent?.id ?? selectedAgentId}
+          <BrainConstellation
+            nodes={brain.data?.nodes ?? []}
+            onSelectNode={(node) => setSelectedBrainNodeId(node.id)}
+            selectedNodeId={selectedBrainNode?.id ?? selectedBrainNodeId}
           />
           <RepositoryGalaxy count={repositories.data?.length ?? 0} />
           <WorkflowStreams />
@@ -488,7 +454,7 @@ export const HomeCommandCenter = ({ apiClient }: { apiClient: ApiClient }) => {
           </div>
         </div>
 
-        <SelectedAgentCard agent={selectedAgent} />
+        <SelectedBrainNodeCard node={selectedBrainNode} />
 
         <div className="command-metric-grid" aria-label="Primary telemetry">
           {telemetry.slice(0, 6).map((item) => (
@@ -496,6 +462,130 @@ export const HomeCommandCenter = ({ apiClient }: { apiClient: ApiClient }) => {
           ))}
         </div>
       </div>
+
+      <section className="cognitive-path-panel" aria-labelledby="cognitive-path-title">
+        <div className="brain-section-heading">
+          <div>
+            <span>Live routing</span>
+            <h2 id="cognitive-path-title">Current cognitive path</h2>
+          </div>
+          <small>Only stages used by the current Alexa runtime are illuminated.</small>
+        </div>
+        <div className="cognitive-path-track">
+          {(brain.data?.cognitivePath ?? []).map((stage) => (
+            <div className={`cognitive-stage state-${stage.state.toLowerCase()}`} key={stage.stage}>
+              <i />
+              <span>{readableStatus(stage.stage)}</span>
+            </div>
+          ))}
+          {brain.isPending ? <span className="brain-empty-inline">Synchronizing cognitive state</span> : null}
+        </div>
+      </section>
+
+      <section className="brain-summary-grid" aria-label="Alexa brain summary">
+        <article className="brain-operational-card current-cognition-card">
+          <div className="holo-heading"><BrainCircuit size={16} /><span>Current cognition</span></div>
+          <dl>
+            <dt>Intent</dt><dd>{brain.data?.cognition.intent ?? "No active turn"}</dd>
+            <dt>Context</dt><dd>{brain.data?.cognition.context ?? "No active context"}</dd>
+            <dt>Memory</dt><dd>{brain.data?.cognition.memory ?? "0 relevant memories"}</dd>
+            <dt>AI</dt><dd>{brain.data?.cognition.ai ?? "No recent route"}</dd>
+            <dt>Knowledge</dt><dd>{brain.data?.cognition.knowledgeConfidence === null || brain.data?.cognition.knowledgeConfidence === undefined ? "Not measured" : `${Math.round(brain.data.cognition.knowledgeConfidence * 100)}% confidence`}</dd>
+          </dl>
+        </article>
+
+        <article className="brain-operational-card brain-health-card">
+          <div className="holo-heading"><CircleGauge size={16} /><span>Brain health</span></div>
+          <div className="brain-health-list">
+            {[
+              ["Memory", brain.data?.brainHealth.memory ?? "CHECKING"],
+              ["Embeddings", brain.data?.brainHealth.embeddings === null || brain.data?.brainHealth.embeddings === undefined ? "Not measured" : `${Math.round(brain.data.brainHealth.embeddings * 100)}%`],
+              ["Knowledge graph", brain.data?.brainHealth.knowledgeGraph ?? "CHECKING"],
+              ["Conflicts", numericStatus(brain.data?.brainHealth.conflicts)],
+              ["Gaps", numericStatus(brain.data?.brainHealth.gaps)],
+              ["Orphans", numericStatus(brain.data?.brainHealth.orphans)],
+            ].map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}
+          </div>
+        </article>
+
+        <article className="brain-operational-card knowledge-gap-card">
+          <div className="holo-heading"><Lightbulb size={16} /><span>Knowledge gaps</span></div>
+          <div className="compact-runtime-list">
+            {(brain.data?.knowledgeGaps ?? []).slice(0, 4).map((gap) => (
+              <div key={`${gap.objective}-${gap.assessedAt}`}>
+                <strong>{gap.objective}</strong>
+                <span>{gap.missing.length > 0 ? `${gap.missing.length} missing · ${gap.missing.slice(0, 2).join(", ")}` : "Evidence sufficient"}</span>
+              </div>
+            ))}
+            {(brain.data?.knowledgeGaps.length ?? 0) === 0 ? <p className="brain-empty">No gap assessments yet.</p> : null}
+          </div>
+        </article>
+
+        <article className="brain-operational-card brain-observability-card">
+          <div className="holo-heading"><Activity size={16} /><span>Routing economy</span></div>
+          <div className="brain-health-list">
+            <div><span>Brain-first lookups</span><strong>{numericStatus(brain.data?.observability.brainFirstLookups)}</strong></div>
+            <div><span>Memory sufficient</span><strong>{numericStatus(brain.data?.observability.memorySufficient)}</strong></div>
+            <div><span>AI required</span><strong>{numericStatus(brain.data?.observability.aiRequired)}</strong></div>
+            <div><span>Deterministic</span><strong>{numericStatus(brain.data?.observability.deterministicResolutions)}</strong></div>
+            <div><span>Memory avg</span><strong>{brain.data?.observability.memoryFirstAverageLatencyMs == null ? "Not measured" : `${Math.round(brain.data.observability.memoryFirstAverageLatencyMs)}ms`}</strong></div>
+            <div><span>AI avg</span><strong>{brain.data?.observability.aiAverageLatencyMs == null ? "Not measured" : `${Math.round(brain.data.observability.aiAverageLatencyMs)}ms`}</strong></div>
+          </div>
+        </article>
+      </section>
+
+      <section className="brain-workforce-grid" aria-label="Alexa organization and delegation">
+        <article className="brain-operational-card organization-card">
+          <div className="brain-section-heading">
+            <div><span>Organization</span><h2>Development department</h2></div>
+            <small>{numericStatus(brain.data?.organization.length)} Alexa AgentDefinitions</small>
+          </div>
+          <div className="organization-tree">
+            {(brain.data?.organization ?? []).map((agent) => (
+              <div className={`organization-agent kind-${agent.kind.toLowerCase()}`} key={agent.id}>
+                <Users size={14} />
+                <div><strong>{agent.label}</strong><span>{readableStatus(agent.kind)} · {readableStatus(agent.status)}</span></div>
+                <small>{agent.capabilityCount} capabilities</small>
+              </div>
+            ))}
+            {(brain.data?.organization.length ?? 0) === 0 ? <p className="brain-empty">Agent organization is synchronizing.</p> : null}
+          </div>
+        </article>
+
+        <article className="brain-operational-card live-delegation-card">
+          <div className="brain-section-heading">
+            <div><span>Agent OS</span><h2>Live delegations</h2></div>
+            <small>AIRouter + isolated sandbox</small>
+          </div>
+          <div className="compact-runtime-list delegation-list">
+            {(brain.data?.delegations ?? []).slice(0, 6).map((session) => (
+              <div key={session.id}>
+                <span className={`delegation-state state-${session.status}`} />
+                <div><strong>{session.inputSummary}</strong><span>{session.agentId} · {readableStatus(session.status)} · sandbox {readableStatus(session.delegation?.sandboxStatus ?? "pending")}</span></div>
+                <small>{session.endedAt ? relativeActivity(session.endedAt) : "running"}</small>
+              </div>
+            ))}
+            {(brain.data?.delegations.length ?? 0) === 0 ? <p className="brain-empty">No specialist delegations yet.</p> : null}
+          </div>
+        </article>
+      </section>
+
+      <section className="brain-operational-card knowledge-neighborhood-card" aria-labelledby="knowledge-neighborhood-title">
+        <div className="brain-section-heading">
+          <div><span>Bounded graph</span><h2 id="knowledge-neighborhood-title">Knowledge neighborhood</h2></div>
+          <small>Recent entities only · no full graph dump</small>
+        </div>
+        <div className="knowledge-neighborhood">
+          {(brain.data?.knowledgeNeighborhood ?? []).map((node) => (
+            <div className="knowledge-node" key={node.id} title={`${node.connectionCount} connections`}>
+              <i />
+              <strong>{node.label}</strong>
+              <span>{readableStatus(node.kind)} · {node.connectionCount} links</span>
+            </div>
+          ))}
+          {(brain.data?.knowledgeNeighborhood.length ?? 0) === 0 ? <p className="brain-empty">No knowledge entities are available yet.</p> : null}
+        </div>
+      </section>
 
       <aside className="command-side-stack" aria-label="Dashboard status section">
         <div className="command-card-row command-card-row-three">

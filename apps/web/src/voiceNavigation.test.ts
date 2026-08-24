@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  parseVoiceNavigationSequence,
   parseApplicationVoiceCommand,
   runDeterministicVoiceNavigation,
+  runDeterministicVoiceNavigationTarget,
 } from "./voiceNavigation.js";
 
 const context = () => ({
@@ -19,6 +21,18 @@ describe("Deterministic voice navigation", () => {
     if (typeof document !== "undefined") document.body.innerHTML = "";
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it("parses only bounded page-navigation followed by control activation", () => {
+    expect(
+      parseVoiceNavigationSequence(
+        "Go to devices and click generate pairing code button",
+      ),
+    ).toEqual({
+      navigation: "Go to devices",
+      activation: "click generate pairing code button",
+    });
+    expect(parseVoiceNavigationSequence("Open devices and delete everything")).toBeNull();
   });
 
   const installButtonDom = (labels: string[]) => {
@@ -193,6 +207,62 @@ describe("Deterministic voice navigation", () => {
     expect(result.kind).toBe("conversation");
     expect(result.escalatesToIntentEngine).toBe(false);
     expect(result.feedback).toBe("Hey — I’m here.");
+  });
+
+  it("treats a spoken control role as a qualifier rather than part of its label", () => {
+    const [button] = installButtonDom(["Generate pairing code"]);
+    const result = runDeterministicVoiceNavigation(
+      "click generate pairing code button",
+      { ...context(), pathname: "/devices" },
+    );
+
+    expect(result.handled).toBe(true);
+    expect(button?.click).toHaveBeenCalledOnce();
+  });
+
+  it("activates the exact chosen ambiguous control by semantic target id", () => {
+    const [first, second] = installButtonDom(["Delete", "Delete"]);
+    const ctx = context();
+    const ambiguous = runDeterministicVoiceNavigation("click delete", ctx);
+
+    expect(ambiguous.handled).toBe(false);
+    expect(ambiguous.ambiguousTargets).toHaveLength(2);
+
+    const selected = runDeterministicVoiceNavigationTarget(
+      ambiguous.ambiguousTargets[0]!.id,
+      ctx,
+      "first one",
+    );
+
+    expect(selected.handled).toBe(true);
+    expect(selected.targetId).toBe(ambiguous.ambiguousTargets[0]!.id);
+    expect(first?.click).toHaveBeenCalledOnce();
+    expect(second?.click).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when a previously chosen ambiguous control disappears", () => {
+    const [first] = installButtonDom(["Delete", "Delete"]);
+    const ctx = context();
+    const ambiguous = runDeterministicVoiceNavigation("click delete", ctx);
+    expect(ambiguous.ambiguousTargets).toHaveLength(2);
+
+    if (first) first.getBoundingClientRect = vi.fn(() => ({
+      width: 0,
+      height: 0,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    }));
+
+    const selected = runDeterministicVoiceNavigationTarget(
+      ambiguous.ambiguousTargets[0]!.id,
+      ctx,
+      "first one",
+    );
+
+    expect(selected.handled).toBe(false);
+    expect(first?.click).not.toHaveBeenCalled();
   });
 
   it("escalates unknown commands to the Intent Engine", () => {

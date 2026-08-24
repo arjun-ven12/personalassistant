@@ -108,6 +108,9 @@ export class ActiveContextService {
     const documentTitle = contentAllowed
       ? (adapterSnapshot?.currentDocument ?? observation.document?.title ?? null)
       : null;
+    const documentContent = contentAllowed
+      ? (observation.document?.content ?? null)
+      : null;
     const windowTitle =
       observationFresh && trusted && !explicitlyBlocked
         ? (observation.window?.title ?? null)
@@ -144,11 +147,12 @@ export class ActiveContextService {
       },
       window: windowTitle ? { title: windowTitle } : null,
       document:
-        documentTitle || (contentAllowed && observation.document)
+        documentTitle || documentContent || (contentAllowed && observation.document)
           ? {
               title: documentTitle,
               type: observation.document?.type ?? null,
               uri: contentAllowed ? cleanUri(observation.document?.uri ?? null) : null,
+              content: documentContent,
             }
           : null,
       selection: selectionText

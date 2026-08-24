@@ -29,6 +29,7 @@ export const ActiveContextObservationSchema = z
         title: z.string().trim().max(240).nullable().default(null),
         type: z.string().trim().max(80).nullable().default(null),
         uri: z.string().trim().max(2_000).nullable().default(null),
+        content: z.string().trim().max(8_000).nullable().default(null),
       })
       .strict()
       .nullable()
@@ -68,6 +69,7 @@ export const ActiveContextSchema = z
         title: z.string().max(240).nullable(),
         type: z.string().max(80).nullable(),
         uri: z.string().max(2_000).nullable(),
+        content: z.string().max(8_000).nullable().default(null),
       })
       .strict()
       .nullable(),

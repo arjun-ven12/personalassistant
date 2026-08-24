@@ -17,6 +17,7 @@ export const BLOCKED_WORKSPACE_PATTERNS = [
   ".pypirc",
   "credentials.json",
   "service-account*.json",
+  "external-research/",
   "Library/Keychains/",
   "Library/Application Support/*password*",
 ] as const;

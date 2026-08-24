@@ -1,8 +1,10 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap");
+
 :root {
   color: #edf2f7;
   background: #090d12;
   font-family:
-    Inter,
+    Outfit,
     ui-sans-serif,
     system-ui,
     -apple-system,
@@ -33,7 +35,12 @@ body:has(.voice-overlay) {
 
 .voice-overlay {
   position: relative;
-  min-height: 100vh;
+  height: 100vh;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   padding: 10px;
   border: 1px solid rgba(108, 142, 245, 0.3);
   border-radius: 8px;
@@ -43,10 +50,14 @@ body:has(.voice-overlay) {
 }
 
 .voice-overlay-header {
+  position: sticky;
+  z-index: 2;
+  top: 0;
   display: flex;
   align-items: center;
   gap: 8px;
   min-height: 34px;
+  background: #111216;
 }
 
 .voice-overlay-drag {
@@ -234,6 +245,69 @@ body:has(.voice-overlay) {
   color: #93959e;
   text-transform: none;
   letter-spacing: 0;
+}
+
+.voice-overlay-approval {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 9px;
+  padding: 8px;
+  border: 1px solid rgba(217, 160, 82, 0.42);
+  border-radius: 5px;
+  background: rgba(217, 160, 82, 0.08);
+}
+
+.voice-overlay-approval > span,
+.voice-overlay-approval > strong,
+.voice-overlay-approval > small {
+  grid-column: 1 / -1;
+}
+
+.voice-overlay-approval span {
+  color: #d9a052;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.voice-overlay-approval strong {
+  color: #e8e9ec;
+  font-size: 11px;
+}
+
+.voice-overlay-approval small {
+  color: #93959e;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.voice-overlay-approval button {
+  -webkit-app-region: no-drag;
+  min-height: 31px;
+  margin-top: 3px;
+  border: 1px solid rgba(217, 160, 82, 0.45);
+  border-radius: 5px;
+  color: #e8e9ec;
+  background: #1b1c22;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.voice-overlay::-webkit-scrollbar {
+  width: 8px;
+}
+
+.voice-overlay::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.voice-overlay::-webkit-scrollbar-thumb {
+  border: 2px solid #111216;
+  border-radius: 20px;
+  background: rgba(147, 149, 158, 0.35);
 }
 
 .voice-overlay-footer {

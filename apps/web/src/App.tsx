@@ -25,6 +25,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { AuditPage } from "./AuditPage.js";
 import { ApplicationsPage } from "./ApplicationsPage.js";
+import { CapabilityStudioPage } from "./CapabilityStudioPage.js";
 import { ApplicationIntelligencePage } from "./ApplicationIntelligencePage.js";
 import { ApprovalsPage } from "./ApprovalsPage.js";
 import { AuthPage } from "./AuthPage.js";
@@ -52,7 +53,6 @@ import { CommandStudioPage } from "./CommandStudioPage.js";
 import { ConversationPage } from "./ConversationPage.js";
 import { ExecutivePage } from "./ExecutivePage.js";
 import { PersonalityPage } from "./PersonalityPage.js";
-import { DesktopPage } from "./DesktopPage.js";
 import { PersistentSpatialRuntimeProvider } from "./PersistentSpatialRuntime.js";
 import { PersistentVoiceRuntimeProvider } from "./PersistentVoiceRuntime.js";
 import { SpatialPage } from "./SpatialPage.js";
@@ -378,7 +378,7 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
     {
       id: "capabilities",
       label: "Capabilities",
-      content: <DesktopPage apiClient={apiClient} />,
+      content: <CapabilityStudioPage apiClient={apiClient} />,
     },
     {
       id: "integrations",

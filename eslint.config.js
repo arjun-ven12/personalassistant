@@ -11,7 +11,9 @@ export default tseslint.config(
       "**/dist-electron/**",
       "**/coverage/**",
       "**/node_modules/**",
+      "external-research/**",
       "apps/mac-agent/public/mediapipe/**",
+      "apps/mac-agent/.local/**",
     ],
   },
   eslint.configs.recommended,
@@ -48,6 +50,15 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+    },
+  },
+  {
+    files: ["apps/mac-agent/scripts/**/*.mjs"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.browser,
+      },
     },
   },
 );

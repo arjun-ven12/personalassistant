@@ -139,8 +139,20 @@ case "insert_text", "replace_selection":
     guard let text = request.text else {
         emit(Result(status: "FAILED", semanticId: semanticId, matchedCount: 1))
     }
-    error = AXUIElementSetAttributeValue(target, kAXSelectedTextAttribute as CFString, text as CFTypeRef)
-case "activate_semantic_control", "submit_composer":
+    if request.operation == "insert_text", request.target.type == "TEXT_FIELD" {
+        _ = AXUIElementSetAttributeValue(target, kAXFocusedAttribute as CFString, true as CFTypeRef)
+        let selectedTextError = AXUIElementSetAttributeValue(
+            target,
+            kAXSelectedTextAttribute as CFString,
+            text as CFTypeRef
+        )
+        error = selectedTextError == .success
+            ? .success
+            : AXUIElementSetAttributeValue(target, kAXValueAttribute as CFString, text as CFTypeRef)
+    } else {
+        error = AXUIElementSetAttributeValue(target, kAXSelectedTextAttribute as CFString, text as CFTypeRef)
+    }
+case "reload", "activate_semantic_control", "submit_composer":
     error = AXUIElementPerformAction(target, kAXPressAction as CFString)
 default:
     emit(Result(status: "UNSUPPORTED", semanticId: semanticId, matchedCount: 1))

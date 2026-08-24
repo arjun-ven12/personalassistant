@@ -352,6 +352,12 @@ export const NativeProviderExecutionTransportResultSchema = z
     latencyMs: z.number().nonnegative(),
     completedAt: z.iso.datetime(),
     nativeBridgeUsed: z.boolean(),
+    semanticId: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .nullable()
+      .default(null),
+    matchedCount: z.number().int().nonnegative().max(10_000).default(0),
     arbitraryExecutionAvailable: z.literal(false),
     arbitraryAppleScriptAvailable: z.literal(false),
     arbitraryShellAvailable: z.literal(false),

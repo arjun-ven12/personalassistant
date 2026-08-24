@@ -331,6 +331,9 @@ export class ExecutionService {
         evaluation.decision === "require_approval" ? 409 : 403,
         evaluation.reasonCode,
         evaluation.humanReadableReason,
+        evaluation.approvalRequestId
+          ? { approvalRequestId: evaluation.approvalRequestId }
+          : undefined,
       );
     }
 
@@ -427,7 +430,10 @@ export class ExecutionService {
     const application =
       (await this.governance.store.findApplicationById(parsed.applicationId)) ??
       input.policyApplication;
-    const actionId = crypto.randomUUID();
+    // A confirmed interaction must retain its identity while it moves through
+    // proposal, approval, and execution. The full request remains digest-bound,
+    // so changing the target or arguments still requires a new approval.
+    const actionId = parsed.interactionProposalId ?? crypto.randomUUID();
     const action = ProposedActionSchema.parse({
       actionId,
       toolName: policyToolName,
@@ -471,6 +477,9 @@ export class ExecutionService {
         evaluation.decision === "require_approval" ? 409 : 403,
         evaluation.reasonCode,
         evaluation.humanReadableReason,
+        evaluation.approvalRequestId
+          ? { approvalRequestId: evaluation.approvalRequestId }
+          : undefined,
       );
     }
     const workspaceId = await this.ensureNativeProviderWorkspace(input.ownerId);

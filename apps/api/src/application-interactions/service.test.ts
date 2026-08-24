@@ -1,10 +1,12 @@
 import {
+  CapabilityCandidateSchema,
   SemanticDesktopObjectRecordSchema,
   TrustedApplicationRecordSchema,
 } from "@alexa-control/shared";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { InMemoryApplicationAdapterStore } from "../application-adapters/store.js";
+import { InMemoryCapabilityStudioStore } from "../capability-studio/store.js";
 import type { GovernanceAuditWriter } from "../governance/approval-service.js";
 import { NativeProviderRuntime } from "../native-providers/service.js";
 import { InMemoryNativeProviderStore } from "../native-providers/store.js";
@@ -12,31 +14,43 @@ import { ApplicationInteractionService } from "./service.js";
 
 const at = new Date("2026-08-21T00:00:00.000Z");
 
-const setup = async (permissions: string[] = [
-  "read_semantic_structure",
-  "navigate",
-  "interact",
-  "edit_text",
-]) => {
+const setup = async (
+  permissions: string[] = [
+    "read_semantic_structure",
+    "navigate",
+    "interact",
+    "edit_text",
+  ],
+  options: { includeChromeSearchObject?: boolean; now?: () => Date } = {},
+) => {
   const ownerId = crypto.randomUUID();
   const appStore = new InMemoryApplicationAdapterStore();
   const providerStore = new InMemoryNativeProviderStore();
+  const capabilityStudioStore = new InMemoryCapabilityStudioStore();
   const audits: Parameters<GovernanceAuditWriter>[0][] = [];
   const audit: GovernanceAuditWriter = (event) => {
     audits.push(event);
   };
   const executionRequestId = crypto.randomUUID();
+  const now = options.now ?? (() => at);
   const native = new NativeProviderRuntime(
     providerStore,
     appStore,
     audit,
-    () => at,
+    now,
     () => Promise.resolve({ executionRequestId }),
   );
   await native.dashboard(ownerId);
   const provider = providerStore.getProvider(ownerId, "provider.chatgpt");
   if (!provider) throw new Error("ChatGPT provider baseline missing.");
   providerStore.saveProvider({ ...provider, status: "healthy", updatedAt: at.toISOString() });
+  const chromeProvider = providerStore.getProvider(ownerId, "provider.chrome");
+  if (!chromeProvider) throw new Error("Chrome provider baseline missing.");
+  providerStore.saveProvider({
+    ...chromeProvider,
+    status: "healthy",
+    updatedAt: at.toISOString(),
+  });
   appStore.saveTrustedApplication(
     TrustedApplicationRecordSchema.parse({
       id: "chatgpt",
@@ -58,20 +72,44 @@ const setup = async (permissions: string[] = [
       updatedAt: at.toISOString(),
     }),
   );
+  appStore.saveTrustedApplication(
+    TrustedApplicationRecordSchema.parse({
+      id: "chrome",
+      ownerId,
+      applicationName: "Chrome",
+      bundleIdentifier: "com.google.Chrome",
+      stableIdentifier: "chrome",
+      applicationVersion: "1",
+      executablePath: null,
+      executablePathUserSupplied: false,
+      codeSignature: "Developer ID Application: Google",
+      permissionsGranted: permissions,
+      capabilities: ["navigation", "editing", "semantic_registry"],
+      status: "trusted",
+      lastSeenAt: at.toISOString(),
+      trustLevel: "interaction",
+      securityProfile: "strict",
+      createdAt: at.toISOString(),
+      updatedAt: at.toISOString(),
+    }),
+  );
+  const entries = [
+      ["chatgpt", "composer", "editor"],
+      ["chatgpt", "Send", "button"],
+      ["chatgpt", "Sign In", "button"],
+      ["chatgpt", "Delete", "button"],
+    ];
+  if (options.includeChromeSearchObject !== false)
+    entries.push(["chrome", "Search", "search_field"]);
   const objects = new Map(
-    [
-      ["composer", "editor"],
-      ["Send", "button"],
-      ["Sign In", "button"],
-      ["Delete", "button"],
-    ].map(([label, role]) => {
-      const id = `semantic.${label!.toLowerCase().replaceAll(" ", "-")}`;
+    entries.map(([applicationId, label, role]) => {
+      const id = `semantic.${applicationId}.${label!.toLowerCase().replaceAll(" ", "-")}`;
       return [
         id,
         SemanticDesktopObjectRecordSchema.parse({
           id,
           ownerId,
-          applicationId: "chatgpt",
+          applicationId,
           windowId: null,
           parentId: null,
           childIds: [],
@@ -106,9 +144,12 @@ const setup = async (permissions: string[] = [
     }),
   );
   const targetResolution = {
-    resolve: (input: { request: { target: { query: string | null } } }) => {
+    resolve: (input: {
+      request: { target: { query: string | null; applicationId: string | null } };
+    }) => {
       const target = [...objects.values()].find(
         (object) =>
+          object.applicationId === input.request.target.applicationId &&
           object.displayName.toLowerCase() ===
           input.request.target.query?.toLowerCase(),
       );
@@ -124,16 +165,25 @@ const setup = async (permissions: string[] = [
     providerStore,
     native,
     audit,
-    () => at,
+    now,
     () => Promise.resolve(true),
     () => Promise.resolve(undefined),
     targetResolution as never,
     (_ownerId, objectId) => objects.get(objectId) ?? null,
+    capabilityStudioStore,
   );
   const plan = (
     input: Omit<Parameters<ApplicationInteractionService["planFromUtterance"]>[0], "ownerId">,
   ) => service.planFromUtterance({ ownerId, ...input });
-  return { audits, executionRequestId, objects, ownerId, plan, service };
+  return {
+    audits,
+    capabilityStudioStore,
+    executionRequestId,
+    objects,
+    ownerId,
+    plan,
+    service,
+  };
 };
 
 const executeInput = (ownerId: string, body: unknown) => ({
@@ -194,6 +244,134 @@ describe("ApplicationInteractionService", () => {
       },
     });
     expect(sendUnverified.request).toBeNull();
+  });
+
+  it("plans unquoted browser typing against the current browser search field", async () => {
+    const { plan } = await setup();
+
+    const typed = await plan({
+      utterance: "Type in hello",
+      origin: "voice",
+      currentApplicationId: "chrome",
+    });
+
+    expect(typed.clarification).toBeNull();
+    expect(typed.request).toMatchObject({
+      applicationId: "chrome",
+      capability: "insert_text",
+      text: "hello",
+      target: {
+        type: "TEXT_FIELD",
+        label: "Search",
+        role: "AXTextField",
+      },
+    });
+  });
+
+  it("plans refresh as the finite reviewed browser reload capability", async () => {
+    const { plan } = await setup();
+
+    const refresh = await plan({
+      utterance: "Refresh this page in Chrome",
+      origin: "voice",
+    });
+
+    expect(refresh.clarification).toBeNull();
+    expect(refresh.request).toMatchObject({
+      applicationId: "chrome",
+      capability: "reload",
+      target: {
+        type: "BUTTON",
+        role: "AXButton",
+        label: "Reload this page",
+      },
+    });
+  });
+
+  it("uses the reviewed Chrome search field fallback when registry metadata is missing", async () => {
+    const { executionRequestId, ownerId, plan, service } = await setup(
+      ["read_semantic_structure", "navigate", "interact", "edit_text"],
+      { includeChromeSearchObject: false },
+    );
+
+    const planned = (await plan({
+      utterance: "Type in hello in the search bar in Chrome",
+      origin: "voice",
+      currentApplicationId: "chrome",
+      conversationId: crypto.randomUUID(),
+      proposalId: crypto.randomUUID(),
+    })).request;
+
+    expect(planned).toMatchObject({
+      applicationId: "chrome",
+      capability: "insert_text",
+      text: "hello",
+      target: {
+        type: "TEXT_FIELD",
+        role: "AXTextField",
+        label: "Address and search bar",
+        identifier: null,
+        registryObjectId: null,
+        registryVersion: null,
+      },
+    });
+
+    const result = await service.execute(executeInput(ownerId, planned));
+    expect(result).toMatchObject({
+      status: "SUCCESS",
+      providerId: "provider.chrome",
+      executionRequestId,
+      capability: "insert_text",
+    });
+  });
+
+  it("keeps a confirmed Chrome text target valid during the bounded approval window", async () => {
+    let current = at;
+    const { executionRequestId, ownerId, plan, service } = await setup(
+      ["read_semantic_structure", "navigate", "interact", "edit_text"],
+      { now: () => current },
+    );
+    const planned = (await plan({
+      utterance: "Type in hello in the search bar in Chrome",
+      origin: "voice",
+      conversationId: crypto.randomUUID(),
+      proposalId: crypto.randomUUID(),
+    })).request;
+
+    current = new Date(at.getTime() + 2 * 60_000);
+    const result = await service.execute(executeInput(ownerId, planned));
+
+    expect(result).toMatchObject({
+      status: "SUCCESS",
+      executionRequestId,
+      capability: "insert_text",
+    });
+  });
+
+  it("still denies arbitrary unregistered semantic targets", async () => {
+    const { ownerId, plan, service } = await setup();
+    const planned = (await plan({
+      utterance: "Type 'hello' into ChatGPT.",
+      origin: "voice",
+      conversationId: crypto.randomUUID(),
+      proposalId: crypto.randomUUID(),
+    })).request!;
+
+    const result = await service.execute(
+      executeInput(ownerId, {
+        ...planned,
+        target: {
+          ...planned.target,
+          label: "Message ChatGPT",
+          identifier: null,
+          registryObjectId: null,
+          registryVersion: null,
+        },
+      }),
+    );
+
+    expect(result.status).toBe("TARGET_AMBIGUOUS");
+    expect(result.executionRequestId).toBeNull();
   });
 
   it("queues bounded composer insertion through the reviewed provider", async () => {
@@ -341,6 +519,106 @@ describe("ApplicationInteractionService", () => {
 
     expect(result.status).toBe("POLICY_DENIED");
     expect(result.message).toMatch(/exact confirmed conversation proposal/i);
+    expect(result.executionRequestId).toBeNull();
+  });
+
+  it("treats duplicate already-claimed confirmations as idempotent", async () => {
+    const { ownerId, plan, service } = await setup();
+    const planned = (await plan({
+      utterance: "Type 'hello' into ChatGPT.",
+      origin: "voice",
+      conversationId: crypto.randomUUID(),
+      proposalId: crypto.randomUUID(),
+    })).request!;
+    const idempotent = new ApplicationInteractionService(
+      service.applicationStore,
+      service.nativeProviderStore,
+      service.nativeProviders,
+      service.audit,
+      () => at,
+      () => Promise.resolve("ALREADY_CLAIMED"),
+      () => Promise.resolve(undefined),
+      service.targetResolution,
+      service.getSemanticObject,
+    );
+
+    const result = await idempotent.execute(executeInput(ownerId, planned));
+
+    expect(result.status).toBe("SUCCESS");
+    expect(result.executionRequestId).toBeNull();
+    expect(result.message).toMatch(/already queued/i);
+  });
+
+  it("denies proposals bound to a revoked Capability Studio version", async () => {
+    const { capabilityStudioStore, ownerId, plan, service } = await setup();
+    const candidateId = crypto.randomUUID();
+    const candidate = CapabilityCandidateSchema.parse({
+      id: candidateId,
+      ownerId,
+      applicationId: "chrome",
+      providerId: "provider.chrome",
+      name: "INSERT_IN_ADDRESS_BAR",
+      description: "Insert bounded text in the reviewed Chrome address bar.",
+      primitive: "insert_text",
+      source: "DESCRIPTION",
+      status: "REVOKED",
+      version: 1,
+      recordingId: null,
+      inputSchema: { text: "string" },
+      requiredPermissions: ["interact", "edit_text"],
+      riskLevel: "medium",
+      targetResolver: {
+        role: "AXTextField",
+        label: "Address and search bar",
+        identifier: null,
+        applicationScoped: true,
+        usesCoordinates: false,
+        usesElementOrder: false,
+      },
+      verificationStrategy: "Verify the semantic field value changed.",
+      validation: {
+        status: "PASSED",
+        safetyPassed: true,
+        targetStabilityPassed: true,
+        providerBindingPassed: true,
+        permissionMappingPassed: true,
+        diagnostics: [],
+        validatedAt: at.toISOString(),
+      },
+      testSummary: {
+        status: "PASSED",
+        attempts: 5,
+        targetResolutionSuccesses: 5,
+        verificationSuccesses: 5,
+        averageLatencyMs: 40,
+        safeDryRun: true,
+        testedAt: at.toISOString(),
+        failureReason: null,
+      },
+      duplicateOfCapabilityId: null,
+      approvalRequestId: crypto.randomUUID(),
+      approvalActionId: crypto.randomUUID(),
+      createdBy: "OWNER",
+      createdAt: at.toISOString(),
+      updatedAt: at.toISOString(),
+    });
+    capabilityStudioStore.saveCandidate(candidate);
+    const planned = (await plan({
+      utterance: "Type hello in Chrome.",
+      origin: "voice",
+      conversationId: crypto.randomUUID(),
+      proposalId: crypto.randomUUID(),
+    })).request!;
+
+    const result = await service.execute(
+      executeInput(ownerId, {
+        ...planned,
+        capabilityCandidateId: candidateId,
+      }),
+    );
+
+    expect(result.status).toBe("POLICY_DENIED");
+    expect(result.message).toMatch(/revoked|unavailable/i);
     expect(result.executionRequestId).toBeNull();
   });
 });

@@ -10,3 +10,4 @@ coverage/
 apps/mac-agent/release/
 .local/
 apps/api/.local/
+external-research/

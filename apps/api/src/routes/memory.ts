@@ -2,6 +2,7 @@ import {
   AgentMemoryResponseSchema,
   EngineeringDecisionListResponseSchema,
   EngineeringDecisionResponseSchema,
+  ExplicitMemoryTeachingResponseSchema,
   KnowledgeGraphResponseSchema,
   MemoryCenterResponseSchema,
   MemoryRecordResponseSchema,
@@ -64,6 +65,28 @@ export const registerMemoryRoutes = (
       const identity = context.security.getIdentity(request);
       return MemoryRecordResponseSchema.parse(
         await context.memory.recordMemory({
+          ownerId: identity.user.id,
+          body: request.body,
+          requestId: request.id,
+          ipAddress: request.ip,
+        }),
+      );
+    },
+  );
+
+  app.post(
+    "/api/memory/explicit",
+    {
+      preHandler: [
+        context.security.requireAuthentication,
+        context.security.requireTrustedOrigin,
+        context.security.requireCsrf,
+      ],
+    },
+    async (request) => {
+      const identity = context.security.getIdentity(request);
+      return ExplicitMemoryTeachingResponseSchema.parse(
+        await context.explicitMemoryTeaching.teach({
           ownerId: identity.user.id,
           body: request.body,
           requestId: request.id,

@@ -23,13 +23,17 @@ import {
 } from "lucide-react";
 
 import type {
+  ApprovalRequest,
   NativeProviderDashboardResponse,
+  VoiceProfileRecord,
   VoiceRuntimeState,
 } from "@alexa-control/shared";
 import type { ApiClient } from "./api.js";
 import {
+  parseVoiceNavigationSequence,
   parseApplicationVoiceCommand,
   runDeterministicVoiceNavigation,
+  runDeterministicVoiceNavigationTarget,
   type ApplicationVoiceCommand,
 } from "./voiceNavigation.js";
 import {
@@ -267,6 +271,7 @@ export const PersistentVoiceRuntimeProvider = ({
   const pendingAmbiguousTargetsRef = useRef<
     Array<{ id: string; label: string; role: string }>
   >([]);
+  const activeVoiceProfileRef = useRef<VoiceProfileRecord | null>(null);
   const [frame, setFrame] = useState<VoiceFrame>(() => ({
     ...initialFrame,
     providerSupported: Boolean(speechRecognitionConstructor()),
@@ -274,6 +279,10 @@ export const PersistentVoiceRuntimeProvider = ({
   const [panelState, setPanelStateState] = useState<PanelState>(readPanelState);
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState<ApprovalRequest | null>(null);
+  const [approvalPassword, setApprovalPassword] = useState("");
+  const [approvalBusy, setApprovalBusy] = useState(false);
+  const [approvalError, setApprovalError] = useState<string | null>(null);
 
   useEffect(() => {
     pausedRef.current = paused;
@@ -282,7 +291,13 @@ export const PersistentVoiceRuntimeProvider = ({
   useEffect(() => {
     const rememberSelection = () => {
       const selection = window.getSelection()?.toString().trim().replace(/\s+/g, " ");
-      if (selection) selectedTextRef.current = selection.slice(0, 2_000);
+      if (selection) {
+        selectedTextRef.current = selection.slice(0, 2_000);
+        return;
+      }
+      const focused = document.activeElement;
+      if (!(focused instanceof HTMLElement) || !focused.closest(".persistent-voice-panel"))
+        selectedTextRef.current = null;
     };
     document.addEventListener("selectionchange", rememberSelection);
     return () => document.removeEventListener("selectionchange", rememberSelection);
@@ -309,10 +324,25 @@ export const PersistentVoiceRuntimeProvider = ({
         return;
       const synthesis = window.speechSynthesis;
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1;
-      utterance.pitch = 1;
-      utterance.volume = 1;
+      const profile = activeVoiceProfileRef.current;
+      const voices = synthesis.getVoices();
+      const exactVoice = profile?.ttsVoice
+        ? voices.find((voice) => voice.name === profile.ttsVoice)
+        : null;
+      const languageVoice = profile
+        ? voices.find(
+            (voice) => voice.lang.toLowerCase() === profile.sttLanguage.toLowerCase(),
+          )
+        : null;
+      utterance.voice = exactVoice ?? languageVoice ?? null;
+      utterance.lang = utterance.voice?.lang ?? profile?.sttLanguage ?? "en-US";
+      utterance.rate = profile?.ttsRate ?? 1;
+      utterance.pitch = profile?.ttsPitch ?? 1;
+      utterance.volume = profile?.ttsVolume ?? 1;
       utterance.onerror = (event) => {
+        // Replacing or explicitly stopping an utterance produces these normal
+        // Chromium lifecycle events; they are not runtime failures.
+        if (event.error === "canceled" || event.error === "interrupted") return;
         setRuntimeError(`Text-to-speech error: ${event.error || "speech synthesis failed"}.`);
       };
       synthesis.cancel();
@@ -331,6 +361,15 @@ export const PersistentVoiceRuntimeProvider = ({
     [panelState.ttsEnabled],
   );
 
+  const loadPendingApproval = useCallback(
+    async (approvalId: string | null) => {
+      if (!approvalId) return;
+      const approvals = await apiClient.getApprovals("PENDING");
+      setPendingApproval(approvals.find((approval) => approval.id === approvalId) ?? null);
+    },
+    [apiClient],
+  );
+
   const submitTranscript = useCallback(
     async (transcript: string, confidence = 0.75) => {
       const trimmed = transcript.trim();
@@ -344,14 +383,18 @@ export const PersistentVoiceRuntimeProvider = ({
       ) {
         const target = pendingAmbiguousTargetsRef.current[pendingSelectionIndex];
         pendingAmbiguousTargetsRef.current = [];
-        const deterministic = runDeterministicVoiceNavigation(target.label, {
-          pathname: window.location.pathname,
-          navigate: onNavigate,
-          goBack: () => window.history.back(),
-          goForward: () => window.history.forward(),
-          pause: () => pauseRuntimeRef.current?.(),
-          stop: () => stopRuntimeRef.current?.(),
-        });
+        const deterministic = runDeterministicVoiceNavigationTarget(
+          target.id,
+          {
+            pathname: window.location.pathname,
+            navigate: onNavigate,
+            goBack: () => window.history.back(),
+            goForward: () => window.history.forward(),
+            pause: () => pauseRuntimeRef.current?.(),
+            stop: () => stopRuntimeRef.current?.(),
+          },
+          trimmed,
+        );
         const responseText = voiceReply(
           deterministic.handled
             ? deterministic.feedback
@@ -381,25 +424,15 @@ export const PersistentVoiceRuntimeProvider = ({
           message: "Saving that as owner-scoped memory.",
         }));
         try {
-          await apiClient.recordMemory({
-            memoryType: "preference",
-            source: "owner",
-            title: memoryText.slice(0, 120),
-            summary: memoryText,
+          const result = await apiClient.teachExplicitMemory({
+            type: "OTHER",
             content: memoryText,
-            tags: ["voice", "owner_teaching"],
-            importance: 80,
-            confidence: Math.max(0.75, confidence),
-            evidence: [
-              {
-                sourceType: "manual",
-                reference: "persistent_voice_runtime",
-                excerpt: memoryText,
-                observedAt: new Date().toISOString(),
-              },
-            ],
+            entityRefs: [],
           });
-          const responseText = voiceReply("I’ll remember that.", trimmed);
+          const responseText = voiceReply(
+            result.duplicate ? "I already remember that." : "Remembered.",
+            trimmed,
+          );
           setFrame((current) => ({
             ...current,
             state: "listening",
@@ -414,6 +447,9 @@ export const PersistentVoiceRuntimeProvider = ({
         } catch (error) {
           const responseText =
             error instanceof Error &&
+            /sensitive|credential|password|security code/i.test(error.message)
+              ? "I can’t save passwords, credentials, or security codes to memory."
+              : error instanceof Error &&
             /csrf|trusted origin|unauthorized|forbidden/i.test(error.message)
               ? "I heard the memory, but saving it was rejected by the guarded memory route. Refresh the page and try again."
               : "Memory saving isn't available right now, so I didn't save that.";
@@ -427,6 +463,67 @@ export const PersistentVoiceRuntimeProvider = ({
             message: responseText,
           }));
           speak(responseText);
+          return;
+        }
+      }
+      const navigationSequence = parseVoiceNavigationSequence(trimmed);
+      if (navigationSequence) {
+        const navigation = runDeterministicVoiceNavigation(
+          navigationSequence.navigation,
+          {
+            pathname: window.location.pathname,
+            navigate: onNavigate,
+            goBack: () => window.history.back(),
+            goForward: () => window.history.forward(),
+            pause: () => pauseRuntimeRef.current?.(),
+            stop: () => stopRuntimeRef.current?.(),
+          },
+        );
+        if (navigation.handled && navigation.targetId?.startsWith("page:")) {
+          pendingAmbiguousTargetsRef.current = [];
+          setFrame((current) => ({
+            ...current,
+            state: "understanding",
+            transcript: "",
+            finalTranscript: trimmed,
+            confidence: navigation.confidence,
+            message: `${navigation.feedback} Looking for the requested control.`,
+          }));
+          const activateWhenRendered = (remainingAttempts: number) => {
+            const activation = runDeterministicVoiceNavigation(
+              navigationSequence.activation,
+              {
+                pathname: window.location.pathname,
+                navigate: onNavigate,
+                goBack: () => window.history.back(),
+                goForward: () => window.history.forward(),
+                pause: () => pauseRuntimeRef.current?.(),
+                stop: () => stopRuntimeRef.current?.(),
+              },
+            );
+            if (!activation.handled && remainingAttempts > 1) {
+              window.setTimeout(
+                () => activateWhenRendered(remainingAttempts - 1),
+                150,
+              );
+              return;
+            }
+            const responseText = voiceReply(
+              activation.handled
+                ? activation.feedback
+                : "I opened the page, but I could not resolve one visible control for the second step.",
+              trimmed,
+            );
+            setFrame((current) => ({
+              ...current,
+              state: "listening",
+              confidence: activation.confidence,
+              latencyMs: Math.round(performance.now() - started),
+              message: responseText,
+            }));
+            speak(responseText);
+          };
+          window.setTimeout(() => activateWhenRendered(12), 150);
           return;
         }
       }
@@ -576,7 +673,10 @@ export const PersistentVoiceRuntimeProvider = ({
         const turnId = crypto.randomUUID();
         activeTurnIdRef.current = turnId;
         const preservedSelection = selectedTextRef.current;
-        selectedTextRef.current = null;
+        // Keep the exact bounded selection available for a follow-up
+        // confirmation (for example, "do it"). A later non-empty browser
+        // selection replaces it; this avoids invalidating a proposal merely
+        // because interacting with the voice panel temporarily clears DOM selection.
         const response = await apiClient.recordVoiceTranscript({
           sessionId: sessionIdRef.current,
           turnId,
@@ -593,6 +693,7 @@ export const PersistentVoiceRuntimeProvider = ({
           ),
         });
         if (activeTurnIdRef.current === turnId) activeTurnIdRef.current = null;
+        await loadPendingApproval(response.approvalRequestId);
         const routedResponseText =
           response.responseText ?? "Voice command was recorded.";
         const responseText = voiceReply(routedResponseText, trimmed);
@@ -633,7 +734,47 @@ export const PersistentVoiceRuntimeProvider = ({
         speak(responseText);
       }
     },
-    [apiClient, onNavigate, speak],
+    [apiClient, loadPendingApproval, onNavigate, speak],
+  );
+
+  const decidePendingApproval = useCallback(
+    async (decision: "approve" | "reject") => {
+      if (!pendingApproval || approvalBusy) return;
+      setApprovalBusy(true);
+      setApprovalError(null);
+      try {
+        if (decision === "reject") {
+          await apiClient.rejectApproval(pendingApproval.id);
+          setPendingApproval(null);
+          setApprovalPassword("");
+          return;
+        }
+        if (pendingApproval.approvalRequirement === "recent_authentication") {
+          if (!approvalPassword) {
+            setApprovalError("Re-enter your password to approve this action.");
+            return;
+          }
+          const challenge = await apiClient.createRecentAuthChallenge(
+            "approve_high_risk_action",
+          );
+          await apiClient.verifyRecentPassword({
+            challengeId: challenge.challengeId,
+            challengeToken: challenge.challengeToken,
+            password: approvalPassword,
+          });
+        }
+        await apiClient.approveApproval(pendingApproval.id);
+        setPendingApproval((current) =>
+          current ? { ...current, status: "APPROVED" } : current,
+        );
+        setApprovalPassword("");
+      } catch (cause) {
+        setApprovalError(cause instanceof Error ? cause.message : "Approval could not be completed.");
+      } finally {
+        setApprovalBusy(false);
+      }
+    },
+    [apiClient, approvalBusy, approvalPassword, pendingApproval],
   );
 
   const handleResult = useCallback(
@@ -784,6 +925,8 @@ export const PersistentVoiceRuntimeProvider = ({
       const sessionId = sessionIdRef.current ?? dashboard.sessions[0]?.id ?? null;
       if (!sessionId) throw new Error("Voice session was not created.");
       sessionIdRef.current = sessionId;
+      activeVoiceProfileRef.current =
+        dashboard.profiles.find((profile) => profile.active) ?? null;
       const lease = await apiClient.manageVoiceCaptureLease({
         action: takeOverCapture ? "takeover" : "acquire",
         voiceSessionId: sessionId,
@@ -1173,6 +1316,56 @@ export const PersistentVoiceRuntimeProvider = ({
                 <VolumeX size={13} /> Stop speaking
               </button>
             </div>
+            {pendingApproval ? (
+              <section className="persistent-voice-approval" aria-live="polite">
+                <span className="persistent-voice-approval-label">Approval required</span>
+                <strong>{pendingApproval.toolName}</strong>
+                <small>{pendingApproval.humanSummary}</small>
+                <small>
+                  {pendingApproval.riskLevel} · {pendingApproval.approvalRequirement}
+                </small>
+                {pendingApproval.status === "PENDING" ? (
+                  <>
+                    {pendingApproval.approvalRequirement === "recent_authentication" ? (
+                      <input
+                        autoComplete="current-password"
+                        aria-label="Password for recent authentication"
+                        onChange={(event) => setApprovalPassword(event.target.value)}
+                        placeholder="Password required"
+                        type="password"
+                        value={approvalPassword}
+                      />
+                    ) : null}
+                    <div className="persistent-spatial-controls">
+                      <button
+                        disabled={approvalBusy}
+                        onClick={() => void decidePendingApproval("approve")}
+                        type="button"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        className="persistent-runtime-stop"
+                        disabled={approvalBusy}
+                        onClick={() => void decidePendingApproval("reject")}
+                        type="button"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <button
+                    disabled={approvalBusy}
+                    onClick={() => void submitTranscript("Do it", 1)}
+                    type="button"
+                  >
+                    Run approved action
+                  </button>
+                )}
+                {approvalError ? <small className="form-error">{approvalError}</small> : null}
+              </section>
+            ) : null}
             <p>Say “Alexa” then a command. Voice cannot approve risky actions.</p>
             <button
               className="persistent-spatial-lab-link"

@@ -247,6 +247,35 @@ export const CreateMemoryRequestSchema = z
   })
   .strict();
 
+export const ExplicitMemoryTypeSchema = z.enum([
+  "FACT",
+  "PREFERENCE",
+  "PERSON",
+  "PROJECT",
+  "DECISION",
+  "ALIAS",
+  "INSTRUCTION",
+  "OTHER",
+]);
+
+export const ExplicitMemoryInputSchema = z
+  .object({
+    type: ExplicitMemoryTypeSchema.default("FACT"),
+    content: z.string().trim().min(1).max(2_000),
+    entityRefs: z.array(z.string().uuid()).max(20).default([]),
+  })
+  .strict();
+
+export const ExplicitMemoryTeachingResponseSchema = z
+  .object({
+    memory: MemoryRecordSchema,
+    duplicate: z.boolean(),
+    conflictCreated: z.boolean(),
+    linkedEntityIds: z.array(z.string().uuid()).max(20),
+    linkedRelationshipIds: z.array(z.string().uuid()).max(20),
+  })
+  .strict();
+
 export const CreateDecisionRequestSchema = z
   .object({
     repositoryId: z.string().uuid().optional(),
@@ -340,6 +369,11 @@ export type LearningEventRecord = z.infer<typeof LearningEventRecordSchema>;
 export type MemorySuggestionRecord = z.infer<typeof MemorySuggestionRecordSchema>;
 export type MemoryTimelineEvent = z.infer<typeof MemoryTimelineEventSchema>;
 export type CreateMemoryRequest = z.infer<typeof CreateMemoryRequestSchema>;
+export type ExplicitMemoryType = z.infer<typeof ExplicitMemoryTypeSchema>;
+export type ExplicitMemoryInput = z.infer<typeof ExplicitMemoryInputSchema>;
+export type ExplicitMemoryTeachingResponse = z.infer<
+  typeof ExplicitMemoryTeachingResponseSchema
+>;
 export type CreateDecisionRequest = z.infer<typeof CreateDecisionRequestSchema>;
 export type MemorySearchQuery = z.infer<typeof MemorySearchQuerySchema>;
 export type MemoryCenterResponse = z.infer<typeof MemoryCenterResponseSchema>;

@@ -10,6 +10,7 @@ describe("repository metadata scanner", () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "assistant-repo-index-"));
     await mkdir(path.join(root, "src"), { recursive: true });
     await mkdir(path.join(root, "node_modules/pkg"), { recursive: true });
+    await mkdir(path.join(root, "external-research/third-party"), { recursive: true });
     await writeFile(path.join(root, "package.json"), '{"scripts":{"test":"vitest"}}\n');
     await writeFile(path.join(root, "pnpm-lock.yaml"), "lockfileVersion: 9\n");
     await writeFile(
@@ -31,11 +32,15 @@ describe("repository metadata scanner", () => {
     await writeFile(path.join(root, "src/index.test.ts"), "expect(true).toBe(true);\n");
     await writeFile(path.join(root, ".env"), "SECRET=value\n");
     await writeFile(path.join(root, "node_modules/pkg/index.js"), "ignored\n");
+    await writeFile(
+      path.join(root, "external-research/third-party/index.ts"),
+      "export const thirdPartyResearch = true;\n",
+    );
 
     const scan = await scanRepositoryMetadata({
       workspaceId: "workspace",
       rootPath: root,
-      blockedPatterns: [".env"],
+      blockedPatterns: [".env", "external-research/"],
       maxEntries: 1_000,
     });
 
@@ -48,6 +53,7 @@ describe("repository metadata scanner", () => {
     ]);
     expect(JSON.stringify(scan)).not.toContain("not indexed");
     expect(JSON.stringify(scan)).not.toContain(".env");
+    expect(JSON.stringify(scan)).not.toContain("external-research");
     expect(scan.semanticIndex.symbols.map((symbol) => symbol.name)).toEqual(
       expect.arrayContaining(["Greeter", "greet", "helper", "useGreeting"]),
     );

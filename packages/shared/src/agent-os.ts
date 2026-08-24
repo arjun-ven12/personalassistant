@@ -27,6 +27,9 @@ export const AgentOsEventTypeSchema = z.enum([
   "WorkflowJoined",
   "WorkflowLeft",
   "ContextPackaged",
+  "DelegationStarted",
+  "DelegationCompleted",
+  "DelegationFailed",
   "ConfigurationChanged",
   "PackageValidated",
 ]);
@@ -198,6 +201,32 @@ export const AgentSessionRecordSchema = z
     toolCallCount: z.number().int().nonnegative(),
     messageCount: z.number().int().nonnegative(),
     errorCode: z.string().max(120).nullable(),
+    delegation: z
+      .object({
+        delegationId: z.string().uuid(),
+        managerAgentId: z.string().min(3).max(120),
+        memoryScopes: z.array(z.string().min(1).max(40)).max(20),
+        capabilityRefs: z.array(z.string().min(3).max(120)).max(100),
+        skillRefs: z.array(z.string().min(3).max(120)).max(100),
+        contextTokenBudget: z.number().int().min(1_000).max(100_000),
+        sandboxProfileId: z.string().min(3).max(120),
+        aiRequestId: z.string().uuid().nullable(),
+        providerId: z.string().max(80).nullable(),
+        modelId: z.string().max(160).nullable(),
+        sandboxStatus: z.enum([
+          "NOT_REQUESTED",
+          "PENDING",
+          "RUNNING",
+          "PASSED",
+          "FAILED",
+          "UNAVAILABLE",
+        ]),
+        artifactCount: z.number().int().nonnegative().max(50),
+        resultConfidence: z.number().min(0).max(1).nullable(),
+      })
+      .strict()
+      .nullable()
+      .default(null),
     reasoningStatistics: z
       .object({
         steps: z.number().int().nonnegative(),

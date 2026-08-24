@@ -4,7 +4,7 @@ import type { ActiveContext } from "@alexa-control/shared";
 import type { VoiceOverlayState } from "../electron/contracts.js";
 import {
   BrowserTTSProvider,
-  MacSpeechSTTProvider,
+  WhisperCppSTTProvider,
   type STTProvider,
 } from "./voiceProviders.js";
 import {
@@ -45,8 +45,11 @@ export const VoiceOverlay = () => {
   const [expanded, setExpanded] = useState(true);
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [sttStatus, setSttStatus] = useState<"starting" | "ready" | "error">("starting");
+  const [sttProvider, setSttProvider] = useState("whisper.cpp");
   const [audioLevel, setAudioLevel] = useState(0);
+  const [speechActivity, setSpeechActivity] = useState(false);
   const [activeContext, setActiveContext] = useState<ActiveContext | null>(null);
+  const [pendingApprovalId, setPendingApprovalId] = useState<string | null>(null);
 
   const updateState = useCallback((next: VoiceOverlayState) => {
     stateRef.current = next;
@@ -178,6 +181,7 @@ export const VoiceOverlay = () => {
       }
       const turnId = crypto.randomUUID();
       activeTurnRef.current = turnId;
+      setPendingApprovalId(null);
       updateState("thinking");
       setInterim(transcript);
       try {
@@ -197,6 +201,7 @@ export const VoiceOverlay = () => {
         if (activeTurnRef.current !== turnId) return;
         activeTurnRef.current = null;
         const nextResponse = result.responseText?.trim() || "I heard you.";
+        setPendingApprovalId(result.approvalRequestId);
         setResponse(nextResponse);
         speak(nextResponse);
       } catch (cause) {
@@ -214,9 +219,20 @@ export const VoiceOverlay = () => {
     startingRef.current = true;
     setError(null);
     try {
-      if (!sessionIdRef.current) {
-        const dashboard = await window.alexaAgent.startOverlayVoiceSession();
-        sessionIdRef.current = dashboard.sessions[0]?.id ?? null;
+      const dashboard = await window.alexaAgent.startOverlayVoiceSession();
+      sessionIdRef.current ??= dashboard.sessions[0]?.id ?? null;
+      const activeProfile = dashboard.profiles.find((profile) => profile.active);
+      if (activeProfile) {
+        const ttsProfile = dashboard.ttsProfiles.find(
+          (profile) => profile.profileId === activeProfile.id,
+        );
+        ttsRef.current.configure({
+          voiceName: ttsProfile?.voiceName ?? activeProfile.ttsVoice,
+          language: activeProfile.sttLanguage,
+          rate: ttsProfile?.speakingRate ?? activeProfile.ttsRate,
+          pitch: ttsProfile?.pitch ?? activeProfile.ttsPitch,
+          volume: ttsProfile?.volume ?? activeProfile.ttsVolume,
+        });
       }
       const voiceSessionId = sessionIdRef.current;
       if (!voiceSessionId) throw new Error("Voice session was not created.");
@@ -255,15 +271,26 @@ export const VoiceOverlay = () => {
       sttRef.current?.stop();
       setSttStatus("starting");
       setAudioLevel(0);
-      const stt = new MacSpeechSTTProvider();
+      setSpeechActivity(false);
+      const stt = new WhisperCppSTTProvider();
       sttRef.current = stt;
       const transport = new LocalVoiceTransport(stt, ttsRef.current);
       transportRef.current = transport;
       await transport.connect();
       const inputHandlers: VoiceInputHandlers = {
-        onReady: () => setSttStatus("ready"),
-        onAudioLevel: (level) => setAudioLevel(level),
+        onReady: (providerId) => {
+          setSttStatus("ready");
+          setSttProvider(providerId === "apple_speech" ? "Apple Speech" : "whisper.cpp");
+        },
+        onAudioLevel: (level) => {
+          setAudioLevel(level);
+          if (level >= 0.08) {
+            setSpeechActivity(true);
+            window.setTimeout(() => setSpeechActivity(false), 900);
+          }
+        },
         onInterim: (transcript) => {
+          setSpeechActivity(false);
           if (stateRef.current === "speaking" || stateRef.current === "thinking") {
             if (shouldSuppressPlaybackEcho(transcript)) return;
             acceptedBargeInRef.current = true;
@@ -273,8 +300,10 @@ export const VoiceOverlay = () => {
           setInterim(transcript);
           if (stateRef.current !== "thinking") updateState("listening");
         },
-        onFinal: (transcript, confidence) =>
-          void submitFinalTranscript(transcript, confidence),
+        onFinal: (transcript, confidence) => {
+          setSpeechActivity(false);
+          void submitFinalTranscript(transcript, confidence);
+        },
         onError: (message) => {
           setSttStatus("error");
           void transportRef.current?.disconnect();
@@ -383,8 +412,21 @@ export const VoiceOverlay = () => {
               <span className="voice-overlay-dot" aria-hidden="true" />
               {stateLabel[state]}
             </span>
-            <strong>{interim || (state === "collapsed" ? "Voice OS" : "Alexa")}</strong>
-            <p>{error ?? response ?? "Say “Alexa” then a command."}</p>
+            <strong>
+              {interim ||
+                (speechActivity && state === "listening"
+                  ? "Hearing audio..."
+                  : state === "collapsed"
+                    ? "Voice OS"
+                    : "Alexa")}
+            </strong>
+            <p>
+              {error ??
+                response ??
+                (speechActivity && state === "listening"
+                  ? "Waiting for speech recognition words."
+                  : "Say “Alexa” then a command.")}
+            </p>
           </section>
           <div className="voice-overlay-metrics" aria-label="Voice runtime status">
             <span>
@@ -394,7 +436,7 @@ export const VoiceOverlay = () => {
               Voice <b>{sttStatus === "ready" ? `${Math.round(audioLevel * 100)}%` : "--"}</b>
             </span>
             <span>
-              STT <b>{sttStatus === "ready" ? "macOS" : "waiting"}</b>
+              STT <b>{sttStatus === "ready" ? sttProvider : "waiting"}</b>
             </span>
             <span>
               TTS <b>{ttsEnabled ? "ready" : "off"}</b>
@@ -442,6 +484,29 @@ export const VoiceOverlay = () => {
               <small>Context is unavailable for this application.</small>
             ) : null}
           </section>
+          {pendingApprovalId ? (
+            <section className="voice-overlay-approval" aria-live="polite">
+              <span>Approval required</span>
+              <strong>Review the exact action in Alexa Control.</strong>
+              <small>
+                Voice and the desktop overlay cannot approve actions. The authenticated
+                approval screen preserves the required owner and recent-auth checks.
+                Approve there first, then return here to run this exact action.
+              </small>
+              <button
+                onClick={() => void window.alexaAgent.openApprovalCenter()}
+                type="button"
+              >
+                Review approval
+              </button>
+              <button
+                onClick={() => void submitFinalTranscript("Do it", 1)}
+                type="button"
+              >
+                Run approved action
+              </button>
+            </section>
+          ) : null}
           <div className="voice-overlay-footer">
             <button onClick={() => void hideOverlay()} type="button">
               Hide overlay

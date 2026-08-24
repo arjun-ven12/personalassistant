@@ -37,6 +37,10 @@ export interface AgentOsStore {
   savePackage(pkg: AgentPackageRecord): Awaitable<void>;
   listPackages(ownerId: string, limit: number): Awaitable<AgentPackageRecord[]>;
   saveSession(session: AgentSessionRecord): Awaitable<void>;
+  findSession(
+    ownerId: string,
+    sessionId: string,
+  ): Awaitable<AgentSessionRecord | undefined>;
   listSessions(ownerId: string, limit: number): Awaitable<AgentSessionRecord[]>;
   saveEvent(event: RuntimeEventRecord): Awaitable<void>;
   listEvents(ownerId: string, limit: number): Awaitable<RuntimeEventRecord[]>;
@@ -119,6 +123,11 @@ export class InMemoryAgentOsStore implements AgentOsStore {
   saveSession(session: AgentSessionRecord) {
     const parsed = AgentSessionRecordSchema.parse(session);
     this.#sessions.set(parsed.id, clone(parsed));
+  }
+
+  findSession(ownerId: string, sessionId: string) {
+    const session = this.#sessions.get(sessionId);
+    return session?.ownerId === ownerId ? clone(session) : undefined;
   }
 
   listSessions(ownerId: string, limit: number) {

@@ -92,10 +92,16 @@ class ControllableProvider implements AIProvider {
       providerType: this.providerType,
       enabled: true,
       configured: true,
-      capabilities: descriptor(this.providerId, this.modelId, this.locality).capabilities,
-      credentialState: this.locality === "LOCAL" ? "NOT_REQUIRED" as const : "CONFIGURED" as const,
-      trustClassification: this.locality === "LOCAL" ? "TRUSTED_LOCAL" as const : "APPROVED_CLOUD" as const,
-      baseEndpoint: this.locality === "LOCAL" ? "local" as const : "remote" as const,
+      capabilities: descriptor(this.providerId, this.modelId, this.locality)
+        .capabilities,
+      credentialState:
+        this.locality === "LOCAL" ? ("NOT_REQUIRED" as const) : ("CONFIGURED" as const),
+      trustClassification:
+        this.locality === "LOCAL"
+          ? ("TRUSTED_LOCAL" as const)
+          : ("APPROVED_CLOUD" as const),
+      baseEndpoint:
+        this.locality === "LOCAL" ? ("local" as const) : ("remote" as const),
     };
   }
   getCapabilities() {
@@ -122,7 +128,12 @@ class ControllableProvider implements AIProvider {
     this.calls += 1;
     if (this.failuresBeforeSuccess > 0) {
       this.failuresBeforeSuccess -= 1;
-      throw new AIProviderError("TIMEOUT", "controlled provider timeout", this.providerId, true);
+      throw new AIProviderError(
+        "TIMEOUT",
+        "controlled provider timeout",
+        this.providerId,
+        true,
+      );
     }
     try {
       if (this.delayMs) await sleep(this.delayMs, options.signal);
@@ -134,7 +145,12 @@ class ControllableProvider implements AIProvider {
           "provider cancelled after partial billable usage",
           this.providerId,
           false,
-          { inputTokens: 20, outputTokens: 5, totalTokens: 25, source: "PROVIDER_REPORTED" },
+          {
+            inputTokens: 20,
+            outputTokens: 5,
+            totalTokens: 25,
+            source: "PROVIDER_REPORTED",
+          },
         );
         cancelled.name = "AbortError";
         throw cancelled;
@@ -202,20 +218,32 @@ describe.skipIf(!connectionString)("Phase 20R-F4 closure gates", () => {
   let schema: string;
 
   beforeAll(async () => {
-    administration = new PostgresDatabase(connectionString!);
+    administration = new PostgresDatabase(connectionString!, {
+      connectionTimeoutMillis: 60_000,
+    });
     schema = `phase20rf4_${crypto.randomUUID().replaceAll("-", "")}`;
     await administration.pool.query(`CREATE SCHEMA "${schema}"`);
     const isolated = new URL(connectionString!);
     isolated.hostname = isolated.hostname.replace("-pooler.", ".");
-    isolated.searchParams.set("sslmode", "verify-full");
+    if (isolated.searchParams.get("sslmode") !== "disable")
+      isolated.searchParams.set("sslmode", "verify-full");
     isolated.searchParams.set("options", `-c search_path=${schema},public`);
-    database = new PostgresDatabase(isolated.toString());
+    database = new PostgresDatabase(isolated.toString(), {
+      connectionTimeoutMillis: 60_000,
+    });
     await database.migrate();
     await database.pool.query(
       `INSERT INTO owners(id,email,password_hash,record,created_at,updated_at)
        VALUES($1,$2,'test-only',$3,NOW(),NOW()),($4,$5,'test-only',$6,NOW(),NOW())
        ON CONFLICT(id) DO NOTHING`,
-      [ownerA, `f4-${ownerA}@example.test`, { id: ownerA }, ownerB, `f4-${ownerB}@example.test`, { id: ownerB }],
+      [
+        ownerA,
+        `f4-${ownerA}@example.test`,
+        { id: ownerA },
+        ownerB,
+        `f4-${ownerB}@example.test`,
+        { id: ownerB },
+      ],
     );
   }, 60_000);
 
@@ -225,7 +253,7 @@ describe.skipIf(!connectionString)("Phase 20R-F4 closure gates", () => {
       await administration.pool.query(`DROP SCHEMA "${schema}" CASCADE`);
       await administration.close();
     }
-  });
+  }, 90_000);
 
   const makePath = async (limitUsd = "10") => {
     const store = new PostgresAIEconomicsStore(database.pool);
@@ -275,7 +303,9 @@ describe.skipIf(!connectionString)("Phase 20R-F4 closure gates", () => {
     models.register(descriptor(localProviderId, localModelId, "LOCAL"));
     const runtime = new AIRuntimeService(providers, models);
     runtime.requirePaidInferenceAuthorization(async (permit) =>
-      Boolean(await economics.verifyActiveReservation(permit.ownerId, permit.reservationId)),
+      Boolean(
+        await economics.verifyActiveReservation(permit.ownerId, permit.reservationId),
+      ),
     );
     const context = new CognitiveContextService();
     for (const sourceType of ["RECENT_ACTIVITY", "WORKFLOW", "AGENT"] as const)
@@ -285,20 +315,22 @@ describe.skipIf(!connectionString)("Phase 20R-F4 closure gates", () => {
           const taskText = contextRequest.taskText ?? "";
           if (sourceType === "RECENT_ACTIVITY" && taskText.includes("before-provider"))
             await sleep(10_000, runtimeContext.signal);
-          return [{
-            id: `${sourceType.toLowerCase()}-${contextRequest.ownerId}`,
-            sourceType,
-            trustLevel: "TRUSTED",
-            title: `Phase 20R-F4 ${sourceType} ${taskText}`,
-            content: `bounded ${sourceType} context for ${contextRequest.ownerId}: ${taskText}`,
-            relevanceScore: 1,
-            importanceScore: 1,
-            confidence: 1,
-            estimatedTokens: 4,
-            cacheability: "DYNAMIC",
-            sensitivity: "NORMAL",
-            mandatory: true,
-          }];
+          return [
+            {
+              id: `${sourceType.toLowerCase()}-${contextRequest.ownerId}`,
+              sourceType,
+              trustLevel: "TRUSTED",
+              title: `Phase 20R-F4 ${sourceType} ${taskText}`,
+              content: `bounded ${sourceType} context for ${contextRequest.ownerId}: ${taskText}`,
+              relevanceScore: 1,
+              importanceScore: 1,
+              confidence: 1,
+              estimatedTokens: 4,
+              cacheability: "DYNAMIC",
+              sensitivity: "NORMAL",
+              mandatory: true,
+            },
+          ];
         },
       });
     const router = new AIRouterService(runtime, economics, context);
@@ -318,8 +350,16 @@ describe.skipIf(!connectionString)("Phase 20R-F4 closure gates", () => {
     const beforeProvider = router.execute(request(ownerA, "before-provider"));
     const duringProvider = router.execute(request(ownerA, "during-provider"));
     const partialUsage = router.execute(request(ownerB, "partial-usage"));
-    for (let attempt = 0; attempt < 100 && router.activeRequests.list().filter((item) => item.reservationId).length < 2; attempt += 1)
+    for (
+      let attempt = 0;
+      attempt < 6_000 &&
+      router.activeRequests.list().filter((item) => item.reservationId).length < 2;
+      attempt += 1
+    )
       await sleep(10);
+    expect(
+      router.activeRequests.list().filter((item) => item.reservationId).length,
+    ).toBeGreaterThanOrEqual(2);
     const reservationsBefore = [
       ...(await economics.listReservations(ownerA)),
       ...(await economics.listReservations(ownerB)),
@@ -327,9 +367,15 @@ describe.skipIf(!connectionString)("Phase 20R-F4 closure gates", () => {
     cloud.partialOnAbort = true;
     await app.close();
     expect(router.activeRequests.isDraining()).toBe(true);
-    expect((await router.execute(request(ownerA, "new-after-drain"))).outcome).toBe("ROUTING_FAILED");
+    expect((await router.execute(request(ownerA, "new-after-drain"))).outcome).toBe(
+      "ROUTING_FAILED",
+    );
     const results = await Promise.all([beforeProvider, duringProvider, partialUsage]);
-    expect(results.map((item) => item.outcome)).toEqual(["CANCELLED", "CANCELLED", "CANCELLED"]);
+    expect(results.map((item) => item.outcome)).toEqual([
+      "CANCELLED",
+      "CANCELLED",
+      "CANCELLED",
+    ]);
     const reservationsAfter = [
       ...(await economics.listReservations(ownerA)),
       ...(await economics.listReservations(ownerB)),
@@ -342,51 +388,164 @@ describe.skipIf(!connectionString)("Phase 20R-F4 closure gates", () => {
       `SELECT request_id, attempt_id, COUNT(*)::int AS count
        FROM ai_usage_ledger GROUP BY request_id, attempt_id HAVING COUNT(*) > 1`,
     );
-    expect(reservationsBefore.filter((item) => item.status === "ACTIVE").length).toBeGreaterThanOrEqual(2);
-    expect(reservationsAfter.filter((item) => item.status === "ACTIVE")).toHaveLength(0);
-    expect(ledger.filter((item) => item.status === "CANCELLED").length).toBeGreaterThanOrEqual(2);
-    expect(ledger.some((item) => item.status === "CANCELLED" && item.actualCostUsd !== "0")).toBe(true);
+    expect(
+      reservationsBefore.filter((item) => item.status === "ACTIVE").length,
+    ).toBeGreaterThanOrEqual(2);
+    expect(reservationsAfter.filter((item) => item.status === "ACTIVE")).toHaveLength(
+      0,
+    );
+    expect(
+      ledger.filter((item) => item.status === "CANCELLED").length,
+    ).toBeGreaterThanOrEqual(2);
+    expect(
+      ledger.some((item) => item.status === "CANCELLED" && item.actualCostUsd !== "0"),
+    ).toBe(true);
     expect(cloud.aborts).toBeGreaterThanOrEqual(2);
     expect(duplicateSettlements.rows).toHaveLength(0);
     expect(router.activeRequests.list()).toHaveLength(0);
-  }, 20_000);
+  }, 120_000);
 
   it("reconciles abrupt restart reservations, preserves valid TTL state, and rejects late duplicate settlement", async () => {
     const { economics } = await makePath();
-    const expiredContext = request(ownerA, "expired").economicContext as AIEconomicContext;
+    const expiredContext = request(ownerA, "expired")
+      .economicContext as AIEconomicContext;
     const validContext = request(ownerA, "valid").economicContext as AIEconomicContext;
-    const candidate = { providerId: cloudProviderId, modelId: cloudModelId, locality: "REMOTE" as const, estimatedInputTokens: 10, maxOutputTokens: 10 };
-    const expired = await economics.reserve(candidate, expiredContext, crypto.randomUUID(), { routeId: crypto.randomUUID(), attemptId: crypto.randomUUID() });
-    const valid = await economics.reserve(candidate, validContext, crypto.randomUUID(), { routeId: crypto.randomUUID(), attemptId: crypto.randomUUID() });
-    await database.pool.query(`UPDATE ai_budget_reservations SET expires_at=NOW() - INTERVAL '1 second' WHERE id=$1`, [expired.id]);
-    const restarted = new AIEconomicsService(new PostgresAIEconomicsStore(database.pool));
+    const candidate = {
+      providerId: cloudProviderId,
+      modelId: cloudModelId,
+      locality: "REMOTE" as const,
+      estimatedInputTokens: 10,
+      maxOutputTokens: 10,
+    };
+    const expired = await economics.reserve(
+      candidate,
+      expiredContext,
+      crypto.randomUUID(),
+      { routeId: crypto.randomUUID(), attemptId: crypto.randomUUID() },
+    );
+    const valid = await economics.reserve(
+      candidate,
+      validContext,
+      crypto.randomUUID(),
+      { routeId: crypto.randomUUID(), attemptId: crypto.randomUUID() },
+    );
+    await database.pool.query(
+      `UPDATE ai_budget_reservations SET expires_at=NOW() - INTERVAL '1 second' WHERE id=$1`,
+      [expired.id],
+    );
+    const restarted = new AIEconomicsService(
+      new PostgresAIEconomicsStore(database.pool),
+    );
     await restarted.initialise();
-    expect((await restarted.listReservations(ownerA)).find((item) => item.id === expired.id)?.status).toBe("EXPIRED");
-    expect((await restarted.listReservations(ownerA)).find((item) => item.id === valid.id)?.status).toBe("ACTIVE");
+    expect(
+      (await restarted.listReservations(ownerA)).find((item) => item.id === expired.id)
+        ?.status,
+    ).toBe("EXPIRED");
+    expect(
+      (await restarted.listReservations(ownerA)).find((item) => item.id === valid.id)
+        ?.status,
+    ).toBe("ACTIVE");
     const correlation = { routeId: valid.routeId!, attemptId: valid.attemptId! };
-    const first = await restarted.settle(valid.id, validContext, candidate, { inputTokens: 10, outputTokens: 10, totalTokens: 20, source: "PROVIDER_REPORTED" }, "SETTLED", undefined, correlation, valid.requestId);
-    const late = await restarted.settle(valid.id, validContext, candidate, { inputTokens: 10, outputTokens: 50, totalTokens: 60, source: "PROVIDER_REPORTED" }, "SETTLED", undefined, correlation, valid.requestId);
+    const first = await restarted.settle(
+      valid.id,
+      validContext,
+      candidate,
+      {
+        inputTokens: 10,
+        outputTokens: 10,
+        totalTokens: 20,
+        source: "PROVIDER_REPORTED",
+      },
+      "SETTLED",
+      undefined,
+      correlation,
+      valid.requestId,
+    );
+    const late = await restarted.settle(
+      valid.id,
+      validContext,
+      candidate,
+      {
+        inputTokens: 10,
+        outputTokens: 50,
+        totalTokens: 60,
+        source: "PROVIDER_REPORTED",
+      },
+      "SETTLED",
+      undefined,
+      correlation,
+      valid.requestId,
+    );
     expect(late.id).toBe(first.id);
-    const descriptorValue = { ownerId: ownerA, requestId: crypto.randomUUID(), purpose: "CONVERSATION" as const, requestedAdditionalSpendUsd: "0.001", maxAdditionalSpendUsd: "0.001", expiresAt: new Date(Date.now() + 60_000).toISOString(), agentId: agentA, workflowId: workflowA, workflowRunId: runA, costCenter: "phase20r-f4", providerId: cloudProviderId, modelId: cloudModelId };
-    const grant = await new PostgresAIEconomicsStore(database.pool).createOverrideGrant({
-      descriptor: descriptorValue,
-      grant: { id: crypto.randomUUID(), ownerId: ownerA, approvalId: crypto.randomUUID(), requestId: descriptorValue.requestId, digest: digestEconomicOverride(descriptorValue), maxAdditionalSpendUsd: "0.001", expiresAt: descriptorValue.expiresAt, status: "ACTIVE", createdAt: new Date().toISOString() },
-    });
-    const overrideReservation = await restarted.reserve(candidate, expiredContext, descriptorValue.requestId, { routeId: crypto.randomUUID(), attemptId: crypto.randomUUID() }, { grantId: grant.id });
-    const afterOverrideRestart = new AIEconomicsService(new PostgresAIEconomicsStore(database.pool));
+    const descriptorValue = {
+      ownerId: ownerA,
+      requestId: crypto.randomUUID(),
+      purpose: "CONVERSATION" as const,
+      requestedAdditionalSpendUsd: "0.001",
+      maxAdditionalSpendUsd: "0.001",
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      agentId: agentA,
+      workflowId: workflowA,
+      workflowRunId: runA,
+      costCenter: "phase20r-f4",
+      providerId: cloudProviderId,
+      modelId: cloudModelId,
+    };
+    const grant = await new PostgresAIEconomicsStore(database.pool).createOverrideGrant(
+      {
+        descriptor: descriptorValue,
+        grant: {
+          id: crypto.randomUUID(),
+          ownerId: ownerA,
+          approvalId: crypto.randomUUID(),
+          requestId: descriptorValue.requestId,
+          digest: digestEconomicOverride(descriptorValue),
+          maxAdditionalSpendUsd: "0.001",
+          expiresAt: descriptorValue.expiresAt,
+          status: "ACTIVE",
+          createdAt: new Date().toISOString(),
+        },
+      },
+    );
+    const overrideReservation = await restarted.reserve(
+      candidate,
+      expiredContext,
+      descriptorValue.requestId,
+      { routeId: crypto.randomUUID(), attemptId: crypto.randomUUID() },
+      { grantId: grant.id },
+    );
+    const afterOverrideRestart = new AIEconomicsService(
+      new PostgresAIEconomicsStore(database.pool),
+    );
     await afterOverrideRestart.initialise();
-    await expect(afterOverrideRestart.reserve(candidate, expiredContext, descriptorValue.requestId, { routeId: crypto.randomUUID(), attemptId: crypto.randomUUID() }, { grantId: grant.id })).rejects.toThrow();
-    expect((await afterOverrideRestart.listReservations(ownerA)).filter((item) => item.requestId === overrideReservation.requestId)).toHaveLength(1);
-  });
+    await expect(
+      afterOverrideRestart.reserve(
+        candidate,
+        expiredContext,
+        descriptorValue.requestId,
+        { routeId: crypto.randomUUID(), attemptId: crypto.randomUUID() },
+        { grantId: grant.id },
+      ),
+    ).rejects.toThrow();
+    expect(
+      (await afterOverrideRestart.listReservations(ownerA)).filter(
+        (item) => item.requestId === overrideReservation.requestId,
+      ),
+    ).toHaveLength(1);
+  }, 90_000);
 
   it("fails paid inference closed during a controlled PostgreSQL connection fault and recovers without reseeding", async () => {
     const { economics, router, cloud } = await makePath();
     const beforeLedger = await economics.listLedger(ownerA);
-    await database.pool.query(`ALTER TABLE ai_budget_policies RENAME TO ai_budget_policies_faulted`);
+    await database.pool.query(
+      `ALTER TABLE ai_budget_policies RENAME TO ai_budget_policies_faulted`,
+    );
     const denied = await router.execute(request(ownerA, "db outage"));
     expect(denied.outcome).toBe("ROUTING_FAILED");
     expect(cloud.calls).toBe(0);
-    await database.pool.query(`ALTER TABLE ai_budget_policies_faulted RENAME TO ai_budget_policies`);
+    await database.pool.query(
+      `ALTER TABLE ai_budget_policies_faulted RENAME TO ai_budget_policies`,
+    );
     expect((await economics.health(ownerA)).status).toBe("READY");
     const recovered = await router.execute(request(ownerA, "db recovered"));
     expect(recovered.outcome).toBe("SUCCESS");
@@ -397,58 +556,122 @@ describe.skipIf(!connectionString)("Phase 20R-F4 closure gates", () => {
     const { router, cloud } = await makePath();
     cloud.status = "DEGRADED";
     cloud.failuresBeforeSuccess = 2;
-    await router.execute(request(ownerA, "provider failure 1", { allowFallback: true }));
-    await router.execute(request(ownerA, "provider failure 2", { allowFallback: true }));
+    await router.execute(
+      request(ownerA, "provider failure 1", { allowFallback: true }),
+    );
+    await router.execute(
+      request(ownerA, "provider failure 2", { allowFallback: true }),
+    );
     const circuitOpen = await router.execute(request(ownerA, "circuit open"));
     expect(circuitOpen.outcome).toBe("CAPABILITY_UNAVAILABLE");
     cloud.failuresBeforeSuccess = 0;
     cloud.status = "HEALTHY";
-    expect((await router.execute(request(ownerA, "provider recovered"))).outcome).toBe("SUCCESS");
+    expect((await router.execute(request(ownerA, "provider recovered"))).outcome).toBe(
+      "SUCCESS",
+    );
     cloud.delayMs = 10_000;
-    const pending = router.execute(request(ownerA, "cancel during failure", { allowFallback: true }));
+    const pending = router.execute(
+      request(ownerA, "cancel during failure", { allowFallback: true }),
+    );
     await sleep(20);
     router.cancel(ownerA, router.activeRequests.list(ownerA)[0]?.requestId ?? "");
     expect((await pending).outcome).toBe("CANCELLED");
-  }, 20_000);
+  }, 60_000);
 
   it("lets emergency stop beat approved economic overrides without consuming the grant", async () => {
     const { router, cloud } = await makePath("0");
     router.setEmergencyStopCheck(async () => true);
     const store = new PostgresAIEconomicsStore(database.pool);
-    const descriptorValue = { ownerId: ownerA, requestId: crypto.randomUUID(), purpose: "CONVERSATION" as const, requestedAdditionalSpendUsd: "0.01", maxAdditionalSpendUsd: "0.01", expiresAt: new Date(Date.now() + 60_000).toISOString(), agentId: agentA, workflowId: workflowA, workflowRunId: runA, costCenter: "phase20r-f4", providerId: cloudProviderId, modelId: cloudModelId };
+    const descriptorValue = {
+      ownerId: ownerA,
+      requestId: crypto.randomUUID(),
+      purpose: "CONVERSATION" as const,
+      requestedAdditionalSpendUsd: "0.01",
+      maxAdditionalSpendUsd: "0.01",
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      agentId: agentA,
+      workflowId: workflowA,
+      workflowRunId: runA,
+      costCenter: "phase20r-f4",
+      providerId: cloudProviderId,
+      modelId: cloudModelId,
+    };
     const grant = await store.createOverrideGrant({
       descriptor: descriptorValue,
-      grant: { id: crypto.randomUUID(), ownerId: ownerA, approvalId: crypto.randomUUID(), requestId: descriptorValue.requestId, digest: digestEconomicOverride(descriptorValue), maxAdditionalSpendUsd: "0.01", expiresAt: descriptorValue.expiresAt, status: "ACTIVE", createdAt: new Date().toISOString() },
+      grant: {
+        id: crypto.randomUUID(),
+        ownerId: ownerA,
+        approvalId: crypto.randomUUID(),
+        requestId: descriptorValue.requestId,
+        digest: digestEconomicOverride(descriptorValue),
+        maxAdditionalSpendUsd: "0.01",
+        expiresAt: descriptorValue.expiresAt,
+        status: "ACTIVE",
+        createdAt: new Date().toISOString(),
+      },
     });
-    const result = await router.execute(request(ownerA, "override blocked by emergency", { requestId: descriptorValue.requestId, economicOverrideGrantId: grant.id }));
+    const result = await router.execute(
+      request(ownerA, "override blocked by emergency", {
+        requestId: descriptorValue.requestId,
+        economicOverrideGrantId: grant.id,
+      }),
+    );
     expect(result.outcome).toBe("ROUTING_FAILED");
     expect(cloud.calls).toBe(0);
-    expect((await store.getOverrideGrant(ownerA, grant.id))?.grant.status).toBe("ACTIVE");
+    expect((await store.getOverrideGrant(ownerA, grant.id))?.grant.status).toBe(
+      "ACTIVE",
+    );
   });
 
   for (const count of [5, 10, 20]) {
     it(`passes PostgreSQL-backed mixed canonical ${count} request load tier`, async () => {
       const { economics, router } = await makePath("10");
       const started = performance.now();
-      const results = await Promise.all(Array.from({ length: count }, (_, index) => {
-        const ownerId = index % 2 ? ownerA : ownerB;
-        if (index === 1)
-          return router.execute(request(ownerId, `local zero ${index}`, {
-            model: { type: "MODEL", providerId: localProviderId, modelId: localModelId },
-            locality: "LOCAL_ONLY",
-            allowCloud: false,
-          }));
-        if (index === 2)
-          return router.executeStructured({
-            ...request(ownerId, `clarify ${index}`),
-            outputMode: "STRUCTURED",
-            schemaName: "Intent",
-            schema: z.object({ intent: z.string(), entities: z.record(z.string(), z.unknown()), confidence: z.number(), requiresClarification: z.boolean() }),
-          });
-        if (index === 3)
-          return router.execute(request(ownerId, `budget denied ${index}`, { economicContext: { ...(request(ownerId, "x").economicContext as AIEconomicContext), costCenter: `denied-${crypto.randomUUID()}` } }));
-        return router.execute(request(ownerId, `paid ${index}`, { agentId: agentA, workflowId: workflowA, workflowRunId: crypto.randomUUID() }));
-      }));
+      const results = await Promise.all(
+        Array.from({ length: count }, (_, index) => {
+          const ownerId = index % 2 ? ownerA : ownerB;
+          if (index === 1)
+            return router.execute(
+              request(ownerId, `local zero ${index}`, {
+                model: {
+                  type: "MODEL",
+                  providerId: localProviderId,
+                  modelId: localModelId,
+                },
+                locality: "LOCAL_ONLY",
+                allowCloud: false,
+              }),
+            );
+          if (index === 2)
+            return router.executeStructured({
+              ...request(ownerId, `clarify ${index}`),
+              outputMode: "STRUCTURED",
+              schemaName: "Intent",
+              schema: z.object({
+                intent: z.string(),
+                entities: z.record(z.string(), z.unknown()),
+                confidence: z.number(),
+                requiresClarification: z.boolean(),
+              }),
+            });
+          if (index === 3)
+            return router.execute(
+              request(ownerId, `budget denied ${index}`, {
+                economicContext: {
+                  ...(request(ownerId, "x").economicContext as AIEconomicContext),
+                  costCenter: `denied-${crypto.randomUUID()}`,
+                },
+              }),
+            );
+          return router.execute(
+            request(ownerId, `paid ${index}`, {
+              agentId: agentA,
+              workflowId: workflowA,
+              workflowRunId: crypto.randomUUID(),
+            }),
+          );
+        }),
+      );
       const latencies = results.map((item) => item.latencyMs).sort((a, b) => a - b);
       const reservations = [
         ...(await economics.listReservations(ownerA)),
@@ -456,17 +679,25 @@ describe.skipIf(!connectionString)("Phase 20R-F4 closure gates", () => {
       ];
       const ledgerA = await economics.listLedger(ownerA);
       const ledgerB = await economics.listLedger(ownerB);
-      const duplicateSettlements = await database.pool.query(`SELECT request_id, attempt_id FROM ai_usage_ledger GROUP BY request_id, attempt_id HAVING COUNT(*) > 1`);
-      expect(results.filter((item) => item.outcome === "SUCCESS").length).toBeGreaterThan(0);
-      expect(results.some((item) => item.outcome === "CLARIFICATION_REQUIRED")).toBe(true);
+      const duplicateSettlements = await database.pool.query(
+        `SELECT request_id, attempt_id FROM ai_usage_ledger GROUP BY request_id, attempt_id HAVING COUNT(*) > 1`,
+      );
+      expect(
+        results.filter((item) => item.outcome === "SUCCESS").length,
+      ).toBeGreaterThan(0);
+      expect(results.some((item) => item.outcome === "CLARIFICATION_REQUIRED")).toBe(
+        true,
+      );
       expect(reservations.filter((item) => item.status === "ACTIVE")).toHaveLength(0);
       expect(duplicateSettlements.rows).toHaveLength(0);
       expect(ledgerA.every((item) => item.ownerId === ownerA)).toBe(true);
       expect(ledgerB.every((item) => item.ownerId === ownerB)).toBe(true);
       expect(performance.now() - started).toBeGreaterThanOrEqual(0);
       expect(latencies[Math.floor(latencies.length * 0.5)]).toBeGreaterThanOrEqual(0);
-      expect(latencies[Math.max(0, Math.ceil(latencies.length * 0.95) - 1)]).toBeGreaterThanOrEqual(0);
-    });
+      expect(
+        latencies[Math.max(0, Math.ceil(latencies.length * 0.95) - 1)],
+      ).toBeGreaterThanOrEqual(0);
+    }, 120_000);
   }
 
   it("bounds a DB-backed runaway autonomous agent with workflow-run call caps", async () => {
@@ -489,18 +720,38 @@ describe.skipIf(!connectionString)("Phase 20R-F4 closure gates", () => {
     });
     const results = [];
     for (let index = 0; index < 10; index += 1)
-      results.push(await router.execute(request(ownerA, `runaway ${index}`, {
-        economicContext: { ownerId: ownerA, purpose: "CONVERSATION", autonomyMode: "AUTONOMOUS", agentId: agentA, workflowId: workflowA, workflowRunId: runawayRunId, costCenter: "runaway" },
-      })));
+      results.push(
+        await router.execute(
+          request(ownerA, `runaway ${index}`, {
+            economicContext: {
+              ownerId: ownerA,
+              purpose: "CONVERSATION",
+              autonomyMode: "AUTONOMOUS",
+              agentId: agentA,
+              workflowId: workflowA,
+              workflowRunId: runawayRunId,
+              costCenter: "runaway",
+            },
+          }),
+        ),
+      );
     expect(results.filter((item) => item.outcome === "SUCCESS")).toHaveLength(3);
     expect(cloud.calls).toBe(3);
-    expect((await economics.listLedger(ownerA)).filter((item) => item.workflowRunId === runawayRunId && item.agentId === agentA)).toHaveLength(3);
-  });
+    expect(
+      (await economics.listLedger(ownerA)).filter(
+        (item) => item.workflowRunId === runawayRunId && item.agentId === agentA,
+      ),
+    ).toHaveLength(3);
+  }, 90_000);
 
   it("persists benchmark runs, results, metrics, profiles, baselines, and owner isolation across runner reconstruction", async () => {
     const runner = new AIBenchmarkRunner(
       (item) => ({
-        output: { intent: item.input.includes("hi") ? "Behaviour.greeting_response" : "LaunchApplication" },
+        output: {
+          intent: item.input.includes("hi")
+            ? "Behaviour.greeting_response"
+            : "LaunchApplication",
+        },
         providerId: "ollama",
         modelId: "gemma3:4b",
         locality: "LOCAL",
@@ -509,14 +760,23 @@ describe.skipIf(!connectionString)("Phase 20R-F4 closure gates", () => {
       }),
       new PostgresAIBenchmarkStore(database.pool),
     );
-    const run = await runner.runSuite(ownerA, "alexa-core-deterministic", "FAST", { maxCases: 2, baseline: true });
-    const restarted = new AIBenchmarkRunner(() => ({ errorCode: "not-used" }), new PostgresAIBenchmarkStore(database.pool));
+    const run = await runner.runSuite(ownerA, "alexa-core-deterministic", "FAST", {
+      maxCases: 2,
+      baseline: true,
+    });
+    const restarted = new AIBenchmarkRunner(
+      () => ({ errorCode: "not-used" }),
+      new PostgresAIBenchmarkStore(database.pool),
+    );
     const recovered = await restarted.getRun(ownerA, run.id);
     expect(recovered?.id).toBe(run.id);
     expect(recovered?.results).toHaveLength(2);
     expect(recovered?.metrics.length).toBeGreaterThan(0);
     expect(await restarted.getRun(ownerB, run.id)).toBeUndefined();
-    expect((await restarted.listProfiles(ownerA))[0]).toMatchObject({ providerId: "ollama", modelId: "gemma3:4b" });
+    expect((await restarted.listProfiles(ownerA))[0]).toMatchObject({
+      providerId: "ollama",
+      modelId: "gemma3:4b",
+    });
   });
 
   it("keeps owner-scoped economics, context traces, active requests, and cancellation isolated", async () => {
@@ -532,7 +792,13 @@ describe.skipIf(!connectionString)("Phase 20R-F4 closure gates", () => {
     await router.execute(request(ownerB, "owner b context"));
     const traceB = context.listTraceMetadata(ownerB)[0]!;
     expect(context.getTrace(ownerA, traceB.contextId)).toBeUndefined();
-    expect((await economics.listLedger(ownerA)).every((item) => item.ownerId === ownerA)).toBe(true);
-    expect((await economics.listReservations(ownerB)).every((item) => item.ownerId === ownerB)).toBe(true);
-  }, 20_000);
+    expect(
+      (await economics.listLedger(ownerA)).every((item) => item.ownerId === ownerA),
+    ).toBe(true);
+    expect(
+      (await economics.listReservations(ownerB)).every(
+        (item) => item.ownerId === ownerB,
+      ),
+    ).toBe(true);
+  }, 180_000);
 });

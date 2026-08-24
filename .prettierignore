@@ -2,4 +2,5 @@
 **/dist-electron/
 **/coverage/
 **/node_modules/
+external-research/
 pnpm-lock.yaml

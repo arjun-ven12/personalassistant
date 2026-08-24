@@ -165,6 +165,30 @@ describe("ConversationContinuityService", () => {
     expect(claims.filter(Boolean)).toHaveLength(1);
   });
 
+  it("cancels an older clarification when a new explicit action proposal is created", async () => {
+    const store = new InMemoryVoiceStore();
+    const service = new ConversationContinuityService(store);
+    const identity = ids();
+
+    await service.resolveTurn(turn(identity, "Schedule a meeting"));
+    expect(
+      store.getConversationContinuity(identity.ownerId, identity.conversationId)
+        ?.pendingIntent?.status,
+    ).toBe("AWAITING_CLARIFICATION");
+
+    await service.createProposal({
+      ...identity,
+      canonicalIntent: "application_interaction.insert_text",
+      canonicalRequest: "Type hello in the reviewed Chrome search field.",
+      riskLevel: "moderate_risk",
+    });
+
+    expect(
+      store.getConversationContinuity(identity.ownerId, identity.conversationId)
+        ?.pendingIntent?.status,
+    ).toBe("CANCELLED");
+  });
+
   it("marks a claimed interaction executed only after its signed execution settles", async () => {
     const store = new InMemoryVoiceStore();
     const service = new ConversationContinuityService(store);
@@ -231,6 +255,49 @@ describe("ConversationContinuityService", () => {
       store.getConversationContinuity(identity.ownerId, identity.conversationId)?.actionProposal
         ?.status,
     ).toBe("CONFIRMED");
+  });
+
+  it("allows a confirmed application interaction to resume after approval", async () => {
+    const store = new InMemoryVoiceStore();
+    const service = new ConversationContinuityService(store);
+    const identity = ids();
+    await service.resolveTurn(turn(identity, "Type hello in Chrome"));
+    const proposal = await service.createProposal({
+      ...identity,
+      canonicalIntent: "application_interaction.insert_text",
+      canonicalRequest: "Insert hello into the reviewed Chrome search field.",
+      parameters: {
+        request: { applicationId: "chrome", capability: "insert_text", text: "hello" },
+      },
+      riskLevel: "moderate_risk",
+    });
+    const confirmationInput = turn(identity, "Do it");
+    await service.resolveTurn(confirmationInput);
+    await service.claimConfirmedProposal({
+      ownerId: identity.ownerId,
+      conversationId: identity.conversationId,
+      matches: (candidate) => candidate.id === proposal?.id,
+    });
+    await service.releaseProposalClaimForApproval({
+      ownerId: identity.ownerId,
+      conversationId: identity.conversationId,
+      proposalId: proposal!.id,
+    });
+
+    await service.recordOutcome({
+      ownerId: identity.ownerId,
+      conversationId: identity.conversationId,
+      turnId: confirmationInput.turnId,
+      responseText: "The interaction is ready but still requires approval.",
+      canonicalRequest: "Insert hello into the reviewed Chrome search field.",
+      commandId: null,
+    });
+
+    const retry = await service.resolveTurn(turn(identity, "Do it"));
+
+    expect(retry.canonicalRequest).toBe("Insert hello into the reviewed Chrome search field.");
+    expect(retry.responseText).toBeNull();
+    expect(retry.state.actionProposal?.status).toBe("CONFIRMED");
   });
 
   it("expires stale proposals without execution", async () => {
@@ -389,6 +456,42 @@ describe("ConversationContinuityService", () => {
     );
     expect(result.canonicalRequest).toBeNull();
     expect(result.responseText).toContain("context has changed");
+  });
+
+  it("does not stale a reviewed application interaction proposal on context refresh", async () => {
+    const service = new ConversationContinuityService(new InMemoryVoiceStore());
+    const identity = ids();
+    const initial = await service.resolveTurn(
+      turn(identity, "Click the first button", {
+        activeContext: activeSelection(identity, "button one"),
+      }),
+    );
+    const source = initial.state.references.find(
+      (reference) => reference.source === "ACTIVE_SELECTION",
+    );
+    expect(source).toBeDefined();
+    await service.createProposal({
+      ...identity,
+      canonicalIntent: "application_interaction.activate_semantic_control",
+      canonicalRequest: "Click the first matching reviewed button.",
+      parameters: {
+        request: {
+          applicationId: "chrome",
+          capability: "activate_semantic_control",
+        },
+      },
+      targets: [source!],
+      sourceContextReferenceId: source!.id,
+      riskLevel: "high_risk",
+    });
+
+    const result = await service.resolveTurn(
+      turn(identity, "Do it", { activeContext: activeSelection(identity, "button two") }),
+    );
+
+    expect(result.canonicalRequest).toBe("Click the first matching reviewed button.");
+    expect(result.responseText).toBeNull();
+    expect(result.state.actionProposal?.status).toBe("CONFIRMED");
   });
 
   it("fails closed for an unspecified undo request", async () => {

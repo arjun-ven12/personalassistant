@@ -10,6 +10,12 @@ import {
   ComposeCrossApplicationWorkflowRequestSchema,
   CrossApplicationWorkflowDashboardResponseSchema,
   ApplicationIntelligenceDashboardResponseSchema,
+  CapabilityStudioResponseSchema,
+  CapabilityCandidateIdRequestSchema,
+  ChangeCapabilityStateRequestSchema,
+  CreateCapabilityFromDescriptionRequestSchema,
+  CreateCapabilityFromRecordingRequestSchema,
+  CreateCapabilityRequestSchema,
   ApplicationResponseSchema,
   ApprovalListResponseSchema,
   ApprovalResponseSchema,
@@ -111,6 +117,7 @@ import {
   AgentConsensusResponseSchema,
   AgentOsDashboardResponseSchema,
   AgentSessionResponseSchema,
+  BrainRuntimeSummarySchema,
   CognitiveDashboardResponseSchema,
   ReflectionResponseSchema,
   ReasoningResponseSchema,
@@ -129,6 +136,7 @@ import {
   MemorySuggestionListResponseSchema,
   MemoryStatisticsSchema,
   MemoryRecordResponseSchema,
+  ExplicitMemoryTeachingResponseSchema,
   InfrastructureStatusResponseSchema,
   LocalAIHealthSchema,
   LocalAIStatsSchema,
@@ -262,6 +270,11 @@ import {
   IncrementalSyncRequestSchema,
   IncrementalSyncResponseSchema,
   type CreateValidationRequest,
+  type CapabilityCandidateIdRequest,
+  type ChangeCapabilityStateRequest,
+  type CreateCapabilityFromDescriptionRequest,
+  type CreateCapabilityFromRecordingRequest,
+  type CreateCapabilityRequest,
   type CreateWorkflowRequest,
   type IntegrationOperationRequest,
   type CreateAgentTaskRequest,
@@ -272,6 +285,7 @@ import {
   type CreateReasoningRequest,
   type CreateDecisionRequest,
   type CreateMemoryRequest,
+  type ExplicitMemoryInput,
   type HybridSearchRequest,
   type CreateEngineeringGoalRequest,
   type CreateScenarioSimulationRequest,
@@ -1095,6 +1109,12 @@ export const createApiClient = (baseUrl: string) => {
         "/api/agent-os/dashboard",
         AgentOsDashboardResponseSchema,
       ),
+    getBrainRuntimeSummary: () =>
+      requestAndValidate(
+        baseUrl,
+        "/api/agent-os/external-harvest/brain-summary",
+        BrainRuntimeSummarySchema,
+      ),
     startAgentOsSession: (input: CreateAgentSessionRequest) =>
       requestAndValidate(
         baseUrl,
@@ -1192,6 +1212,13 @@ export const createApiClient = (baseUrl: string) => {
         baseUrl,
         "/api/memory",
         MemoryRecordResponseSchema,
+        jsonBody(input),
+      ),
+    teachExplicitMemory: (input: ExplicitMemoryInput) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/memory/explicit",
+        ExplicitMemoryTeachingResponseSchema,
         jsonBody(input),
       ),
     getMemoryStudio: () =>
@@ -1727,6 +1754,70 @@ export const createApiClient = (baseUrl: string) => {
       ),
     getCommandStudio: () =>
       requestAndValidate(baseUrl, "/api/command-studio", CommandStudioResponseSchema),
+    getCapabilityStudio: () =>
+      requestAndValidate(
+        baseUrl,
+        "/api/capability-studio",
+        CapabilityStudioResponseSchema,
+      ),
+    createCapabilityFromDescription: (
+      input: CreateCapabilityFromDescriptionRequest,
+    ) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/capability-studio/candidates/describe",
+        CapabilityStudioResponseSchema,
+        jsonBody(CreateCapabilityFromDescriptionRequestSchema.parse(input)),
+      ),
+    createCapabilityFromRecording: (input: CreateCapabilityFromRecordingRequest) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/capability-studio/candidates/recording",
+        CapabilityStudioResponseSchema,
+        jsonBody(CreateCapabilityFromRecordingRequestSchema.parse(input)),
+      ),
+    validateCapabilityCandidate: (input: CapabilityCandidateIdRequest) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/capability-studio/candidates/validate",
+        CapabilityStudioResponseSchema,
+        jsonBody(CapabilityCandidateIdRequestSchema.parse(input)),
+      ),
+    testCapabilityCandidate: (input: CapabilityCandidateIdRequest) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/capability-studio/candidates/test",
+        CapabilityStudioResponseSchema,
+        jsonBody(CapabilityCandidateIdRequestSchema.parse(input)),
+      ),
+    requestCapabilityApproval: (input: CapabilityCandidateIdRequest) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/capability-studio/candidates/request-approval",
+        CapabilityStudioResponseSchema,
+        jsonBody(CapabilityCandidateIdRequestSchema.parse(input)),
+      ),
+    activateCapabilityCandidate: (input: CapabilityCandidateIdRequest) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/capability-studio/candidates/activate",
+        CapabilityStudioResponseSchema,
+        jsonBody(CapabilityCandidateIdRequestSchema.parse(input)),
+      ),
+    changeCapabilityCandidateState: (input: ChangeCapabilityStateRequest) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/capability-studio/candidates/state",
+        CapabilityStudioResponseSchema,
+        jsonBody(ChangeCapabilityStateRequestSchema.parse(input)),
+      ),
+    createCapabilityRequest: (input: CreateCapabilityRequest) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/capability-studio/requests",
+        CapabilityStudioResponseSchema,
+        jsonBody(CreateCapabilityRequestSchema.parse(input)),
+      ),
     startIntentRecording: (input: StartIntentRecordingRequest) =>
       requestAndValidate(
         baseUrl,

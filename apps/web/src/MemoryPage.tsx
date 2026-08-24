@@ -16,6 +16,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
+import type { ExplicitMemoryType } from "@alexa-control/shared";
 
 import type { ApiClient } from "./api.js";
 
@@ -44,6 +45,10 @@ export const MemoryPage = ({ apiClient }: { apiClient: ApiClient }) => {
   const [contextInput, setContextInput] = useState(
     "What do you know about PostgreSQL?",
   );
+  const [showAddMemory, setShowAddMemory] = useState(false);
+  const [explicitMemoryType, setExplicitMemoryType] =
+    useState<ExplicitMemoryType>("FACT");
+  const [explicitMemoryContent, setExplicitMemoryContent] = useState("");
   const studio = useQuery({
     queryKey: ["memory-studio"],
     queryFn: apiClient.getMemoryStudio,
@@ -77,6 +82,15 @@ export const MemoryPage = ({ apiClient }: { apiClient: ApiClient }) => {
       queryClient.invalidateQueries({ queryKey: ["memory-studio-explain"] }),
     ]);
   };
+  const teachMemory = useMutation({
+    mutationFn: apiClient.teachExplicitMemory,
+    onSuccess: async (result) => {
+      setExplicitMemoryContent("");
+      setShowAddMemory(false);
+      setSelectedId(`MEMORY:${result.memory.id}`);
+      await refresh();
+    },
+  });
   const archiveItem = useMutation({
     mutationFn: (id: string) => apiClient.archiveMemoryStudioItem(id),
     onSuccess: refresh,
@@ -117,6 +131,14 @@ export const MemoryPage = ({ apiClient }: { apiClient: ApiClient }) => {
       limit: 12,
     });
   };
+  const submitExplicitMemory = (event: FormEvent) => {
+    event.preventDefault();
+    teachMemory.mutate({
+      type: explicitMemoryType,
+      content: explicitMemoryContent,
+      entityRefs: [],
+    });
+  };
 
   return (
     <section className="placeholder-page wide-page governance-page memory-studio-page">
@@ -127,7 +149,50 @@ export const MemoryPage = ({ apiClient }: { apiClient: ApiClient }) => {
             What Alexa remembers about you, your work, and how you like things done.
           </p>
         </div>
+        <button onClick={() => setShowAddMemory((value) => !value)} type="button">
+          {showAddMemory ? "Cancel" : "Add Memory"}
+        </button>
       </header>
+
+      {showAddMemory ? (
+        <form className="panel-list stacked-form" onSubmit={submitExplicitMemory}>
+          <h2>Teach Alexa</h2>
+          <div className="button-row">
+            <select
+              aria-label="Memory type"
+              onChange={(event) => setExplicitMemoryType(event.target.value as ExplicitMemoryType)}
+              value={explicitMemoryType}
+            >
+              <option value="FACT">Fact</option>
+              <option value="PREFERENCE">Preference</option>
+              <option value="PERSON">Person</option>
+              <option value="PROJECT">Project</option>
+              <option value="DECISION">Decision</option>
+              <option value="ALIAS">Alias</option>
+              <option value="INSTRUCTION">Instruction</option>
+              <option value="OTHER">Other</option>
+            </select>
+            <input
+              aria-label="Memory content"
+              maxLength={2000}
+              onChange={(event) => setExplicitMemoryContent(event.target.value)}
+              placeholder="I prefer concise emails."
+              required
+              value={explicitMemoryContent}
+            />
+            <button disabled={teachMemory.isPending} type="submit">
+              {teachMemory.isPending ? "Saving..." : "Save"}
+            </button>
+          </div>
+          {teachMemory.error ? (
+            <div className="notice" role="alert">
+              {teachMemory.error instanceof Error
+                ? teachMemory.error.message
+                : "Alexa could not save that memory."}
+            </div>
+          ) : null}
+        </form>
+      ) : null}
 
       <section className="status-grid">
         <Metric
@@ -235,7 +300,14 @@ export const MemoryPage = ({ apiClient }: { apiClient: ApiClient }) => {
                       label="Confidence"
                       value={`${Math.round(selected.confidence * 100)}%`}
                     />
-                    <Detail label="Source" value={selected.source} />
+                    <Detail
+                      label="Source"
+                      value={
+                        selected.tags.includes("owner_explicit")
+                          ? "Owner taught"
+                          : selected.source
+                      }
+                    />
                     <Detail label="Retention" value={selected.retentionClass} />
                     <Detail label="Sensitivity" value={selected.sensitivityClass} />
                     <Detail label="Version" value={String(selected.version)} />

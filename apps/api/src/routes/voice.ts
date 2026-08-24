@@ -94,7 +94,7 @@ export const authenticateTrustedDeviceEnvelope = async (
 export const registerVoiceRoutes = (app: FastifyInstance, context: ApiRouteContext) => {
   app.post(
     "/api/voice/device-runtime",
-    { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+    { config: { rateLimit: { max: 240, timeWindow: "1 minute" } } },
     async (request) => {
       const { device, envelope, network } = await authenticateTrustedDeviceEnvelope(
         request,

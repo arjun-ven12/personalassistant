@@ -71,6 +71,10 @@ import type { SkillEvolutionService } from "../skill-evolution/service.js";
 import type { ActiveContextService } from "../active-context/service.js";
 import { ConversationContinuityService } from "../conversation-continuity/service.js";
 import type { ApplicationInteractionService } from "../application-interactions/service.js";
+import {
+  parseExplicitMemoryTeaching,
+  type ExplicitMemoryTeachingService,
+} from "../memory/explicit-teaching-service.js";
 
 type SubmitCommandResponse = z.infer<
   typeof VoiceTranscriptResponseSchema
@@ -114,15 +118,32 @@ const containsCloudForbiddenPageContent = (pageContext: VoicePageContext | null)
   );
 const containsCloudForbiddenDesktopContent = (context: ActiveContext | null) =>
   Boolean(
-    context?.selection?.text &&
+    (context?.selection?.text || context?.document?.content) &&
     /\b(?:SECRET|PASSWORD|TOKEN|API[_ -]?KEY|AUTH(?:ENTICATION)? CODE|PRIVATE KEY)\b/i.test(
-      context.selection.text,
+      `${context.selection?.text ?? ""}\n${context.document?.content ?? ""}`,
     ),
   );
 const containsActionLanguage = (value: string) =>
-  /\b(?:open|launch|start|run|execute|delete|remove|close|quit|create|move|rename|send|submit|approve|deploy)\b/i.test(
+  /\b(?:open|launch|start|run|execute|delete|remove|close|quit|create|move|rename|send|submit|approve|deploy|type|insert|replace|click|press|activate)\b/i.test(
     value,
   );
+const reviewedApplicationInteractionLanguage = (value: string) =>
+  /\b(?:type|insert|replace|click|press|activate|send|submit|refresh|reload)\b/i.test(value) &&
+  /\b(?:chrome|google chrome|safari|chatgpt|codex|vs\s*code|visual studio code|browser|search|composer|text|field|button|there|here|it)\b/i.test(value);
+const applicationInteractionIdFromContext = (context: ActiveContext | null) => {
+  const id = context?.application.id;
+  if (id) return id;
+  const bundle = context?.application.bundleIdentifier.toLowerCase() ?? "";
+  const name = context?.application.name.toLowerCase() ?? "";
+  if (bundle === "com.google.chrome" || name.includes("chrome")) return "chrome";
+  if (bundle === "com.apple.safari" || name.includes("safari")) return "safari";
+  if (bundle === "com.openai.chat" || name.includes("chatgpt")) return "chatgpt";
+  if (bundle === "com.openai.codex" || name.includes("codex")) return "codex";
+  if (bundle === "com.microsoft.vscode" || name === "code" || name.includes("visual studio code"))
+    return "vscode";
+  if (bundle === "com.apple.finder" || name.includes("finder")) return "finder";
+  return null;
+};
 const voiceConversationTimeoutMs = 90_000;
 
 export class VoiceRuntimeService {
@@ -144,6 +165,7 @@ export class VoiceRuntimeService {
     readonly activeContextService?: ActiveContextService,
     readonly applicationInteractions?: ApplicationInteractionService,
     continuity?: ConversationContinuityService,
+    readonly explicitMemoryTeaching?: ExplicitMemoryTeachingService,
   ) {
     this.continuity = continuity ?? new ConversationContinuityService(store, now);
   }
@@ -338,7 +360,7 @@ export class VoiceRuntimeService {
       input.ownerId,
       parsed.sessionId ?? null,
     );
-    const ambiguous =
+    let ambiguous =
       parsed.isFinal &&
       !interruption &&
       (needsClarification(parsed.transcript) || deterministic.ambiguousReference) &&
@@ -346,6 +368,7 @@ export class VoiceRuntimeService {
     let commandResponse: SubmitCommandResponse | null = null;
     let responseText: string | null = null;
     let commandId: string | null = null;
+    let approvalRequestId: string | null = null;
     let intentCreated = false;
     let responseSource: VoiceResponseSource = "PRECODED";
     let responseProviderId: string | null = null;
@@ -379,6 +402,29 @@ export class VoiceRuntimeService {
             contextReferences,
           })
         : null;
+    const explicitTeaching =
+      parsed.isFinal && !interruption
+        ? parseExplicitMemoryTeaching(parsed.transcript)
+        : null;
+    const explicitReference =
+      explicitTeaching?.requiresReference &&
+      continuity?.resolvedReference?.source === "CONVERSATION_TOPIC" &&
+      continuity.resolvedReference.value.trim()
+        ? {
+            source: "conversation" as const,
+            id: continuity.resolvedReference.id,
+            label: continuity.resolvedReference.label,
+          }
+        : null;
+    const explicitMemoryInput = explicitTeaching
+      ? {
+          type: explicitTeaching.type,
+          content: explicitTeaching.content || continuity?.resolvedReference?.value || "",
+          entityRefs: [],
+        }
+      : null;
+    const hasExplicitMemoryInput = Boolean(explicitMemoryInput?.content.trim());
+    if (hasExplicitMemoryInput) ambiguous = false;
     if (continuity?.resolvedReference) {
       const reference = continuity.resolvedReference;
       const source: ConversationContextReference["source"] =
@@ -402,7 +448,13 @@ export class VoiceRuntimeService {
     const governedRequest = continuity?.resolvedReference
       ? `${parsed.transcript}\nResolved target: ${continuity.resolvedReference.label} (${continuity.resolvedReference.id}).`
       : parsed.transcript;
-    if (parsed.isFinal && !ambiguous && !continuity?.handled && this.humanUnderstanding) {
+    if (
+      parsed.isFinal &&
+      !ambiguous &&
+      !continuity?.handled &&
+      !explicitTeaching &&
+      this.humanUnderstanding
+    ) {
       try {
         understanding = await this.humanUnderstanding.understand({
           ownerId: input.ownerId,
@@ -454,14 +506,14 @@ export class VoiceRuntimeService {
       (understandingUnavailable && !containsActionLanguage(parsed.transcript)) ||
       (mustNotExecute && nonExecutionCategory !== "NEGATED_ACTION");
     const interactionPlan =
-      this.applicationInteractions && parsed.isFinal && !interruption
+      this.applicationInteractions && parsed.isFinal && !interruption && !explicitTeaching
         ? await this.applicationInteractions.planFromUtterance({
             ownerId: input.ownerId,
             utterance: parsed.transcript,
             origin: "voice",
             conversationId: conversationSession.id,
             resolvedText: continuity?.resolvedReference?.value ?? null,
-            currentApplicationId: desktopContext?.application.id ?? null,
+            currentApplicationId: applicationInteractionIdFromContext(desktopContext),
             previousInteractionProposal:
               continuity?.state.actionProposal ?? null,
           })
@@ -476,7 +528,30 @@ export class VoiceRuntimeService {
       classification =
         deterministic.classification === "MULTI_INTENT" ? "MULTI_INTENT" : "ACTION";
 
-    if (continuity?.handled && continuity.canonicalRequest) {
+    if (explicitTeaching && !hasExplicitMemoryInput) {
+      responseText = "What would you like me to remember?";
+      classification = "CLARIFY";
+      routeStages = ["MEMORY", "CLARIFICATION"];
+    } else if (explicitMemoryInput && this.explicitMemoryTeaching) {
+      const result = await this.explicitMemoryTeaching.teach({
+        ownerId: input.ownerId,
+        body: explicitMemoryInput,
+        requestId: input.requestId,
+        ipAddress: input.ipAddress,
+        reference: explicitReference,
+      });
+      responseText = result.duplicate
+        ? "Already remembered."
+        : result.conflictCreated
+          ? "Saved to memory. I also flagged a conflicting fact for review."
+          : "Remembered.";
+      classification = "ANSWER";
+      routeStages = ["MEMORY", "PRECODED"];
+    } else if (
+      continuity?.handled &&
+      continuity.canonicalRequest &&
+      !interactionPlan?.request
+    ) {
       const proposal = continuity.state.actionProposal;
       if (
         this.applicationInteractions &&
@@ -497,10 +572,12 @@ export class VoiceRuntimeService {
             ipAddress: input.ipAddress,
             body: {
               ...(proposal.parameters.request as Record<string, unknown>),
+              conversationId: conversationSession.id,
               proposalId: proposal.id,
             },
           });
           commandId = result.executionRequestId;
+          approvalRequestId = result.approvalRequestId;
           intentCreated = result.status === "SUCCESS";
           classification = "ACTION";
           routeStages = ["PRECODED", "ACTION"];
@@ -529,7 +606,7 @@ export class VoiceRuntimeService {
               ? "I resolved the conversational details, but the planner still needs one clarification."
               : "I completed the clarification and created the governed plan.";
       }
-    } else if (continuity?.handled) {
+    } else if (continuity?.handled && !interactionPlan?.request) {
       responseText = continuity.responseText;
       classification = responseText?.includes("?") ? "CLARIFY" : "ANSWER";
       routeStages = ["PRECODED"];
@@ -775,7 +852,8 @@ export class VoiceRuntimeService {
         interpretation?.type === "ACTION" &&
         interpretation.confidence >= 0.9 &&
         !mustNotExecute &&
-        !ambiguous
+        !ambiguous &&
+        !reviewedApplicationInteractionLanguage(parsed.transcript)
       ) {
         const currentContextTarget = contextReferences.find((reference) =>
           ["SELECTION", "FOCUSED_ELEMENT", "DOCUMENT", "ACTIVE_PAGE", "APPLICATION"].includes(
@@ -940,7 +1018,9 @@ export class VoiceRuntimeService {
         conversationId: conversationSession.id,
         turnId,
         responseText,
-        canonicalRequest: continuity.canonicalRequest,
+        canonicalRequest: interactionPlan?.request
+          ? null
+          : continuity.canonicalRequest,
         commandId,
       });
 
@@ -1012,6 +1092,7 @@ export class VoiceRuntimeService {
       responseSource,
       responseProviderId,
       responseModelId,
+      approvalRequestId,
       classification,
       routeStages: [...new Set(routeStages)],
     });

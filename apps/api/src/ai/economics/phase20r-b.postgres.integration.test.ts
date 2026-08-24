@@ -31,7 +31,8 @@ describe.skipIf(!connectionString)("Phase 20R-B PostgreSQL economic authority", 
     await administration.pool.query(`CREATE SCHEMA "${schema}"`);
     const isolated = new URL(connectionString!);
     isolated.hostname = isolated.hostname.replace("-pooler.", ".");
-    isolated.searchParams.set("sslmode", "verify-full");
+    if (isolated.searchParams.get("sslmode") !== "disable")
+      isolated.searchParams.set("sslmode", "verify-full");
     isolated.searchParams.set("options", `-c search_path=${schema},public`);
     database = new PostgresDatabase(isolated.toString());
     await database.migrate();
@@ -65,7 +66,7 @@ describe.skipIf(!connectionString)("Phase 20R-B PostgreSQL economic authority", 
       currency: "USD",
       inputPerMillionTokens: "1",
       outputPerMillionTokens: "1",
-      effectiveFrom: new Date().toISOString(),
+      effectiveFrom: new Date(Date.now() - 1_000).toISOString(),
       version: "fixture-v1",
       source: "integration-fixture",
       status: "ACTIVE",
@@ -81,7 +82,7 @@ describe.skipIf(!connectionString)("Phase 20R-B PostgreSQL economic authority", 
       hardStopThresholdPct: 100,
       overflowBehavior: "DENY",
       enabled: true,
-      effectiveFrom: new Date().toISOString(),
+      effectiveFrom: new Date(Date.now() - 1_000).toISOString(),
     });
     const second = new AIEconomicsService(new PostgresAIEconomicsStore(database.pool));
     await second.initialise();
@@ -200,7 +201,7 @@ describe.skipIf(!connectionString)("Phase 20R-B PostgreSQL economic authority", 
         hardStopThresholdPct: 100,
         overflowBehavior: "DENY",
         enabled: true,
-        effectiveFrom: new Date().toISOString(),
+        effectiveFrom: new Date(Date.now() - 1_000).toISOString(),
       });
     const serviceB = new AIEconomicsService(
       new PostgresAIEconomicsStore(database.pool),

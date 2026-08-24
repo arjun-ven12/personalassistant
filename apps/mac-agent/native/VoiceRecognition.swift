@@ -16,8 +16,6 @@ private final class NativeVoiceRecognition: NSObject {
   private let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
   private var request: SFSpeechAudioBufferRecognitionRequest?
   private var task: SFSpeechRecognitionTask?
-  private var audioConverter: AVAudioConverter?
-  private var recognitionFormat: AVAudioFormat?
   private var recognitionGeneration: UUID?
   private var audioBufferCount = 0
   private var tapInstalled = false
@@ -28,7 +26,10 @@ private final class NativeVoiceRecognition: NSObject {
   private var noiseFloor: Float = 0
   private var noiseSamples = 0
   private var consecutiveSpeechBuffers = 0
-  private var preferOnDeviceRecognition = true
+  // On-device recognition can accept microphone buffers without producing any
+  // transcription on some macOS installations. Start with Apple's standard
+  // recognizer and retain the on-device capability as a future explicit mode.
+  private var preferOnDeviceRecognition = false
   private var latestRecognizedText = ""
   private var finalTranscriptEmitted = false
   private var transcriptEndpointWorkItem: DispatchWorkItem?
@@ -67,24 +68,12 @@ private final class NativeVoiceRecognition: NSObject {
     self.request = request
     let input = audioEngine.inputNode
     let format = input.outputFormat(forBus: 0)
-    guard let recognitionFormat = AVAudioFormat(
-      commonFormat: .pcmFormatFloat32,
-      sampleRate: 16_000,
-      channels: 1,
-      interleaved: false
-    ), let converter = AVAudioConverter(from: format, to: recognitionFormat) else {
-      emit(["type": "error", "code": "STT_AUDIO_CAPTURE_ERROR"])
-      return
-    }
-    self.recognitionFormat = recognitionFormat
-    self.audioConverter = converter
     input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
       guard let self, !self.finishingUtterance else { return }
       let level = self.measureAudioLevel(buffer)
       self.emitAudioLevel(level)
       self.observeVoiceActivity(level)
-      guard let recognitionBuffer = self.convertForRecognition(buffer) else { return }
-      request.append(recognitionBuffer)
+      request.append(buffer)
     }
     tapInstalled = true
     audioEngine.prepare()
@@ -95,7 +84,11 @@ private final class NativeVoiceRecognition: NSObject {
       stopRecognition()
       return
     }
-    emit(["type": "ready", "onDevice": usingOnDeviceRecognition])
+    emit([
+      "type": "ready",
+      "providerId": "apple_speech",
+      "onDevice": usingOnDeviceRecognition
+    ])
     let generation = UUID()
     recognitionGeneration = generation
     task = recognizer.recognitionTask(with: request) { [weak self] result, error in
@@ -164,33 +157,6 @@ private final class NativeVoiceRecognition: NSObject {
     let rms = sqrt(sum / Float(frameCount * channelCount))
     let decibels = rms > 0 ? 20 * log10(rms) : -80
     return min(1, max(0, (decibels + 60) / 60))
-  }
-
-  private func convertForRecognition(_ buffer: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {
-    guard let converter = audioConverter,
-          let recognitionFormat,
-          buffer.format.sampleRate > 0 else { return nil }
-    let ratio = recognitionFormat.sampleRate / buffer.format.sampleRate
-    let capacity = AVAudioFrameCount(ceil(Double(buffer.frameLength) * ratio)) + 1
-    guard let output = AVAudioPCMBuffer(
-      pcmFormat: recognitionFormat,
-      frameCapacity: capacity
-    ) else { return nil }
-    var suppliedInput = false
-    var conversionError: NSError?
-    let status = converter.convert(to: output, error: &conversionError) { _, inputStatus in
-      if suppliedInput {
-        inputStatus.pointee = .noDataNow
-        return nil
-      }
-      suppliedInput = true
-      inputStatus.pointee = .haveData
-      return buffer
-    }
-    guard conversionError == nil,
-          status != .error,
-          output.frameLength > 0 else { return nil }
-    return output
   }
 
   private func emitAudioLevel(_ level: Float) {
@@ -265,8 +231,14 @@ private final class NativeVoiceRecognition: NSObject {
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
       guard let self,
             self.recognitionGeneration == generation,
-            self.finishingUtterance,
-            !self.latestRecognizedText.isEmpty else { return }
+            self.finishingUtterance else { return }
+      if self.latestRecognizedText.isEmpty {
+        // Speech activity is local microphone state, not proof that the speech
+        // service returned words. Recover the capture loop so a failed
+        // recognition attempt cannot leave the overlay silently stuck.
+        self.restartRecognition()
+        return
+      }
       self.emitFinalTranscriptAndRestart(self.latestRecognizedText)
     }
   }
@@ -299,8 +271,6 @@ private final class NativeVoiceRecognition: NSObject {
     task?.cancel()
     request = nil
     task = nil
-    audioConverter = nil
-    recognitionFormat = nil
     recognitionGeneration = nil
     audioBufferCount = 0
     speechDetected = false

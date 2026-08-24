@@ -400,7 +400,25 @@ export const WebEnvironmentSchema = z
 export const MacAgentEnvironmentSchema = z
   .object({
     ALEXA_API_BASE_URL: z.string().url().default("http://localhost:3001"),
+    ALEXA_WEB_BASE_URL: z.string().url().default("http://localhost:5173"),
     ALEXA_AGENT_LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),
+    DESKTOP_STT_PROVIDER: z.enum(["whisper_cpp", "apple_speech"]).default("whisper_cpp"),
+    DESKTOP_STT_FALLBACK_PROVIDER: z
+      .enum(["apple_speech", "disabled"])
+      .default("apple_speech"),
+    DESKTOP_STT_WHISPER_BINARY_PATH: z.string().trim().min(1).max(1_024).optional(),
+    DESKTOP_STT_WHISPER_MODEL_PATH: z.string().trim().min(1).max(1_024).optional(),
+    DESKTOP_STT_WHISPER_MODEL_VERSION: z
+      .string()
+      .trim()
+      .regex(/^[A-Za-z0-9._-]{3,120}$/)
+      .default("ggml-base.en"),
+    DESKTOP_STT_WHISPER_THREADS: z.coerce.number().int().min(1).max(4).default(4),
+    DESKTOP_STT_WHISPER_NO_SPEECH_THRESHOLD: z.coerce
+      .number()
+      .min(0)
+      .max(0.6)
+      .default(0.25),
     ALEXA_REQUIRE_PRIVATE_NETWORK: booleanValue.default(true),
     ALEXA_READ_ONLY_EXECUTION_ENABLED: booleanValue.default(false),
     ALEXA_SERVER_EXECUTION_PUBLIC_KEY: z.string().trim().min(32).optional(),

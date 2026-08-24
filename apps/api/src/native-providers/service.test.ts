@@ -1,4 +1,7 @@
-import { TrustedApplicationRecordSchema } from "@alexa-control/shared";
+import {
+  NativeProviderRecordSchema,
+  TrustedApplicationRecordSchema,
+} from "@alexa-control/shared";
 import { describe, expect, it } from "vitest";
 
 import { InMemoryApplicationAdapterStore } from "../application-adapters/store.js";
@@ -75,6 +78,49 @@ describe("NativeProviderRuntime", () => {
           capability.capability === "focus_explorer",
       ),
     ).toBe(true);
+  });
+
+  it("reconciles a newly reviewed finite capability for an existing provider", async () => {
+    const { ownerId, service, store } = setup();
+    const at = "2026-08-05T00:00:00.000Z";
+    store.saveProvider(
+      NativeProviderRecordSchema.parse({
+        id: "provider.chrome",
+        ownerId,
+        applicationId: "chrome",
+        name: "ChromeProvider",
+        providerType: "chrome",
+        bundleIdentifier: "com.google.Chrome",
+        version: "17G.1",
+        supportedMacosVersions: ["13", "14", "15", "16"],
+        status: "healthy",
+        sandboxed: true,
+        arbitraryExecutionAvailable: false,
+        arbitraryAppleScriptAvailable: false,
+        arbitraryShellAvailable: false,
+        coordinateClickingAvailable: false,
+        keyboardReplayAvailable: false,
+        ocrAvailable: false,
+        screenshotAutomationAvailable: false,
+        unrestrictedAccessibilityAvailable: false,
+        createdAt: at,
+        updatedAt: at,
+      }),
+    );
+
+    const dashboard = await service.dashboard(ownerId);
+
+    expect(
+      dashboard.providerCapabilities.some(
+        (capability) =>
+          capability.providerId === "provider.chrome" &&
+          capability.capability === "insert_text" &&
+          capability.enabled,
+      ),
+    ).toBe(true);
+    expect(
+      dashboard.nativeProviders.find((provider) => provider.id === "provider.chrome")?.status,
+    ).toBe("healthy");
   });
 
   it("validates providers and disables them when native host health is unavailable", async () => {

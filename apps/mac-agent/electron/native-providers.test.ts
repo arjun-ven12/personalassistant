@@ -156,7 +156,12 @@ describe("MacNativeProviderHost", () => {
       arguments: { target, text: "hello from Alexa" },
     });
 
-    expect(result).toMatchObject({ status: "verified", nativeBridgeUsed: true });
+    expect(result).toMatchObject({
+      status: "verified",
+      nativeBridgeUsed: true,
+      semanticId: "a".repeat(64),
+      matchedCount: 1,
+    });
     expect(semanticBridge.execute).toHaveBeenCalledWith({
       operation: "insert_text",
       bundleIdentifier: "com.openai.chat",

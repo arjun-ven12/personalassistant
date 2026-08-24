@@ -7,5 +7,12 @@ export default defineConfig({
     maxWorkers: 1,
     testTimeout: 30_000,
     hookTimeout: 30_000,
+    // External research and local voice dependencies are not Alexa test workspaces.
+    exclude: [
+      "external-research/**",
+      "apps/mac-agent/.local/**",
+      "**/node_modules/**",
+      "**/dist/**",
+    ],
   },
 });

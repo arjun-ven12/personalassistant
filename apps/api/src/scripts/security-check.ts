@@ -2,7 +2,14 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
 const root = path.resolve(import.meta.dirname, "../../../..");
-const ignored = new Set([".git", "node_modules", "dist", "dist-electron", "coverage"]);
+const ignored = new Set([
+  ".git",
+  "node_modules",
+  "dist",
+  "dist-electron",
+  "coverage",
+  "external-research",
+]);
 
 const walk = async (directory: string): Promise<string[]> => {
   const files: string[] = [];

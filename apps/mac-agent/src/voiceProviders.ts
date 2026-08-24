@@ -1,7 +1,7 @@
 export interface STTProvider {
   readonly id: string;
   start(handlers: {
-    onReady?: () => void;
+    onReady?: (providerId: string) => void;
     onAudioLevel?: (level: number) => void;
     onInterim: (transcript: string, confidence: number) => void;
     onFinal: (transcript: string, confidence: number) => void;
@@ -12,8 +12,17 @@ export interface STTProvider {
 
 export interface TTSProvider {
   readonly id: string;
+  configure(profile: TTSVoiceProfile): void;
   speak(text: string, handlers: { onStart: () => void; onEnd: () => void; onError: (message: string) => void }): void;
   stop(): void;
+}
+
+export interface TTSVoiceProfile {
+  voiceName: string | null;
+  language: string;
+  rate: number;
+  pitch: number;
+  volume: number;
 }
 
 interface SpeechRecognitionAlternativeLike {
@@ -85,7 +94,7 @@ export class BrowserSTTProvider implements STTProvider {
     };
     this.#recognition = recognition;
     recognition.start();
-    handlers.onReady?.();
+    handlers.onReady?.(this.id);
   }
 
   stop() {
@@ -102,10 +111,11 @@ const nativeSpeechMessage: Record<string, string> = {
   STT_AUDIO_CAPTURE_ERROR: "Alexa could not capture audio from the selected microphone.",
   STT_DICTATION_DISABLED: "Turn on Dictation in System Settings → Keyboard, then try Start again.",
   STT_RECOGNITION_FAILED: "Desktop speech recognition stopped unexpectedly.",
+  STT_TRANSCRIPTION_FAILED: "Local Whisper could not transcribe that utterance.",
 };
 
-export class MacSpeechSTTProvider implements STTProvider {
-  readonly id = "macos_speech_framework";
+class NativeDesktopSTTProvider implements STTProvider {
+  constructor(readonly id: "whisper_cpp" | "apple_speech") {}
   #unsubscribe: (() => void) | null = null;
 
   async start(handlers: Parameters<STTProvider["start"]>[0]) {
@@ -115,7 +125,7 @@ export class MacSpeechSTTProvider implements STTProvider {
       this.#unsubscribe = window.alexaAgent.onNativeVoiceRecognitionEvent((event) => {
         if (event.type === "ready") {
           ready = true;
-          handlers.onReady?.();
+          handlers.onReady?.(event.providerId);
           resolve();
           return;
         }
@@ -139,8 +149,34 @@ export class MacSpeechSTTProvider implements STTProvider {
   }
 }
 
+/** Primary local desktop provider. The Electron main process owns its fixed
+ * whisper.cpp binary/model configuration and may fail over to Apple Speech. */
+export class WhisperCppSTTProvider extends NativeDesktopSTTProvider {
+  constructor() {
+    super("whisper_cpp");
+  }
+}
+
+/** Explicit configuration fallback for macOS Speech Framework. */
+export class AppleSpeechSTTProvider extends NativeDesktopSTTProvider {
+  constructor() {
+    super("apple_speech");
+  }
+}
+
 export class BrowserTTSProvider implements TTSProvider {
   readonly id = "browser_speech_synthesis";
+  #profile: TTSVoiceProfile = {
+    voiceName: null,
+    language: "en-US",
+    rate: 1,
+    pitch: 1,
+    volume: 1,
+  };
+
+  configure(profile: TTSVoiceProfile) {
+    this.#profile = { ...profile };
+  }
 
   speak(text: string, handlers: { onStart: () => void; onEnd: () => void; onError: (message: string) => void }) {
     if (!("speechSynthesis" in window) || !text.trim()) {
@@ -149,9 +185,24 @@ export class BrowserTTSProvider implements TTSProvider {
     }
     const synthesis = window.speechSynthesis;
     const utterance = new SpeechSynthesisUtterance(text);
+    const voices = synthesis.getVoices();
+    const exactVoice = this.#profile.voiceName
+      ? voices.find((voice) => voice.name === this.#profile.voiceName)
+      : null;
+    const languageVoice = voices.find(
+      (voice) => voice.lang.toLowerCase() === this.#profile.language.toLowerCase(),
+    );
+    utterance.voice = exactVoice ?? languageVoice ?? null;
+    utterance.lang = utterance.voice?.lang ?? this.#profile.language;
+    utterance.rate = this.#profile.rate;
+    utterance.pitch = this.#profile.pitch;
+    utterance.volume = this.#profile.volume;
     utterance.onstart = handlers.onStart;
     utterance.onend = handlers.onEnd;
-    utterance.onerror = (event) => handlers.onError(event.error || "Speech synthesis failed.");
+    utterance.onerror = (event) => {
+      if (event.error === "canceled" || event.error === "interrupted") return;
+      handlers.onError(event.error || "Speech synthesis failed.");
+    };
     synthesis.cancel();
     // Chromium can ignore an utterance queued in the same task as cancel().
     window.setTimeout(() => {

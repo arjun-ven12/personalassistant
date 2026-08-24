@@ -122,6 +122,9 @@ const api: AlexaAgentApi = {
   hideVoiceOverlay: async () => {
     await ipcRenderer.invoke(IPC_CHANNELS.hideVoiceOverlay);
   },
+  openApprovalCenter: async () => {
+    await ipcRenderer.invoke(IPC_CHANNELS.openApprovalCenter);
+  },
   startOverlayVoiceSession: async () =>
     VoiceDashboardResponseSchema.parse(
       await ipcRenderer.invoke(IPC_CHANNELS.startOverlayVoiceSession),

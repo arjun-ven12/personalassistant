@@ -5,6 +5,7 @@ import {
   globalShortcut,
   ipcMain,
   safeStorage,
+  shell,
   systemPreferences,
 } from "electron";
 import path from "node:path";
@@ -54,6 +55,12 @@ import { ReadOnlyExecutionClient } from "./execution/execution-client.js";
 import { discoverInstalledMacApplications } from "./application-discovery.js";
 import { MacNativeProviderHost } from "./native-providers.js";
 import { NativeSpeechRecognitionSession } from "./native-speech.js";
+import {
+  checkWhisperCppHealth,
+  NativeWhisperRecognitionSession,
+  type DesktopSttEvent,
+  type WhisperCppConfig,
+} from "./native-whisper.js";
 import { NativeActiveContextSession } from "./native-active-context.js";
 
 try {
@@ -63,6 +70,21 @@ try {
 }
 
 const environment = parseMacAgentEnvironment(process.env);
+
+const whisperCppConfig = (): WhisperCppConfig => {
+  const appPath = app.getAppPath();
+  return {
+    binaryPath:
+      environment.DESKTOP_STT_WHISPER_BINARY_PATH ??
+      path.join(appPath, ".local/whisper.cpp/build/bin/whisper-cli"),
+    modelPath:
+      environment.DESKTOP_STT_WHISPER_MODEL_PATH ??
+      path.join(appPath, ".local/whisper.cpp/models/ggml-base.en.bin"),
+    modelVersion: environment.DESKTOP_STT_WHISPER_MODEL_VERSION,
+    threads: environment.DESKTOP_STT_WHISPER_THREADS,
+    noSpeechThreshold: environment.DESKTOP_STT_WHISPER_NO_SPEECH_THRESHOLD,
+  };
+};
 let localExecutionEnabled = true;
 let pendingPairing: PendingPairing | null = null;
 let persistedIdentity: PendingPairing["identity"] | null = null;
@@ -73,7 +95,8 @@ let persistedMetadata: LocalDeviceMetadata | null = null;
 let executionClient: ReadOnlyExecutionClient | null = null;
 let mainWindow: BrowserWindow | null = null;
 let voiceOverlayWindow: BrowserWindow | null = null;
-let nativeVoiceRecognition: NativeSpeechRecognitionSession | null = null;
+type NativeVoiceRecognition = Pick<NativeSpeechRecognitionSession, "start" | "stop">;
+let nativeVoiceRecognition: NativeVoiceRecognition | null = null;
 let nativeActiveContext: NativeActiveContextSession | null = null;
 let activeContextUpdatePending = false;
 let latestActiveContext: ActiveContextResponse = ActiveContextResponseSchema.parse({
@@ -664,6 +687,14 @@ const registerIpc = () => {
     voiceOverlayWindow?.hide();
   });
 
+  ipcMain.handle(IPC_CHANNELS.openApprovalCenter, async (_event, payload) => {
+    EmptyIpcPayloadSchema.parse(payload);
+    const url = new URL("/approvals", environment.ALEXA_WEB_BASE_URL);
+    if (url.protocol !== "http:" && url.protocol !== "https:")
+      throw new Error("Configured Alexa Control URL must use HTTP or HTTPS.");
+    await shell.openExternal(url.toString());
+  });
+
   ipcMain.handle(IPC_CHANNELS.startOverlayVoiceSession, async (_event, payload) => {
     EmptyIpcPayloadSchema.parse(payload);
     const device = requireTrustedVoiceDevice();
@@ -737,12 +768,48 @@ const registerIpc = () => {
       return;
     }
     nativeVoiceRecognition?.stop();
-    nativeVoiceRecognition = new NativeSpeechRecognitionSession((event) => {
+    let fallbackStarted = false;
+    const forward = (event: DesktopSttEvent) => {
       voiceOverlayWindow?.webContents.send(
         IPC_CHANNELS.nativeVoiceRecognitionEvent,
         event,
       );
-    });
+    };
+    const startAppleFallback = async (reason: string) => {
+      if (fallbackStarted || environment.DESKTOP_STT_FALLBACK_PROVIDER !== "apple_speech") {
+        forward({ type: "error", code: "STT_PROVIDER_UNAVAILABLE" });
+        return;
+      }
+      fallbackStarted = true;
+      console.warn(`[desktop-stt] whisper.cpp unavailable; using Apple Speech fallback (${reason}).`);
+      nativeVoiceRecognition?.stop();
+      nativeVoiceRecognition = new NativeSpeechRecognitionSession((event) => forward(event));
+      await nativeVoiceRecognition.start();
+    };
+    if (environment.DESKTOP_STT_PROVIDER === "apple_speech") {
+      nativeVoiceRecognition = new NativeSpeechRecognitionSession((event) => forward(event));
+      await nativeVoiceRecognition.start();
+      return;
+    }
+
+    const health = await checkWhisperCppHealth(whisperCppConfig());
+    if (!health.available) {
+      await startAppleFallback(health.message);
+      return;
+    }
+    nativeVoiceRecognition = new NativeWhisperRecognitionSession(
+      whisperCppConfig(),
+      (event) => {
+        if (
+          event.type === "error" &&
+          (event.code === "STT_PROVIDER_UNAVAILABLE" || event.code === "STT_TRANSCRIPTION_FAILED")
+        ) {
+          void startAppleFallback(event.code);
+          return;
+        }
+        forward(event);
+      },
+    );
     await nativeVoiceRecognition.start();
   });
 
@@ -763,11 +830,11 @@ const createVoiceOverlayWindow = async () => {
     return voiceOverlayWindow;
   const window = new BrowserWindow({
     width: 372,
-    height: 356,
+    height: 560,
     minWidth: 320,
     minHeight: 78,
     maxWidth: 480,
-    maxHeight: 420,
+    maxHeight: 720,
     show: false,
     frame: false,
     resizable: true,

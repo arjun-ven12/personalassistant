@@ -67,7 +67,12 @@ const observation = (overrides: Record<string, unknown> = {}) => ({
     processIdentifier: 42,
   },
   window: { title: "service.ts — personalassistant" },
-  document: { title: "service.ts", type: "source", uri: "file:///repo/service.ts" },
+  document: {
+    title: "service.ts",
+    type: "source",
+    uri: "file:///repo/service.ts",
+    content: "The request failed because the provider timed out.",
+  },
   selection: {
     text: "throw new Error('failed')",
     semanticType: "AXTextArea",
@@ -111,6 +116,7 @@ describe("ActiveContextService", () => {
 
     expect(result.context?.status).toBe("CURRENT");
     expect(result.context?.document?.title).toBe("canonical-service.ts");
+    expect(result.context?.document?.content).toContain("provider timed out");
     expect(result.context?.selection?.text).toBe("const canonical = true;");
     expect(result.context?.sources).toEqual([
       "REVIEWED_ADAPTER",

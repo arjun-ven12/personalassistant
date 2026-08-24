@@ -18,6 +18,7 @@ export class PostgresDatabase {
     connectionString: string,
     options: {
       poolSize?: number;
+      connectionTimeoutMillis?: number;
       sslMode?: "disable" | "require" | "verify-full";
     } = {},
   ) {
@@ -28,7 +29,7 @@ export class PostgresDatabase {
       ...(startupOptions ? { options: startupOptions } : {}),
       max: options.poolSize ?? 10,
       idleTimeoutMillis: 30_000,
-      connectionTimeoutMillis: 5_000,
+      connectionTimeoutMillis: options.connectionTimeoutMillis ?? 5_000,
       application_name: "personal-assistant-api",
       ssl:
         options.sslMode && options.sslMode !== "disable"

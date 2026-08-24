@@ -118,6 +118,48 @@ export class IntentRecordingService {
     });
   }
 
+  async recordReviewedCapability(input: {
+    ownerId: string;
+    applicationId: string;
+    providerId: string;
+    capabilityId: string;
+    target: {
+      role: string | null;
+      label: string | null;
+      identifier: string | null;
+    };
+    requestId: string;
+  }) {
+    const recording = (await this.store.listRecordings(input.ownerId, 50)).find(
+      (item) => item.status === "recording",
+    );
+    if (!recording) return false;
+    await this.recordEvent({
+      ownerId: input.ownerId,
+      requestId: input.requestId,
+      ipAddress: "internal",
+      body: {
+        recordingId: recording.id,
+        source: "desktop_capability",
+        type: "capability_invoked",
+        capabilityId: input.capabilityId,
+        title: `${titleCase(input.capabilityId)} in ${input.applicationId}`,
+        semanticSummary: `Invoked reviewed ${input.capabilityId} through ${input.providerId} for ${input.applicationId}.`,
+        arguments: {
+          applicationId: input.applicationId,
+          providerId: input.providerId,
+          ...(input.target.role ? { role: input.target.role } : {}),
+          ...(input.target.label ? { label: input.target.label } : {}),
+          ...(input.target.identifier ? { identifier: input.target.identifier } : {}),
+        },
+        status: "observed",
+        dependsOnEventIds: [],
+        durationMs: 0,
+      },
+    });
+    return true;
+  }
+
   async start(input: {
     ownerId: string;
     body: unknown;

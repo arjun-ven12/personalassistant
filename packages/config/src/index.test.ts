@@ -23,7 +23,12 @@ describe("environment validation", () => {
     expect(api.READ_ONLY_EXECUTION_ENABLED).toBe(false);
     expect(api.OPENAI_ACCOUNTING_INPUT_PER_MILLION_TOKENS).toBe("1");
     expect(api.OPENAI_ACCOUNTING_OUTPUT_PER_MILLION_TOKENS).toBe("10");
-    expect(parseMacAgentEnvironment({}).ALEXA_REQUIRE_PRIVATE_NETWORK).toBe(true);
+    const macAgent = parseMacAgentEnvironment({});
+    expect(macAgent.ALEXA_REQUIRE_PRIVATE_NETWORK).toBe(true);
+    expect(macAgent.DESKTOP_STT_PROVIDER).toBe("whisper_cpp");
+    expect(macAgent.DESKTOP_STT_FALLBACK_PROVIDER).toBe("apple_speech");
+    expect(macAgent.DESKTOP_STT_WHISPER_MODEL_VERSION).toBe("ggml-base.en");
+    expect(macAgent.DESKTOP_STT_WHISPER_NO_SPEECH_THRESHOLD).toBe(0.25);
     expect(parseWebEnvironment({}).VITE_API_BASE_URL).toBe("http://localhost:3001");
   });
 

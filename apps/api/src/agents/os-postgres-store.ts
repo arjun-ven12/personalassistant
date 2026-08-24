@@ -137,6 +137,16 @@ export class PostgresAgentOsStore implements AgentOsStore {
     );
   }
 
+  async findSession(ownerId: string, sessionId: string) {
+    const result = await this.pool.query<{ record: unknown }>(
+      "SELECT record FROM agent_os_sessions WHERE owner_id=$1 AND id=$2",
+      [ownerId, sessionId],
+    );
+    return result.rows[0]
+      ? AgentSessionRecordSchema.parse(result.rows[0].record)
+      : undefined;
+  }
+
   listSessions(ownerId: string, limit: number) {
     return list(
       this.pool,

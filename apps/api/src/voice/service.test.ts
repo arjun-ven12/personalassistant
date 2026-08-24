@@ -11,6 +11,7 @@ import { InMemoryAgentOsStore } from "../agents/os-store.js";
 import { AgentRegistryService } from "../agents/service.js";
 import { InMemoryAgentStore } from "../agents/store.js";
 import { InMemoryApplicationAdapterStore } from "../application-adapters/store.js";
+import { ApplicationInteractionService } from "../application-interactions/service.js";
 import { InMemoryApplicationIntelligenceStore } from "../application-intelligence/store.js";
 import { InMemoryCoreAdapterStore } from "../core-adapters/store.js";
 import { ActiveContextService } from "../active-context/service.js";
@@ -29,12 +30,19 @@ import { InMemorySkillEvolutionStore } from "../skill-evolution/store.js";
 import { HumanUnderstandingService } from "../human-understanding/service.js";
 import { InMemoryHumanUnderstandingStore } from "../human-understanding/store.js";
 import { InMemoryMemoryStore } from "../memory/store.js";
+import { MemoryIndexerService } from "../memory/service.js";
+import { ExplicitMemoryTeachingService } from "../memory/explicit-teaching-service.js";
+import { PersonalKnowledgeGraphService } from "../knowledge-graph/service.js";
+import { InMemoryKnowledgeGraphStore } from "../knowledge-graph/store.js";
+import { NativeProviderRuntime } from "../native-providers/service.js";
+import { InMemoryNativeProviderStore } from "../native-providers/store.js";
 import { InMemoryRepositoryStore } from "../repositories/store.js";
+import { InMemoryWorkflowStore } from "../workflows/store.js";
 import { InMemoryWorkspaceIntelligenceStore } from "../workspace-intelligence/store.js";
 import type { AIRouterService } from "../ai/router/service.js";
 import { VoiceRuntimeService } from "./service.js";
 import { InMemoryVoiceStore } from "./store.js";
-import type { ApplicationInteractionService } from "../application-interactions/service.js";
+import { ConversationContinuityService } from "../conversation-continuity/service.js";
 
 class DashboardReadFailureVoiceStore extends InMemoryVoiceStore {
   override listConversationAnalytics(
@@ -86,6 +94,26 @@ const setup = (aiRouter?: VoiceRuntimeService["aiRouter"]) => {
     audit,
   );
   const intent = new IntentExecutionService(new InMemoryIntentStore(), society, audit);
+  const memory = new MemoryIndexerService(
+    memoryStore,
+    repositoryStore,
+    agentStore,
+    new InMemoryWorkflowStore(),
+    audit,
+  );
+  const explicitMemoryTeaching = new ExplicitMemoryTeachingService(
+    memory,
+    memoryStore,
+    new PersonalKnowledgeGraphService(
+      new InMemoryKnowledgeGraphStore(),
+      memoryStore,
+      repositoryStore,
+      agentStore,
+      new InMemoryWorkflowStore(),
+      new InMemoryApplicationAdapterStore(),
+      audit,
+    ),
+  );
   const voice = new VoiceRuntimeService(new InMemoryVoiceStore(), intent, audit);
   const applicationAdapters = new InMemoryApplicationAdapterStore();
   const applicationIntelligence = new InMemoryApplicationIntelligenceStore();
@@ -168,17 +196,18 @@ const setup = (aiRouter?: VoiceRuntimeService["aiRouter"]) => {
     activeContext,
   );
   const applicationInteractions = {
-    planFromUtterance: vi.fn((input: { utterance: string }) =>
-      /^type/i.test(input.utterance)
+    planFromUtterance: vi.fn((input: { utterance: string; currentApplicationId?: string | null }) => {
+      const applicationId = input.currentApplicationId ?? "chatgpt";
+      return /^type/i.test(input.utterance)
         ? {
             request: {
-              applicationId: "chatgpt",
+              applicationId,
               capability: "insert_text",
               target: {
-                type: "COMPOSER",
-                role: "AXTextArea",
-                label: "Message ChatGPT",
-                identifier: "chatgpt.composer",
+                type: applicationId === "chrome" ? "TEXT_FIELD" : "COMPOSER",
+                role: applicationId === "chrome" ? "AXTextField" : "AXTextArea",
+                label: applicationId === "chrome" ? "Search" : "Message ChatGPT",
+                identifier: applicationId === "chrome" ? "chrome.search" : "chatgpt.composer",
                 semanticId: "a".repeat(64),
                 source: "EXPLICIT",
                 confidence: 0.98,
@@ -192,8 +221,8 @@ const setup = (aiRouter?: VoiceRuntimeService["aiRouter"]) => {
             },
             clarification: null,
           }
-        : { request: null, clarification: null },
-    ),
+        : { request: null, clarification: null };
+    }),
     execute: vi.fn((input: { requestId: string }) =>
       Promise.resolve({
         requestId: input.requestId,
@@ -224,16 +253,51 @@ const setup = (aiRouter?: VoiceRuntimeService["aiRouter"]) => {
     undefined,
     applicationInteractions,
   );
+  const voiceWithApplicationInteractionsAndActiveContext = new VoiceRuntimeService(
+    new InMemoryVoiceStore(),
+    intent,
+    audit,
+    undefined,
+    undefined,
+    undefined,
+    true,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    activeContext,
+    applicationInteractions,
+  );
+  const voiceWithExplicitMemory = new VoiceRuntimeService(
+    new InMemoryVoiceStore(),
+    intent,
+    audit,
+    undefined,
+    undefined,
+    undefined,
+    true,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    explicitMemoryTeaching,
+  );
   return {
     activeContext,
     applicationAdapters,
     audits,
     ownerId,
     skillEvolutionStore,
+    intent,
     voice,
     voiceStore,
     voiceWithActiveContext,
     voiceWithApplicationInteractions,
+    voiceWithApplicationInteractionsAndActiveContext,
+    voiceWithExplicitMemory,
     voiceWithSkillEvolution,
     voiceWithUnderstanding,
   };
@@ -303,6 +367,35 @@ describe("VoiceRuntimeService", () => {
     );
   });
 
+  it("routes explicit owner teaching through the canonical memory service without creating an action", async () => {
+    const { ownerId, voiceWithExplicitMemory } = setup();
+    const dashboard = await voiceWithExplicitMemory.createSession({
+      ownerId,
+      body: { wakeWordEnabled: true },
+      requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1",
+    });
+    const sessionId = dashboard.sessions[0]!.id;
+
+    const response = await voiceWithExplicitMemory.recordTranscript({
+      ownerId,
+      body: {
+        sessionId,
+        transcript: "Remember that I prefer concise emails.",
+        isFinal: true,
+        confidence: 0.99,
+        wakeWordDetected: true,
+        source: "browser",
+      },
+      requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1",
+    });
+
+    expect(response.conversation.responseText).toBe("Remembered.");
+    expect(response.conversation.intentCreated).toBe(false);
+    expect(response.conversation.routeStages).toContain("MEMORY");
+  });
+
   it("reuses 22.3 proposals before dispatching governed application interaction", async () => {
     const { ownerId, voiceWithApplicationInteractions } = setup();
     const dashboard = await voiceWithApplicationInteractions.createSession({
@@ -346,6 +439,326 @@ describe("VoiceRuntimeService", () => {
     });
     expect(second.conversation.intentCreated).toBe(true);
     expect(second.conversation.responseText).toMatch(/reviewed provider/i);
+  });
+
+  it("lets an explicit application interaction supersede an unrelated pending clarification", async () => {
+    const { ownerId, voiceWithApplicationInteractions } = setup();
+    const dashboard = await voiceWithApplicationInteractions.createSession({
+      ownerId,
+      body: { wakeWordEnabled: true },
+      requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1",
+    });
+    const sessionId = dashboard.sessions[0]!.id;
+
+    const pending = await voiceWithApplicationInteractions.recordTranscript({
+      ownerId,
+      body: {
+        sessionId,
+        transcript: "Schedule a meeting",
+        isFinal: true,
+        confidence: 0.99,
+        wakeWordDetected: true,
+        source: "electron",
+      },
+      requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1",
+    });
+    expect(pending.conversation.responseText).toMatch(/Who should/i);
+
+    const prepared = await voiceWithApplicationInteractions.recordTranscript({
+      ownerId,
+      body: {
+        sessionId,
+        transcript: "Type in hello in the search bar in Chrome",
+        isFinal: true,
+        confidence: 0.99,
+        wakeWordDetected: true,
+        source: "electron",
+      },
+      requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1",
+    });
+
+    expect(prepared.conversation.responseText).toMatch(/governed insert text action/i);
+    expect(prepared.conversation.responseText).toMatch(/Say “do it”/i);
+    expect(prepared.conversation.intentCreated).toBe(false);
+
+    const confirmed = await voiceWithApplicationInteractions.recordTranscript({
+      ownerId,
+      body: {
+        sessionId,
+        transcript: "Do it",
+        isFinal: true,
+        confidence: 0.99,
+        wakeWordDetected: true,
+        source: "electron",
+      },
+      requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1",
+      governanceSessionId: crypto.randomUUID(),
+      networkState: "PRIVATE_NETWORK",
+    });
+
+    expect(confirmed.conversation.responseText).toMatch(/reviewed provider/i);
+    expect(confirmed.conversation.intentCreated).toBe(true);
+  });
+
+  it("binds confirmed browser search interaction proposals to the current conversation", async () => {
+    const ownerId = crypto.randomUUID();
+    const voiceStore = new InMemoryVoiceStore();
+    const audits: Parameters<GovernanceAuditWriter>[0][] = [];
+    const audit: GovernanceAuditWriter = (event) => {
+      audits.push(event);
+    };
+    const continuity = new ConversationContinuityService(voiceStore);
+    const applicationStore = new InMemoryApplicationAdapterStore();
+    const providerStore = new InMemoryNativeProviderStore();
+    const executionRequestId = crypto.randomUUID();
+    const nativeProviders = new NativeProviderRuntime(
+      providerStore,
+      applicationStore,
+      audit,
+      undefined,
+      () => Promise.resolve({ executionRequestId }),
+    );
+    await nativeProviders.dashboard(ownerId);
+    const chromeProvider = providerStore.getProvider(ownerId, "provider.chrome");
+    expect(chromeProvider).toBeTruthy();
+    providerStore.saveProvider({
+      ...chromeProvider!,
+      status: "healthy",
+      updatedAt: new Date().toISOString(),
+    });
+    applicationStore.saveTrustedApplication(
+      TrustedApplicationRecordSchema.parse({
+        id: "chrome",
+        ownerId,
+        applicationName: "Chrome",
+        bundleIdentifier: "com.google.Chrome",
+        stableIdentifier: "chrome",
+        applicationVersion: "1",
+        executablePath: null,
+        executablePathUserSupplied: false,
+        codeSignature: "Developer ID Application: Google",
+        permissionsGranted: [
+          "read_semantic_structure",
+          "navigate",
+          "interact",
+          "edit_text",
+        ],
+        capabilities: ["navigation", "editing", "semantic_registry"],
+        status: "trusted",
+        lastSeenAt: new Date().toISOString(),
+        trustLevel: "interaction",
+        securityProfile: "strict",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+    const applicationInteractions = new ApplicationInteractionService(
+      applicationStore,
+      providerStore,
+      nativeProviders,
+      audit,
+      undefined,
+      async (candidateOwnerId, request) => {
+        if (!request.conversationId || !request.proposalId) return false;
+        const targetFingerprint = (target: unknown) => {
+          if (!target || typeof target !== "object") return null;
+          const record = target as Record<string, unknown>;
+          return {
+            type: typeof record.type === "string" ? record.type : null,
+            role: typeof record.role === "string" ? record.role : null,
+            label: typeof record.label === "string" ? record.label : null,
+            identifier:
+              typeof record.identifier === "string" ? record.identifier : null,
+            semanticId:
+              typeof record.semanticId === "string" ? record.semanticId : null,
+            registryObjectId:
+              typeof record.registryObjectId === "string"
+                ? record.registryObjectId
+                : null,
+            registryVersion:
+              typeof record.registryVersion === "number"
+                ? record.registryVersion
+                : null,
+            secure: record.secure === true,
+          };
+        };
+        return continuity.claimConfirmedProposal({
+          ownerId: candidateOwnerId,
+          conversationId: request.conversationId,
+          matches: (proposal) => {
+            const frozen = proposal.parameters.request as
+              | Record<string, unknown>
+              | undefined;
+            return (
+              proposal.id === request.proposalId &&
+              proposal.canonicalIntent ===
+                `application_interaction.${request.capability}` &&
+              frozen?.applicationId === request.applicationId &&
+              frozen?.capability === request.capability &&
+              frozen?.text === request.text &&
+              JSON.stringify(targetFingerprint(frozen?.target ?? null)) ===
+                JSON.stringify(targetFingerprint(request.target ?? null))
+            );
+          },
+        });
+      },
+    );
+    const voice = new VoiceRuntimeService(
+      voiceStore,
+      setup().intent,
+      audit,
+      undefined,
+      undefined,
+      undefined,
+      true,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      applicationInteractions,
+      continuity,
+    );
+
+    const dashboard = await voice.createSession({
+      ownerId,
+      body: { wakeWordEnabled: true },
+      requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1",
+    });
+    const sessionId = dashboard.sessions[0]!.id;
+    const prepared = await voice.recordTranscript({
+      ownerId,
+      deviceId: crypto.randomUUID(),
+      body: {
+        sessionId,
+        transcript: "Type in hello in the search bar in Chrome",
+        isFinal: true,
+        confidence: 0.99,
+        wakeWordDetected: true,
+        source: "electron",
+      },
+      requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1",
+    });
+
+    expect(prepared.conversation.responseText).toMatch(/Say “do it”/);
+
+    const confirmed = await voice.recordTranscript({
+      ownerId,
+      body: {
+        sessionId,
+        transcript: "Do it",
+        isFinal: true,
+        confidence: 0.99,
+        wakeWordDetected: true,
+        source: "electron",
+      },
+      requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1",
+      governanceSessionId: crypto.randomUUID(),
+      networkState: "PRIVATE_NETWORK",
+    });
+
+    expect(confirmed.conversation.responseText).toMatch(/reviewed provider/i);
+    expect(confirmed.conversation.intentCreated).toBe(true);
+    expect(confirmed.conversation.commandId).toBe(executionRequestId);
+  });
+
+  it("uses active Chrome context for unquoted typing instead of generic intent planning", async () => {
+    const {
+      activeContext,
+      applicationAdapters,
+      ownerId,
+      voiceWithApplicationInteractionsAndActiveContext,
+    } = setup();
+    const deviceId = crypto.randomUUID();
+    applicationAdapters.saveTrustedApplication(
+      TrustedApplicationRecordSchema.parse({
+        id: "chrome",
+        ownerId,
+        applicationName: "Chrome",
+        bundleIdentifier: "com.google.Chrome",
+        stableIdentifier: "chrome",
+        applicationVersion: "1",
+        executablePath: null,
+        executablePathUserSupplied: false,
+        codeSignature: "reviewed",
+        permissionsGranted: ["read_semantic_structure"],
+        capabilities: ["semantic_registry"],
+        status: "trusted",
+        lastSeenAt: "2026-08-21T00:00:00.000Z",
+        trustLevel: "semantic_read",
+        securityProfile: "strict",
+        createdAt: "2026-08-21T00:00:00.000Z",
+        updatedAt: "2026-08-21T00:00:00.000Z",
+      }),
+    );
+    await activeContext.update({
+      ownerId,
+      deviceId,
+      requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1",
+      observation: {
+        application: {
+          name: "Chrome",
+          bundleIdentifier: "com.google.Chrome",
+          processIdentifier: 42,
+        },
+        window: { title: "New Tab" },
+        document: null,
+        selection: null,
+        accessibilityTrusted: true,
+        capturedAt: new Date().toISOString(),
+      },
+    });
+    const dashboard = await voiceWithApplicationInteractionsAndActiveContext.createSession({
+      ownerId,
+      body: { wakeWordEnabled: true },
+      requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1",
+    });
+    const sessionId = dashboard.sessions[0]!.id;
+
+    const first = await voiceWithApplicationInteractionsAndActiveContext.recordTranscript({
+      ownerId,
+      deviceId,
+      body: {
+        sessionId,
+        transcript: "Type in hello",
+        isFinal: true,
+        confidence: 0.99,
+        wakeWordDetected: true,
+        source: "electron",
+      },
+      requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1",
+    });
+    expect(first.conversation.responseText).toMatch(/insert text action for chrome/i);
+
+    const second = await voiceWithApplicationInteractionsAndActiveContext.recordTranscript({
+      ownerId,
+      deviceId,
+      body: {
+        sessionId,
+        transcript: "Do it",
+        isFinal: true,
+        confidence: 0.99,
+        wakeWordDetected: true,
+        source: "electron",
+      },
+      requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1",
+      governanceSessionId: crypto.randomUUID(),
+      networkState: "PRIVATE_NETWORK",
+    });
+
+    expect(second.conversation.responseText).toMatch(/reviewed provider/i);
+    expect(second.conversation.commandId).toBeTruthy();
   });
 
   it("fails closed for low-confidence transcripts", async () => {

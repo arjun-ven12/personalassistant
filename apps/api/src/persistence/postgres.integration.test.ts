@@ -33,7 +33,8 @@ describe.skipIf(!connectionString)("PostgreSQL store adapters", () => {
     await administrationDatabase.pool.query(`CREATE SCHEMA "${testSchema}"`);
     const isolatedUrl = new URL(connectionString!);
     isolatedUrl.hostname = isolatedUrl.hostname.replace("-pooler.", ".");
-    isolatedUrl.searchParams.set("sslmode", "verify-full");
+    if (isolatedUrl.searchParams.get("sslmode") !== "disable")
+      isolatedUrl.searchParams.set("sslmode", "verify-full");
     isolatedUrl.searchParams.set("options", `-c search_path=${testSchema},public`);
     database = new PostgresDatabase(isolatedUrl.toString());
     await database.migrate();

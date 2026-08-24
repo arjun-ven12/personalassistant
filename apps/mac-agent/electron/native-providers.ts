@@ -107,6 +107,7 @@ const descriptors: NativeProviderDescriptor[] = [
       "launch",
       "focus",
       "open_url",
+      "reload",
       "focus_semantic_control",
       "insert_text",
       "activate_semantic_control",
@@ -114,7 +115,6 @@ const descriptors: NativeProviderDescriptor[] = [
     ],
     unsupportedCapabilities: [
       "new_tab",
-      "reload",
       "switch_tab",
       "find",
       "bookmark",
@@ -130,12 +130,13 @@ const descriptors: NativeProviderDescriptor[] = [
       "launch",
       "focus",
       "open_url",
+      "reload",
       "focus_semantic_control",
       "insert_text",
       "activate_semantic_control",
       "submit_composer",
     ],
-    unsupportedCapabilities: ["new_tab", "reload", "find", "close_tab"],
+    unsupportedCapabilities: ["new_tab", "find", "close_tab"],
   },
   {
     providerId: "provider.terminal",
@@ -235,6 +236,7 @@ export class MacNativeProviderHost {
         nativeBridgeStatus: descriptor.implementedCapabilities.some((capability) =>
           [
             "focus_semantic_control",
+            "reload",
             "insert_text",
             "replace_selection",
             "activate_semantic_control",
@@ -246,6 +248,7 @@ export class MacNativeProviderHost {
         accessibilityRequired: descriptor.implementedCapabilities.some((capability) =>
           [
             "focus_semantic_control",
+            "reload",
             "insert_text",
             "replace_selection",
             "activate_semantic_control",
@@ -296,6 +299,7 @@ export class MacNativeProviderHost {
     if (
       [
         "focus_semantic_control",
+        "reload",
         "insert_text",
         "replace_selection",
         "activate_semantic_control",
@@ -425,6 +429,8 @@ export class MacNativeProviderHost {
       resultSummary: string;
       verificationSummary: string;
       nativeBridgeUsed?: boolean;
+      semanticId?: string | null;
+      matchedCount?: number;
     },
   ): NativeProviderExecutionResult {
     return NativeProviderExecutionResultSchema.parse({
@@ -439,6 +445,8 @@ export class MacNativeProviderHost {
       latencyMs: Math.max(0, Date.now() - started),
       completedAt: this.now().toISOString(),
       nativeBridgeUsed: details.nativeBridgeUsed ?? false,
+      semanticId: details.semanticId ?? null,
+      matchedCount: details.matchedCount ?? 0,
       arbitraryExecutionAvailable: false,
       arbitraryAppleScriptAvailable: false,
       arbitraryShellAvailable: false,
@@ -476,6 +484,8 @@ export class MacNativeProviderHost {
         ? `${descriptor.processName} matched exactly one frozen semantic target and completed ${request.capability}.`
         : "No fallback mouse, keyboard, script, or unrestricted Accessibility operation was used.",
       nativeBridgeUsed: true,
+      semanticId: bridge.semanticId,
+      matchedCount: bridge.matchedCount,
     });
   }
 }

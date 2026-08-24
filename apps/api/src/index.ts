@@ -122,6 +122,11 @@ import {
 } from "./intent-recording/store.js";
 import { PostgresIntentRecordingStore } from "./intent-recording/postgres-store.js";
 import {
+  InMemoryCapabilityStudioStore,
+  type CapabilityStudioStore,
+} from "./capability-studio/store.js";
+import { PostgresCapabilityStudioStore } from "./capability-studio/postgres-store.js";
+import {
   InMemorySemanticRetrievalStore,
   type SemanticRetrievalStore,
 } from "./semantic/store.js";
@@ -201,6 +206,7 @@ let nativeProviderStore: NativeProviderStore;
 let spatialStore: SpatialStore;
 let voiceStore: VoiceStore;
 let intentRecordingStore: IntentRecordingStore;
+let capabilityStudioStore: CapabilityStudioStore;
 let semanticStore: SemanticRetrievalStore;
 let humanUnderstandingStore: HumanUnderstandingStore;
 let knowledgeGraphStore: KnowledgeGraphStore;
@@ -258,6 +264,7 @@ if (environment.STORE_MODE === "postgres") {
   spatialStore = new PostgresSpatialStore(database.pool);
   voiceStore = new PostgresVoiceStore(database.pool);
   intentRecordingStore = new PostgresIntentRecordingStore(database.pool);
+  capabilityStudioStore = new PostgresCapabilityStudioStore(database.pool);
   semanticStore = new PostgresSemanticRetrievalStore(database.pool);
   humanUnderstandingStore = new PostgresHumanUnderstandingStore(database.pool);
   knowledgeGraphStore = new PostgresKnowledgeGraphStore(database.pool);
@@ -300,6 +307,7 @@ if (environment.STORE_MODE === "postgres") {
   spatialStore = new InMemorySpatialStore();
   voiceStore = new InMemoryVoiceStore();
   intentRecordingStore = new InMemoryIntentRecordingStore();
+  capabilityStudioStore = new InMemoryCapabilityStudioStore();
   semanticStore = new InMemorySemanticRetrievalStore();
   humanUnderstandingStore = new InMemoryHumanUnderstandingStore();
   knowledgeGraphStore = new InMemoryKnowledgeGraphStore();
@@ -497,6 +505,7 @@ const app = await buildApi({
   spatialStore,
   voiceStore,
   intentRecordingStore,
+  capabilityStudioStore,
   semanticStore,
   humanUnderstandingStore,
   knowledgeGraphStore,

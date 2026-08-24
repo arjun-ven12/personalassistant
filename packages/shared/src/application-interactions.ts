@@ -12,6 +12,7 @@ export const GovernedInteractionCapabilitySchema = NativeProviderCapabilitySchem
   "open_file",
   "open_workspace",
   "open_url",
+  "reload",
   "focus_semantic_control",
   "insert_text",
   "replace_selection",
@@ -44,11 +45,13 @@ export const GovernedApplicationInteractionRequestSchema = z
     origin: z.enum(["voice", "planner", "agent", "workflow", "dashboard"]),
     conversationId: z.string().uuid().nullable().default(null),
     proposalId: z.string().uuid().nullable().default(null),
+    capabilityCandidateId: z.string().uuid().nullable().default(null),
   })
   .strict()
   .superRefine((value, context) => {
     if (
       [
+        "reload",
         "focus_semantic_control",
         "insert_text",
         "replace_selection",
@@ -106,4 +109,3 @@ export type GovernedApplicationInteractionRequest = z.infer<
 export type GovernedApplicationInteractionResponse = z.infer<
   typeof GovernedApplicationInteractionResponseSchema
 >;
-

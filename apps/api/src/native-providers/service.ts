@@ -178,7 +178,7 @@ const NativeProviderIntentDispatchSchema = z
   })
   .strict();
 
-const permissionForCapability = (
+export const permissionsForNativeCapability = (
   capability: NativeProviderCapability,
 ): AdapterPermission[] => {
   if (capability === "run_approved_command") return ["execute_commands"];
@@ -216,7 +216,21 @@ export class NativeProviderRuntime {
           ipAddress: string;
           requestId: string;
           policyApplication: AllowedApplication;
-        }) => Promise<{ executionRequestId: string }>)
+      }) => Promise<{ executionRequestId: string }>)
+      | undefined = undefined,
+    readonly recordReviewedCapability:
+      | ((input: {
+          ownerId: string;
+          applicationId: string;
+          providerId: string;
+          capabilityId: NativeProviderCapability;
+          target: {
+            role: string | null;
+            label: string | null;
+            identifier: string | null;
+          };
+          requestId: string;
+        }) => Promise<void>)
       | undefined = undefined,
   ) {}
 
@@ -408,6 +422,7 @@ export class NativeProviderRuntime {
     const parsed = this.parseDispatchBody(input.body);
     if (
       [
+        "reload",
         "focus_semantic_control",
         "insert_text",
         "replace_selection",
@@ -547,6 +562,38 @@ export class NativeProviderRuntime {
         updatedAt: trusted.updatedAt,
       }),
     });
+    const targetValue = parsed.arguments.target;
+    const target =
+      targetValue && typeof targetValue === "object" && !Array.isArray(targetValue)
+        ? (targetValue as Record<string, unknown>)
+        : {};
+    try {
+      await this.recordReviewedCapability?.({
+        ownerId: input.ownerId,
+        applicationId: parsed.applicationId,
+        providerId: provider.id,
+        capabilityId: parsed.capability,
+        target: {
+          role: typeof target.role === "string" ? target.role.slice(0, 80) : null,
+          label: typeof target.label === "string" ? target.label.slice(0, 240) : null,
+          identifier:
+            typeof target.identifier === "string" ? target.identifier.slice(0, 240) : null,
+        },
+        requestId: input.requestId,
+      });
+    } catch {
+      await this.recordStage({
+        ownerId: input.ownerId,
+        providerId: provider.id,
+        capability: parsed.capability,
+        executionRequestId: queued.executionRequestId,
+        stage: "backend_dispatch",
+        severity: "warning",
+        message: "Semantic demonstration capture failed; queued execution was not duplicated.",
+        auditEventType: null,
+        verificationResult: "pending",
+      });
+    }
     await this.recordStage({
       ownerId: input.ownerId,
       providerId: provider.id,
@@ -773,34 +820,44 @@ export class NativeProviderRuntime {
   }
 
   private async ensureBaseline(ownerId: string) {
-    if ((await this.store.listProviders(ownerId, 1)).length > 0) return;
     const at = this.now().toISOString();
+    const providers = await this.store.listProviders(ownerId, 500);
+    const capabilities = await this.store.listCapabilities(ownerId, 2_000);
+    const initializingOwner = providers.length === 0;
+    const providersById = new Map(providers.map((provider) => [provider.id, provider]));
+    const declaredCapabilities = new Set(
+      capabilities.map((capability) => `${capability.providerId}:${capability.capability}`),
+    );
+
     for (const descriptor of descriptors) {
-      await this.store.saveProvider(
-        NativeProviderRecordSchema.parse({
-          id: descriptor.id,
-          ownerId,
-          applicationId: descriptor.applicationId,
-          name: descriptor.name,
-          providerType: descriptor.providerType,
-          bundleIdentifier: descriptor.bundleIdentifier,
-          version: "17G.1",
-          supportedMacosVersions: ["13", "14", "15", "16"],
-          status: "registered",
-          sandboxed: true,
-          arbitraryExecutionAvailable: false,
-          arbitraryAppleScriptAvailable: false,
-          arbitraryShellAvailable: false,
-          coordinateClickingAvailable: false,
-          keyboardReplayAvailable: false,
-          ocrAvailable: false,
-          screenshotAutomationAvailable: false,
-          unrestrictedAccessibilityAvailable: false,
-          createdAt: at,
-          updatedAt: at,
-        }),
-      );
+      if (!providersById.has(descriptor.id)) {
+        await this.store.saveProvider(
+          NativeProviderRecordSchema.parse({
+            id: descriptor.id,
+            ownerId,
+            applicationId: descriptor.applicationId,
+            name: descriptor.name,
+            providerType: descriptor.providerType,
+            bundleIdentifier: descriptor.bundleIdentifier,
+            version: "17G.1",
+            supportedMacosVersions: ["13", "14", "15", "16"],
+            status: "registered",
+            sandboxed: true,
+            arbitraryExecutionAvailable: false,
+            arbitraryAppleScriptAvailable: false,
+            arbitraryShellAvailable: false,
+            coordinateClickingAvailable: false,
+            keyboardReplayAvailable: false,
+            ocrAvailable: false,
+            screenshotAutomationAvailable: false,
+            unrestrictedAccessibilityAvailable: false,
+            createdAt: at,
+            updatedAt: at,
+          }),
+        );
+      }
       for (const capability of descriptor.capabilities) {
+        if (declaredCapabilities.has(`${descriptor.id}:${capability}`)) continue;
         await this.store.saveCapability(
           ProviderCapabilityRecordSchema.parse({
             id: crypto.randomUUID(),
@@ -809,7 +866,7 @@ export class NativeProviderRuntime {
             capability,
             inputs: capability === "run_approved_command" ? ["approvedCommandId"] : [],
             outputs: ["structuredOutcome", "verification"],
-            permissions: permissionForCapability(capability),
+            permissions: permissionsForNativeCapability(capability),
             dependencies: [
               "trustedApplication",
               "providerValidation",
@@ -824,6 +881,7 @@ export class NativeProviderRuntime {
         );
       }
     }
+    if (!initializingOwner) return;
     for (const [name, commandTemplate] of [
       ["Start Development Server", "pnpm dev"],
       ["Run Tests", "pnpm test"],

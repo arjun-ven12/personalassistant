@@ -101,6 +101,7 @@ const setup = async (emergencyStopActive = false) => {
     deviceId,
     devicePrivateKey: deviceKeys.privateKey,
     governanceStore,
+    approvals,
     store,
     service: new ExecutionService(store, identity, governance, audit, signer, true, {
       requestTtlSeconds: 120,
@@ -420,6 +421,90 @@ describe("ExecutionService policy integration", () => {
         capability: "new_tab",
       },
     });
+  });
+
+  it("reuses an approved interaction proposal identity when execution is retried", async () => {
+    const normal = await setup();
+    const sessionId = crypto.randomUUID();
+    const interactionProposalId = crypto.randomUUID();
+    const capturedAt = new Date();
+    const request = {
+      providerId: "provider.chrome",
+      applicationId: "chrome",
+      capability: "insert_text" as const,
+      interactionProposalId,
+      arguments: {
+        target: {
+          type: "TEXT_FIELD" as const,
+          role: "AXTextField",
+          label: "Search",
+          identifier: "chrome.address-bar",
+          semanticId: "a".repeat(64),
+          registryObjectId: "semantic.chrome.address-bar",
+          registryVersion: "1",
+          secure: false as const,
+          source: "PROVIDER" as const,
+          confidence: 0.99,
+          capturedAt: capturedAt.toISOString(),
+          expiresAt: new Date(capturedAt.getTime() + 5 * 60_000).toISOString(),
+        },
+        text: "hello",
+      },
+    };
+    const policyApplication = {
+      id: "chrome",
+      ownerId: normal.ownerId,
+      displayName: "Chrome",
+      macBundleId: "com.google.Chrome",
+      enabled: true,
+      permissions: {
+        open: true,
+        focus: true,
+        inspectWindow: false,
+        captureWindow: false,
+        automate: false,
+        sendKeyboardShortcuts: false,
+        readSemanticStructure: true,
+        navigate: true,
+        interact: true,
+        editText: true,
+        openFiles: false,
+        createDocuments: false,
+        deleteContent: false,
+        executeCommands: false,
+        clipboardAccess: false,
+      },
+      riskOverrides: {},
+      createdAt: capturedAt.toISOString(),
+      updatedAt: capturedAt.toISOString(),
+    };
+    const dispatch = () =>
+      normal.service.createNativeProviderExecution({
+        ownerId: normal.ownerId,
+        sessionId,
+        request,
+        networkState: "PRIVATE_NETWORK",
+        ipAddress: "127.0.0.1",
+        requestId: crypto.randomUUID(),
+        policyApplication,
+      });
+
+    await expect(dispatch()).rejects.toMatchObject({ code: "APPROVAL_REQUIRED" });
+    const [pending] = await normal.approvals.list(normal.ownerId, "PENDING");
+    expect(pending).toMatchObject({ actionId: interactionProposalId });
+    await normal.approvals.approve(
+      normal.ownerId,
+      pending!.id,
+      sessionId,
+      { ipAddress: "127.0.0.1", requestId: crypto.randomUUID() },
+    );
+
+    await expect(dispatch()).resolves.toMatchObject({
+      actionId: interactionProposalId,
+      approvalRequestId: pending!.id,
+      status: "PENDING",
+    });
+    expect(await normal.approvals.list(normal.ownerId, "PENDING")).toHaveLength(0);
   });
 
   it("targets the recently polling trusted Mac agent for native provider execution", async () => {

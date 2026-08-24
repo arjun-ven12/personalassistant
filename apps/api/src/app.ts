@@ -74,6 +74,8 @@ import { registerAgentRoutes } from "./routes/agents.js";
 import { InMemoryAgentOsStore, type AgentOsStore } from "./agents/os-store.js";
 import { AgentOsService } from "./agents/os-service.js";
 import { registerAgentOsRoutes } from "./routes/agent-os.js";
+import { ExternalHarvestService } from "./external-harvest/service.js";
+import { registerExternalHarvestRoutes } from "./routes/external-harvest.js";
 import {
   InMemoryAgentCognitionStore,
   type AgentCognitionStore,
@@ -94,6 +96,7 @@ import { AgentSocietyService } from "./agent-society/service.js";
 import { registerAgentSocietyRoutes } from "./routes/agent-society.js";
 import { InMemoryMemoryStore, type MemoryStore } from "./memory/store.js";
 import { MemoryIndexerService } from "./memory/service.js";
+import { ExplicitMemoryTeachingService } from "./memory/explicit-teaching-service.js";
 import { registerMemoryRoutes } from "./routes/memory.js";
 import { RedisService } from "./intelligence/redis-service.js";
 import { CacheService } from "./intelligence/cache-service.js";
@@ -209,6 +212,12 @@ import {
 } from "./intent-recording/store.js";
 import { IntentRecordingService } from "./intent-recording/service.js";
 import { registerIntentRecordingRoutes } from "./routes/intent-recording.js";
+import { registerCapabilityStudioRoutes } from "./routes/capability-studio.js";
+import { CapabilityStudioService } from "./capability-studio/service.js";
+import {
+  InMemoryCapabilityStudioStore,
+  type CapabilityStudioStore,
+} from "./capability-studio/store.js";
 import {
   InMemorySemanticRetrievalStore,
   type SemanticRetrievalStore,
@@ -341,6 +350,7 @@ export interface BuildApiOptions {
   reflectionStore?: ReflectionStore;
   skillEvolutionStore?: SkillEvolutionStore;
   intentRecordingStore?: IntentRecordingStore;
+  capabilityStudioStore?: CapabilityStudioStore;
   semanticStore?: SemanticRetrievalStore;
   humanUnderstandingStore?: HumanUnderstandingStore;
   knowledgeGraphStore?: KnowledgeGraphStore;
@@ -429,6 +439,7 @@ export const buildApi = async ({
   reflectionStore = new InMemoryReflectionStore(),
   skillEvolutionStore,
   intentRecordingStore = new InMemoryIntentRecordingStore(),
+  capabilityStudioStore = new InMemoryCapabilityStudioStore(),
   semanticStore = new InMemorySemanticRetrievalStore(),
   humanUnderstandingStore = new InMemoryHumanUnderstandingStore(),
   knowledgeGraphStore = new InMemoryKnowledgeGraphStore(),
@@ -742,6 +753,15 @@ export const buildApi = async ({
     now,
     (ownerId, requestId) => agents.ensureBuiltIns(ownerId, requestId),
   );
+  const externalHarvest = new ExternalHarvestService(
+    agentOs,
+    memoryStore,
+    governanceAudit,
+    now,
+    canonicalRouter,
+    workflowStore,
+    desktopSkillStore,
+  );
   const memory = new MemoryIndexerService(
     memoryStore,
     repositoryStore,
@@ -885,6 +905,12 @@ export const buildApi = async ({
     governanceAudit,
     now,
   );
+  const intentRecording = new IntentRecordingService(
+    intentRecordingStore,
+    intentStore,
+    governanceAudit,
+    now,
+  );
   const nativeProviders = new NativeProviderRuntime(
     nativeProviderStore,
     applicationAdapterStore,
@@ -902,6 +928,9 @@ export const buildApi = async ({
       });
       return { executionRequestId: execution.id };
     },
+    async (input) => {
+      await intentRecording.recordReviewedCapability(input);
+    },
   );
   const applicationInteractions = new ApplicationInteractionService(
     applicationAdapterStore,
@@ -911,29 +940,71 @@ export const buildApi = async ({
     now,
     async (ownerId, request) => {
       if (!request.conversationId || !request.proposalId) return false;
-      return conversationContinuity.claimConfirmedProposal({
-        ownerId,
-        conversationId: request.conversationId,
-        matches: (proposal) => {
-          if (
-            proposal.id !== request.proposalId ||
-            proposal.canonicalIntent !==
-              `application_interaction.${request.capability}`
-          )
-            return false;
-          const frozen = proposal.parameters.request as
-            | Record<string, unknown>
-            | undefined;
-          if (!frozen) return false;
-          return (
-            frozen.applicationId === request.applicationId &&
-            frozen.capability === request.capability &&
-            frozen.text === request.text &&
-            JSON.stringify(frozen.target ?? null) ===
-              JSON.stringify(request.target ?? null)
+      const matchesFrozenRequest = (proposal: {
+        id: string;
+        canonicalIntent: string;
+        parameters: Record<string, unknown>;
+      }) => {
+        const targetFingerprint = (target: unknown) => {
+          if (!target || typeof target !== "object") return null;
+          const record = target as Record<string, unknown>;
+          return {
+            type: typeof record.type === "string" ? record.type : null,
+            role: typeof record.role === "string" ? record.role : null,
+            label: typeof record.label === "string" ? record.label : null,
+            identifier:
+              typeof record.identifier === "string" ? record.identifier : null,
+            semanticId:
+              typeof record.semanticId === "string" ? record.semanticId : null,
+            registryObjectId:
+              typeof record.registryObjectId === "string"
+                ? record.registryObjectId
+                : null,
+            registryVersion:
+              typeof record.registryVersion === "number"
+                ? record.registryVersion
+                : null,
+            secure: record.secure === true,
+          };
+        };
+        if (
+          proposal.id !== request.proposalId ||
+          proposal.canonicalIntent !== `application_interaction.${request.capability}`
+        )
+          return false;
+        const frozen = proposal.parameters.request as
+          Record<string, unknown> | undefined;
+        if (!frozen) return false;
+        return (
+          frozen.applicationId === request.applicationId &&
+          frozen.capability === request.capability &&
+          (frozen.capabilityCandidateId ?? null) === request.capabilityCandidateId &&
+          frozen.text === request.text &&
+          JSON.stringify(targetFingerprint(frozen.target ?? null)) ===
+            JSON.stringify(targetFingerprint(request.target ?? null))
+        );
+      };
+      return conversationContinuity
+        .claimConfirmedProposal({
+          ownerId,
+          conversationId: request.conversationId,
+          matches: matchesFrozenRequest,
+        })
+        .then(async (claimed) => {
+          if (claimed) return true;
+          const state = await voiceStore.getConversationContinuity(
+            ownerId,
+            request.conversationId!,
           );
-        },
-      });
+          const proposal = state?.actionProposal;
+          if (
+            proposal &&
+            ["PLANNED", "EXECUTED"].includes(proposal.status) &&
+            matchesFrozenRequest(proposal)
+          )
+            return "ALREADY_CLAIMED" as const;
+          return false;
+        });
     },
     async (ownerId, request) => {
       if (!request.conversationId || !request.proposalId) return;
@@ -945,6 +1016,7 @@ export const buildApi = async ({
     },
     desktop.interactions.targetResolution,
     (ownerId, objectId) => desktopStore.getSemanticObject(ownerId, objectId),
+    capabilityStudioStore,
   );
   const coreAdapters = new CoreAdapterService(
     coreAdapterStore,
@@ -989,6 +1061,12 @@ export const buildApi = async ({
     workflowStore,
     applicationAdapterStore,
     governanceAudit,
+    now,
+  );
+  const explicitMemoryTeaching = new ExplicitMemoryTeachingService(
+    memory,
+    memoryStore,
+    knowledgeGraph,
     now,
   );
   const learningEngine = new LearningEngineService(
@@ -1074,11 +1152,16 @@ export const buildApi = async ({
     activeContext,
     applicationInteractions,
     conversationContinuity,
+    explicitMemoryTeaching,
   );
   const voiceCaptureLease = new VoiceCaptureLeaseService(redis, now);
-  const intentRecording = new IntentRecordingService(
+  const capabilityStudio = new CapabilityStudioService(
+    capabilityStudioStore,
+    nativeProviders,
+    nativeProviderStore,
+    applicationAdapterStore,
     intentRecordingStore,
-    intentStore,
+    approvals,
     governanceAudit,
     now,
   );
@@ -1128,6 +1211,7 @@ export const buildApi = async ({
     agentStore,
     agentOs,
     agentOsStore,
+    externalHarvest,
     agentCognition,
     agentCognitionStore,
     agentEvolution,
@@ -1135,6 +1219,7 @@ export const buildApi = async ({
     agentSociety,
     agentSocietyStore,
     memory,
+    explicitMemoryTeaching,
     memoryStore,
     redis,
     cache,
@@ -1185,6 +1270,8 @@ export const buildApi = async ({
     skillEvolutionStore: resolvedSkillEvolutionStore,
     intentRecording,
     intentRecordingStore,
+    capabilityStudio,
+    capabilityStudioStore,
     semantic,
     semanticStore,
     humanUnderstanding,
@@ -1206,8 +1293,34 @@ export const buildApi = async ({
   };
 
   app.setErrorHandler(async (error, request, reply) => {
+    const rawError = error as {
+      code?: unknown;
+      message?: unknown;
+      statusCode?: unknown;
+      validation?: unknown;
+    };
     const requestError =
-      error instanceof Error ? error : new Error("Unknown request error");
+      error instanceof Error
+        ? error
+        : Object.assign(
+            new Error(
+              typeof rawError?.message === "string"
+                ? rawError.message
+                : "Unknown request error",
+            ),
+            {
+              code:
+                typeof rawError?.code === "string" ? rawError.code : "REQUEST_ERROR",
+              statusCode:
+                typeof rawError?.statusCode === "number" ? rawError.statusCode : 500,
+              validation: rawError?.validation,
+            },
+          );
+    const structuredError = requestError as Error & {
+      code?: string;
+      statusCode?: number;
+      validation?: unknown;
+    };
     const isValidationError = requestError instanceof ZodError;
     const isSecurityError = requestError instanceof ApiSecurityError;
     const isGovernanceError = requestError instanceof GovernanceError;
@@ -1223,7 +1336,9 @@ export const buildApi = async ({
           ? 503
           : isSecurityError || isGovernanceError || isExecutionError
             ? requestError.statusCode
-            : 500;
+            : typeof structuredError.statusCode === "number"
+              ? structuredError.statusCode
+              : 500;
     const code = isValidationError
       ? "INVALID_REQUEST"
       : isEconomicError
@@ -1232,7 +1347,9 @@ export const buildApi = async ({
           ? requestError.code
           : isSecurityError || isGovernanceError || isExecutionError
             ? requestError.code
-            : "INTERNAL_ERROR";
+            : typeof structuredError.code === "string"
+              ? structuredError.code
+              : "INTERNAL_ERROR";
     const message =
       statusCode === 500 ? "The request could not be completed." : requestError.message;
 
@@ -1295,6 +1412,7 @@ export const buildApi = async ({
   registerIntegrationRoutes(app, context);
   registerAgentRoutes(app, context);
   registerAgentOsRoutes(app, context);
+  registerExternalHarvestRoutes(app, context);
   registerAgentCognitionRoutes(app, context);
   registerAgentEvolutionRoutes(app, context);
   registerAgentSocietyRoutes(app, context);
@@ -1321,6 +1439,7 @@ export const buildApi = async ({
   registerReflectionRoutes(app, context);
   registerSkillEvolutionRoutes(app, context);
   registerIntentRecordingRoutes(app, context);
+  registerCapabilityStudioRoutes(app, context);
   registerSemanticRoutes(app, context);
   registerHumanUnderstandingRoutes(app, context);
   registerKnowledgeGraphRoutes(app, context);

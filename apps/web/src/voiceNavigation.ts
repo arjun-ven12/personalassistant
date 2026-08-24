@@ -41,6 +41,23 @@ export interface VoiceNavigationContext {
   stop: () => void;
 }
 
+export interface VoiceNavigationSequence {
+  navigation: string;
+  activation: string;
+}
+
+/** A deliberately narrow two-step form: navigate to one Alexa page, then
+ * activate one visible registered control on that page. */
+export const parseVoiceNavigationSequence = (
+  transcript: string,
+): VoiceNavigationSequence | null => {
+  const match = transcript.trim().match(
+    /^((?:please\s+)?(?:open|go to|show|navigate to)\s+.+?)\s+(?:and then|then|and)\s+((?:click|press|select|activate)\s+.+)$/i,
+  );
+  if (!match?.[1] || !match[2]) return null;
+  return { navigation: match[1], activation: match[2] };
+};
+
 const normalize = (value: string) =>
   value
     .toLowerCase()
@@ -49,10 +66,12 @@ const normalize = (value: string) =>
     .trim();
 
 const trimCommandPrefix = (value: string) =>
-  normalize(value).replace(
-    /^(please\s+)?(open|go to|show|navigate to|click|press|select|activate|focus|launch|start)\s+/,
-    "",
-  );
+  normalize(value)
+    .replace(
+      /^(please\s+)?(open|go to|show|navigate to|click|press|select|activate|focus|launch|start)\s+/,
+      "",
+    )
+    .replace(/\s+(?:button|link|control)$/, "");
 
 const words = (value: string) => new Set(normalize(value).split(" ").filter(Boolean));
 
@@ -311,6 +330,55 @@ const activateElement = (target: SemanticUiTarget) => {
     }),
   );
   target.element.click();
+};
+
+export const runDeterministicVoiceNavigationTarget = (
+  targetId: string,
+  context: VoiceNavigationContext,
+  transcript = targetId,
+): VoiceNavigationResult => {
+  if (targetId.startsWith("page:")) {
+    const path = targetId.slice("page:".length);
+    const page = pageTargets.find((target) => target.path === path);
+    if (!page) {
+      return {
+        ...baseResult(
+          transcript,
+          "navigation",
+          "That page is no longer available.",
+          0,
+        ),
+        handled: false,
+      };
+    }
+    context.navigate(path);
+    return {
+      ...baseResult(transcript, "navigation", `Opening ${page.label}.`, 1),
+      targetId,
+    };
+  }
+
+  const target = collectSemanticUiTargets(context.pathname).find(
+    (candidate) => candidate.id === targetId,
+  );
+  if (!target || !target.enabled || !target.visible) {
+    return {
+      ...baseResult(
+        transcript,
+        "selection",
+        "That control is no longer available.",
+        0,
+      ),
+      handled: false,
+      targetId,
+    };
+  }
+
+  activateElement(target);
+  return {
+    ...baseResult(transcript, "selection", `Activating ${target.label}.`, 1),
+    targetId,
+  };
 };
 
 const findApplicationActionTarget = (

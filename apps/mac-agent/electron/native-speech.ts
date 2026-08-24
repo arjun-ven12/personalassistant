@@ -6,7 +6,7 @@ import path from "node:path";
 
 export type NativeSpeechEvent =
   | { type: "process"; pid: number }
-  | { type: "ready"; onDevice: boolean }
+  | { type: "ready"; providerId: "apple_speech"; onDevice: boolean }
   | { type: "audioLevel"; level: number }
   | { type: "interim"; text: string }
   | { type: "final"; text: string }
@@ -24,13 +24,15 @@ const isEvent = (value: unknown): value is NativeSpeechEvent => {
     text?: unknown;
     code?: unknown;
     onDevice?: unknown;
+    providerId?: unknown;
     diagnosticDomain?: unknown;
     diagnosticCode?: unknown;
     level?: unknown;
   };
   if (event.type === "process")
     return Number.isSafeInteger((event as { pid?: unknown }).pid) && Number((event as { pid?: unknown }).pid) > 0;
-  if (event.type === "ready") return typeof event.onDevice === "boolean";
+  if (event.type === "ready")
+    return event.providerId === "apple_speech" && typeof event.onDevice === "boolean";
   if (event.type === "audioLevel")
     return typeof event.level === "number" && event.level >= 0 && event.level <= 1;
   if (event.type === "interim" || event.type === "final") return typeof event.text === "string";

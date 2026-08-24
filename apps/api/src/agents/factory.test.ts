@@ -25,7 +25,13 @@ describe("AgentFactoryService", () => {
     const dashboard = await factory.dashboard(ownerId);
 
     expect(dashboard.templates.map((template) => template.id)).toEqual(
-      expect.arrayContaining(["backend_engineer", "database_engineer"]),
+      expect.arrayContaining([
+        "backend_engineer",
+        "database_engineer",
+        "software_architect",
+        "qa_engineer",
+        "research_engineer",
+      ]),
     );
     expect(dashboard.capabilities.map((capability) => capability.id)).toEqual(
       expect.arrayContaining(["database", "security", "redis"]),

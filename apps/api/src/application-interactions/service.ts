@@ -17,11 +17,59 @@ import type { ApplicationAdapterStore } from "../application-adapters/store.js";
 import type { NativeProviderRuntime } from "../native-providers/service.js";
 import type { NativeProviderStore } from "../native-providers/store.js";
 import type { TargetResolutionService } from "../desktop/interaction-services.js";
+import type { CapabilityStudioStore } from "../capability-studio/store.js";
+
+const GOVERNED_INTERACTION_TARGET_TTL_MS = 5 * 60_000;
 
 const targetId = (role: string, label: string | null, identifier: string | null) =>
   createHash("sha256")
     .update([role, label ?? "", identifier ?? ""].join("\n"))
     .digest("hex");
+
+const reviewedBuiltinBrowserSearchTargets: Record<
+  string,
+  { role: string; label: string; type: "TEXT_FIELD" }
+> = {
+  chrome: {
+    role: "AXTextField",
+    label: "Address and search bar",
+    type: "TEXT_FIELD",
+  },
+  safari: {
+    role: "AXTextField",
+    label: "Smart Search Field",
+    type: "TEXT_FIELD",
+  },
+};
+
+const reviewedBuiltinBrowserReloadTargets: Record<
+  string,
+  { role: string; label: string; type: "BUTTON" }
+> = {
+  chrome: { role: "AXButton", label: "Reload this page", type: "BUTTON" },
+  safari: { role: "AXButton", label: "Reload current page", type: "BUTTON" },
+};
+
+const reviewedBuiltinProviderTarget = (
+  request: GovernedApplicationInteractionRequest,
+) => {
+  if (!request.target) return false;
+  if (!["insert_text", "replace_selection", "focus_semantic_control", "reload"].includes(request.capability))
+    return false;
+  const builtin = request.capability === "reload"
+    ? reviewedBuiltinBrowserReloadTargets[request.applicationId]
+    : reviewedBuiltinBrowserSearchTargets[request.applicationId];
+  return (
+    !!builtin &&
+    request.target.type === builtin.type &&
+    request.target.role === builtin.role &&
+    request.target.label === builtin.label &&
+    request.target.identifier === null &&
+    request.target.registryObjectId === null &&
+    request.target.registryVersion === null &&
+    request.target.semanticId === targetId(builtin.role, builtin.label, null)
+  );
+};
 
 const capabilityPermissions = (
   capability: GovernedApplicationInteractionRequest["capability"],
@@ -53,6 +101,36 @@ const reviewedBenignControl = (request: GovernedApplicationInteractionRequest) =
     request.target?.label?.trim() ?? "",
   );
 
+const stripAppTarget = (value: string) =>
+  {
+    let current = value.trim();
+    for (let index = 0; index < 3; index += 1) {
+      const next = current
+        .replace(
+          /\s+(?:into|in|on)\s+(?:the\s+)?(?:(?:google\s+)?chrome|safari|chatgpt|codex|(?:vs\s*code|visual studio code)|finder|browser|search(?:\s+(?:bar|box|field))?|composer|editor|text\s+field)\s*$/i,
+          "",
+        )
+        .trim();
+      if (next === current) return current;
+      current = next;
+    }
+    return current;
+  };
+
+const unquotedTextToType = (utterance: string) => {
+  const match = utterance.match(/\b(?:type|insert)\s+(?:in\s+)?(.+?)[.!?]?$/i);
+  if (!match?.[1]) return null;
+  const candidate = stripAppTarget(match[1]).replace(/^["']|["']$/g, "").trim();
+  if (
+    !candidate ||
+    /^(?:it|this|that|there|here|into|in|on|the search(?: bar| box| field)?|the composer|the editor)$/i.test(
+      candidate,
+    )
+  )
+    return null;
+  return candidate.slice(0, 4_000);
+};
+
 const statusForErrorCode = (code: string | null): GovernedInteractionStatus => {
   if (!code) return "FAILED";
   if (code.includes("APPROVAL")) return "APPROVAL_REQUIRED";
@@ -69,6 +147,8 @@ export interface PlannedApplicationInteraction {
   clarification: string | null;
 }
 
+type ProposalClaimResult = boolean | "ALREADY_CLAIMED";
+
 export class ApplicationInteractionService {
   constructor(
     readonly applicationStore: ApplicationAdapterStore,
@@ -79,7 +159,7 @@ export class ApplicationInteractionService {
     readonly claimConfirmedProposal?: (
       ownerId: string,
       request: GovernedApplicationInteractionRequest,
-    ) => Promise<boolean>,
+    ) => Promise<ProposalClaimResult>,
     readonly releaseProposalClaimForApproval?: (
       ownerId: string,
       request: GovernedApplicationInteractionRequest,
@@ -92,6 +172,7 @@ export class ApplicationInteractionService {
       | SemanticDesktopObjectRecord
       | null
       | Promise<SemanticDesktopObjectRecord | null>,
+    readonly capabilityStudioStore?: CapabilityStudioStore,
   ) {}
 
   async planFromUtterance(input: {
@@ -145,6 +226,29 @@ export class ApplicationInteractionService {
         }),
         clarification: null,
       };
+    if (/\b(?:refresh|reload)(?:\s+(?:this|the|current))?\s+page\b/i.test(utterance)) {
+      const target = await this.resolveTarget(
+        input.ownerId,
+        applicationId,
+        "BUTTON",
+        "Reload",
+        "activate",
+      );
+      if (!target)
+        return {
+          request: null,
+          clarification: "The reviewed provider could not resolve one stable Reload control.",
+        };
+      return {
+        request: GovernedApplicationInteractionRequestSchema.parse({
+          ...base,
+          capability: "reload",
+          target,
+          text: null,
+        }),
+        clarification: null,
+      };
+    }
     if (submissionRequested) {
       if (!priorComposerInsertion)
         return {
@@ -207,18 +311,25 @@ export class ApplicationInteractionService {
     }
     if (/\b(?:type|insert|replace)\b/i.test(utterance)) {
       const quoted = utterance.match(/["']([^"']+)["']/)?.[1] ?? null;
-      const text = quoted ?? input.resolvedText ?? null;
+      const text = quoted ?? input.resolvedText ?? unquotedTextToType(utterance);
       if (!text) return { request: null, clarification: "What should I type?" };
       const isComposer = ["chatgpt", "codex"].includes(applicationId);
+      const isBrowserSearch =
+        ["chrome", "safari"].includes(applicationId) &&
+        !/\b(?:editor|text\s+field|field)\b/i.test(utterance);
       const target = await this.resolveTarget(
         input.ownerId,
         applicationId,
         isComposer
           ? "COMPOSER"
-          : /search/i.test(utterance)
+          : /search/i.test(utterance) || isBrowserSearch
             ? "TEXT_FIELD"
             : "TEXT_FIELD",
-        isComposer ? "composer" : /search/i.test(utterance) ? "Search" : "Editor",
+        isComposer
+          ? "composer"
+          : /search/i.test(utterance) || isBrowserSearch
+            ? "Search"
+            : "Editor",
         /replace/i.test(utterance) ? "replace" : "set_value",
       );
       if (!target)
@@ -263,6 +374,7 @@ export class ApplicationInteractionService {
       status: GovernedInteractionStatus,
       message: string,
       providerId: string | null = null,
+      approvalRequestId: string | null = null,
     ) => {
       await this.audit({
         eventType: "POLICY_DENIED",
@@ -286,17 +398,35 @@ export class ApplicationInteractionService {
         status,
         targetSemanticId: request.target?.semanticId ?? null,
         executionRequestId: null,
-        approvalRequestId: null,
+        approvalRequestId,
         message,
         createdAt: this.now().toISOString(),
       });
     };
+    if (request.capabilityCandidateId) {
+      const candidate = await this.capabilityStudioStore?.getCandidate(
+        input.ownerId,
+        request.capabilityCandidateId,
+      );
+      if (
+        !candidate ||
+        candidate.status !== "ACTIVE" ||
+        candidate.applicationId !== request.applicationId ||
+        candidate.primitive !== request.capability
+      )
+        return denied(
+          "POLICY_DENIED",
+          "The learned capability version is unavailable or has been revoked.",
+        );
+    }
     if (request.target && new Date(request.target.expiresAt) <= this.now())
       return denied("TARGET_STALE", "The frozen semantic target has expired.");
     if (secureTarget(request))
       return denied("SECURE_TARGET_BLOCKED", "Secure input targets are unavailable to generic application interaction.");
+    const builtinProviderTarget = reviewedBuiltinProviderTarget(request);
     if (
       request.target &&
+      !builtinProviderTarget &&
       (!request.target.registryObjectId ||
         !request.target.registryVersion ||
         !request.target.identifier ||
@@ -306,7 +436,7 @@ export class ApplicationInteractionService {
         "TARGET_AMBIGUOUS",
         "The semantic target lacks a stable reviewed registry binding.",
       );
-    if (request.target) {
+    if (request.target && !builtinProviderTarget) {
       const current = await this.getSemanticObject!(
         input.ownerId,
         request.target.registryObjectId!,
@@ -341,17 +471,37 @@ export class ApplicationInteractionService {
       : 0.8;
     if (request.target && request.target.confidence < minimumConfidence)
       return denied("TARGET_AMBIGUOUS", "The semantic target confidence is too low; clarification is required.");
+    const requiresConfirmedProposal = [
+      "reload",
+      "insert_text",
+      "replace_selection",
+      "activate_semantic_control",
+      "submit_composer",
+    ].includes(request.capability);
+    const proposalClaim = requiresConfirmedProposal
+      ? request.proposalId && request.conversationId && this.claimConfirmedProposal
+        ? await this.claimConfirmedProposal(input.ownerId, request)
+        : false
+      : true;
     if (
-      [
-        "insert_text",
-        "replace_selection",
-        "activate_semantic_control",
-        "submit_composer",
-      ].includes(request.capability) &&
-      (!request.proposalId ||
-        !request.conversationId ||
-        !this.claimConfirmedProposal ||
-        !(await this.claimConfirmedProposal(input.ownerId, request)))
+      requiresConfirmedProposal &&
+      proposalClaim === "ALREADY_CLAIMED"
+    )
+      return GovernedApplicationInteractionResponseSchema.parse({
+        requestId: input.requestId,
+        applicationId: request.applicationId,
+        providerId: null,
+        capability: request.capability,
+        status: "SUCCESS",
+        targetSemanticId: request.target?.semanticId ?? null,
+        executionRequestId: null,
+        approvalRequestId: null,
+        message: "That exact interaction was already queued; I did not run it again.",
+        createdAt: this.now().toISOString(),
+      });
+    if (
+      requiresConfirmedProposal &&
+      proposalClaim !== true
     )
       return denied(
         "POLICY_DENIED",
@@ -454,6 +604,7 @@ export class ApplicationInteractionService {
           error.statusCode === 409 ? "APPROVAL_REQUIRED" : "POLICY_DENIED",
           error.message,
           provider.id,
+          error.details?.approvalRequestId ?? null,
         );
       }
       throw error;
@@ -467,44 +618,79 @@ export class ApplicationInteractionService {
     query: string,
     action: "activate" | "set_value" | "replace" | "submit",
   ) {
-    if (!this.targetResolution) return null;
-    const resolution = await this.targetResolution.resolve({
-      ownerId,
-      request: {
-        action,
-        target: {
-          objectId: null,
-          query,
-          applicationId,
-          windowId: null,
-          fieldKey: null,
-          contextObjectId: null,
+    if (this.targetResolution) {
+      const resolution = await this.targetResolution.resolve({
+        ownerId,
+        request: {
+          action,
+          target: {
+            objectId: null,
+            query,
+            applicationId,
+            windowId: null,
+            fieldKey: null,
+            contextObjectId: null,
+          },
         },
-      },
-    });
-    const object = resolution.target;
+      });
+      const object = resolution.target;
+      if (
+        object?.accessibilityIdentifier &&
+        !object.state.secureText &&
+        object.role !== "password_field"
+      ) {
+        const role = this.axRole(object.role, type);
+        const label = object.accessibilityLabel ?? object.displayName;
+        const capturedAt = new Date(object.updatedAt);
+        return NativeSemanticInteractionTargetSchema.parse({
+          type,
+          role,
+          label,
+          identifier: object.accessibilityIdentifier,
+          semanticId: targetId(role, label, object.accessibilityIdentifier),
+          registryObjectId: object.id,
+          registryVersion: object.version,
+          secure: false,
+          source: "PROVIDER",
+          confidence: Math.min(object.confidence, resolution.record.confidence),
+          capturedAt: capturedAt.toISOString(),
+          expiresAt: new Date(
+            this.now().getTime() + GOVERNED_INTERACTION_TARGET_TTL_MS,
+          ).toISOString(),
+        });
+      }
+    }
+    return this.reviewedBuiltinTarget(applicationId, type, query);
+  }
+
+  private reviewedBuiltinTarget(
+    applicationId: string,
+    type: "TEXT_FIELD" | "BUTTON" | "COMPOSER",
+    query: string,
+  ) {
+    const builtin = type === "BUTTON" && /^reload$/i.test(query)
+      ? reviewedBuiltinBrowserReloadTargets[applicationId]
+      : reviewedBuiltinBrowserSearchTargets[applicationId];
     if (
-      !object?.accessibilityIdentifier ||
-      object.state.secureText ||
-      object.role === "password_field"
-    )
-      return null;
-    const role = this.axRole(object.role, type);
-    const label = object.accessibilityLabel ?? object.displayName;
-    const capturedAt = new Date(object.updatedAt);
+      !builtin ||
+      (type === "TEXT_FIELD" && !/^search$/i.test(query)) ||
+      (type === "BUTTON" && !/^reload$/i.test(query))
+    ) return null;
     return NativeSemanticInteractionTargetSchema.parse({
-      type,
-      role,
-      label,
-      identifier: object.accessibilityIdentifier,
-      semanticId: targetId(role, label, object.accessibilityIdentifier),
-      registryObjectId: object.id,
-      registryVersion: object.version,
+      type: builtin.type,
+      role: builtin.role,
+      label: builtin.label,
+      identifier: null,
+      semanticId: targetId(builtin.role, builtin.label, null),
+      registryObjectId: null,
+      registryVersion: null,
       secure: false,
-      source: "PROVIDER",
-      confidence: Math.min(object.confidence, resolution.record.confidence),
-      capturedAt: capturedAt.toISOString(),
-      expiresAt: new Date(this.now().getTime() + 60_000).toISOString(),
+      source: "EXPLICIT",
+      confidence: 0.94,
+      capturedAt: this.now().toISOString(),
+      expiresAt: new Date(
+        this.now().getTime() + GOVERNED_INTERACTION_TARGET_TTL_MS,
+      ).toISOString(),
     });
   }
 

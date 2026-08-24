@@ -128,7 +128,12 @@ describe("mac-agent connection test", () => {
         processIdentifier: 42,
       },
       window: { title: "service.ts — personalassistant" },
-      document: { title: "service.ts", type: "source", uri: "file:///repo/service.ts" },
+      document: {
+        title: "service.ts",
+        type: "source",
+        uri: "file:///repo/service.ts",
+        content: null,
+      },
       selection: {
         text: "const safe = true;",
         semanticType: "AXTextArea",

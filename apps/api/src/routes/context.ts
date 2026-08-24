@@ -29,6 +29,7 @@ import type { AgentFactoryService } from "../agents/factory.js";
 import type { AgentStore } from "../agents/store.js";
 import type { AgentOsService } from "../agents/os-service.js";
 import type { AgentOsStore } from "../agents/os-store.js";
+import type { ExternalHarvestService } from "../external-harvest/service.js";
 import type { AgentCognitionService } from "../agent-cognition/service.js";
 import type { AgentCognitionStore } from "../agent-cognition/store.js";
 import type { AgentEvolutionService } from "../agent-evolution/service.js";
@@ -36,6 +37,7 @@ import type { AgentEvolutionStore } from "../agent-evolution/store.js";
 import type { AgentSocietyService } from "../agent-society/service.js";
 import type { AgentSocietyStore } from "../agent-society/store.js";
 import type { MemoryIndexerService } from "../memory/service.js";
+import type { ExplicitMemoryTeachingService } from "../memory/explicit-teaching-service.js";
 import type { MemoryStore } from "../memory/store.js";
 import type { CacheService } from "../intelligence/cache-service.js";
 import type { EmbeddingService } from "../intelligence/embedding-service.js";
@@ -102,6 +104,8 @@ import type { ReflectionEngineService } from "../reflection/service.js";
 import type { ReflectionStore } from "../reflection/store.js";
 import type { SkillEvolutionService } from "../skill-evolution/service.js";
 import type { SkillEvolutionStore } from "../skill-evolution/store.js";
+import type { CapabilityStudioService } from "../capability-studio/service.js";
+import type { CapabilityStudioStore } from "../capability-studio/store.js";
 
 export interface ApiRouteContext {
   identity: IdentityService;
@@ -144,6 +148,7 @@ export interface ApiRouteContext {
   agentStore: AgentStore;
   agentOs: AgentOsService;
   agentOsStore: AgentOsStore;
+  externalHarvest: ExternalHarvestService;
   agentCognition: AgentCognitionService;
   agentCognitionStore: AgentCognitionStore;
   agentEvolution: AgentEvolutionService;
@@ -151,6 +156,7 @@ export interface ApiRouteContext {
   agentSociety: AgentSocietyService;
   agentSocietyStore: AgentSocietyStore;
   memory: MemoryIndexerService;
+  explicitMemoryTeaching: ExplicitMemoryTeachingService;
   memoryStore: MemoryStore;
   redis: RedisService;
   cache: CacheService;
@@ -217,6 +223,8 @@ export interface ApiRouteContext {
   reflectionStore: ReflectionStore;
   skillEvolution: SkillEvolutionService;
   skillEvolutionStore: SkillEvolutionStore;
+  capabilityStudio: CapabilityStudioService;
+  capabilityStudioStore: CapabilityStudioStore;
   serverExecutionSigner?: ServerExecutionSigner;
   readOnlyExecutionEnabled: boolean;
 }
