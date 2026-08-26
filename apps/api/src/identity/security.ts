@@ -20,6 +20,7 @@ export interface SecurityMiddlewareOptions {
   signedRequestToleranceSeconds: number;
   networkVerifier: NetworkVerifier;
   executionEnabled: () => boolean;
+  privateNetworkRequired?: boolean;
   securityState?: SecurityStateService;
 }
 
@@ -196,6 +197,21 @@ export class SecurityMiddleware {
   readonly verifyPrivateNetwork: preHandlerHookHandler = async (request) => {
     const result = await this.inspectNetworkState(request);
     if (result.state !== "PRIVATE_NETWORK") {
+      this.auditDenial(request, `Network verification returned ${result.state}.`);
+      throw new ApiSecurityError(
+        403,
+        "PRIVATE_NETWORK_REQUIRED",
+        "Private-network verification is required.",
+      );
+    }
+  };
+
+  readonly verifyTransportNetwork: preHandlerHookHandler = async (request) => {
+    const result = await this.inspectNetworkState(request);
+    if (
+      this.options.privateNetworkRequired !== false &&
+      result.state !== "PRIVATE_NETWORK"
+    ) {
       this.auditDenial(request, `Network verification returned ${result.state}.`);
       throw new ApiSecurityError(
         403,

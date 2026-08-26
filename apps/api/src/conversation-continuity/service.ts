@@ -31,6 +31,23 @@ const isApplicationInteractionProposal = (
   proposal: ConversationActionProposal | null | undefined,
 ) => proposal?.canonicalIntent.startsWith("application_interaction.") === true;
 
+const isExecutedComposerInsertion = (
+  proposal: ConversationActionProposal | null | undefined,
+) => {
+  const request = proposal?.parameters?.request as
+    | { capability?: unknown; target?: { type?: unknown } | null }
+    | undefined;
+  return (
+    proposal?.status === "EXECUTED" &&
+    isApplicationInteractionProposal(proposal) &&
+    (request?.capability === "insert_text" || request?.capability === "replace_selection") &&
+    request.target?.type === "COMPOSER"
+  );
+};
+
+const composerSubmissionContinuation = (text: string) =>
+  /^(?:send|submit)(?: it| this| message)?$/i.test(text);
+
 const referenceHash = (value: string) => {
   let hash = 2_166_136_261;
   for (const character of value) {
@@ -213,7 +230,14 @@ export class ConversationContinuityService {
       if (pendingResult) return pendingResult;
     }
 
-    if (destructiveReference.test(text) && referentialTarget.test(text)) {
+    if (
+      destructiveReference.test(text) &&
+      referentialTarget.test(text) &&
+      !(
+        composerSubmissionContinuation(text) &&
+        isExecutedComposerInsertion(state.actionProposal)
+      )
+    ) {
       const scopedCandidates = state.references.filter(
         (item) =>
           (item.deviceId === null || item.deviceId === input.deviceId) &&

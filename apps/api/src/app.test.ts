@@ -1,9 +1,15 @@
 import {
   CreatePairingIntentResponseSchema,
+  CanonicalAlexaSummarySchema,
+  CanonicalRuntimeHealthSchema,
   CsrfTokenResponseSchema,
   PairingRequestResponseSchema,
   RepositoryListResponseSchema,
   SessionListResponseSchema,
+  WorkforceGraphResponseSchema,
+  WorkforceImportReportSchema,
+  WorkforceRuntimeDashboardSchema,
+  WorkforceRuntimeTaskResponseSchema,
   canonicalizeSignedCommand,
   type SignedCommandEnvelope,
 } from "@alexa-control/shared";
@@ -106,6 +112,26 @@ describe("Phase 2.1 API", () => {
       status: "ok",
       service: "alexa-api",
     });
+    const canonicalHealth = await app.inject({
+      method: "GET",
+      url: "/api/v1/health",
+    });
+    expect(canonicalHealth.statusCode).toBe(200);
+    expect(CanonicalRuntimeHealthSchema.parse(canonicalHealth.json())).toMatchObject({
+      apiVersion: "v1",
+      status: "DEGRADED",
+      components: {
+        api: { state: "HEALTHY" },
+        postgres: { state: "HEALTHY" },
+        redis: { state: "DEGRADED" },
+      },
+    });
+
+    const deniedSummary = await app.inject({
+      method: "GET",
+      url: "/api/v1/system/summary",
+    });
+    expect(deniedSummary.statusCode).toBe(401);
 
     const denied = await app.inject({
       method: "GET",
@@ -120,6 +146,106 @@ describe("Phase 2.1 API", () => {
     });
     expect(status.statusCode).toBe(200);
     expect(status.json()).toMatchObject({ execution: { enabled: false } });
+    const summary = await app.inject({
+      method: "GET",
+      url: "/api/v1/system/summary",
+      headers: { cookie },
+    });
+    expect(CanonicalAlexaSummarySchema.parse(summary.json())).toMatchObject({
+      apiVersion: "v1",
+      capabilities: {
+        deviceExecutable: { macAgent: "UNAVAILABLE", targetDeviceRequired: true },
+      },
+      invariants: { oneBackendManyClients: true, nativeExecutionRemainsOnDevice: true },
+    });
+  });
+
+  it("protects workforce bootstrap and returns a bounded owner-scoped graph", async () => {
+    const unauthenticated = await app.inject({
+      method: "GET",
+      url: "/api/agent-workforce/graph",
+    });
+    expect(unauthenticated.statusCode).toBe(401);
+
+    const missingCsrf = await app.inject({
+      method: "POST",
+      url: "/api/agent-workforce/bootstrap",
+      headers: { cookie, origin },
+      payload: {},
+    });
+    expect(missingCsrf.statusCode).toBe(403);
+
+    const bootstrapped = await app.inject({
+      method: "POST",
+      url: "/api/agent-workforce/bootstrap",
+      headers: mutationHeaders(),
+      payload: {},
+    });
+    expect(bootstrapped.statusCode).toBe(200);
+    expect(WorkforceImportReportSchema.parse(bootstrapped.json())).toMatchObject({
+      externalRuntimeActive: false,
+      providerCallsDuringImport: 0,
+      runtimeActivationsDuringImport: 0,
+    });
+
+    const graph = await app.inject({
+      method: "GET",
+      url: "/api/agent-workforce/graph?limit=500",
+      headers: { cookie, origin },
+    });
+    expect(graph.statusCode).toBe(200);
+    const body = WorkforceGraphResponseSchema.parse(graph.json());
+    expect(body.summary.registered).toBeGreaterThanOrEqual(100);
+    expect(body.nodes.length).toBeLessThanOrEqual(500);
+    expect(body.runtime.sharedAIRouter).toBe(true);
+  });
+
+  it("protects the workforce runtime and creates bounded inert tasks", async () => {
+    expect(
+      (await app.inject({ method: "GET", url: "/api/workforce-runtime" })).statusCode,
+    ).toBe(401);
+    await app.inject({
+      method: "POST",
+      url: "/api/agent-workforce/bootstrap",
+      headers: mutationHeaders(),
+      payload: {},
+    });
+    const missingCsrf = await app.inject({
+      method: "POST",
+      url: "/api/workforce-runtime/tasks",
+      headers: { cookie, origin },
+      payload: { title: "Review API", objective: "Review one bounded API change." },
+    });
+    expect(missingCsrf.statusCode).toBe(403);
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/workforce-runtime/tasks",
+      headers: mutationHeaders(),
+      payload: {
+        createdByAgentId: "engineering_manager",
+        title: "Review API",
+        objective: "Review one bounded API change.",
+        requiredSkills: ["review"],
+        economicBudget: 5,
+      },
+    });
+    expect(created.statusCode).toBe(200);
+    expect(WorkforceRuntimeTaskResponseSchema.parse(created.json()).task).toMatchObject(
+      { status: "QUEUED", depth: 0, reservedCredits: 0 },
+    );
+    const dashboard = await app.inject({
+      method: "GET",
+      url: "/api/workforce-runtime",
+      headers: { cookie },
+    });
+    expect(WorkforceRuntimeDashboardSchema.parse(dashboard.json())).toMatchObject({
+      summary: { queued: 1 },
+      invariants: {
+        sharedAIRouter: true,
+        hierarchyGrantsAuthority: false,
+        creditsGrantAuthority: false,
+      },
+    });
   });
 
   it("serves voice transcript history through authenticated GET", async () => {
@@ -439,6 +565,185 @@ describe("Phase 2.1 API", () => {
       }),
     });
     expect(revoked.statusCode).toBe(403);
+  });
+
+  it("keeps signed Mac transport outbound-capable in cloud mode and fails closed after revocation", async () => {
+    const cloud = await buildApi({
+      corsOrigin: origin,
+      privateNetworkRequired: false,
+      deploymentMode: "cloud",
+      nodeEnvironment: "test",
+      logger: false,
+    });
+    const registration = await cloud.inject({
+      method: "POST",
+      url: "/api/auth/register",
+      headers: { origin },
+      payload: {
+        email: "cloud-owner@example.com",
+        displayName: "Cloud Owner",
+        password,
+      },
+    });
+    const cloudCookie = cookieFrom(registration);
+    const csrfResponse = await cloud.inject({
+      method: "GET",
+      url: "/api/security/csrf",
+      headers: { cookie: cloudCookie, origin },
+    });
+    const cloudCsrf = CsrfTokenResponseSchema.parse(csrfResponse.json()).token;
+    const cloudMutationHeaders = {
+      cookie: cloudCookie,
+      origin,
+      "x-csrf-token": cloudCsrf,
+    };
+    const { pair, publicKey } = await createDeviceKeyPair();
+    const intent = await cloud.inject({
+      method: "POST",
+      url: "/api/devices/pairing-intents",
+      headers: cloudMutationHeaders,
+    });
+    const pairing = await cloud.inject({
+      method: "POST",
+      url: "/api/devices/pairing-requests",
+      payload: {
+        pairingCode: CreatePairingIntentResponseSchema.parse(intent.json()).pairingCode,
+        deviceName: "Cloud-connected Mac",
+        deviceType: "MAC_AGENT",
+        publicKey,
+      },
+    });
+    const { deviceId } = PairingRequestResponseSchema.parse(pairing.json());
+    await cloud.inject({
+      method: "POST",
+      url: `/api/devices/${deviceId}/approve`,
+      headers: cloudMutationHeaders,
+    });
+    const signedPoll = async () => {
+      const now = new Date();
+      return signEnvelope(pair.privateKey, {
+        commandId: crypto.randomUUID(),
+        deviceId,
+        issuedAt: now.toISOString(),
+        expiresAt: new Date(now.getTime() + 60_000).toISOString(),
+        nonce: crypto.randomUUID(),
+        payload: { operation: "poll" },
+        signatureAlgorithm: "Ed25519",
+        protocolVersion: "1",
+      });
+    };
+    const poll = await cloud.inject({
+      method: "POST",
+      url: "/api/agent/execution",
+      payload: await signedPoll(),
+    });
+    expect(poll.statusCode).toBe(200);
+    const summary = await cloud.inject({
+      method: "GET",
+      url: "/api/v1/system/summary",
+      headers: { cookie: cloudCookie },
+    });
+    expect(summary.json()).toMatchObject({
+      deploymentMode: "cloud",
+      capabilities: { deviceExecutable: { macAgent: "AVAILABLE" } },
+    });
+    await cloud.inject({
+      method: "POST",
+      url: `/api/devices/${deviceId}/revoke`,
+      headers: cloudMutationHeaders,
+    });
+    const denied = await cloud.inject({
+      method: "POST",
+      url: "/api/agent/execution",
+      payload: await signedPoll(),
+    });
+    expect(denied.statusCode).toBe(403);
+    expect(denied.json()).toMatchObject({
+      error: { code: "TRUSTED_DEVICE_REQUIRED" },
+    });
+
+    const androidKeys = await createDeviceKeyPair();
+    const androidIntent = await cloud.inject({
+      method: "POST",
+      url: "/api/devices/pairing-intents",
+      headers: cloudMutationHeaders,
+    });
+    const androidPairing = await cloud.inject({
+      method: "POST",
+      url: "/api/devices/pairing-requests",
+      payload: {
+        pairingCode: CreatePairingIntentResponseSchema.parse(androidIntent.json())
+          .pairingCode,
+        deviceName: "Android fixture",
+        deviceType: "ANDROID",
+        publicKey: androidKeys.publicKey,
+      },
+    });
+    const androidDeviceId = PairingRequestResponseSchema.parse(
+      androidPairing.json(),
+    ).deviceId;
+    await cloud.inject({
+      method: "POST",
+      url: `/api/devices/${androidDeviceId}/approve`,
+      headers: cloudMutationHeaders,
+    });
+    const signAndroid = async (payload: Record<string, string>) => {
+      const now = new Date();
+      return signEnvelope(androidKeys.pair.privateKey, {
+        commandId: crypto.randomUUID(),
+        deviceId: androidDeviceId,
+        issuedAt: now.toISOString(),
+        expiresAt: new Date(now.getTime() + 60_000).toISOString(),
+        nonce: crypto.randomUUID(),
+        payload,
+        signatureAlgorithm: "Ed25519",
+        protocolVersion: "1",
+      });
+    };
+    const nativeSummaryEnvelope = await signAndroid({ operation: "system_summary" });
+    const nativeSummary = await cloud.inject({
+      method: "POST",
+      url: "/api/v1/device/system-summary",
+      payload: nativeSummaryEnvelope,
+    });
+    expect(nativeSummary.statusCode).toBe(200);
+    expect(CanonicalAlexaSummarySchema.parse(nativeSummary.json()).devices).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: androidDeviceId, presence: "ONLINE" }),
+      ]),
+    );
+    expect(JSON.stringify(nativeSummary.json())).not.toContain("publicKey");
+    expect(JSON.stringify(nativeSummary.json())).not.toContain("ownerId");
+    const nativeSummaryReplay = await cloud.inject({
+      method: "POST",
+      url: "/api/v1/device/system-summary",
+      payload: nativeSummaryEnvelope,
+    });
+    expect(nativeSummaryReplay.statusCode).toBe(409);
+    expect(nativeSummaryReplay.json()).toMatchObject({
+      error: { code: "DUPLICATE_NONCE" },
+    });
+    const androidMacChannelDenied = await cloud.inject({
+      method: "POST",
+      url: "/api/agent/execution",
+      payload: await signAndroid({ operation: "poll" }),
+    });
+    expect(androidMacChannelDenied.statusCode).toBe(403);
+    await cloud.close();
+  });
+
+  it("does not expose common debug or infrastructure administration surfaces", async () => {
+    for (const url of [
+      "/debug",
+      "/api/debug",
+      "/api/internal",
+      "/api/admin/database",
+      "/api/admin/redis",
+      "/api/shell",
+    ]) {
+      const response = await app.inject({ method: "GET", url });
+      expect(response.statusCode).toBe(404);
+    }
   });
 
   it("exposes owner-scoped repository metadata for registered workspaces", async () => {

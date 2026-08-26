@@ -215,8 +215,20 @@ export const BUILT_IN_TOOLS: ToolDefinition[] = [
     "high",
     "recent_authentication",
     ["browser.interact"],
-    "none",
-    false,
+    "application",
+    true,
+    true,
+  ),
+  // This is deliberately narrower than browser.submit_form: it covers the
+  // reviewed composer controls in the registered ChatGPT and Codex apps only.
+  // Other browser form submissions still require recent authentication.
+  defineTool(
+    "application.submit_ai_composer",
+    "medium",
+    "explicit",
+    ["browser.interact"],
+    "application",
+    true,
     true,
   ),
   defineTool(

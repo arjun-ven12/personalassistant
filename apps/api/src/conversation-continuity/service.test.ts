@@ -226,6 +226,43 @@ describe("ConversationContinuityService", () => {
     });
   });
 
+  it("leaves send it for the exact settled composer insertion continuation", async () => {
+    const store = new InMemoryVoiceStore();
+    const service = new ConversationContinuityService(store);
+    const identity = ids();
+    await service.resolveTurn(turn(identity, "Type hello into ChatGPT."));
+    const proposal = await service.createProposal({
+      ...identity,
+      canonicalIntent: "application_interaction.insert_text",
+      canonicalRequest: "Insert hello into the reviewed ChatGPT composer.",
+      parameters: {
+        request: {
+          applicationId: "chatgpt",
+          capability: "insert_text",
+          target: { type: "COMPOSER" },
+          text: "hello",
+        },
+      },
+      riskLevel: "moderate_risk",
+    });
+    await service.resolveTurn(turn(identity, "Do it"));
+    await service.claimConfirmedProposal({
+      ownerId: identity.ownerId,
+      conversationId: identity.conversationId,
+      matches: (candidate) => candidate.id === proposal?.id,
+    });
+    await service.recordGovernedInteractionSettlement({
+      ownerId: identity.ownerId,
+      proposalId: proposal!.id,
+      executionRequestId: crypto.randomUUID(),
+      status: "SUCCEEDED",
+    });
+
+    const continuation = await service.resolveTurn(turn(identity, "Send it."));
+    expect(continuation.handled).toBe(false);
+    expect(continuation.responseText).toBeNull();
+  });
+
   it("releases a claim only for an approval retry", async () => {
     const store = new InMemoryVoiceStore();
     const service = new ConversationContinuityService(store);

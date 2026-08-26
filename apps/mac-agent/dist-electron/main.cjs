@@ -14668,13 +14668,13 @@ ${lanes.join("\n")}
             /*isInGroup*/
             false
           );
-          forEach(groupNameReferences, (reference) => {
-            if (!(groupSpecifiers == null ? void 0 : groupSpecifiers.has(reference.name))) {
-              error210(Diagnostics.There_is_no_capturing_group_named_0_in_this_regular_expression, reference.pos, reference.end - reference.pos, reference.name);
+          forEach(groupNameReferences, (reference2) => {
+            if (!(groupSpecifiers == null ? void 0 : groupSpecifiers.has(reference2.name))) {
+              error210(Diagnostics.There_is_no_capturing_group_named_0_in_this_regular_expression, reference2.pos, reference2.end - reference2.pos, reference2.name);
               if (groupSpecifiers) {
-                const suggestion = getSpellingSuggestion(reference.name, groupSpecifiers, identity);
+                const suggestion = getSpellingSuggestion(reference2.name, groupSpecifiers, identity);
                 if (suggestion) {
-                  error210(Diagnostics.Did_you_mean_0, reference.pos, reference.end - reference.pos, suggestion);
+                  error210(Diagnostics.Did_you_mean_0, reference2.pos, reference2.end - reference2.pos, suggestion);
                 }
               }
             }
@@ -58143,14 +58143,14 @@ ${lanes.join("\n")}
             const referenceParent = referencingLocation.parent;
             const namespaceImport = isImportDeclaration2(referenceParent) && getNamespaceDeclarationNode(referenceParent);
             if (namespaceImport || isImportCall(referenceParent)) {
-              const reference = isImportCall(referenceParent) ? referenceParent.arguments[0] : referenceParent.moduleSpecifier;
+              const reference2 = isImportCall(referenceParent) ? referenceParent.arguments[0] : referenceParent.moduleSpecifier;
               const type = getTypeOfSymbol(symbol2);
-              const defaultOnlyType = getTypeWithSyntheticDefaultOnly(type, symbol2, moduleSymbol, reference);
+              const defaultOnlyType = getTypeWithSyntheticDefaultOnly(type, symbol2, moduleSymbol, reference2);
               if (defaultOnlyType) {
                 return cloneTypeAsModuleType(symbol2, defaultOnlyType, referenceParent);
               }
               const targetFile = (_a3 = moduleSymbol == null ? void 0 : moduleSymbol.declarations) == null ? void 0 : _a3.find(isSourceFile);
-              const usageMode = getEmitSyntaxForModuleSpecifierExpression(reference);
+              const usageMode = getEmitSyntaxForModuleSpecifierExpression(reference2);
               let exportModuleDotExportsSymbol;
               if (namespaceImport && targetFile && 102 <= moduleKind && moduleKind <= 199 && usageMode === 1 && host.getImpliedNodeFormatForEmit(targetFile) === 99 && (exportModuleDotExportsSymbol = resolveExportByName(symbol2, "module.exports", namespaceImport, dontResolveAlias))) {
                 if (!suppressInteropError && !(symbol2.flags & (1536 | 3))) {
@@ -58169,7 +58169,7 @@ ${lanes.join("\n")}
                   /*skipObjectFunctionPropertyAugment*/
                   true
                 ) || isEsmCjsRef) {
-                  const moduleType = type.flags & 3670016 ? getTypeWithSyntheticDefaultImportType(type, symbol2, moduleSymbol, reference) : createDefaultPropertyWrapperForModule(symbol2, symbol2.parent);
+                  const moduleType = type.flags & 3670016 ? getTypeWithSyntheticDefaultImportType(type, symbol2, moduleSymbol, reference2) : createDefaultPropertyWrapperForModule(symbol2, symbol2.parent);
                   return cloneTypeAsModuleType(symbol2, moduleType, referenceParent);
                 }
               }
@@ -64264,25 +64264,25 @@ ${lanes.join("\n")}
             }
             function trySerializeAsTypeReference(t, flags) {
               let typeArgs;
-              let reference;
+              let reference2;
               if (t.target && isSymbolAccessibleByFlags(t.target.symbol, enclosingDeclaration, flags)) {
                 typeArgs = map2(getTypeArguments(t), (t2) => typeToTypeNodeHelper(t2, context));
-                reference = symbolToExpression(
+                reference2 = symbolToExpression(
                   t.target.symbol,
                   context,
                   788968
                   /* Type */
                 );
               } else if (t.symbol && isSymbolAccessibleByFlags(t.symbol, enclosingDeclaration, flags)) {
-                reference = symbolToExpression(
+                reference2 = symbolToExpression(
                   t.symbol,
                   context,
                   788968
                   /* Type */
                 );
               }
-              if (reference) {
-                return factory.createExpressionWithTypeArguments(reference, typeArgs);
+              if (reference2) {
+                return factory.createExpressionWithTypeArguments(reference2, typeArgs);
               }
             }
             function serializeImplementedType(t) {
@@ -64834,8 +64834,8 @@ ${lanes.join("\n")}
           );
         }
         function getFlowTypeOfDestructuring(node, declaredType) {
-          const reference = getSyntheticElementAccess(node);
-          return reference ? getFlowTypeOfReference(reference, declaredType) : declaredType;
+          const reference2 = getSyntheticElementAccess(node);
+          return reference2 ? getFlowTypeOfReference(reference2, declaredType) : declaredType;
         }
         function getSyntheticElementAccess(node) {
           const parentAccess = getParentElementAccess(node);
@@ -65153,23 +65153,23 @@ ${lanes.join("\n")}
           const file2 = getSourceFileOfNode(symbol2.declarations[0]);
           const accessName = unescapeLeadingUnderscores(symbol2.escapedName);
           const areAllModuleExports = symbol2.declarations.every((d) => isInJSFile(d) && isAccessExpression(d) && isModuleExportsAccessExpression(d.expression));
-          const reference = areAllModuleExports ? factory.createPropertyAccessExpression(factory.createPropertyAccessExpression(factory.createIdentifier("module"), factory.createIdentifier("exports")), accessName) : factory.createPropertyAccessExpression(factory.createIdentifier("exports"), accessName);
+          const reference2 = areAllModuleExports ? factory.createPropertyAccessExpression(factory.createPropertyAccessExpression(factory.createIdentifier("module"), factory.createIdentifier("exports")), accessName) : factory.createPropertyAccessExpression(factory.createIdentifier("exports"), accessName);
           if (areAllModuleExports) {
-            setParent(reference.expression.expression, reference.expression);
+            setParent(reference2.expression.expression, reference2.expression);
           }
-          setParent(reference.expression, reference);
-          setParent(reference, file2);
-          reference.flowNode = file2.endFlowNode;
-          return getFlowTypeOfReference(reference, autoType, undefinedType);
+          setParent(reference2.expression, reference2);
+          setParent(reference2, file2);
+          reference2.flowNode = file2.endFlowNode;
+          return getFlowTypeOfReference(reference2, autoType, undefinedType);
         }
         function getFlowTypeInStaticBlocks(symbol2, staticBlocks) {
           const accessName = startsWith(symbol2.escapedName, "__#") ? factory.createPrivateIdentifier(symbol2.escapedName.split("@")[1]) : unescapeLeadingUnderscores(symbol2.escapedName);
           for (const staticBlock of staticBlocks) {
-            const reference = factory.createPropertyAccessExpression(factory.createThis(), accessName);
-            setParent(reference.expression, reference);
-            setParent(reference, staticBlock);
-            reference.flowNode = staticBlock.returnFlowNode;
-            const flowType = getFlowTypeOfProperty(reference, symbol2);
+            const reference2 = factory.createPropertyAccessExpression(factory.createThis(), accessName);
+            setParent(reference2.expression, reference2);
+            setParent(reference2, staticBlock);
+            reference2.flowNode = staticBlock.returnFlowNode;
+            const flowType = getFlowTypeOfProperty(reference2, symbol2);
             if (noImplicitAny && (flowType === autoType || flowType === autoArrayType)) {
               error210(symbol2.valueDeclaration, Diagnostics.Member_0_implicitly_has_an_1_type, symbolToString(symbol2), typeToString(flowType));
             }
@@ -65181,19 +65181,19 @@ ${lanes.join("\n")}
         }
         function getFlowTypeInConstructor(symbol2, constructor) {
           const accessName = startsWith(symbol2.escapedName, "__#") ? factory.createPrivateIdentifier(symbol2.escapedName.split("@")[1]) : unescapeLeadingUnderscores(symbol2.escapedName);
-          const reference = factory.createPropertyAccessExpression(factory.createThis(), accessName);
-          setParent(reference.expression, reference);
-          setParent(reference, constructor);
-          reference.flowNode = constructor.returnFlowNode;
-          const flowType = getFlowTypeOfProperty(reference, symbol2);
+          const reference2 = factory.createPropertyAccessExpression(factory.createThis(), accessName);
+          setParent(reference2.expression, reference2);
+          setParent(reference2, constructor);
+          reference2.flowNode = constructor.returnFlowNode;
+          const flowType = getFlowTypeOfProperty(reference2, symbol2);
           if (noImplicitAny && (flowType === autoType || flowType === autoArrayType)) {
             error210(symbol2.valueDeclaration, Diagnostics.Member_0_implicitly_has_an_1_type, symbolToString(symbol2), typeToString(flowType));
           }
           return everyType(flowType, isNullableType) ? void 0 : convertAutoToAny(flowType);
         }
-        function getFlowTypeOfProperty(reference, prop) {
+        function getFlowTypeOfProperty(reference2, prop) {
           const initialType = (prop == null ? void 0 : prop.valueDeclaration) && (!isAutoTypedProperty(prop) || getEffectiveModifierFlags(prop.valueDeclaration) & 128) && getTypeOfPropertyInBaseClass(prop) || undefinedType;
-          return getFlowTypeOfReference(reference, autoType, initialType);
+          return getFlowTypeOfReference(reference2, autoType, initialType);
         }
         function getWidenedTypeForAssignmentDeclaration(symbol2, resolvedSymbol) {
           const container = getAssignedExpandoInitializer(symbol2.valueDeclaration);
@@ -79323,15 +79323,15 @@ ${lanes.join("\n")}
         function isOrContainsMatchingReference(source, target) {
           return isMatchingReference(source, target) || containsMatchingReference(source, target);
         }
-        function hasMatchingArgument(expression, reference) {
+        function hasMatchingArgument(expression, reference2) {
           if (expression.arguments) {
             for (const argument of expression.arguments) {
-              if (isOrContainsMatchingReference(reference, argument) || optionalChainContainsReference(argument, reference)) {
+              if (isOrContainsMatchingReference(reference2, argument) || optionalChainContainsReference(argument, reference2)) {
                 return true;
               }
             }
           }
-          if (expression.expression.kind === 212 && isOrContainsMatchingReference(reference, expression.expression.expression)) {
+          if (expression.expression.kind === 212 && isOrContainsMatchingReference(reference2, expression.expression.expression)) {
             return true;
           }
           return false;
@@ -80137,7 +80137,7 @@ ${lanes.join("\n")}
           }
           return false;
         }
-        function getFlowTypeOfReference(reference, declaredType, initialType = declaredType, flowContainer, flowNode = ((_a3) => (_a3 = tryCast(reference, canHaveFlowNode)) == null ? void 0 : _a3.flowNode)()) {
+        function getFlowTypeOfReference(reference2, declaredType, initialType = declaredType, flowContainer, flowNode = ((_a3) => (_a3 = tryCast(reference2, canHaveFlowNode)) == null ? void 0 : _a3.flowNode)()) {
           let key;
           let isKeySet = false;
           let flowDepth = 0;
@@ -80151,8 +80151,8 @@ ${lanes.join("\n")}
           const sharedFlowStart = sharedFlowCount;
           const evolvedType = getTypeFromFlowType(getTypeAtFlowNode(flowNode));
           sharedFlowCount = sharedFlowStart;
-          const resultType = getObjectFlags(evolvedType) & 256 && isEvolvingArrayOperationTarget(reference) ? autoArrayType : finalizeEvolvingArrayType(evolvedType);
-          if (resultType === unreachableNeverType || reference.parent && reference.parent.kind === 236 && !(resultType.flags & 131072) && getTypeWithFacts(
+          const resultType = getObjectFlags(evolvedType) & 256 && isEvolvingArrayOperationTarget(reference2) ? autoArrayType : finalizeEvolvingArrayType(evolvedType);
+          if (resultType === unreachableNeverType || reference2.parent && reference2.parent.kind === 236 && !(resultType.flags & 131072) && getTypeWithFacts(
             resultType,
             2097152
             /* NEUndefinedOrNull */
@@ -80165,14 +80165,14 @@ ${lanes.join("\n")}
               return key;
             }
             isKeySet = true;
-            return key = getFlowCacheKey(reference, declaredType, initialType, flowContainer);
+            return key = getFlowCacheKey(reference2, declaredType, initialType, flowContainer);
           }
           function getTypeAtFlowNode(flow) {
             var _a22;
             if (flowDepth === 2e3) {
               (_a22 = tracing) == null ? void 0 : _a22.instant(tracing.Phase.CheckTypes, "getTypeAtFlowNode_DepthLimit", { flowId: flow.id });
               flowAnalysisDisabled = true;
-              reportFlowControlError(reference);
+              reportFlowControlError(reference2);
               return errorType;
             }
             flowDepth++;
@@ -80225,7 +80225,7 @@ ${lanes.join("\n")}
                 target.antecedent = saveAntecedents;
               } else if (flags & 2) {
                 const container = flow.node;
-                if (container && container !== flowContainer && reference.kind !== 212 && reference.kind !== 213 && !(reference.kind === 110 && container.kind !== 220)) {
+                if (container && container !== flowContainer && reference2.kind !== 212 && reference2.kind !== 213 && !(reference2.kind === 110 && container.kind !== 220)) {
                   flow = container.flowNode;
                   continue;
                 }
@@ -80246,12 +80246,12 @@ ${lanes.join("\n")}
             const node = flow.node;
             return getNarrowableTypeForReference(
               node.kind === 261 || node.kind === 209 ? getInitialType(node) : getAssignedType(node),
-              reference
+              reference2
             );
           }
           function getTypeAtFlowAssignment(flow) {
             const node = flow.node;
-            if (isMatchingReference(reference, node)) {
+            if (isMatchingReference(reference2, node)) {
               if (!isReachableFlowNode(flow)) {
                 return unreachableNeverType;
               }
@@ -80272,7 +80272,7 @@ ${lanes.join("\n")}
               }
               return t;
             }
-            if (containsMatchingReference(reference, node)) {
+            if (containsMatchingReference(reference2, node)) {
               if (!isReachableFlowNode(flow)) {
                 return unreachableNeverType;
               }
@@ -80284,7 +80284,7 @@ ${lanes.join("\n")}
               }
               return declaredType;
             }
-            if (isVariableDeclaration2(node) && node.parent.parent.kind === 250 && (isMatchingReference(reference, node.parent.parent.expression) || optionalChainContainsReference(node.parent.parent.expression, reference))) {
+            if (isVariableDeclaration2(node) && node.parent.parent.kind === 250 && (isMatchingReference(reference2, node.parent.parent.expression) || optionalChainContainsReference(node.parent.parent.expression, reference2))) {
               return getNonNullableTypeIfNeeded(finalizeEvolvingArrayType(getTypeFromFlowType(getTypeAtFlowNode(flow.antecedent))));
             }
             return void 0;
@@ -80339,7 +80339,7 @@ ${lanes.join("\n")}
             if (declaredType === autoType || declaredType === autoArrayType) {
               const node = flow.node;
               const expr = node.kind === 214 ? node.expression.expression : node.left.expression;
-              if (isMatchingReference(reference, getReferenceCandidate(expr))) {
+              if (isMatchingReference(reference2, getReferenceCandidate(expr))) {
                 const flowType = getTypeAtFlowNode(flow.antecedent);
                 const type = getTypeFromFlowType(flowType);
                 if (getObjectFlags(type) & 256) {
@@ -80383,17 +80383,17 @@ ${lanes.join("\n")}
             const expr = skipParentheses(flow.node.switchStatement.expression);
             const flowType = getTypeAtFlowNode(flow.antecedent);
             let type = getTypeFromFlowType(flowType);
-            if (isMatchingReference(reference, expr)) {
+            if (isMatchingReference(reference2, expr)) {
               type = narrowTypeBySwitchOnDiscriminant(type, flow.node);
-            } else if (expr.kind === 222 && isMatchingReference(reference, expr.expression)) {
+            } else if (expr.kind === 222 && isMatchingReference(reference2, expr.expression)) {
               type = narrowTypeBySwitchOnTypeOf(type, flow.node);
             } else if (expr.kind === 112) {
               type = narrowTypeBySwitchOnTrue(type, flow.node);
             } else {
               if (strictNullChecks) {
-                if (optionalChainContainsReference(expr, reference)) {
+                if (optionalChainContainsReference(expr, reference2)) {
                   type = narrowTypeBySwitchOptionalChainContainment(type, flow.node, (t) => !(t.flags & (32768 | 131072)));
-                } else if (expr.kind === 222 && optionalChainContainsReference(expr.expression, reference)) {
+                } else if (expr.kind === 222 && optionalChainContainsReference(expr.expression, reference2)) {
                   type = narrowTypeBySwitchOptionalChainContainment(type, flow.node, (t) => !(t.flags & 131072 || t.flags & 128 && t.value === "undefined"));
                 }
               }
@@ -80530,28 +80530,28 @@ ${lanes.join("\n")}
             return result;
           }
           function getCandidateDiscriminantPropertyAccess(expr) {
-            if (isBindingPattern(reference) || isFunctionExpressionOrArrowFunction(reference) || isObjectLiteralMethod(reference)) {
+            if (isBindingPattern(reference2) || isFunctionExpressionOrArrowFunction(reference2) || isObjectLiteralMethod(reference2)) {
               if (isIdentifier2(expr)) {
                 const symbol2 = getResolvedSymbol(expr);
                 const declaration = getExportSymbolOfValueSymbolIfExported(symbol2).valueDeclaration;
-                if (declaration && (isBindingElement(declaration) || isParameter(declaration)) && reference === declaration.parent && !declaration.initializer && !declaration.dotDotDotToken) {
+                if (declaration && (isBindingElement(declaration) || isParameter(declaration)) && reference2 === declaration.parent && !declaration.initializer && !declaration.dotDotDotToken) {
                   return declaration;
                 }
               }
             } else if (isAccessExpression(expr)) {
-              if (isMatchingReference(reference, expr.expression)) {
+              if (isMatchingReference(reference2, expr.expression)) {
                 return expr;
               }
             } else if (isIdentifier2(expr)) {
               const symbol2 = getResolvedSymbol(expr);
               if (isConstantVariable(symbol2)) {
                 const declaration = symbol2.valueDeclaration;
-                if (isVariableDeclaration2(declaration) && !declaration.type && declaration.initializer && isAccessExpression(declaration.initializer) && isMatchingReference(reference, declaration.initializer.expression)) {
+                if (isVariableDeclaration2(declaration) && !declaration.type && declaration.initializer && isAccessExpression(declaration.initializer) && isMatchingReference(reference2, declaration.initializer.expression)) {
                   return declaration.initializer;
                 }
                 if (isBindingElement(declaration) && !declaration.initializer) {
                   const parent2 = declaration.parent.parent;
-                  if (isVariableDeclaration2(parent2) && !parent2.type && parent2.initializer && (isIdentifier2(parent2.initializer) || isAccessExpression(parent2.initializer)) && isMatchingReference(reference, parent2.initializer)) {
+                  if (isVariableDeclaration2(parent2) && !parent2.type && parent2.initializer && (isIdentifier2(parent2.initializer) || isAccessExpression(parent2.initializer)) && isMatchingReference(reference2, parent2.initializer)) {
                     return declaration;
                   }
                 }
@@ -80623,14 +80623,14 @@ ${lanes.join("\n")}
             return narrowTypeByDiscriminant(type, access2, (t) => narrowTypeBySwitchOnDiscriminant(t, data));
           }
           function narrowTypeByTruthiness(type, expr, assumeTrue) {
-            if (isMatchingReference(reference, expr)) {
+            if (isMatchingReference(reference2, expr)) {
               return getAdjustedTypeWithFacts(
                 type,
                 assumeTrue ? 4194304 : 8388608
                 /* Falsy */
               );
             }
-            if (strictNullChecks && assumeTrue && optionalChainContainsReference(expr, reference)) {
+            if (strictNullChecks && assumeTrue && optionalChainContainsReference(expr, reference2)) {
               type = getAdjustedTypeWithFacts(
                 type,
                 2097152
@@ -80694,16 +80694,16 @@ ${lanes.join("\n")}
                 if (right.kind === 222 && isStringLiteralLike2(left)) {
                   return narrowTypeByTypeof(type, right, operator, left, assumeTrue);
                 }
-                if (isMatchingReference(reference, left)) {
+                if (isMatchingReference(reference2, left)) {
                   return narrowTypeByEquality(type, operator, right, assumeTrue);
                 }
-                if (isMatchingReference(reference, right)) {
+                if (isMatchingReference(reference2, right)) {
                   return narrowTypeByEquality(type, operator, left, assumeTrue);
                 }
                 if (strictNullChecks) {
-                  if (optionalChainContainsReference(left, reference)) {
+                  if (optionalChainContainsReference(left, reference2)) {
                     type = narrowTypeByOptionalChainContainment(type, operator, right, assumeTrue);
-                  } else if (optionalChainContainsReference(right, reference)) {
+                  } else if (optionalChainContainsReference(right, reference2)) {
                     type = narrowTypeByOptionalChainContainment(type, operator, left, assumeTrue);
                   }
                 }
@@ -80735,9 +80735,9 @@ ${lanes.join("\n")}
                   return narrowTypeByPrivateIdentifierInInExpression(type, expr, assumeTrue);
                 }
                 const target = getReferenceCandidate(expr.right);
-                if (containsMissingType(type) && isAccessExpression(reference) && isMatchingReference(reference.expression, target)) {
+                if (containsMissingType(type) && isAccessExpression(reference2) && isMatchingReference(reference2.expression, target)) {
                   const leftType = getTypeOfExpression(expr.left);
-                  if (isTypeUsableAsPropertyName(leftType) && getAccessedPropertyName(reference) === getPropertyNameFromType(leftType)) {
+                  if (isTypeUsableAsPropertyName(leftType) && getAccessedPropertyName(reference2) === getPropertyNameFromType(leftType)) {
                     return getTypeWithFacts(
                       type,
                       assumeTrue ? 524288 : 65536
@@ -80745,7 +80745,7 @@ ${lanes.join("\n")}
                     );
                   }
                 }
-                if (isMatchingReference(reference, target)) {
+                if (isMatchingReference(reference2, target)) {
                   const leftType = getTypeOfExpression(expr.left);
                   if (isTypeUsableAsPropertyName(leftType)) {
                     return narrowTypeByInKeyword(type, leftType, assumeTrue);
@@ -80806,7 +80806,7 @@ ${lanes.join("\n")}
           }
           function narrowTypeByPrivateIdentifierInInExpression(type, expr, assumeTrue) {
             const target = getReferenceCandidate(expr.right);
-            if (!isMatchingReference(reference, target)) {
+            if (!isMatchingReference(reference2, target)) {
               return type;
             }
             Debug.assertNode(expr.left, isPrivateIdentifier);
@@ -80873,8 +80873,8 @@ ${lanes.join("\n")}
               assumeTrue = !assumeTrue;
             }
             const target = getReferenceCandidate(typeOfExpr.expression);
-            if (!isMatchingReference(reference, target)) {
-              if (strictNullChecks && optionalChainContainsReference(target, reference) && assumeTrue === (literal2.text !== "undefined")) {
+            if (!isMatchingReference(reference2, target)) {
+              if (strictNullChecks && optionalChainContainsReference(target, reference2) && assumeTrue === (literal2.text !== "undefined")) {
                 type = getAdjustedTypeWithFacts(
                   type,
                   2097152
@@ -81086,7 +81086,7 @@ ${lanes.join("\n")}
             ) : neverType));
           }
           function isMatchingConstructorReference(expr) {
-            return (isPropertyAccessExpression2(expr) && idText(expr.name) === "constructor" || isElementAccessExpression2(expr) && isStringLiteralLike2(expr.argumentExpression) && expr.argumentExpression.text === "constructor") && isMatchingReference(reference, expr.expression);
+            return (isPropertyAccessExpression2(expr) && idText(expr.name) === "constructor" || isElementAccessExpression2(expr) && isStringLiteralLike2(expr.argumentExpression) && expr.argumentExpression.text === "constructor") && isMatchingReference(reference2, expr.expression);
           }
           function narrowTypeByConstructor(type, operator, identifier, assumeTrue) {
             if (assumeTrue ? operator !== 35 && operator !== 37 : operator !== 36 && operator !== 38) {
@@ -81118,8 +81118,8 @@ ${lanes.join("\n")}
           }
           function narrowTypeByInstanceof(type, expr, assumeTrue) {
             const left = getReferenceCandidate(expr.left);
-            if (!isMatchingReference(reference, left)) {
-              if (assumeTrue && strictNullChecks && optionalChainContainsReference(left, reference)) {
+            if (!isMatchingReference(reference2, left)) {
+              if (assumeTrue && strictNullChecks && optionalChainContainsReference(left, reference2)) {
                 return getAdjustedTypeWithFacts(
                   type,
                   2097152
@@ -81221,18 +81221,18 @@ ${lanes.join("\n")}
             return !(narrowedType.flags & 131072) ? narrowedType : isTypeSubtypeOf(candidate, type) ? candidate : isTypeAssignableTo(type, candidate) ? type : isTypeAssignableTo(candidate, type) ? candidate : getIntersectionType([type, candidate]);
           }
           function narrowTypeByCallExpression(type, callExpression, assumeTrue) {
-            if (hasMatchingArgument(callExpression, reference)) {
+            if (hasMatchingArgument(callExpression, reference2)) {
               const signature = assumeTrue || !isCallChain(callExpression) ? getEffectsSignature(callExpression) : void 0;
               const predicate = signature && getTypePredicateOfSignature(signature);
               if (predicate && (predicate.kind === 0 || predicate.kind === 1)) {
                 return narrowTypeByTypePredicate(type, predicate, callExpression, assumeTrue);
               }
             }
-            if (containsMissingType(type) && isAccessExpression(reference) && isPropertyAccessExpression2(callExpression.expression)) {
+            if (containsMissingType(type) && isAccessExpression(reference2) && isPropertyAccessExpression2(callExpression.expression)) {
               const callAccess = callExpression.expression;
-              if (isMatchingReference(reference.expression, getReferenceCandidate(callAccess.expression)) && isIdentifier2(callAccess.name) && callAccess.name.escapedText === "hasOwnProperty" && callExpression.arguments.length === 1) {
+              if (isMatchingReference(reference2.expression, getReferenceCandidate(callAccess.expression)) && isIdentifier2(callAccess.name) && callAccess.name.escapedText === "hasOwnProperty" && callExpression.arguments.length === 1) {
                 const argument = callExpression.arguments[0];
-                if (isStringLiteralLike2(argument) && getAccessedPropertyName(reference) === escapeLeadingUnderscores(argument.text)) {
+                if (isStringLiteralLike2(argument) && getAccessedPropertyName(reference2) === escapeLeadingUnderscores(argument.text)) {
                   return getTypeWithFacts(
                     type,
                     assumeTrue ? 524288 : 65536
@@ -81247,7 +81247,7 @@ ${lanes.join("\n")}
             if (predicate.type && !(isTypeAny(type) && (predicate.type === globalObjectType || predicate.type === globalFunctionType))) {
               const predicateArgument = getTypePredicateArgument(predicate, callExpression);
               if (predicateArgument) {
-                if (isMatchingReference(reference, predicateArgument)) {
+                if (isMatchingReference(reference2, predicateArgument)) {
                   return getNarrowedType(
                     type,
                     predicate.type,
@@ -81256,7 +81256,7 @@ ${lanes.join("\n")}
                     false
                   );
                 }
-                if (strictNullChecks && optionalChainContainsReference(predicateArgument, reference) && (assumeTrue && !hasTypeFacts(
+                if (strictNullChecks && optionalChainContainsReference(predicateArgument, reference2) && (assumeTrue && !hasTypeFacts(
                   predicate.type,
                   65536
                   /* EQUndefined */
@@ -81287,11 +81287,11 @@ ${lanes.join("\n")}
             }
             switch (expr.kind) {
               case 80:
-                if (!isMatchingReference(reference, expr) && inlineLevel < 5) {
+                if (!isMatchingReference(reference2, expr) && inlineLevel < 5) {
                   const symbol2 = getResolvedSymbol(expr);
                   if (isConstantVariable(symbol2)) {
                     const declaration = symbol2.valueDeclaration;
-                    if (declaration && isVariableDeclaration2(declaration) && !declaration.type && declaration.initializer && isConstantReference(reference)) {
+                    if (declaration && isVariableDeclaration2(declaration) && !declaration.type && declaration.initializer && isConstantReference(reference2)) {
                       inlineLevel++;
                       const result = narrowType(type, declaration.initializer, assumeTrue);
                       inlineLevel--;
@@ -81322,7 +81322,7 @@ ${lanes.join("\n")}
             return type;
           }
           function narrowTypeByOptionality(type, expr, assumePresent) {
-            if (isMatchingReference(reference, expr)) {
+            if (isMatchingReference(reference2, expr)) {
               return getAdjustedTypeWithFacts(
                 type,
                 assumePresent ? 2097152 : 262144
@@ -81561,11 +81561,11 @@ ${lanes.join("\n")}
           ));
           return contextualType && !isGenericType(contextualType);
         }
-        function getNarrowableTypeForReference(type, reference, checkMode) {
+        function getNarrowableTypeForReference(type, reference2, checkMode) {
           if (isNoInferType(type)) {
             type = type.baseType;
           }
-          const substituteConstraints = !(checkMode && checkMode & 2) && someType(type, isGenericTypeWithUnionConstraint) && (isConstraintPosition(type, reference) || hasContextualTypeWithNoGenericTypes(reference, checkMode));
+          const substituteConstraints = !(checkMode && checkMode & 2) && someType(type, isGenericTypeWithUnionConstraint) && (isConstraintPosition(type, reference2) || hasContextualTypeWithNoGenericTypes(reference2, checkMode));
           return substituteConstraints ? mapType(type, getBaseConstraintOrType) : type;
         }
         function isExportOrExportExpression(location) {
@@ -96435,11 +96435,11 @@ ${lanes.join("\n")}
         function isPropertyInitializedInStaticBlocks(propName, propType, staticBlocks, startPos, endPos) {
           for (const staticBlock of staticBlocks) {
             if (staticBlock.pos >= startPos && staticBlock.pos <= endPos) {
-              const reference = factory.createPropertyAccessExpression(factory.createThis(), propName);
-              setParent(reference.expression, reference);
-              setParent(reference, staticBlock);
-              reference.flowNode = staticBlock.returnFlowNode;
-              const flowType = getFlowTypeOfReference(reference, propType, getOptionalType(propType));
+              const reference2 = factory.createPropertyAccessExpression(factory.createThis(), propName);
+              setParent(reference2.expression, reference2);
+              setParent(reference2, staticBlock);
+              reference2.flowNode = staticBlock.returnFlowNode;
+              const flowType = getFlowTypeOfReference(reference2, propType, getOptionalType(propType));
               if (!containsUndefinedType(flowType)) {
                 return true;
               }
@@ -96448,11 +96448,11 @@ ${lanes.join("\n")}
           return false;
         }
         function isPropertyInitializedInConstructor(propName, propType, constructor) {
-          const reference = isComputedPropertyName(propName) ? factory.createElementAccessExpression(factory.createThis(), propName.expression) : factory.createPropertyAccessExpression(factory.createThis(), propName);
-          setParent(reference.expression, reference);
-          setParent(reference, constructor);
-          reference.flowNode = constructor.returnFlowNode;
-          const flowType = getFlowTypeOfReference(reference, propType, getOptionalType(propType));
+          const reference2 = isComputedPropertyName(propName) ? factory.createElementAccessExpression(factory.createThis(), propName.expression) : factory.createPropertyAccessExpression(factory.createThis(), propName);
+          setParent(reference2.expression, reference2);
+          setParent(reference2, constructor);
+          reference2.flowNode = constructor.returnFlowNode;
+          const flowType = getFlowTypeOfReference(reference2, propType, getOptionalType(propType));
           return !containsUndefinedType(flowType);
         }
         function checkInterfaceDeclaration(node) {
@@ -99454,21 +99454,21 @@ ${lanes.join("\n")}
         function hasGlobalName(name) {
           return globals.has(escapeLeadingUnderscores(name));
         }
-        function getReferencedValueSymbol(reference, startInDeclarationContainer) {
-          const resolvedSymbol = getNodeLinks(reference).resolvedSymbol;
+        function getReferencedValueSymbol(reference2, startInDeclarationContainer) {
+          const resolvedSymbol = getNodeLinks(reference2).resolvedSymbol;
           if (resolvedSymbol) {
             return resolvedSymbol;
           }
-          let location = reference;
+          let location = reference2;
           if (startInDeclarationContainer) {
-            const parent2 = reference.parent;
-            if (isDeclaration(parent2) && reference === parent2.name) {
+            const parent2 = reference2.parent;
+            if (isDeclaration(parent2) && reference2 === parent2.name) {
               location = getDeclarationContainer(parent2);
             }
           }
           return resolveName(
             location,
-            reference.escapedText,
+            reference2.escapedText,
             111551 | 1048576 | 2097152,
             /*nameNotFoundMessage*/
             void 0,
@@ -99476,14 +99476,14 @@ ${lanes.join("\n")}
             true
           );
         }
-        function getReferencedValueOrAliasSymbol(reference) {
-          const resolvedSymbol = getNodeLinks(reference).resolvedSymbol;
+        function getReferencedValueOrAliasSymbol(reference2) {
+          const resolvedSymbol = getNodeLinks(reference2).resolvedSymbol;
           if (resolvedSymbol && resolvedSymbol !== unknownSymbol) {
             return resolvedSymbol;
           }
           return resolveName(
-            reference,
-            reference.escapedText,
+            reference2,
+            reference2.escapedText,
             111551 | 1048576 | 2097152,
             /*nameNotFoundMessage*/
             void 0,
@@ -99495,9 +99495,9 @@ ${lanes.join("\n")}
         }
         function getReferencedValueDeclaration(referenceIn) {
           if (!isGeneratedIdentifier(referenceIn)) {
-            const reference = getParseTreeNode(referenceIn, isIdentifier2);
-            if (reference) {
-              const symbol2 = getReferencedValueSymbol(reference);
+            const reference2 = getParseTreeNode(referenceIn, isIdentifier2);
+            if (reference2) {
+              const symbol2 = getReferencedValueSymbol(reference2);
               if (symbol2) {
                 return getExportSymbolOfValueSymbolIfExported(symbol2).valueDeclaration;
               }
@@ -99507,9 +99507,9 @@ ${lanes.join("\n")}
         }
         function getReferencedValueDeclarations(referenceIn) {
           if (!isGeneratedIdentifier(referenceIn)) {
-            const reference = getParseTreeNode(referenceIn, isIdentifier2);
-            if (reference) {
-              const symbol2 = getReferencedValueSymbol(reference);
+            const reference2 = getParseTreeNode(referenceIn, isIdentifier2);
+            if (reference2) {
+              const symbol2 = getReferencedValueSymbol(reference2);
               if (symbol2) {
                 return filter(getExportSymbolOfValueSymbolIfExported(symbol2).declarations, (declaration) => {
                   switch (declaration.kind) {
@@ -158100,9 +158100,9 @@ interface Symbol {
         });
         return references.length === 0 || cannotInline ? void 0 : references;
       }
-      function getReplacementExpression(reference, replacement) {
+      function getReplacementExpression(reference2, replacement) {
         replacement = getSynthesizedDeepClone(replacement);
-        const { parent: parent2 } = reference;
+        const { parent: parent2 } = reference2;
         if (isExpression(parent2) && (getExpressionPrecedence(replacement) < getExpressionPrecedence(parent2) || needsParentheses(parent2))) {
           return factory.createParenthesizedExpression(replacement);
         }
@@ -158112,20 +158112,20 @@ interface Symbol {
         if (isPropertyAccessExpression2(parent2) && (isNumericLiteral2(replacement) || isObjectLiteralExpression(replacement))) {
           return factory.createParenthesizedExpression(replacement);
         }
-        if (isIdentifier2(reference) && isShorthandPropertyAssignment(parent2)) {
-          return factory.createPropertyAssignment(reference, replacement);
+        if (isIdentifier2(reference2) && isShorthandPropertyAssignment(parent2)) {
+          return factory.createPropertyAssignment(reference2, replacement);
         }
         return replacement;
       }
-      function replaceTemplateStringVariableWithLiteral(tracker, sourceFile, reference, replacement) {
-        const templateExpression = reference.parent;
-        const index = templateExpression.templateSpans.indexOf(reference);
+      function replaceTemplateStringVariableWithLiteral(tracker, sourceFile, reference2, replacement) {
+        const templateExpression = reference2.parent;
+        const index = templateExpression.templateSpans.indexOf(reference2);
         const prevNode = index === 0 ? templateExpression.head : templateExpression.templateSpans[index - 1];
         tracker.replaceRangeWithText(
           sourceFile,
           {
             pos: prevNode.getEnd() - 2,
-            end: reference.literal.getStart() + 1
+            end: reference2.literal.getStart() + 1
           },
           replacement.text.replace(/\\/g, "\\\\").replace(/`/g, "\\`")
         );
@@ -158993,20 +158993,20 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
       }
       function entryToAccessExpression(entry) {
         if (entry.node.parent) {
-          const reference = entry.node;
-          const parent2 = reference.parent;
+          const reference2 = entry.node;
+          const parent2 = reference2.parent;
           switch (parent2.kind) {
             // `C.foo`
             case 212:
               const propertyAccessExpression = tryCast(parent2, isPropertyAccessExpression2);
-              if (propertyAccessExpression && propertyAccessExpression.expression === reference) {
+              if (propertyAccessExpression && propertyAccessExpression.expression === reference2) {
                 return propertyAccessExpression;
               }
               break;
             // `C["foo"]`
             case 213:
               const elementAccessExpression = tryCast(parent2, isElementAccessExpression2);
-              if (elementAccessExpression && elementAccessExpression.expression === reference) {
+              if (elementAccessExpression && elementAccessExpression.expression === reference2) {
                 return elementAccessExpression;
               }
               break;
@@ -159015,9 +159015,9 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
         return void 0;
       }
       function entryToType(entry) {
-        const reference = entry.node;
-        if (getMeaningFromLocation(reference) === 2 || isExpressionWithTypeArgumentsInClassExtendsClause(reference.parent)) {
-          return reference;
+        const reference2 = entry.node;
+        if (getMeaningFromLocation(reference2) === 2 || isExpressionWithTypeArgumentsInClassExtendsClause(reference2.parent)) {
+          return reference2;
         }
         return void 0;
       }
@@ -165644,8 +165644,8 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
             continue;
           }
           const diagnostics = program.getSemanticDiagnostics(sourceFile, cancellationToken);
-          const isUsedElsewhere = ts_FindAllReferences_exports.Core.eachSymbolReferenceInFile(variableName, checker, sourceFile, (reference) => {
-            return identifier !== reference && !symbolReferenceIsAlsoMissingAwait(reference, diagnostics, sourceFile, checker);
+          const isUsedElsewhere = ts_FindAllReferences_exports.Core.eachSymbolReferenceInFile(variableName, checker, sourceFile, (reference2) => {
+            return identifier !== reference2 && !symbolReferenceIsAlsoMissingAwait(reference2, diagnostics, sourceFile, checker);
           });
           if (isUsedElsewhere) {
             isCompleteFix = false;
@@ -165684,8 +165684,8 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
           return sides && { identifiers: sides, isCompleteFix };
         }
       }
-      function symbolReferenceIsAlsoMissingAwait(reference, diagnostics, sourceFile, checker) {
-        const errorNode = isPropertyAccessExpression2(reference.parent) ? reference.parent.name : isBinaryExpression(reference.parent) ? reference.parent : reference;
+      function symbolReferenceIsAlsoMissingAwait(reference2, diagnostics, sourceFile, checker) {
+        const errorNode = isPropertyAccessExpression2(reference2.parent) ? reference2.parent.name : isBinaryExpression(reference2.parent) ? reference2.parent : reference2;
         const diagnostic = find(diagnostics, (diagnostic2) => diagnostic2.start === errorNode.getStart(sourceFile) && diagnostic2.start + diagnostic2.length === errorNode.getEnd());
         return diagnostic && contains(errorCodes3, diagnostic.code) || // A Promise is usually not correct in a binary expression (it's not valid
         // in an arithmetic expression and an equality comparison seems unusual),
@@ -172863,11 +172863,11 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
             const entries = ts_FindAllReferences_exports.Core.getReferencedSymbolsForNode(parent2.pos, referent, program, sourceFiles, cancellationToken);
             if (entries) {
               for (const entry of entries) {
-                for (const reference of entry.references) {
-                  if (reference.kind === ts_FindAllReferences_exports.EntryKind.Node) {
-                    const isSuperCall2 = isSuperKeyword(reference.node) && isCallExpression2(reference.node.parent) && reference.node.parent.arguments.length > index;
-                    const isSuperMethodCall = isPropertyAccessExpression2(reference.node.parent) && isSuperKeyword(reference.node.parent.expression) && isCallExpression2(reference.node.parent.parent) && reference.node.parent.parent.arguments.length > index;
-                    const isOverriddenMethod = (isMethodDeclaration2(reference.node.parent) || isMethodSignature2(reference.node.parent)) && reference.node.parent !== parameter.parent && reference.node.parent.parameters.length > index;
+                for (const reference2 of entry.references) {
+                  if (reference2.kind === ts_FindAllReferences_exports.EntryKind.Node) {
+                    const isSuperCall2 = isSuperKeyword(reference2.node) && isCallExpression2(reference2.node.parent) && reference2.node.parent.arguments.length > index;
+                    const isSuperMethodCall = isPropertyAccessExpression2(reference2.node.parent) && isSuperKeyword(reference2.node.parent.expression) && isCallExpression2(reference2.node.parent.parent) && reference2.node.parent.parent.arguments.length > index;
+                    const isOverriddenMethod = (isMethodDeclaration2(reference2.node.parent) || isMethodSignature2(reference2.node.parent)) && reference2.node.parent !== parameter.parent && reference2.node.parent.parameters.length > index;
                     if (isSuperCall2 || isSuperMethodCall || isOverriddenMethod) return false;
                   }
                 }
@@ -172892,7 +172892,7 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
         }
       }
       function isCallbackLike(checker, sourceFile, name) {
-        return !!ts_FindAllReferences_exports.Core.eachSymbolReferenceInFile(name, checker, sourceFile, (reference) => isIdentifier2(reference) && isCallExpression2(reference.parent) && reference.parent.arguments.includes(reference));
+        return !!ts_FindAllReferences_exports.Core.eachSymbolReferenceInFile(name, checker, sourceFile, (reference2) => isIdentifier2(reference2) && isCallExpression2(reference2.parent) && reference2.parent.arguments.includes(reference2));
       }
       function isLastParameter(func, parameter, isFixAll) {
         const parameters = func.parameters;
@@ -174702,9 +174702,9 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
             return void 0;
           }
           const usage = createEmptyUsage();
-          for (const reference of references) {
+          for (const reference2 of references) {
             cancellationToken.throwIfCancellationRequested();
-            calculateUsageOfNode(reference, usage);
+            calculateUsageOfNode(reference2, usage);
           }
           const calls = [...usage.constructs || [], ...usage.calls || []];
           return declaration.parameters.map((parameter, parameterIndex) => {
@@ -174737,17 +174737,17 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
         }
         function thisParameter() {
           const usage = createEmptyUsage();
-          for (const reference of references) {
+          for (const reference2 of references) {
             cancellationToken.throwIfCancellationRequested();
-            calculateUsageOfNode(reference, usage);
+            calculateUsageOfNode(reference2, usage);
           }
           return combineTypes(usage.candidateThisTypes || emptyArray);
         }
         function inferTypesFromReferencesSingle(references2) {
           const usage = createEmptyUsage();
-          for (const reference of references2) {
+          for (const reference2 of references2) {
             cancellationToken.throwIfCancellationRequested();
-            calculateUsageOfNode(reference, usage);
+            calculateUsageOfNode(reference2, usage);
           }
           return inferTypes(usage);
         }
@@ -183775,10 +183775,10 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
                 result.push(entry);
                 continue;
               }
-              const reference = result[refIndex];
+              const reference2 = result[refIndex];
               result[refIndex] = {
-                definition: reference.definition,
-                references: reference.references.concat(entry.references).sort((entry1, entry2) => {
+                definition: reference2.definition,
+                references: reference2.references.concat(entry.references).sort((entry1, entry2) => {
                   const entry1File = getSourceFileIndexOfEntry(program, entry1);
                   const entry2File = getSourceFileIndexOfEntry(program, entry2);
                   if (entry1File !== entry2File) {
@@ -183799,27 +183799,27 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
         }
         function getReferencedSymbolsForModule(program, symbol2, excludeImportTypeOfExportEquals, sourceFiles, sourceFilesSet) {
           Debug.assert(!!symbol2.valueDeclaration);
-          const references = mapDefined(findModuleReferences(program, sourceFiles, symbol2), (reference) => {
-            if (reference.kind === "import") {
-              const parent2 = reference.literal.parent;
+          const references = mapDefined(findModuleReferences(program, sourceFiles, symbol2), (reference2) => {
+            if (reference2.kind === "import") {
+              const parent2 = reference2.literal.parent;
               if (isLiteralTypeNode(parent2)) {
                 const importType = cast(parent2.parent, isImportTypeNode);
                 if (excludeImportTypeOfExportEquals && !importType.qualifier) {
                   return void 0;
                 }
               }
-              return nodeEntry(reference.literal);
-            } else if (reference.kind === "implicit") {
-              const range = reference.literal.text !== externalHelpersModuleNameText && forEachChildRecursively(
-                reference.referencingFile,
+              return nodeEntry(reference2.literal);
+            } else if (reference2.kind === "implicit") {
+              const range = reference2.literal.text !== externalHelpersModuleNameText && forEachChildRecursively(
+                reference2.referencingFile,
                 (n) => !(n.transformFlags & 2) ? "skip" : isJsxElement(n) || isJsxSelfClosingElement2(n) || isJsxFragment(n) ? n : void 0
-              ) || reference.referencingFile.statements[0] || reference.referencingFile;
+              ) || reference2.referencingFile.statements[0] || reference2.referencingFile;
               return nodeEntry(range);
             } else {
               return {
                 kind: 0,
-                fileName: reference.referencingFile.fileName,
-                textSpan: createTextSpanFromRange(reference.ref)
+                fileName: reference2.referencingFile.fileName,
+                textSpan: createTextSpanFromRange(reference2.ref)
               };
             }
           });
@@ -185307,8 +185307,8 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
         }
         const typeReferenceDirective = findReferenceInPosition(sourceFile.typeReferenceDirectives, position);
         if (typeReferenceDirective) {
-          const reference = (_a3 = program.getResolvedTypeReferenceDirectiveFromTypeReferenceDirective(typeReferenceDirective, sourceFile)) == null ? void 0 : _a3.resolvedTypeReferenceDirective;
-          const file2 = reference && program.getSourceFile(reference.resolvedFileName);
+          const reference2 = (_a3 = program.getResolvedTypeReferenceDirectiveFromTypeReferenceDirective(typeReferenceDirective, sourceFile)) == null ? void 0 : _a3.resolvedTypeReferenceDirective;
+          const file2 = reference2 && program.getSourceFile(reference2.resolvedFileName);
           return file2 && { reference: typeReferenceDirective, fileName: file2.fileName, file: file2, unverified: false };
         }
         const libReferenceDirective = findReferenceInPosition(sourceFile.libReferenceDirectives, position);
@@ -225299,8 +225299,11 @@ var optionalSecret = external_exports.string().trim().min(1).optional();
 var decimalValue = external_exports.string().regex(/^\d+(\.\d{1,8})?$/);
 var ApiEnvironmentSchema = external_exports.object({
   NODE_ENV: external_exports.enum(["development", "test", "production"]).default("development"),
+  DEPLOYMENT_MODE: external_exports.enum(["private", "cloud"]).default("private"),
   API_HOST: external_exports.string().min(1).default("127.0.0.1"),
   API_PORT: external_exports.coerce.number().int().min(1).max(65535).default(3001),
+  PORT: external_exports.coerce.number().int().min(1).max(65535).optional(),
+  PUBLIC_BASE_URL: external_exports.string().url().optional(),
   WEB_ORIGIN: external_exports.string().url().default("http://localhost:5173"),
   LOG_LEVEL: external_exports.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   LOG_REDACTION_ENABLED: booleanValue.default(true),
@@ -225312,7 +225315,7 @@ var ApiEnvironmentSchema = external_exports.object({
   TAILSCALE_EXPECTED_TAGS: csv.default([]),
   TAILSCALE_LOCALAPI_SOCKET: external_exports.string().trim().min(1).default("/var/run/tailscale/tailscaled.sock"),
   TAILSCALE_TRUST_SERVE_PROXY: booleanValue.default(false),
-  TRUSTED_PROXY_MODE: external_exports.enum(["none", "loopback"]).default("none"),
+  TRUSTED_PROXY_MODE: external_exports.enum(["none", "loopback", "one-hop"]).default("none"),
   ALLOWED_HOSTS: csv.default(["localhost", "127.0.0.1"]),
   STORE_MODE: external_exports.enum(["memory", "postgres"]).default("memory"),
   DATABASE_URL: external_exports.string().trim().min(1).optional(),
@@ -225482,21 +225485,6 @@ var ApiEnvironmentSchema = external_exports.object({
       "Production intelligence infrastructure requires semantic search."
     ],
     [
-      environment2.TAILSCALE_REQUIRED,
-      "TAILSCALE_REQUIRED",
-      "Production requires Tailscale."
-    ],
-    [
-      environment2.PRIVATE_NETWORK_REQUIRED,
-      "PRIVATE_NETWORK_REQUIRED",
-      "Production requires private-network enforcement."
-    ],
-    [
-      environment2.NETWORK_VERIFIER_MODE === "tailscale",
-      "NETWORK_VERIFIER_MODE",
-      "Production requires the Tailscale network verifier."
-    ],
-    [
       environment2.WEB_ORIGIN.startsWith("https://"),
       "WEB_ORIGIN",
       "Production requires an exact HTTPS web origin."
@@ -225507,18 +225495,6 @@ var ApiEnvironmentSchema = external_exports.object({
       ),
       "ALLOWED_HOSTS",
       "Production requires exact host names."
-    ],
-    [
-      Boolean(environment2.TAILSCALE_EXPECTED_DNS_NAME) && environment2.ALLOWED_HOSTS.includes(
-        environment2.TAILSCALE_EXPECTED_DNS_NAME ?? ""
-      ) && new URL(environment2.WEB_ORIGIN).hostname === environment2.TAILSCALE_EXPECTED_DNS_NAME,
-      "TAILSCALE_EXPECTED_DNS_NAME",
-      "The expected tailnet DNS name must match the origin and host allowlist."
-    ],
-    [
-      environment2.TRUSTED_PROXY_MODE === "loopback" && environment2.TAILSCALE_TRUST_SERVE_PROXY,
-      "TRUSTED_PROXY_MODE",
-      "The hardened loopback topology requires the trusted local Serve proxy."
     ],
     [
       environment2.SESSION_COOKIE_NAME.startsWith("__Host-"),
@@ -225541,16 +225517,86 @@ var ApiEnvironmentSchema = external_exports.object({
       "Public Funnel exposure is unsupported."
     ],
     [
-      environment2.API_HOST === "127.0.0.1" || environment2.API_HOST === "::1" || environment2.API_HOST === "localhost",
-      "API_HOST",
-      "The hardened Serve topology requires a loopback API bind address."
-    ],
-    [
       !environment2.READ_ONLY_EXECUTION_ENABLED || Boolean(environment2.SERVER_EXECUTION_SIGNING_KEY_PATH),
       "SERVER_EXECUTION_SIGNING_KEY_PATH",
       "Read-only execution requires a persistent server signing key."
     ]
   ];
+  if (environment2.DEPLOYMENT_MODE === "private") {
+    productionRequirements.push(
+      [
+        environment2.TAILSCALE_REQUIRED,
+        "TAILSCALE_REQUIRED",
+        "Private production requires Tailscale."
+      ],
+      [
+        environment2.PRIVATE_NETWORK_REQUIRED,
+        "PRIVATE_NETWORK_REQUIRED",
+        "Private production requires private-network enforcement."
+      ],
+      [
+        environment2.NETWORK_VERIFIER_MODE === "tailscale",
+        "NETWORK_VERIFIER_MODE",
+        "Private production requires the Tailscale network verifier."
+      ],
+      [
+        Boolean(environment2.TAILSCALE_EXPECTED_DNS_NAME) && environment2.ALLOWED_HOSTS.includes(
+          environment2.TAILSCALE_EXPECTED_DNS_NAME ?? ""
+        ) && new URL(environment2.WEB_ORIGIN).hostname === environment2.TAILSCALE_EXPECTED_DNS_NAME,
+        "TAILSCALE_EXPECTED_DNS_NAME",
+        "The expected tailnet DNS name must match the origin and host allowlist."
+      ],
+      [
+        environment2.TRUSTED_PROXY_MODE === "loopback" && environment2.TAILSCALE_TRUST_SERVE_PROXY,
+        "TRUSTED_PROXY_MODE",
+        "The hardened loopback topology requires the trusted local Serve proxy."
+      ],
+      [
+        environment2.API_HOST === "127.0.0.1" || environment2.API_HOST === "::1" || environment2.API_HOST === "localhost",
+        "API_HOST",
+        "The hardened Serve topology requires a loopback API bind address."
+      ]
+    );
+  } else {
+    const publicBaseUrl = environment2.PUBLIC_BASE_URL ? new URL(environment2.PUBLIC_BASE_URL) : null;
+    productionRequirements.push(
+      [
+        Boolean(publicBaseUrl) && publicBaseUrl?.protocol === "https:",
+        "PUBLIC_BASE_URL",
+        "Cloud production requires one canonical HTTPS public base URL."
+      ],
+      [
+        Boolean(publicBaseUrl) && environment2.ALLOWED_HOSTS.includes(publicBaseUrl?.hostname ?? ""),
+        "ALLOWED_HOSTS",
+        "Cloud production must allow exactly the configured public API host."
+      ],
+      [
+        !environment2.PRIVATE_NETWORK_REQUIRED,
+        "PRIVATE_NETWORK_REQUIRED",
+        "Cloud production uses trusted-device signatures instead of requiring every client to be on a private network."
+      ],
+      [
+        !environment2.TAILSCALE_REQUIRED && environment2.NETWORK_VERIFIER_MODE === "unknown",
+        "NETWORK_VERIFIER_MODE",
+        "Cloud production must not trust Tailscale identity headers or a test verifier."
+      ],
+      [
+        environment2.TRUSTED_PROXY_MODE === "one-hop",
+        "TRUSTED_PROXY_MODE",
+        "Cloud production requires one explicitly trusted TLS-terminating proxy hop."
+      ],
+      [
+        environment2.API_HOST === "0.0.0.0" || environment2.API_HOST === "::",
+        "API_HOST",
+        "Cloud containers must bind on all container interfaces."
+      ],
+      [
+        !environment2.LOCAL_AI_ENABLED,
+        "LOCAL_AI_ENABLED",
+        "Cloud production must not depend on a Mac-local Ollama runtime."
+      ]
+    );
+  }
   for (const [valid, path13, message] of productionRequirements) {
     if (!valid) context.addIssue({ code: "custom", path: [path13], message });
   }
@@ -225575,7 +225621,25 @@ var MacAgentEnvironmentSchema = external_exports.object({
   ALEXA_EXECUTION_POLL_INTERVAL_MS: external_exports.coerce.number().int().min(1e3).max(6e4).default(5e3),
   ALEXA_MAX_FILE_READ_BYTES: external_exports.coerce.number().int().min(1024).max(131072).default(131072),
   ALEXA_MAX_GIT_OUTPUT_BYTES: external_exports.coerce.number().int().min(4096).max(262144).default(262144)
-}).passthrough();
+}).passthrough().superRefine((environment2, context) => {
+  const api = new URL(environment2.ALEXA_API_BASE_URL);
+  const web = new URL(environment2.ALEXA_WEB_BASE_URL);
+  const localHosts = /* @__PURE__ */ new Set(["localhost", "127.0.0.1", "::1"]);
+  if (!localHosts.has(api.hostname) && api.protocol !== "https:") {
+    context.addIssue({
+      code: "custom",
+      path: ["ALEXA_API_BASE_URL"],
+      message: "Remote Mac Agent API connections require HTTPS."
+    });
+  }
+  if (!localHosts.has(web.hostname) && web.protocol !== "https:") {
+    context.addIssue({
+      code: "custom",
+      path: ["ALEXA_WEB_BASE_URL"],
+      message: "Remote owner approval URLs require HTTPS."
+    });
+  }
+});
 var parseMacAgentEnvironment = (environment2) => MacAgentEnvironmentSchema.parse(environment2);
 
 // electron/main.ts
@@ -225622,11 +225686,13 @@ var HealthResponseSchema = external_exports.object({
 var statusObject = (status) => external_exports.object({ status }).strict();
 var SystemStatusResponseSchema = external_exports.object({
   api: statusObject(external_exports.literal("online")),
-  database: statusObject(external_exports.literal("not_configured")),
-  redis: statusObject(external_exports.literal("not_configured")),
-  aiProvider: statusObject(external_exports.literal("not_configured")),
+  database: statusObject(external_exports.enum(["online", "degraded", "offline", "not_configured"])),
+  redis: statusObject(external_exports.enum(["online", "degraded", "offline", "not_configured"])),
+  aiProvider: statusObject(
+    external_exports.enum(["online", "degraded", "offline", "not_configured"])
+  ),
   macAgent: statusObject(external_exports.enum(["online", "offline", "not_connected"])),
-  privateNetwork: statusObject(external_exports.literal("not_configured")),
+  privateNetwork: statusObject(external_exports.enum(["online", "not_configured", "disabled"])),
   gestureEngine: statusObject(external_exports.literal("not_started")),
   execution: external_exports.object({ enabled: external_exports.boolean() }).strict()
 }).strict();
@@ -225729,7 +225795,41 @@ var AgentRecordSchema = external_exports.object({
   configuration: external_exports.record(external_exports.string().max(80), external_exports.json()).default({}),
   createdAt: external_exports.iso.datetime(),
   updatedAt: external_exports.iso.datetime(),
-  healthSummary: external_exports.string().min(1).max(500)
+  healthSummary: external_exports.string().min(1).max(500),
+  workforce: external_exports.object({
+    organizationId: external_exports.string().uuid(),
+    departmentId: external_exports.string().uuid(),
+    parentAgentId: external_exports.string().min(3).max(120).nullable(),
+    managerAgentId: external_exports.string().min(3).max(120).nullable(),
+    specialization: external_exports.string().min(1).max(160),
+    description: external_exports.string().min(1).max(500),
+    skills: external_exports.array(external_exports.string().min(2).max(120)).min(1).max(30),
+    memoryScopeId: external_exports.string().min(3).max(160),
+    departmentMemoryScopeId: external_exports.string().min(3).max(160),
+    organizationMemoryScopeId: external_exports.string().min(3).max(160),
+    capabilityProfileId: external_exports.string().min(3).max(160),
+    missingCapabilities: external_exports.array(external_exports.string().min(3).max(120)).max(30),
+    modelPolicyId: external_exports.enum([
+      "CHEAP_ROUTINE",
+      "LOCAL_FIRST",
+      "BALANCED",
+      "STRONG_REASONING",
+      "SECURITY_REVIEW"
+    ]),
+    activationPolicyId: external_exports.string().min(3).max(160),
+    executionPlacement: external_exports.enum([
+      "LOCAL",
+      "REMOTE_ALLOWED",
+      "REMOTE_PREFERRED",
+      "LOCAL_ONLY"
+    ]),
+    evaluationProfile: external_exports.array(external_exports.string().min(2).max(120)).min(1).max(20),
+    source: external_exports.enum(["ALEXA_NATIVE", "EVERYTHING_CLAUDE_CODE"]),
+    sourcePath: external_exports.string().max(500).nullable(),
+    sourceVersion: external_exports.string().max(80).nullable(),
+    license: external_exports.string().max(80).nullable(),
+    importedAt: external_exports.iso.datetime()
+  }).strict().optional()
 }).strict();
 var AgentTaskRecordSchema = external_exports.object({
   id: external_exports.string().uuid(),
@@ -225981,14 +226081,14 @@ var RetireDynamicAgentRequestSchema = external_exports.object({
   reason: external_exports.string().trim().min(1).max(1e3).default("Workflow completed.")
 }).strict();
 var AgentDashboardResponseSchema = external_exports.object({
-  agents: external_exports.array(AgentRecordSchema).max(100),
+  agents: external_exports.array(AgentRecordSchema).max(1e3),
   tasks: external_exports.array(AgentTaskRecordSchema).max(500),
   messages: external_exports.array(AgentMessageRecordSchema).max(500),
   contexts: external_exports.array(AgentContextRecordSchema).max(200),
   consensus: external_exports.array(AgentConsensusRecordSchema).max(200),
   conflicts: external_exports.array(AgentConflictRecordSchema).max(200),
-  health: external_exports.array(AgentHealthRecordSchema).max(100),
-  metrics: external_exports.array(AgentMetricsRecordSchema).max(100),
+  health: external_exports.array(AgentHealthRecordSchema).max(1e3),
+  metrics: external_exports.array(AgentMetricsRecordSchema).max(1e3),
   dynamicWorkforce: external_exports.object({
     templates: external_exports.array(AgentTemplateRecordSchema).max(100),
     capabilities: external_exports.array(CapabilityRecordSchema).max(500),
@@ -226000,13 +226100,13 @@ var AgentDashboardResponseSchema = external_exports.object({
     archivedAgents: external_exports.array(DynamicAgentRecordSchema).max(500)
   }).optional()
 }).strict();
-var AgentListResponseSchema = external_exports.array(AgentRecordSchema).max(100);
+var AgentListResponseSchema = external_exports.array(AgentRecordSchema).max(1e3);
 var AgentTaskListResponseSchema = external_exports.array(AgentTaskRecordSchema).max(500);
 var AgentMessageListResponseSchema = external_exports.array(AgentMessageRecordSchema).max(500);
 var AgentConsensusListResponseSchema = external_exports.array(AgentConsensusRecordSchema).max(200);
 var AgentConflictListResponseSchema = external_exports.array(AgentConflictRecordSchema).max(200);
-var AgentHealthListResponseSchema = external_exports.array(AgentHealthRecordSchema).max(100);
-var AgentMetricsListResponseSchema = external_exports.array(AgentMetricsRecordSchema).max(100);
+var AgentHealthListResponseSchema = external_exports.array(AgentHealthRecordSchema).max(1e3);
+var AgentMetricsListResponseSchema = external_exports.array(AgentMetricsRecordSchema).max(1e3);
 var AgentTaskResponseSchema = external_exports.object({ task: AgentTaskRecordSchema }).strict();
 var AgentMessageResponseSchema = external_exports.object({ message: AgentMessageRecordSchema }).strict();
 var AgentConsensusResponseSchema = external_exports.object({ consensus: AgentConsensusRecordSchema }).strict();
@@ -227122,6 +227222,151 @@ var EvolutionAnalysisResponseSchema = external_exports.object({
   selfEvaluation: SelfEvaluationRecordSchema
 }).strict();
 
+// ../../packages/shared/src/agent-economy.ts
+var credits = external_exports.number().int().nonnegative().max(1e9);
+var reference = external_exports.string().min(1).max(160);
+var AgentEconomyStatusSchema = external_exports.enum([
+  "ECONOMY_DISABLED",
+  "DORMANT",
+  "ACTIVE",
+  "SUSPENDED"
+]);
+var AgentEconomyLedgerTypeSchema = external_exports.enum([
+  "CREDIT_GRANTED",
+  "REWARD_EARNED",
+  "COST_RESERVED",
+  "COST_SETTLED",
+  "RESERVATION_RELEASED",
+  "PENALTY",
+  "ADJUSTMENT"
+]);
+var AgentEconomyAccountSchema = external_exports.object({
+  ownerId: external_exports.string().uuid(),
+  agentId: external_exports.string().min(3).max(120),
+  availableCredits: credits,
+  reservedCredits: credits,
+  lifetimeEarned: credits,
+  lifetimeSpent: credits,
+  reputation: external_exports.number().min(0).max(100),
+  economyStatus: AgentEconomyStatusSchema,
+  organizationId: reference.nullable(),
+  departmentId: reference.nullable(),
+  parentAgentId: reference.nullable(),
+  memoryScopeId: reference.nullable(),
+  capabilityProfileId: reference.nullable(),
+  modelPolicyId: reference.nullable(),
+  activationPolicyId: reference.nullable(),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var EconomyReferenceSetSchema = external_exports.object({
+  taskId: reference.optional(),
+  workflowId: reference.optional(),
+  skillId: reference.optional(),
+  providerRequestId: reference.optional(),
+  experimentId: reference.optional()
+}).strict();
+var AgentEconomyLedgerEntrySchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  agentId: external_exports.string().min(3).max(120),
+  type: AgentEconomyLedgerTypeSchema,
+  amount: credits.positive(),
+  reasonCode: external_exports.string().min(1).max(120),
+  idempotencyKey: external_exports.string().min(8).max(200),
+  references: EconomyReferenceSetSchema,
+  createdAt: external_exports.iso.datetime()
+}).strict();
+var AgentEconomyReservationSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  agentId: external_exports.string().min(3).max(120),
+  amountReserved: credits.positive(),
+  amountSettled: credits,
+  status: external_exports.enum(["ACTIVE", "SETTLED", "RELEASED"]),
+  costType: external_exports.enum([
+    "MODEL_INFERENCE",
+    "LOCAL_INFERENCE",
+    "TOOL_USAGE",
+    "WORKFLOW_EXECUTION",
+    "SKILL_EXECUTION",
+    "TASK_EXECUTION",
+    "RUNTIME_ACTIVATION",
+    "EXPERIMENT"
+  ]),
+  idempotencyKey: external_exports.string().min(8).max(200),
+  references: EconomyReferenceSetSchema,
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var AgentEconomyPerformanceSchema = external_exports.object({
+  ownerId: external_exports.string().uuid(),
+  agentId: external_exports.string().min(3).max(120),
+  tasksAttempted: external_exports.number().int().nonnegative(),
+  tasksCompleted: external_exports.number().int().nonnegative(),
+  verifiedSuccesses: external_exports.number().int().nonnegative(),
+  verifiedFailures: external_exports.number().int().nonnegative(),
+  totalQualityScore: external_exports.number().nonnegative(),
+  totalPredictedProbability: external_exports.number().nonnegative(),
+  totalBrierScore: external_exports.number().nonnegative(),
+  totalActualCost: credits,
+  totalEquivalentOutcomeValue: credits,
+  calibration: external_exports.number().min(0).max(1),
+  costEfficiency: external_exports.number().nonnegative(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var AgentEconomyOutcomeSchema = external_exports.object({
+  taskId: reference,
+  predictedSuccessProbability: external_exports.number().min(0).max(1),
+  estimatedCost: credits,
+  estimatedDurationMs: external_exports.number().int().nonnegative().max(864e5),
+  actualSuccess: external_exports.boolean(),
+  actualCost: credits,
+  actualDurationMs: external_exports.number().int().nonnegative().max(864e5),
+  qualityScore: external_exports.number().min(0).max(1),
+  verificationResult: external_exports.enum(["VERIFIED", "REJECTED", "INCONCLUSIVE"]),
+  evidenceRefs: external_exports.array(reference).max(20)
+}).strict();
+var AgentEconomyOverviewSchema = external_exports.object({
+  allocatedCredits: credits,
+  availableCredits: credits,
+  reservedCredits: credits,
+  spentCredits: credits,
+  economyEnabledAgents: external_exports.number().int().nonnegative(),
+  activeAgents: external_exports.number().int().nonnegative(),
+  dormantAgents: external_exports.number().int().nonnegative(),
+  suspendedAgents: external_exports.number().int().nonnegative(),
+  averageReputation: external_exports.number().min(0).max(100),
+  settledTasks: external_exports.number().int().nonnegative()
+}).strict();
+var AgentEconomyDashboardSchema = external_exports.object({
+  overview: AgentEconomyOverviewSchema,
+  accounts: external_exports.array(AgentEconomyAccountSchema).max(1e3),
+  performance: external_exports.array(AgentEconomyPerformanceSchema).max(1e3),
+  ledger: external_exports.array(AgentEconomyLedgerEntrySchema).max(500),
+  registeredAgents: external_exports.number().int().nonnegative(),
+  runtimeActivationsFromRegistration: external_exports.literal(0),
+  creditsGrantAuthority: external_exports.literal("OWNER_OR_GOVERNED_SERVICE"),
+  creditsCanBuyAuthority: external_exports.literal(false),
+  creditsCanBuyReputation: external_exports.literal(false)
+}).strict();
+var EnrollAgentEconomyRequestSchema = external_exports.object({
+  organizationId: reference.optional(),
+  departmentId: reference.optional(),
+  parentAgentId: reference.optional(),
+  memoryScopeId: reference.optional(),
+  capabilityProfileId: reference.optional(),
+  modelPolicyId: reference.optional(),
+  activationPolicyId: reference.optional()
+}).strict();
+var AllocateAgentCreditsRequestSchema = external_exports.object({
+  amount: credits.positive(),
+  reasonCode: external_exports.string().min(1).max(120),
+  idempotencyKey: external_exports.string().min(8).max(200)
+}).strict();
+var UpdateAgentEconomyStatusRequestSchema = external_exports.object({ status: AgentEconomyStatusSchema }).strict();
+var AgentEconomyAccountResponseSchema = external_exports.object({ account: AgentEconomyAccountSchema }).strict();
+
 // ../../packages/shared/src/agent-society.ts
 var OrganizationalRoleTypeSchema = external_exports.enum([
   "chief_planner",
@@ -227168,6 +227413,7 @@ var OrganizationRecordSchema = external_exports.object({
   ownerId: external_exports.string().uuid(),
   name: external_exports.string().min(1).max(160),
   mission: external_exports.string().min(1).max(1e3),
+  governorAgentId: external_exports.string().min(3).max(120).nullable().optional(),
   status: external_exports.enum(["active", "archived"]),
   createdAt: external_exports.iso.datetime(),
   updatedAt: external_exports.iso.datetime()
@@ -227178,7 +227424,9 @@ var DepartmentRecordSchema = external_exports.object({
   organizationId: external_exports.string().uuid(),
   name: external_exports.string().min(1).max(120),
   responsibility: external_exports.string().min(1).max(1e3),
+  parentDepartmentId: external_exports.string().uuid().nullable().optional(),
   leadAgentId: external_exports.string().min(3).max(120).nullable(),
+  status: external_exports.enum(["active", "archived"]).optional(),
   createdAt: external_exports.iso.datetime(),
   updatedAt: external_exports.iso.datetime()
 }).strict();
@@ -227457,6 +227705,261 @@ var SocietyDebateResponseSchema = external_exports.object({
   argument: DebateArgumentRecordSchema
 }).strict();
 var SocietyMeetingResponseSchema = external_exports.object({ meeting: MeetingRecordSchema }).strict();
+
+// ../../packages/shared/src/agent-workforce.ts
+var WorkforceEventTypeSchema = external_exports.enum([
+  "REGISTERED",
+  "ACTIVATED",
+  "DORMANT",
+  "SUSPENDED",
+  "TASK_ASSIGNED",
+  "TASK_COMPLETED",
+  "CAPABILITY_REQUESTED",
+  "MEMORY_RECORDED"
+]);
+var WorkforceEventSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  agentId: external_exports.string().min(3).max(120),
+  type: WorkforceEventTypeSchema,
+  summary: external_exports.string().min(1).max(500),
+  referenceId: external_exports.string().max(160).nullable(),
+  createdAt: external_exports.iso.datetime()
+}).strict();
+var WorkforceImportReportSchema = external_exports.object({
+  sourceDefinitionsScanned: external_exports.number().int().nonnegative(),
+  importedAsAgents: external_exports.number().int().nonnegative(),
+  alexaNativeAgentsAdded: external_exports.number().int().nonnegative(),
+  finalActualRegisteredAgents: external_exports.number().int().nonnegative(),
+  convertedToSkills: external_exports.number().int().nonnegative(),
+  convertedToWorkflows: external_exports.number().int().nonnegative(),
+  convertedToReviewers: external_exports.number().int().nonnegative(),
+  duplicatesRejected: external_exports.number().int().nonnegative(),
+  activeDuringIdle: external_exports.number().int().nonnegative(),
+  dormantDuringIdle: external_exports.number().int().nonnegative(),
+  sourceCommit: external_exports.string().min(7).max(80),
+  sourceLicense: external_exports.string().min(1).max(80),
+  externalRuntimeActive: external_exports.literal(false),
+  providerCallsDuringImport: external_exports.literal(0),
+  runtimeActivationsDuringImport: external_exports.literal(0)
+}).strict();
+var WorkforceGraphNodeSchema = external_exports.object({
+  id: external_exports.string().min(3).max(120),
+  kind: external_exports.enum(["GOVERNOR", "DEPARTMENT", "AGENT"]),
+  label: external_exports.string().min(1).max(160),
+  subtitle: external_exports.string().max(160),
+  parentId: external_exports.string().max(160).nullable(),
+  departmentId: external_exports.string().uuid().nullable(),
+  status: external_exports.enum(["ACTIVE", "DORMANT", "BLOCKED", "SUSPENDED", "FAILED"]),
+  reputation: external_exports.number().min(0).max(100).nullable(),
+  credits: external_exports.number().int().nonnegative().nullable(),
+  source: external_exports.enum(["ALEXA_NATIVE", "EVERYTHING_CLAUDE_CODE"]).nullable(),
+  childCount: external_exports.number().int().nonnegative()
+}).strict();
+var WorkforceGraphEdgeSchema = external_exports.object({
+  id: external_exports.string().min(3).max(300),
+  source: external_exports.string().min(3).max(160),
+  target: external_exports.string().min(3).max(160),
+  type: external_exports.enum(["REPORTS_TO", "RECENT_ACTIVITY"])
+}).strict();
+var WorkforceGraphResponseSchema = external_exports.object({
+  organization: OrganizationRecordSchema.nullable(),
+  departments: external_exports.array(DepartmentRecordSchema).max(100),
+  nodes: external_exports.array(WorkforceGraphNodeSchema).max(1e3),
+  edges: external_exports.array(WorkforceGraphEdgeSchema).max(2e3),
+  summary: external_exports.object({ registered: external_exports.number().int().nonnegative(), active: external_exports.number().int().nonnegative(), dormant: external_exports.number().int().nonnegative(), suspended: external_exports.number().int().nonnegative(), departments: external_exports.number().int().nonnegative(), memoryScopes: external_exports.number().int().nonnegative(), capabilityProfiles: external_exports.number().int().nonnegative(), aggregateCredits: external_exports.number().int().nonnegative(), averageReputation: external_exports.number().min(0).max(100) }).strict(),
+  bootstrapAvailable: external_exports.boolean(),
+  importPreview: WorkforceImportReportSchema,
+  runtime: external_exports.object({ modelInstancesFromRegistration: external_exports.literal(0), workerProcessesFromRegistration: external_exports.literal(0), providerCallsFromRegistration: external_exports.literal(0), sharedAIRouter: external_exports.literal(true) }).strict()
+}).strict();
+var WorkforceAgentDetailSchema = external_exports.object({
+  agent: AgentRecordSchema,
+  department: DepartmentRecordSchema.nullable(),
+  manager: AgentRecordSchema.nullable(),
+  children: external_exports.array(AgentRecordSchema).max(500),
+  economy: AgentEconomyAccountSchema.nullable(),
+  performance: AgentEconomyPerformanceSchema.nullable(),
+  tasks: external_exports.array(AgentTaskRecordSchema).max(100),
+  events: external_exports.array(WorkforceEventSchema).max(100),
+  recentLedger: external_exports.array(external_exports.object({ id: external_exports.string().uuid(), type: external_exports.string(), amount: external_exports.number(), reasonCode: external_exports.string(), createdAt: external_exports.iso.datetime() }).strict()).max(100),
+  memoryAccess: external_exports.object({ privateScope: external_exports.string(), departmentScope: external_exports.string(), organizationScope: external_exports.string(), ownerPrivateIncluded: external_exports.literal(false) }).strict(),
+  authority: external_exports.object({ hierarchyGrantsPermissions: external_exports.literal(false), creditsGrantAuthority: external_exports.literal(false), capabilitiesExplicitOnly: external_exports.literal(true) }).strict()
+}).strict();
+var WorkforceSearchQuerySchema = external_exports.object({
+  q: external_exports.string().trim().max(160).default(""),
+  departmentId: external_exports.string().uuid().optional(),
+  status: external_exports.enum(["ACTIVE", "DORMANT", "BLOCKED", "SUSPENDED", "FAILED"]).optional(),
+  source: external_exports.enum(["ALEXA_NATIVE", "EVERYTHING_CLAUDE_CODE"]).optional(),
+  limit: external_exports.coerce.number().int().min(1).max(1e3).default(500)
+}).strict();
+var UpdateWorkforceActivationRequestSchema = external_exports.object({ state: external_exports.enum(["ACTIVE", "DORMANT"]) }).strict();
+
+// ../../packages/shared/src/workforce-runtime.ts
+var boundedRef = external_exports.string().min(1).max(160);
+var WorkforceTaskStatusSchema = external_exports.enum([
+  "CREATED",
+  "QUEUED",
+  "MATCHING",
+  "ASSIGNED",
+  "RESERVED",
+  "RUNNING",
+  "WAITING",
+  "REVIEW_REQUIRED",
+  "RECOVERY_REVIEW_REQUIRED",
+  "COMPLETED",
+  "FAILED",
+  "CANCELLED",
+  "EXPIRED"
+]);
+var WorkforceMessageTypeSchema = external_exports.enum([
+  "TASK",
+  "RESULT",
+  "QUESTION",
+  "ANSWER",
+  "DELEGATION",
+  "REVIEW_REQUEST",
+  "REVIEW_RESULT",
+  "CAPABILITY_REQUEST",
+  "ESCALATION",
+  "PROPOSAL",
+  "EVIDENCE",
+  "STATUS_UPDATE"
+]);
+var WorkforceReviewVerdictSchema = external_exports.enum(["PASS", "FAIL", "CONDITIONAL"]);
+var WorkforceMatchScoreSchema = external_exports.object({
+  agentId: boundedRef,
+  skillFit: external_exports.number().min(0).max(1),
+  capabilityFit: external_exports.number().min(0).max(1),
+  reputation: external_exports.number().min(0).max(1),
+  calibration: external_exports.number().min(0).max(1),
+  costEfficiency: external_exports.number().min(0).max(1),
+  availability: external_exports.number().min(0).max(1),
+  departmentFit: external_exports.number().min(0).max(1),
+  capacityPenalty: external_exports.number().min(0).max(1),
+  finalScore: external_exports.number().min(0).max(1),
+  predictedSuccess: external_exports.number().min(0).max(1),
+  estimatedCost: external_exports.number().int().nonnegative().max(1e6),
+  estimatedDurationMs: external_exports.number().int().nonnegative().max(864e5),
+  eligible: external_exports.boolean(),
+  reasons: external_exports.array(external_exports.string().min(1).max(200)).max(20)
+}).strict();
+var WorkforceRuntimeTaskSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  idempotencyKey: external_exports.string().min(8).max(200).nullable(),
+  ownerId: external_exports.string().uuid(),
+  organizationId: boundedRef.nullable(),
+  createdByAgentId: boundedRef.nullable(),
+  assignedAgentId: boundedRef.nullable(),
+  parentTaskId: external_exports.string().uuid().nullable(),
+  rootTaskId: external_exports.string().uuid(),
+  depth: external_exports.number().int().min(0).max(4),
+  type: external_exports.enum(["WORK", "QUESTION", "REVIEW", "CAPABILITY_REQUEST"]),
+  title: external_exports.string().trim().min(1).max(255),
+  objective: external_exports.string().trim().min(1).max(2e3),
+  inputs: external_exports.record(external_exports.string().max(80), external_exports.json()).default({}),
+  evidenceRefs: external_exports.array(boundedRef).max(50),
+  memoryScopeRefs: external_exports.array(boundedRef).max(20),
+  requiredSkills: external_exports.array(boundedRef).max(30),
+  requiredCapabilities: external_exports.array(boundedRef).max(30),
+  preferredDepartmentId: boundedRef.nullable(),
+  priority: external_exports.enum(["low", "normal", "high", "urgent"]),
+  riskLevel: external_exports.enum(["LOW", "MEDIUM", "HIGH"]),
+  economicBudget: external_exports.number().int().nonnegative().max(1e6),
+  reservedCredits: external_exports.number().int().nonnegative().max(1e6),
+  actualCost: external_exports.number().int().nonnegative().max(1e6),
+  reservationId: external_exports.string().uuid().nullable(),
+  status: WorkforceTaskStatusSchema,
+  retryCount: external_exports.number().int().min(0).max(2),
+  maxRetries: external_exports.number().int().min(0).max(2),
+  selection: external_exports.array(WorkforceMatchScoreSchema).max(20),
+  resultSummary: external_exports.string().max(4e3).nullable(),
+  resultConfidence: external_exports.number().min(0).max(1).nullable(),
+  aiRequestId: external_exports.string().uuid().nullable(),
+  providerId: external_exports.string().max(80).nullable(),
+  modelId: external_exports.string().max(160).nullable(),
+  sandboxStatus: external_exports.enum(["NOT_REQUESTED", "PASSED", "FAILED", "UNAVAILABLE", "TIMED_OUT"]).nullable(),
+  artifactCount: external_exports.number().int().nonnegative().max(100),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime(),
+  startedAt: external_exports.iso.datetime().nullable(),
+  completedAt: external_exports.iso.datetime().nullable(),
+  expiresAt: external_exports.iso.datetime().nullable()
+}).strict();
+var WorkforceRuntimeMessageSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  organizationId: boundedRef.nullable(),
+  fromAgentId: boundedRef,
+  toAgentId: boundedRef.nullable(),
+  taskId: external_exports.string().uuid(),
+  type: WorkforceMessageTypeSchema,
+  payload: external_exports.record(external_exports.string().max(80), external_exports.json()).default({}),
+  evidenceRefs: external_exports.array(boundedRef).max(50),
+  createdAt: external_exports.iso.datetime()
+}).strict();
+var WorkforceRuntimeReviewSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  taskId: external_exports.string().uuid(),
+  reviewerAgentId: boundedRef,
+  subjectAgentId: boundedRef,
+  verdict: WorkforceReviewVerdictSchema,
+  findings: external_exports.array(external_exports.string().min(1).max(1e3)).max(50),
+  evidenceRefs: external_exports.array(boundedRef).max(50),
+  createdAt: external_exports.iso.datetime()
+}).strict();
+var CreateWorkforceTaskRequestSchema = external_exports.object({
+  idempotencyKey: external_exports.string().min(8).max(200).nullable().default(null),
+  createdByAgentId: boundedRef.nullable().default(null),
+  parentTaskId: external_exports.string().uuid().nullable().default(null),
+  assignedAgentId: boundedRef.nullable().default(null),
+  type: external_exports.enum(["WORK", "QUESTION", "REVIEW"]).default("WORK"),
+  title: external_exports.string().trim().min(1).max(255),
+  objective: external_exports.string().trim().min(1).max(2e3),
+  inputs: external_exports.record(external_exports.string().max(80), external_exports.json()).default({}),
+  evidenceRefs: external_exports.array(boundedRef).max(50).default([]),
+  memoryScopeRefs: external_exports.array(boundedRef).max(20).default([]),
+  requiredSkills: external_exports.array(boundedRef).max(30).default([]),
+  requiredCapabilities: external_exports.array(boundedRef).max(30).default([]),
+  preferredDepartmentId: boundedRef.nullable().default(null),
+  priority: external_exports.enum(["low", "normal", "high", "urgent"]).default("normal"),
+  riskLevel: external_exports.enum(["LOW", "MEDIUM", "HIGH"]).default("LOW"),
+  economicBudget: external_exports.number().int().min(1).max(1e6).default(10),
+  maxRetries: external_exports.number().int().min(0).max(2).default(1),
+  expiresAt: external_exports.iso.datetime().nullable().default(null)
+}).strict();
+var CreateWorkforceMessageRequestSchema = external_exports.object({
+  fromAgentId: boundedRef,
+  toAgentId: boundedRef.nullable().default(null),
+  taskId: external_exports.string().uuid(),
+  type: WorkforceMessageTypeSchema,
+  payload: external_exports.record(external_exports.string().max(80), external_exports.json()).default({}),
+  evidenceRefs: external_exports.array(boundedRef).max(50).default([])
+}).strict();
+var CompleteWorkforceTaskRequestSchema = external_exports.object({
+  resultSummary: external_exports.string().trim().min(1).max(4e3),
+  resultConfidence: external_exports.number().min(0).max(1),
+  actualCost: external_exports.number().int().nonnegative().max(1e6),
+  evidenceRefs: external_exports.array(boundedRef).max(50).default([]),
+  reviewRequired: external_exports.boolean().default(false)
+}).strict();
+var SubmitWorkforceReviewRequestSchema = external_exports.object({
+  reviewerAgentId: boundedRef,
+  verdict: WorkforceReviewVerdictSchema,
+  findings: external_exports.array(external_exports.string().min(1).max(1e3)).max(50).default([]),
+  evidenceRefs: external_exports.array(boundedRef).max(50).default([])
+}).strict();
+var WorkforceRuntimeDashboardSchema = external_exports.object({
+  summary: external_exports.object({ registered: external_exports.number().int().nonnegative(), active: external_exports.number().int().nonnegative(), dormant: external_exports.number().int().nonnegative(), queued: external_exports.number().int().nonnegative(), running: external_exports.number().int().nonnegative(), waitingReview: external_exports.number().int().nonnegative(), completed: external_exports.number().int().nonnegative(), failed: external_exports.number().int().nonnegative(), maxConcurrent: external_exports.number().int().positive() }).strict(),
+  tasks: external_exports.array(WorkforceRuntimeTaskSchema).max(500),
+  messages: external_exports.array(WorkforceRuntimeMessageSchema).max(500),
+  reviews: external_exports.array(WorkforceRuntimeReviewSchema).max(500),
+  metrics: external_exports.object({ assignments: external_exports.number().int().nonnegative(), providerCalls: external_exports.number().int().nonnegative(), matchingLatencyMs: external_exports.number().nonnegative(), peakActiveAgents: external_exports.number().int().nonnegative(), completionRate: external_exports.number().min(0).max(1) }).strict(),
+  invariants: external_exports.object({ sharedAIRouter: external_exports.literal(true), dedicatedModelPerAgent: external_exports.literal(false), hierarchyGrantsAuthority: external_exports.literal(false), creditsGrantAuthority: external_exports.literal(false), maxTaskDepth: external_exports.literal(4) }).strict()
+}).strict();
+var WorkforceRuntimeTaskResponseSchema = external_exports.object({ task: WorkforceRuntimeTaskSchema }).strict();
+var WorkforceRuntimeMessageResponseSchema = external_exports.object({ message: WorkforceRuntimeMessageSchema }).strict();
+var WorkforceRuntimeReviewResponseSchema = external_exports.object({ task: WorkforceRuntimeTaskSchema, review: WorkforceRuntimeReviewSchema }).strict();
 
 // ../../packages/shared/src/advisor.ts
 var EngineeringPrioritySchema = external_exports.enum(["low", "medium", "high", "critical"]);
@@ -230694,6 +231197,14 @@ var AuditEventTypeSchema = external_exports.enum([
   "MEMORY_SUGGESTION_CREATED",
   "ENGINEERING_GOAL_CREATED",
   "STRATEGIC_PLAN_CREATED",
+  "OBJECTIVE_DRAFTED",
+  "OBJECTIVE_ACTIVATED",
+  "OBJECTIVE_STATE_CHANGED",
+  "OBJECTIVE_REPLANNED",
+  "EXPERIMENT_CREATED",
+  "EXPERIMENT_ACTIVATED",
+  "EXPERIMENT_OWNER_CONTROL",
+  "EXPERIMENT_MODIFIED",
   "SCENARIO_SIMULATED",
   "ENGINEERING_RECOMMENDATION_CREATED",
   "ENGINEERING_HEALTH_ASSESSED",
@@ -230873,7 +231384,21 @@ var AuditEventTypeSchema = external_exports.enum([
   "CAPABILITY_CANDIDATE_REVOKED",
   "NATIVE_CAPABILITY_DISPATCH_REQUESTED",
   "NATIVE_CAPABILITY_DISPATCH_DENIED",
-  "NATIVE_CAPABILITY_VERIFIED"
+  "NATIVE_CAPABILITY_VERIFIED",
+  "AGENT_ECONOMY_ENROLLED",
+  "AGENT_ECONOMY_STATUS_CHANGED",
+  "AGENT_ECONOMY_CREDITS_ALLOCATED",
+  "AGENT_ECONOMY_REWARD_GRANTED",
+  "AGENT_ECONOMY_PENALTY_APPLIED",
+  "AGENT_ECONOMY_BUDGET_DENIED",
+  "AGENT_ECONOMY_DUPLICATE_MUTATION",
+  "AGENT_WORKFORCE_BOOTSTRAPPED",
+  "AGENT_WORKFORCE_ACTIVATION_CHANGED",
+  "WORKFORCE_TASK_CREATED",
+  "WORKFORCE_TASK_SCHEDULED",
+  "WORKFORCE_TASK_REVIEWED",
+  "WORKFORCE_TASK_CANCELLED",
+  "WORKFORCE_RUNTIME_RECOVERED"
 ]);
 var AuditOutcomeSchema = external_exports.enum(["SUCCESS", "FAILURE", "DENIED"]);
 var AuditRecordSchema = external_exports.object({
@@ -232982,6 +233507,391 @@ var ExecutiveResponseSchema = external_exports.object({
   traceId: external_exports.string().uuid()
 }).strict();
 
+// ../../packages/shared/src/objectives.ts
+var ObjectiveExecutionStatusSchema = external_exports.enum([
+  "DRAFT",
+  "PLANNING",
+  "AWAITING_CONFIRMATION",
+  "ACTIVE",
+  "PAUSED",
+  "AT_RISK",
+  "BLOCKED",
+  "COMPLETED",
+  "FAILED",
+  "CANCELLED"
+]);
+var ObjectiveReplanTriggerSchema = external_exports.enum([
+  "MAJOR_PROJECT_FAILURE",
+  "WORKFLOW_FAILURE",
+  "BUDGET_AT_RISK",
+  "DEADLINE_AT_RISK",
+  "METRIC_STAGNATION",
+  "CAPABILITY_BLOCK",
+  "OWNER_CHANGE"
+]);
+var ObjectiveWorkflowScoreSchema = external_exports.object({
+  templateId: external_exports.string().uuid(),
+  name: external_exports.string().min(1).max(160),
+  reuseType: external_exports.enum(["EXISTING_PROVEN", "ADAPTED_EXISTING", "COMPOSED_COMPONENTS", "NEW_CANDIDATE"]),
+  objectiveFit: external_exports.number().min(0).max(1),
+  historicalSuccess: external_exports.number().min(0).max(1),
+  capabilityFit: external_exports.number().min(0).max(1),
+  workforceFit: external_exports.number().min(0).max(1),
+  costScore: external_exports.number().min(0).max(1),
+  durationScore: external_exports.number().min(0).max(1),
+  totalScore: external_exports.number().min(0).max(1),
+  reasons: external_exports.array(external_exports.string().max(240)).max(12)
+}).strict();
+var ObjectiveExecutionSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  executiveGoalId: external_exports.string().uuid(),
+  organizationId: external_exports.string().min(1).max(160).nullable(),
+  status: ObjectiveExecutionStatusSchema,
+  budgetCredits: external_exports.number().int().nonnegative().max(1e7),
+  committedCredits: external_exports.number().int().nonnegative().max(1e7),
+  spentCredits: external_exports.number().int().nonnegative().max(1e7),
+  executionProgress: external_exports.number().min(0).max(100),
+  outcomeProgress: external_exports.number().min(0).max(100),
+  strategyVersion: external_exports.number().int().positive(),
+  activationKey: external_exports.string().max(200).nullable(),
+  blockers: external_exports.array(external_exports.string().max(500)).max(30),
+  riskReasons: external_exports.array(external_exports.string().max(500)).max(30).default([]),
+  deadlineStatus: external_exports.enum(["ON_TRACK", "AT_RISK", "OVERDUE"]).default("ON_TRACK"),
+  budgetStatus: external_exports.enum(["ON_TRACK", "BUDGET_AT_RISK", "EXHAUSTED"]).default("ON_TRACK"),
+  projectedCost: external_exports.number().int().nonnegative().max(1e7).default(0),
+  lastReplanTrigger: ObjectiveReplanTriggerSchema.nullable().default(null),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime(),
+  activatedAt: external_exports.iso.datetime().nullable(),
+  completedAt: external_exports.iso.datetime().nullable()
+}).strict();
+var ObjectiveProjectSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  objectiveExecutionId: external_exports.string().uuid(),
+  title: external_exports.string().min(1).max(160),
+  outcome: external_exports.string().min(1).max(1e3),
+  status: external_exports.enum(["PLANNED", "QUEUED", "RUNNING", "WAITING", "BLOCKED", "COMPLETED", "FAILED", "CANCELLED"]),
+  sequence: external_exports.number().int().nonnegative().max(100),
+  departmentId: external_exports.string().max(160).nullable(),
+  requiredSkills: external_exports.array(external_exports.string().max(160)).max(20),
+  requiredCapabilities: external_exports.array(external_exports.string().max(160)).max(20),
+  memoryScopeRefs: external_exports.array(external_exports.string().max(160)).max(20),
+  budgetCredits: external_exports.number().int().nonnegative().max(1e6),
+  workforceTaskId: external_exports.string().uuid().nullable(),
+  workflowId: external_exports.string().uuid().nullable(),
+  selectedWorkflowTemplateId: external_exports.string().uuid().nullable().default(null),
+  workflowSelection: external_exports.array(ObjectiveWorkflowScoreSchema).max(20).default([]),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var ObjectiveEventSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  objectiveExecutionId: external_exports.string().uuid(),
+  type: external_exports.enum(["DRAFTED", "PLAN_CREATED", "ACTIVATED", "PAUSED", "RESUMED", "PROGRESS_UPDATED", "MONITORED", "MODIFIED", "REPLAN_PROPOSED", "REPLANNED", "BLOCKED", "COMPLETED", "CANCELLED"]),
+  summary: external_exports.string().min(1).max(1e3),
+  idempotencyKey: external_exports.string().min(8).max(200).nullable(),
+  metadata: external_exports.record(external_exports.string().max(80), external_exports.json()),
+  createdAt: external_exports.iso.datetime()
+}).strict();
+var ObjectiveCapabilityLinkSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  objectiveExecutionId: external_exports.string().uuid(),
+  projectId: external_exports.string().uuid().nullable(),
+  workflowId: external_exports.string().uuid().nullable(),
+  taskId: external_exports.string().uuid().nullable(),
+  requiredCapability: external_exports.string().min(1).max(160),
+  capabilityRequestId: external_exports.string().uuid(),
+  status: external_exports.enum(["OPEN", "CANDIDATE_CREATED", "RESOLVED", "DISMISSED"]),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var ObjectiveMetricObservationSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  objectiveExecutionId: external_exports.string().uuid(),
+  kpiId: external_exports.string().uuid(),
+  value: external_exports.number(),
+  observedAt: external_exports.iso.datetime(),
+  source: external_exports.enum(["OWNER", "WORKFLOW", "TASK", "CALCULATED"])
+}).strict();
+var ObjectiveMetricInputSchema = external_exports.object({
+  name: external_exports.string().min(1).max(120),
+  unit: external_exports.string().min(1).max(40),
+  target: external_exports.number(),
+  direction: external_exports.enum(["HIGHER_IS_BETTER", "LOWER_IS_BETTER", "TARGET_RANGE", "BINARY"]).default("HIGHER_IS_BETTER")
+}).strict();
+var CreateObjectiveRequestSchema = external_exports.object({
+  title: external_exports.string().trim().min(1).max(160),
+  outcome: external_exports.string().trim().min(1).max(1e3),
+  deadline: external_exports.iso.datetime().nullable().default(null),
+  budgetCredits: external_exports.number().int().min(1).max(1e6).default(100),
+  priority: external_exports.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
+  organizationId: external_exports.string().min(1).max(160).nullable().default(null),
+  constraints: external_exports.array(external_exports.string().trim().min(1).max(500)).max(30).default([]),
+  metrics: external_exports.array(ObjectiveMetricInputSchema).max(10).default([])
+}).strict();
+var ObjectiveMutationRequestSchema = external_exports.object({
+  idempotencyKey: external_exports.string().min(8).max(200)
+}).strict();
+var ModifyObjectiveRequestSchema = external_exports.object({
+  idempotencyKey: external_exports.string().min(8).max(200),
+  budgetCredits: external_exports.number().int().min(1).max(1e6).optional(),
+  deadline: external_exports.iso.datetime().nullable().optional(),
+  priority: external_exports.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).optional(),
+  constraints: external_exports.array(external_exports.string().trim().min(1).max(500)).max(30).optional(),
+  metrics: external_exports.array(ObjectiveMetricInputSchema).max(10).optional()
+}).strict().refine((value) => value.budgetCredits !== void 0 || value.deadline !== void 0 || value.priority !== void 0 || value.constraints !== void 0 || value.metrics !== void 0, { message: "At least one objective field must be supplied." });
+var ObserveObjectiveMetricRequestSchema = external_exports.object({
+  kpiId: external_exports.string().uuid(),
+  value: external_exports.number(),
+  source: external_exports.enum(["OWNER", "WORKFLOW", "TASK", "CALCULATED"]).default("OWNER")
+}).strict();
+var ObjectiveModificationResultSchema = external_exports.object({
+  status: external_exports.enum(["APPLIED", "PARTIALLY_APPLIED", "REPLAN_REQUIRED", "REJECTED"]),
+  appliedFields: external_exports.array(external_exports.string().max(80)),
+  rejectedFields: external_exports.array(external_exports.string().max(80)),
+  reasons: external_exports.array(external_exports.string().max(500)),
+  dashboard: external_exports.lazy(() => ObjectiveDashboardSchema)
+}).strict();
+var ObjectiveDashboardSchema = external_exports.object({
+  summary: external_exports.object({ total: external_exports.number().int().nonnegative(), active: external_exports.number().int().nonnegative(), atRisk: external_exports.number().int().nonnegative(), blocked: external_exports.number().int().nonnegative(), completed: external_exports.number().int().nonnegative() }).strict(),
+  objectives: external_exports.array(ObjectiveExecutionSchema).max(500),
+  goals: external_exports.array(external_exports.object({ id: external_exports.string().uuid(), title: external_exports.string(), description: external_exports.string(), status: external_exports.string(), priority: external_exports.string(), targetDate: external_exports.string().nullable(), successCriteria: external_exports.array(external_exports.string()), constraints: external_exports.array(external_exports.string()) }).passthrough()).max(500),
+  projects: external_exports.array(ObjectiveProjectSchema).max(2e3),
+  metrics: external_exports.array(external_exports.object({ id: external_exports.string().uuid(), goalId: external_exports.string().uuid().nullable(), name: external_exports.string(), unit: external_exports.string(), target: external_exports.number(), currentValue: external_exports.number(), confidence: external_exports.number() }).passthrough()).max(2e3),
+  plans: external_exports.array(external_exports.object({ id: external_exports.string().uuid(), goalId: external_exports.string().uuid().nullable(), version: external_exports.number(), status: external_exports.string(), milestones: external_exports.array(external_exports.string()), feasibility: external_exports.string(), confidence: external_exports.number() }).passthrough()).max(500),
+  events: external_exports.array(ObjectiveEventSchema).max(2e3),
+  capabilityRequests: external_exports.array(ObjectiveCapabilityLinkSchema).max(2e3),
+  observations: external_exports.array(ObjectiveMetricObservationSchema).max(5e3),
+  invariants: external_exports.object({ objectiveGrantsAuthority: external_exports.literal(false), creditsGrantAuthority: external_exports.literal(false), executionUsesWorkforceScheduler: external_exports.literal(true), planningUsesExecutiveBrain: external_exports.literal(true) }).strict()
+}).strict();
+var ObjectiveDraftResponseSchema = external_exports.object({
+  objective: ObjectiveExecutionSchema.nullable(),
+  projects: external_exports.array(ObjectiveProjectSchema),
+  clarificationQuestions: external_exports.array(external_exports.string().max(500)).max(10)
+}).strict();
+
+// ../../packages/shared/src/experiments.ts
+var credits2 = external_exports.number().int().nonnegative().max(1e6);
+var boundedId = external_exports.string().min(1).max(160);
+var ExperimentStatusSchema = external_exports.enum([
+  "DRAFT",
+  "VALIDATING",
+  "READY",
+  "RUNNING",
+  "PAUSED",
+  "COMPLETED",
+  "STOPPED",
+  "FAILED",
+  "CANCELLED"
+]);
+var ExperimentVerdictSchema = external_exports.enum([
+  "WINNER",
+  "LOSER",
+  "INCONCLUSIVE",
+  "STOPPED_BY_GUARDRAIL",
+  "INSUFFICIENT_EVIDENCE"
+]);
+var ExperimentTriggerSchema = external_exports.enum([
+  "LOW_STRATEGY_CONFIDENCE",
+  "METRIC_STAGNATION",
+  "NEW_CONTEXT",
+  "MULTIPLE_VIABLE_STRATEGIES",
+  "OWNER_REQUEST",
+  "POST_FAILURE_RECOVERY"
+]);
+var ExplorationLevelSchema = external_exports.enum(["LOW", "BALANCED", "HIGH"]);
+var ExperimentMetricSchema = external_exports.object({
+  id: boundedId,
+  name: external_exports.string().min(1).max(120),
+  direction: external_exports.enum(["HIGHER_IS_BETTER", "LOWER_IS_BETTER"]),
+  minimumMeaningfulImprovement: external_exports.number().nonnegative(),
+  aggregation: external_exports.enum(["RATE", "AVERAGE", "SUM"])
+}).strict();
+var ExperimentGuardrailSchema = external_exports.object({
+  metricId: boundedId,
+  name: external_exports.string().min(1).max(120),
+  direction: external_exports.enum(["MAXIMUM", "MINIMUM"]),
+  threshold: external_exports.number()
+}).strict();
+var ExperimentSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  organizationId: boundedId.nullable(),
+  objectiveId: external_exports.string().uuid(),
+  projectId: external_exports.string().uuid().nullable(),
+  title: external_exports.string().min(1).max(160),
+  hypothesis: external_exports.string().min(20).max(1e3),
+  expectedDirection: external_exports.enum(["INCREASE", "DECREASE"]),
+  status: ExperimentStatusSchema,
+  trigger: ExperimentTriggerSchema,
+  primaryMetric: ExperimentMetricSchema,
+  guardrails: external_exports.array(ExperimentGuardrailSchema).max(8),
+  explorationBudget: credits2.positive(),
+  spentCredits: credits2,
+  explorationLevel: ExplorationLevelSchema,
+  minimumSampleSize: external_exports.number().int().min(5).max(1e5),
+  maxDurationHours: external_exports.number().int().min(1).max(2160),
+  minimumReallocationIntervalMinutes: external_exports.number().int().min(15).max(10080),
+  context: external_exports.record(external_exports.string().max(80), external_exports.string().max(240)),
+  configurationKeys: external_exports.array(external_exports.string().max(80)).min(1).max(12),
+  priorExperimentIds: external_exports.array(external_exports.string().uuid()).max(20),
+  activationKey: external_exports.string().max(200).nullable(),
+  startedAt: external_exports.iso.datetime().nullable(),
+  endedAt: external_exports.iso.datetime().nullable(),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime(),
+  invariants: external_exports.object({ authorityMayVary: external_exports.literal(false), approvalsMayVary: external_exports.literal(false), permissionsMayVary: external_exports.literal(false), schedulerReused: external_exports.literal(true) }).strict()
+}).strict();
+var ExperimentVariantConfigurationSchema = external_exports.object({
+  workflowTemplateId: external_exports.string().uuid().optional(),
+  messageStyle: external_exports.enum(["FORMAL", "CONCISE", "CONSULTATIVE", "PROBLEM_FOCUSED"]).optional(),
+  channel: external_exports.enum(["INTERNAL", "EMAIL", "WEB", "CRM"]).optional(),
+  timingBucket: external_exports.enum(["MORNING", "AFTERNOON", "EVENING"]).optional(),
+  agentSelectionPolicy: external_exports.enum(["HIGHEST_REPUTATION", "COST_EFFICIENT", "SPECIALIST_FIRST", "BALANCED"]).optional(),
+  modelPolicy: external_exports.enum(["LOCAL_FIRST", "CHEAP_CLOUD_FIRST", "HIGH_QUALITY_CLOUD"]).optional(),
+  reviewDepth: external_exports.enum(["STANDARD", "SPECIALIST", "DOUBLE_REVIEW"]).optional(),
+  researchMethod: external_exports.enum(["DIRECT", "EVIDENCE_FIRST", "COMPARATIVE"]).optional()
+}).strict();
+var ExperimentVariantSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  experimentId: external_exports.string().uuid(),
+  name: external_exports.string().min(1).max(120),
+  role: external_exports.enum(["CONTROL", "VARIANT"]),
+  strategyVersion: external_exports.number().int().positive().nullable(),
+  configuration: ExperimentVariantConfigurationSchema,
+  budgetCredits: credits2.positive(),
+  spentCredits: credits2,
+  allocationPercent: external_exports.number().int().min(0).max(100),
+  predictedSuccess: external_exports.number().min(0).max(1),
+  predictedCost: credits2,
+  predictedMetricImpact: external_exports.number(),
+  predictedDurationMs: external_exports.number().int().nonnegative().max(31536e6),
+  sampleSize: external_exports.number().int().nonnegative(),
+  completedOutcomes: external_exports.number().int().nonnegative(),
+  actualMetric: external_exports.number().nullable(),
+  actualSuccessRate: external_exports.number().min(0).max(1).nullable(),
+  actualCost: credits2,
+  actualDurationMs: external_exports.number().int().nonnegative(),
+  status: external_exports.enum(["READY", "RUNNING", "LEADING", "TRAILING", "PAUSED", "RETIRED", "STOPPED", "COMPLETED"]),
+  verdict: ExperimentVerdictSchema.nullable(),
+  calibration: external_exports.number().min(0).max(1).nullable(),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var ExperimentAssignmentSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  experimentId: external_exports.string().uuid(),
+  subjectId: boundedId,
+  variantId: external_exports.string().uuid(),
+  assignedAt: external_exports.iso.datetime()
+}).strict();
+var ExperimentObservationSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  experimentId: external_exports.string().uuid(),
+  variantId: external_exports.string().uuid(),
+  subjectId: boundedId,
+  metricId: boundedId,
+  value: external_exports.number(),
+  costCredits: credits2,
+  durationMs: external_exports.number().int().nonnegative().max(31536e6),
+  success: external_exports.boolean(),
+  source: external_exports.enum(["SYSTEM", "WORKFLOW", "EVALUATOR", "HUMAN_REVIEW", "EXTERNAL_VERIFIED"]),
+  evidenceRefs: external_exports.array(boundedId).min(1).max(20),
+  idempotencyKey: external_exports.string().min(8).max(200),
+  observedAt: external_exports.iso.datetime()
+}).strict();
+var ExperimentAllocationEventSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  experimentId: external_exports.string().uuid(),
+  allocations: external_exports.record(external_exports.string().uuid(), external_exports.number().int().min(0).max(100)),
+  reason: external_exports.string().min(1).max(500),
+  evidence: external_exports.record(external_exports.string().max(80), external_exports.json()),
+  idempotencyKey: external_exports.string().min(8).max(200),
+  createdAt: external_exports.iso.datetime()
+}).strict();
+var ExperimentResultSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  experimentId: external_exports.string().uuid(),
+  variantId: external_exports.string().uuid().nullable(),
+  verdict: ExperimentVerdictSchema,
+  metricResults: external_exports.record(boundedId, external_exports.number()),
+  totalCost: credits2,
+  durationMs: external_exports.number().int().nonnegative(),
+  sampleSize: external_exports.number().int().nonnegative(),
+  confidence: external_exports.number().min(0).max(1),
+  evidenceRefs: external_exports.array(boundedId).max(200),
+  possibleProxyOptimization: external_exports.boolean(),
+  explanation: external_exports.string().min(1).max(1e3),
+  createdAt: external_exports.iso.datetime()
+}).strict();
+var ExperimentTimelineEventSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  experimentId: external_exports.string().uuid(),
+  type: external_exports.enum(["CREATED", "ACTIVATED", "PAUSED", "RESUMED", "OBSERVED", "GUARDRAIL_BREACHED", "REALLOCATED", "VARIANT_RETIRED", "COMPLETED", "STOPPED", "OWNER_OVERRIDE", "LEARNING_CANDIDATE_CREATED"]),
+  summary: external_exports.string().min(1).max(1e3),
+  metadata: external_exports.record(external_exports.string().max(80), external_exports.json()),
+  idempotencyKey: external_exports.string().min(8).max(200).nullable(),
+  createdAt: external_exports.iso.datetime()
+}).strict();
+var CreateExperimentVariantSchema = external_exports.object({
+  name: external_exports.string().min(1).max(120),
+  role: external_exports.enum(["CONTROL", "VARIANT"]),
+  configuration: ExperimentVariantConfigurationSchema,
+  budgetCredits: credits2.positive(),
+  predictedSuccess: external_exports.number().min(0).max(1),
+  predictedCost: credits2,
+  predictedMetricImpact: external_exports.number(),
+  predictedDurationMs: external_exports.number().int().nonnegative().max(31536e6),
+  strategyVersion: external_exports.number().int().positive().nullable().default(null)
+}).strict();
+var CreateExperimentRequestSchema = external_exports.object({
+  title: external_exports.string().trim().min(1).max(160),
+  hypothesis: external_exports.string().trim().min(20).max(1e3),
+  expectedDirection: external_exports.enum(["INCREASE", "DECREASE"]),
+  trigger: ExperimentTriggerSchema.default("OWNER_REQUEST"),
+  projectId: external_exports.string().uuid().nullable().default(null),
+  primaryMetric: ExperimentMetricSchema,
+  guardrails: external_exports.array(ExperimentGuardrailSchema).max(8).default([]),
+  explorationBudget: credits2.positive(),
+  explorationLevel: ExplorationLevelSchema.default("BALANCED"),
+  minimumSampleSize: external_exports.number().int().min(5).max(1e5).default(20),
+  maxDurationHours: external_exports.number().int().min(1).max(2160).default(168),
+  context: external_exports.record(external_exports.string().max(80), external_exports.string().max(240)).default({}),
+  variants: external_exports.array(CreateExperimentVariantSchema).min(2).max(3)
+}).strict();
+var RecordExperimentObservationRequestSchema = ExperimentObservationSchema.omit({ id: true, ownerId: true, experimentId: true, observedAt: true });
+var ExperimentMutationRequestSchema = external_exports.object({ idempotencyKey: external_exports.string().min(8).max(200) }).strict();
+var ExperimentAssignmentRequestSchema = external_exports.object({ subjectId: boundedId }).strict();
+var ModifyExperimentRequestSchema = external_exports.object({
+  idempotencyKey: external_exports.string().min(8).max(200),
+  explorationBudget: credits2.positive().optional(),
+  explorationLevel: ExplorationLevelSchema.optional(),
+  forceControlVariantId: external_exports.string().uuid().optional(),
+  retireVariantId: external_exports.string().uuid().optional()
+}).strict().refine((value) => value.explorationBudget !== void 0 || value.explorationLevel !== void 0 || value.forceControlVariantId !== void 0 || value.retireVariantId !== void 0, { message: "At least one experiment field must be supplied." });
+var ExperimentDashboardSchema = external_exports.object({
+  experiments: external_exports.array(ExperimentSchema).max(1e3),
+  variants: external_exports.array(ExperimentVariantSchema).max(3e3),
+  assignments: external_exports.array(ExperimentAssignmentSchema).max(2e4),
+  observations: external_exports.array(ExperimentObservationSchema).max(5e4),
+  allocations: external_exports.array(ExperimentAllocationEventSchema).max(1e4),
+  results: external_exports.array(ExperimentResultSchema).max(3e3),
+  timeline: external_exports.array(ExperimentTimelineEventSchema).max(2e4),
+  summary: external_exports.object({ running: external_exports.number().int().nonnegative(), paused: external_exports.number().int().nonnegative(), completed: external_exports.number().int().nonnegative(), budgetAllocated: credits2, budgetSpent: credits2 }).strict(),
+  invariants: external_exports.object({ experimentsGrantAuthority: external_exports.literal(false), verifiedEvidenceOnly: external_exports.literal(true), objectiveBudgetConserved: external_exports.literal(true), existingSchedulerUsed: external_exports.literal(true) }).strict()
+}).strict();
+
 // ../../packages/shared/src/gestures.ts
 var NormalizedCoordinateSchema = external_exports.number().min(0).max(1);
 var ConfidenceSchema = external_exports.number().min(0).max(1);
@@ -234366,7 +235276,10 @@ var IntegrationProviderSchema = external_exports.enum([
   "notion",
   "vscode",
   "github_actions",
-  "vercel"
+  "vercel",
+  "gmail",
+  "crm",
+  "analytics"
 ]);
 var IntegrationCategorySchema = external_exports.enum([
   "git_provider",
@@ -234375,7 +235288,9 @@ var IntegrationCategorySchema = external_exports.enum([
   "documentation",
   "ide",
   "ci_cd",
-  "deployment"
+  "deployment",
+  "crm",
+  "analytics"
 ]);
 var IntegrationStatusSchema = external_exports.enum([
   "available",
@@ -234503,6 +235418,384 @@ var IntegrationPermissionListResponseSchema = external_exports.array(Integration
 var IntegrationOperationListResponseSchema = external_exports.array(IntegrationOperationRecordSchema).max(200);
 var IntegrationOperationResponseSchema = external_exports.object({ operation: IntegrationOperationRecordSchema }).strict();
 var IntegrationHealthResponseSchema = external_exports.object({ health: external_exports.array(IntegrationHealthSchema).max(100) }).strict();
+
+// ../../packages/shared/src/business-operations.ts
+var BusinessProviderSchema = external_exports.enum(["gmail", "crm", "analytics", "github"]);
+var BusinessCapabilitySchema = external_exports.enum([
+  "email.search",
+  "email.read_thread",
+  "email.create_draft",
+  "email.send_draft",
+  "crm.search_leads",
+  "crm.read_lead",
+  "crm.create_lead",
+  "crm.update_stage",
+  "crm.add_note",
+  "analytics.read_metric",
+  "github.read_issue",
+  "github.create_issue",
+  "github.read_pull_request"
+]);
+var BusinessExecutionStatusSchema = external_exports.enum([
+  "WAITING_APPROVAL",
+  "QUEUED",
+  "EXECUTING",
+  "VERIFIED",
+  "DENIED",
+  "FAILED",
+  "EXTERNAL_RESULT_UNCERTAIN",
+  "REVIEW_REQUIRED",
+  "CANCELLED"
+]);
+var BusinessAttributionTypeSchema = external_exports.enum([
+  "DIRECT",
+  "WORKFLOW_DERIVED",
+  "EXPERIMENT_ASSIGNED",
+  "ASSISTED",
+  "CORRELATED",
+  "UNKNOWN"
+]);
+var AttributionConfidenceSchema = external_exports.enum(["HIGH", "MEDIUM", "LOW"]);
+var ReferencesSchema = external_exports.object({
+  organizationId: external_exports.string().uuid().nullable().default(null),
+  objectiveId: external_exports.string().uuid().nullable().default(null),
+  projectId: external_exports.string().uuid().nullable().default(null),
+  workflowRunId: external_exports.string().uuid().nullable().default(null),
+  taskId: external_exports.string().min(1).max(160).nullable().default(null),
+  experimentId: external_exports.string().uuid().nullable().default(null),
+  variantId: external_exports.string().uuid().nullable().default(null),
+  agentId: external_exports.string().min(1).max(160).nullable().default(null)
+}).strict();
+var actionBase = {
+  idempotencyKey: external_exports.string().min(8).max(200),
+  reason: external_exports.string().trim().min(1).max(500),
+  references: ReferencesSchema.default({ organizationId: null, objectiveId: null, projectId: null, workflowRunId: null, taskId: null, experimentId: null, variantId: null, agentId: null })
+};
+var emailAddress = external_exports.string().email().max(320);
+var safeId = external_exports.string().trim().min(1).max(200);
+var safeText = external_exports.string().trim().min(1).max(1e4);
+var BusinessActionRequestSchema = external_exports.discriminatedUnion("capability", [
+  external_exports.object({ ...actionBase, capability: external_exports.literal("email.search"), query: external_exports.string().trim().min(1).max(500), limit: external_exports.number().int().min(1).max(50).default(20) }).strict(),
+  external_exports.object({ ...actionBase, capability: external_exports.literal("email.read_thread"), threadId: safeId }).strict(),
+  external_exports.object({ ...actionBase, capability: external_exports.literal("email.create_draft"), to: external_exports.array(emailAddress).min(1).max(20), cc: external_exports.array(emailAddress).max(20).default([]), subject: external_exports.string().trim().min(1).max(300), body: safeText, threadId: safeId.nullable().default(null) }).strict(),
+  external_exports.object({ ...actionBase, capability: external_exports.literal("email.send_draft"), draftId: safeId, recipientCount: external_exports.number().int().min(1).max(50) }).strict(),
+  external_exports.object({ ...actionBase, capability: external_exports.literal("crm.search_leads"), query: external_exports.string().trim().min(1).max(500), limit: external_exports.number().int().min(1).max(100).default(25) }).strict(),
+  external_exports.object({ ...actionBase, capability: external_exports.literal("crm.read_lead"), externalLeadId: safeId }).strict(),
+  external_exports.object({ ...actionBase, capability: external_exports.literal("crm.create_lead"), internalEntityId: safeId, displayName: external_exports.string().trim().min(1).max(200), email: emailAddress.nullable().default(null), company: external_exports.string().trim().max(200).nullable().default(null) }).strict(),
+  external_exports.object({ ...actionBase, capability: external_exports.literal("crm.update_stage"), externalLeadId: safeId, expectedVersion: external_exports.string().max(100).nullable().default(null), stage: external_exports.enum(["NEW", "CONTACTED", "QUALIFIED", "CUSTOMER", "CLOSED_LOST"]) }).strict(),
+  external_exports.object({ ...actionBase, capability: external_exports.literal("crm.add_note"), externalLeadId: safeId, note: safeText }).strict(),
+  external_exports.object({ ...actionBase, capability: external_exports.literal("analytics.read_metric"), metricId: external_exports.string().regex(/^[a-zA-Z0-9_.-]{2,120}$/), windowStart: external_exports.iso.datetime(), windowEnd: external_exports.iso.datetime(), filters: external_exports.record(external_exports.string().max(80), external_exports.string().max(200)).default({}) }).strict(),
+  external_exports.object({ ...actionBase, capability: external_exports.literal("github.read_issue"), repository: external_exports.string().regex(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/), issueNumber: external_exports.number().int().positive() }).strict(),
+  external_exports.object({ ...actionBase, capability: external_exports.literal("github.create_issue"), repository: external_exports.string().regex(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/), title: external_exports.string().trim().min(1).max(256), body: safeText }).strict(),
+  external_exports.object({ ...actionBase, capability: external_exports.literal("github.read_pull_request"), repository: external_exports.string().regex(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/), pullRequestNumber: external_exports.number().int().positive() }).strict()
+]);
+var BusinessExecutionRecordSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  provider: BusinessProviderSchema,
+  integrationId: external_exports.string().min(3).max(120),
+  capability: BusinessCapabilitySchema,
+  idempotencyKey: external_exports.string().min(8).max(200),
+  actionDigest: external_exports.string().regex(/^[a-f0-9]{64}$/),
+  status: BusinessExecutionStatusSchema,
+  approvalId: external_exports.string().uuid().nullable(),
+  externalReferenceId: external_exports.string().max(300).nullable(),
+  actionSummary: external_exports.string().min(1).max(500),
+  resultSummary: external_exports.string().min(1).max(1e3),
+  references: ReferencesSchema,
+  verification: external_exports.enum(["NOT_REQUIRED", "PENDING", "VERIFIED", "FAILED", "UNCERTAIN"]),
+  attemptCount: external_exports.number().int().min(0).max(10),
+  requestedAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var BusinessExternalEventInputSchema = external_exports.object({
+  integrationId: external_exports.string().min(3).max(120),
+  externalEventId: safeId,
+  type: external_exports.enum(["EMAIL_REPLIED", "EMAIL_DELIVERED", "CRM_LEAD_STAGE_CHANGED", "ANALYTICS_METRIC_OBSERVED", "GITHUB_ISSUE_CHANGED"]),
+  occurredAt: external_exports.iso.datetime(),
+  entityRef: safeId.nullable().default(null),
+  payloadRef: safeId.nullable().default(null),
+  objectiveId: external_exports.string().uuid().nullable().default(null),
+  experimentId: external_exports.string().uuid().nullable().default(null),
+  variantId: external_exports.string().uuid().nullable().default(null),
+  metricId: external_exports.string().max(120).nullable().default(null),
+  metricValue: external_exports.number().finite().nullable().default(null),
+  metricUnit: external_exports.string().max(40).nullable().default(null),
+  sourceVersion: external_exports.string().max(100).nullable().default(null)
+}).strict();
+var BusinessExternalEventSchema = BusinessExternalEventInputSchema.extend({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  provider: BusinessProviderSchema,
+  signatureVerified: external_exports.literal(true),
+  receivedAt: external_exports.iso.datetime(),
+  processedAt: external_exports.iso.datetime().nullable(),
+  processingStatus: external_exports.enum(["RECEIVED", "PROCESSED", "DUPLICATE", "FAILED"])
+}).strict();
+var ExternalMetricObservationSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  objectiveId: external_exports.string().uuid().nullable(),
+  experimentId: external_exports.string().uuid().nullable(),
+  variantId: external_exports.string().uuid().nullable(),
+  metricId: external_exports.string().min(1).max(120),
+  sourceProvider: BusinessProviderSchema,
+  externalMetricId: external_exports.string().max(200).nullable(),
+  value: external_exports.number().finite(),
+  unit: external_exports.string().min(1).max(40),
+  observedAt: external_exports.iso.datetime(),
+  fetchedAt: external_exports.iso.datetime(),
+  sourceHealth: external_exports.enum(["HEALTHY", "DEGRADED", "UNAVAILABLE", "REAUTH_REQUIRED"]),
+  evidenceRef: external_exports.string().max(300).nullable()
+}).strict();
+var OutcomeAttributionSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  externalOutcomeId: external_exports.string().max(200).nullable(),
+  objectiveId: external_exports.string().uuid().nullable(),
+  projectId: external_exports.string().uuid().nullable(),
+  workflowRunId: external_exports.string().uuid().nullable(),
+  taskId: external_exports.string().max(160).nullable(),
+  experimentId: external_exports.string().uuid().nullable(),
+  variantId: external_exports.string().uuid().nullable(),
+  agentContributions: external_exports.array(external_exports.object({ agentId: external_exports.string().min(1).max(160), weight: external_exports.number().min(0).max(1) }).strict()).max(25),
+  attributionType: BusinessAttributionTypeSchema,
+  confidence: AttributionConfidenceSchema,
+  evidenceRefs: external_exports.array(external_exports.string().min(1).max(300)).max(50),
+  outcomeType: external_exports.string().min(1).max(120),
+  numericValue: external_exports.number().finite().nullable(),
+  unit: external_exports.string().max(40).nullable(),
+  createdAt: external_exports.iso.datetime()
+}).strict().superRefine((value, context) => {
+  const total = value.agentContributions.reduce((sum, item) => sum + item.weight, 0);
+  if (total > 1.000001) context.addIssue({ code: "custom", path: ["agentContributions"], message: "Contribution weights must not exceed one." });
+});
+var BusinessEntityMappingSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  integrationId: external_exports.string().min(3).max(120),
+  entityType: external_exports.enum(["LEAD", "CONTACT", "EMAIL_THREAD", "ISSUE"]),
+  externalId: safeId,
+  internalEntityId: safeId,
+  externalVersion: external_exports.string().max(100).nullable(),
+  lastSyncedAt: external_exports.iso.datetime(),
+  conflictPolicy: external_exports.enum(["REMOTE_WINS", "LOCAL_WINS", "MERGE", "REVIEW_REQUIRED"])
+}).strict();
+var IntegrationSyncCheckpointSchema = external_exports.object({
+  ownerId: external_exports.string().uuid(),
+  integrationId: external_exports.string().min(3).max(120),
+  stream: external_exports.string().min(1).max(120),
+  cursor: external_exports.string().max(500),
+  sourceTimestamp: external_exports.iso.datetime().nullable(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var BusinessOperationsDashboardSchema = external_exports.object({
+  executions: external_exports.array(BusinessExecutionRecordSchema).max(500),
+  events: external_exports.array(BusinessExternalEventSchema).max(500),
+  metrics: external_exports.array(ExternalMetricObservationSchema).max(500),
+  attributions: external_exports.array(OutcomeAttributionSchema).max(500),
+  mappings: external_exports.array(BusinessEntityMappingSchema).max(500),
+  checkpoints: external_exports.array(IntegrationSyncCheckpointSchema).max(100),
+  summary: external_exports.object({ verifiedActions: external_exports.number().int().nonnegative(), waitingApproval: external_exports.number().int().nonnegative(), uncertainActions: external_exports.number().int().nonnegative(), verifiedOutcomes: external_exports.number().int().nonnegative() }).strict()
+}).strict();
+
+// ../../packages/shared/src/business-os.ts
+var boundedId2 = external_exports.string().min(1).max(200);
+var entityRef = external_exports.object({
+  kind: external_exports.enum([
+    "OBJECTIVE",
+    "PROJECT",
+    "WORKFLOW",
+    "TASK",
+    "AGENT",
+    "CAPABILITY",
+    "EXTERNAL_ACTION",
+    "OUTCOME",
+    "EXPERIMENT",
+    "APPROVAL",
+    "PROVIDER"
+  ]),
+  id: boundedId2,
+  label: external_exports.string().min(1).max(300),
+  status: external_exports.string().max(80).nullable(),
+  route: external_exports.string().max(500).nullable()
+}).strict();
+var BusinessAttentionTypeSchema = external_exports.enum([
+  "APPROVAL_REQUIRED",
+  "OBJECTIVE_AT_RISK",
+  "OBJECTIVE_BLOCKED",
+  "BUDGET_AT_RISK",
+  "DEADLINE_AT_RISK",
+  "CAPABILITY_REQUIRED",
+  "PROVIDER_REAUTH_REQUIRED",
+  "PROVIDER_UNAVAILABLE",
+  "EXPERIMENT_GUARDRAIL",
+  "WORKFLOW_STUCK",
+  "TASK_STUCK",
+  "EXTERNAL_RESULT_UNCERTAIN",
+  "RECONCILIATION_REQUIRED"
+]);
+var BusinessAttentionItemSchema = external_exports.object({
+  id: boundedId2,
+  type: BusinessAttentionTypeSchema,
+  severity: external_exports.enum(["CRITICAL", "HIGH", "MEDIUM", "LOW"]),
+  handling: external_exports.enum(["OWNER_ACTION_REQUIRED", "SYSTEM_HANDLING"]),
+  title: external_exports.string().min(1).max(300),
+  summary: external_exports.string().min(1).max(600),
+  why: external_exports.array(external_exports.string().min(1).max(300)).max(12),
+  currentResponse: external_exports.string().min(1).max(300),
+  ownerAction: external_exports.string().min(1).max(300),
+  entity: entityRef,
+  createdAt: external_exports.iso.datetime()
+}).strict();
+var BusinessTimelineEventSchema = external_exports.object({
+  id: boundedId2,
+  category: external_exports.enum([
+    "OBJECTIVE",
+    "WORKFLOW",
+    "TASK",
+    "AGENT",
+    "EXPERIMENT",
+    "ECONOMY",
+    "APPROVAL",
+    "EXTERNAL",
+    "SYSTEM"
+  ]),
+  title: external_exports.string().min(1).max(300),
+  summary: external_exports.string().min(1).max(600),
+  occurredAt: external_exports.iso.datetime(),
+  entity: entityRef.nullable()
+}).strict();
+var ExecutionChainSchema = external_exports.object({
+  id: boundedId2,
+  nodes: external_exports.array(entityRef).min(1).max(12)
+}).strict();
+var BusinessExplanationSchema = external_exports.object({
+  entity: entityRef,
+  heading: external_exports.string().min(1).max(200),
+  evidence: external_exports.array(
+    external_exports.object({
+      label: external_exports.string().min(1).max(120),
+      value: external_exports.string().min(1).max(300)
+    }).strict()
+  ).max(16),
+  conclusion: external_exports.string().min(1).max(500)
+}).strict();
+var ProviderImpactSchema = external_exports.object({
+  provider: external_exports.enum(["gmail", "crm", "analytics", "github"]),
+  health: external_exports.enum(["HEALTHY", "DEGRADED", "UNAVAILABLE", "REAUTH_REQUIRED"]),
+  activeObjectives: external_exports.number().int().nonnegative(),
+  workflowRuns: external_exports.number().int().nonnegative(),
+  queuedTasks: external_exports.number().int().nonnegative(),
+  experiments: external_exports.number().int().nonnegative(),
+  explanation: external_exports.string().min(1).max(500)
+}).strict();
+var BusinessCapabilitySummarySchema = external_exports.object({
+  id: boundedId2,
+  name: external_exports.string().min(1).max(160),
+  state: external_exports.enum(["AVAILABLE", "APPROVAL_REQUIRED", "UNAVAILABLE"]),
+  usedByObjectives: external_exports.number().int().nonnegative(),
+  usedByWorkflows: external_exports.number().int().nonnegative(),
+  usedByAgents: external_exports.number().int().nonnegative(),
+  queuedActions: external_exports.number().int().nonnegative()
+}).strict();
+var BusinessOSExecutiveSummarySchema = external_exports.object({
+  generatedAt: external_exports.iso.datetime(),
+  summary: external_exports.object({
+    activeObjectives: external_exports.number().int().nonnegative(),
+    atRiskObjectives: external_exports.number().int().nonnegative(),
+    blockedObjectives: external_exports.number().int().nonnegative(),
+    activeAgents: external_exports.number().int().nonnegative(),
+    pendingApprovals: external_exports.number().int().nonnegative(),
+    availableCredits: external_exports.number().int().nonnegative(),
+    reservedCredits: external_exports.number().int().nonnegative(),
+    verifiedOutcomes: external_exports.number().int().nonnegative(),
+    attentionCount: external_exports.number().int().nonnegative(),
+    criticalAlerts: external_exports.number().int().nonnegative()
+  }).strict(),
+  attention: external_exports.array(BusinessAttentionItemSchema).max(200),
+  timeline: external_exports.array(BusinessTimelineEventSchema).max(200),
+  executionChains: external_exports.array(ExecutionChainSchema).max(200),
+  explanations: external_exports.array(BusinessExplanationSchema).max(200),
+  providerImpact: external_exports.array(ProviderImpactSchema).max(20),
+  capabilities: external_exports.array(BusinessCapabilitySummarySchema).max(500),
+  invariants: external_exports.object({
+    deterministicAttention: external_exports.literal(true),
+    ownerScoped: external_exports.literal(true),
+    secretsExcluded: external_exports.literal(true),
+    chainOfThoughtExcluded: external_exports.literal(true),
+    authorityNarrowingRequired: external_exports.literal(true)
+  }).strict()
+}).strict();
+
+// ../../packages/shared/src/cloud-runtime.ts
+var RuntimeHealthStateSchema = external_exports.enum(["HEALTHY", "DEGRADED", "UNAVAILABLE"]);
+var RuntimeSubsystemHealthSchema = external_exports.object({
+  state: RuntimeHealthStateSchema,
+  reasonCode: external_exports.string().trim().min(1).max(120),
+  latencyMs: external_exports.number().nonnegative().nullable()
+}).strict();
+var CanonicalRuntimeHealthSchema = external_exports.object({
+  apiVersion: external_exports.literal("v1"),
+  status: RuntimeHealthStateSchema,
+  deploymentMode: external_exports.enum(["private", "cloud"]),
+  timestamp: external_exports.iso.datetime(),
+  uptimeSeconds: external_exports.number().nonnegative(),
+  components: external_exports.object({
+    api: RuntimeSubsystemHealthSchema,
+    postgres: RuntimeSubsystemHealthSchema,
+    redis: RuntimeSubsystemHealthSchema,
+    aiRouter: RuntimeSubsystemHealthSchema,
+    scheduler: RuntimeSubsystemHealthSchema
+  }).strict()
+}).strict();
+var DevicePresenceStateSchema = external_exports.enum([
+  "OFFLINE",
+  "WAKING",
+  "ONLINE",
+  "REVOKED"
+]);
+var CanonicalDeviceSummarySchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  name: external_exports.string().trim().min(1).max(100),
+  type: external_exports.enum(["WEB_BROWSER", "MAC_AGENT", "ANDROID", "SERVER"]),
+  trustState: external_exports.enum(["UNREGISTERED", "PENDING", "TRUSTED", "REVOKED", "EXPIRED"]),
+  presence: DevicePresenceStateSchema,
+  lastSeenAt: external_exports.iso.datetime().nullable(),
+  capabilityCount: external_exports.number().int().nonnegative()
+}).strict();
+var CanonicalAlexaSummarySchema = external_exports.object({
+  apiVersion: external_exports.literal("v1"),
+  generatedAt: external_exports.iso.datetime(),
+  deploymentMode: external_exports.enum(["private", "cloud"]),
+  devices: external_exports.array(CanonicalDeviceSummarySchema).max(100),
+  capabilities: external_exports.object({
+    cloudExecutable: external_exports.array(
+      external_exports.enum([
+        "conversation",
+        "memory",
+        "agents",
+        "objectives",
+        "workflows",
+        "tasks",
+        "economy",
+        "experiments",
+        "approvals"
+      ])
+    ).max(20),
+    deviceExecutable: external_exports.object({
+      targetDeviceRequired: external_exports.literal(true),
+      macAgent: external_exports.enum(["AVAILABLE", "UNAVAILABLE"])
+    }).strict()
+  }).strict(),
+  invariants: external_exports.object({
+    oneBackendManyClients: external_exports.literal(true),
+    postgresDurableTruth: external_exports.literal(true),
+    redisEphemeralOnly: external_exports.literal(true),
+    nativeExecutionRemainsOnDevice: external_exports.literal(true),
+    blindReplayProhibited: external_exports.literal(true)
+  }).strict()
+}).strict();
 
 // ../../packages/shared/src/infrastructure.ts
 var InfrastructureComponentStatusSchema = external_exports.enum([
@@ -242477,9 +243770,9 @@ var buildSemanticIndex = async (input) => {
       relation: "exposes"
     });
   }
-  for (const reference of references) {
-    const targetSymbolId = symbolByName.get(String(reference.name));
-    if (targetSymbolId) reference.targetSymbolId = targetSymbolId;
+  for (const reference2 of references) {
+    const targetSymbolId = symbolByName.get(String(reference2.name));
+    if (targetSymbolId) reference2.targetSymbolId = targetSymbolId;
   }
   for (const relation of relations) {
     const targetSymbolId = symbolByName.get(String(relation.targetName));
@@ -242504,9 +243797,9 @@ var buildSemanticIndex = async (input) => {
       String(symbol2.relativePath),
       (symbolCountsByFile.get(String(symbol2.relativePath)) ?? 0) + 1
     );
-  for (const reference of references) {
+  for (const reference2 of references) {
     const relativePath = String(
-      reference.location.relativePath
+      reference2.location.relativePath
     );
     referenceCountsByFile.set(
       relativePath,
@@ -242520,7 +243813,7 @@ var buildSemanticIndex = async (input) => {
     score: symbolCount + (referenceCountsByFile.get(relativePath) ?? 0)
   })).sort((left, right) => right.score - left.score).slice(0, 25);
   const referencedNames = new Set(
-    references.map((reference) => String(reference.name))
+    references.map((reference2) => String(reference2.name))
   );
   const deadCodeCandidates = symbols.filter(
     (symbol2) => Boolean(symbol2.exported) && !referencedNames.has(String(symbol2.name))
@@ -243648,7 +244941,7 @@ var NativeSemanticBridgeResultSchema = external_exports.object({
     "UNSUPPORTED",
     "FAILED"
   ]),
-  semanticId: external_exports.string().regex(/^[a-f0-9]{64}$/).nullable(),
+  semanticId: external_exports.string().regex(/^[a-f0-9]{64}$/).nullable().default(null),
   matchedCount: external_exports.number().int().nonnegative().max(1e4)
 }).strict();
 var NativeSemanticInteractionBridge = class {
@@ -243851,7 +245144,16 @@ var descriptors = [
     providerId: "provider.codex",
     applicationId: "codex",
     bundleIdentifier: "com.openai.codex",
-    processName: "Codex",
+    // The registered com.openai.codex bundle is hosted by the ChatGPT macOS app.
+    // Verify the actual executable process after Launch Services opens it.
+    processName: "ChatGPT",
+    // macOS reports the main Electron process under a truncated path. Verify
+    // the fixed ChatGPT bundle process family rather than accepting a generic
+    // process or relying on Launch Services success alone.
+    processVerificationArgs: [
+      "-f",
+      "ChatGPT\\.app"
+    ],
     implementedCapabilities: [
       "launch",
       "focus",
@@ -244035,7 +245337,10 @@ var MacNativeProviderHost = class {
     const deadline = Date.now() + 5e3;
     while (Date.now() <= deadline) {
       try {
-        await this.runner("/usr/bin/pgrep", ["-x", descriptor.processName]);
+        await this.runner(
+          "/usr/bin/pgrep",
+          descriptor.processVerificationArgs ?? ["-x", descriptor.processName]
+        );
         return;
       } catch {
         await wait(250);
@@ -244263,9 +245568,30 @@ var isUsableWhisperTranscript = (value) => {
   const normalized = value.replace(/\s+/g, " ").trim();
   if (!normalized || !/[\p{L}\p{N}]/u.test(normalized)) return false;
   const sentinel = normalized.toLowerCase().replace(/[[\]()<>_-]/g, " ").replace(/\s+/g, " ").trim();
-  return !(/* @__PURE__ */ new Set(["blank audio", "silence", "no speech", "music", "noise"])).has(
-    sentinel
-  );
+  return !(/* @__PURE__ */ new Set([
+    "blank audio",
+    "silence",
+    "no speech",
+    "music",
+    "noise",
+    "background noise",
+    "wind",
+    "breathing",
+    "breath",
+    "sigh",
+    "sighs",
+    "sighing",
+    "cough",
+    "coughing",
+    "laugh",
+    "laughing",
+    "keyboard",
+    "typing",
+    "keyboard typing",
+    "applause",
+    "clapping",
+    "humming"
+  ])).has(sentinel);
 };
 var checkWhisperCppHealth = async (config2) => {
   try {

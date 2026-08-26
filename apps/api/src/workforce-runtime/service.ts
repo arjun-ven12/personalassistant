@@ -1,0 +1,350 @@
+import {
+  CompleteWorkforceTaskRequestSchema,
+  CreateWorkforceMessageRequestSchema,
+  CreateWorkforceTaskRequestSchema,
+  SubmitWorkforceReviewRequestSchema,
+  WorkforceRuntimeDashboardSchema,
+  WorkforceRuntimeMessageSchema,
+  WorkforceRuntimeReviewSchema,
+  WorkforceRuntimeTaskSchema,
+  type AgentRecord,
+  type WorkforceMatchScore,
+  type WorkforceRuntimeTask,
+} from "@alexa-control/shared";
+import { z } from "zod";
+
+import type { AgentEconomyService } from "../agent-economy/service.js";
+import type { AgentWorkforceService } from "../agent-workforce/service.js";
+import type { AgentOsService } from "../agents/os-service.js";
+import type { AgentStore } from "../agents/store.js";
+import type { AIRouterService } from "../ai/router/service.js";
+import type { CapabilityStudioService } from "../capability-studio/service.js";
+import type { ExternalHarvestService } from "../external-harvest/service.js";
+import { ExecutionError } from "../execution/errors.js";
+import type { GovernanceAuditWriter } from "../governance/approval-service.js";
+import type { WorkforceRuntimeStore } from "./store.js";
+
+const MAX_CONCURRENT = 6;
+const PRIORITY_RANK = { low: 0, normal: 1, high: 2, urgent: 3 } as const;
+const MAX_CHILDREN = 8;
+const MAX_MESSAGES_PER_TASK = 40;
+const RuntimeResultSchema = z.object({
+  summary: z.string().min(1).max(4_000), confidence: z.number().min(0).max(1),
+  evidence: z.array(z.string().min(1).max(160)).max(20).default([]),
+}).strict();
+const DevelopmentInputSchema = z.object({ sourceCode: z.string().min(1).max(20_000), testObjective: z.string().min(1).max(1_000) }).strict();
+
+const normalized = (value: string) => value.toLowerCase().replaceAll(/[._-]+/g, " ").trim();
+const fit = (required: string[], available: string[]) => {
+  if (!required.length) return 1;
+  const haystack = available.map(normalized);
+  return required.filter((item) => haystack.some((value) => value.includes(normalized(item)) || normalized(item).includes(value))).length / required.length;
+};
+const round = (value: number) => Math.round(Math.max(0, Math.min(1, value)) * 1_000) / 1_000;
+
+export class WorkforceRuntimeService {
+  readonly #controllers = new Map<string, AbortController>();
+  readonly #metrics = new Map<string,{ assignments:number; providerCalls:number; matchingLatencyTotalMs:number; peakActiveAgents:number }>();
+  private lifecycleSink: { handleWorkforceTaskChanged(task: WorkforceRuntimeTask): Promise<void> } | undefined;
+  constructor(
+    readonly store: WorkforceRuntimeStore,
+    readonly agentStore: AgentStore,
+    readonly workforce: AgentWorkforceService,
+    readonly economy: AgentEconomyService,
+    readonly agentOs: AgentOsService,
+    readonly externalHarvest: ExternalHarvestService,
+    readonly aiRouter: AIRouterService,
+    readonly capabilityStudio: CapabilityStudioService,
+    readonly audit: GovernanceAuditWriter,
+    readonly now: () => Date = () => new Date(),
+  ) {}
+
+  setLifecycleSink(sink: NonNullable<WorkforceRuntimeService["lifecycleSink"]>) { this.lifecycleSink=sink; }
+
+  async dashboard(ownerId: string) {
+    const [tasks, messages, reviews, agents, economy] = await Promise.all([
+      this.store.listTasks(ownerId, 500), this.store.listMessages(ownerId, 500),
+      this.store.listReviews(ownerId, 500), this.agentStore.listAgents(ownerId), this.economy.dashboard(ownerId),
+    ]);
+    return WorkforceRuntimeDashboardSchema.parse({
+      summary: {
+        registered: agents.length, active: economy.overview.activeAgents, dormant: economy.overview.dormantAgents,
+        queued: tasks.filter((item) => ["CREATED","QUEUED","MATCHING"].includes(item.status)).length,
+        running: tasks.filter((item) => ["ASSIGNED","RESERVED","RUNNING"].includes(item.status)).length,
+        waitingReview: tasks.filter((item) => item.status === "REVIEW_REQUIRED").length,
+        completed: tasks.filter((item) => item.status === "COMPLETED").length,
+        failed: tasks.filter((item) => item.status === "FAILED").length, maxConcurrent: MAX_CONCURRENT,
+      }, tasks, messages, reviews,
+      metrics: { assignments: this.metrics(ownerId).assignments, providerCalls: this.metrics(ownerId).providerCalls, matchingLatencyMs: this.metrics(ownerId).assignments ? this.metrics(ownerId).matchingLatencyTotalMs / this.metrics(ownerId).assignments : 0, peakActiveAgents: this.metrics(ownerId).peakActiveAgents, completionRate: tasks.length ? tasks.filter((item) => item.status === "COMPLETED").length / tasks.length : 0 },
+      invariants: { sharedAIRouter: true, dedicatedModelPerAgent: false, hierarchyGrantsAuthority: false, creditsGrantAuthority: false, maxTaskDepth: 4 },
+    });
+  }
+
+  async createTask(input: { ownerId: string; body: unknown; requestId: string; ipAddress: string }) {
+    const body = CreateWorkforceTaskRequestSchema.parse(input.body);
+    if (body.idempotencyKey) {
+      const duplicate = (await this.store.listTasks(input.ownerId, 500)).find((task) => task.idempotencyKey === body.idempotencyKey && task.createdByAgentId === body.createdByAgentId);
+      if (duplicate) return { task: duplicate };
+    }
+    const parent = body.parentTaskId ? await this.requireTask(input.ownerId, body.parentTaskId) : null;
+    if (parent && !["RUNNING","WAITING","REVIEW_REQUIRED"].includes(parent.status))
+      throw new ExecutionError(409, "PARENT_TASK_NOT_ACTIVE", "Child tasks require an active parent task.");
+    if (parent && parent.depth >= 4) throw new ExecutionError(409, "TASK_DEPTH_LIMIT", "The bounded task depth limit is four.");
+    if (parent) {
+      const siblings = (await this.store.listTasks(input.ownerId, 500)).filter((task) => task.parentTaskId === parent.id);
+      if (siblings.length >= MAX_CHILDREN) throw new ExecutionError(409, "TASK_CHILD_LIMIT", "The parent task reached its bounded child-task limit.");
+      const committed = siblings.reduce((sum, task) => sum + task.economicBudget, 0);
+      if (committed + body.economicBudget > parent.economicBudget)
+        throw new ExecutionError(409, "CHILD_BUDGET_EXCEEDS_PARENT", "Child task budgets cannot exceed the parent task budget.");
+      if (body.memoryScopeRefs.some((scope) => !parent.memoryScopeRefs.includes(scope)))
+        throw new ExecutionError(403, "CHILD_MEMORY_SCOPE_EXPANSION", "Child tasks cannot expand the parent memory scope.");
+    }
+    const creator = body.createdByAgentId ? await this.requireAgent(input.ownerId, body.createdByAgentId) : null;
+    const assigned = body.assignedAgentId ? await this.requireAgent(input.ownerId, body.assignedAgentId) : null;
+    if (creator && assigned) this.assertDelegationAuthority(creator, assigned, body.type);
+    const at = this.now().toISOString();
+    const id = crypto.randomUUID();
+    const task = WorkforceRuntimeTaskSchema.parse({
+      id, idempotencyKey: body.idempotencyKey, ownerId: input.ownerId, organizationId: creator?.workforce?.organizationId ?? assigned?.workforce?.organizationId ?? null,
+      createdByAgentId: creator?.id ?? null, assignedAgentId: assigned?.id ?? null, parentTaskId: parent?.id ?? null,
+      rootTaskId: parent?.rootTaskId ?? id, depth: parent ? parent.depth + 1 : 0, type: body.type,
+      title: body.title, objective: body.objective, inputs: body.inputs, evidenceRefs: body.evidenceRefs, memoryScopeRefs: body.memoryScopeRefs,
+      requiredSkills: body.requiredSkills, requiredCapabilities: body.requiredCapabilities,
+      preferredDepartmentId: body.preferredDepartmentId ?? creator?.workforce?.departmentId ?? null,
+      priority: body.priority, riskLevel: body.riskLevel, economicBudget: body.economicBudget,
+      reservedCredits: 0, actualCost: 0, reservationId: null, status: "QUEUED", retryCount: 0,
+      maxRetries: body.maxRetries, selection: [], resultSummary: null, resultConfidence: null,
+      aiRequestId: null, providerId: null, modelId: null, createdAt: at, updatedAt: at,
+      sandboxStatus: null, artifactCount: 0,
+      startedAt: null, completedAt: null, expiresAt: body.expiresAt,
+    });
+    await this.store.saveTask(task);
+    await this.lifecycleSink?.handleWorkforceTaskChanged(task);
+    if (creator) await this.message(input.ownerId, task, creator.id, assigned?.id ?? null, assigned ? "DELEGATION" : "TASK", { title: task.title }, task.evidenceRefs);
+    await this.auditEvent(input, "WORKFORCE_TASK_CREATED", "Bounded workforce task created; no authority was granted.", { taskId: task.id, creatorAgentId: task.createdByAgentId, parentTaskId: task.parentTaskId });
+    return { task };
+  }
+
+  async schedule(ownerId: string, taskId: string, requestId: string, ipAddress: string) {
+    const matchingStartedAt = performance.now();
+    let task = await this.requireTask(ownerId, taskId);
+    if (!["QUEUED","MATCHING"].includes(task.status)) throw new ExecutionError(409, "TASK_NOT_QUEUEABLE", "Only queued tasks can be scheduled.");
+    if (task.expiresAt && task.expiresAt <= this.now().toISOString()) return { task: await this.update(task, { status: "EXPIRED" }) };
+    const allTasks = await this.store.listTasks(ownerId, 500);
+    const higherPriorityQueued = allTasks.some((item) =>
+      item.id !== task.id && item.status === "QUEUED" && PRIORITY_RANK[item.priority] > PRIORITY_RANK[task.priority],
+    );
+    if (higherPriorityQueued)
+      throw new ExecutionError(409, "HIGHER_PRIORITY_WORK_PENDING", "A higher-priority queued task must receive the next available workforce slot.");
+    if (allTasks.filter((item) => ["RESERVED","RUNNING"].includes(item.status)).length >= MAX_CONCURRENT)
+      throw new ExecutionError(409, "WORKFORCE_CONCURRENCY_LIMIT", "The bounded active-workforce limit is reached.");
+    task = await this.update(task, { status: "MATCHING" });
+    const [agents, economy] = await Promise.all([this.agentStore.listAgents(ownerId), this.economy.dashboard(ownerId)]);
+    const accountByAgent = new Map(economy.accounts.map((account) => [account.agentId, account]));
+    const performanceByAgent = new Map(economy.performance.map((item) => [item.agentId, item]));
+    const activeByAgent = new Map<string, number>();
+    for (const active of allTasks.filter((item) => ["ASSIGNED","RESERVED","RUNNING"].includes(item.status) && item.assignedAgentId))
+      activeByAgent.set(active.assignedAgentId!, (activeByAgent.get(active.assignedAgentId!) ?? 0) + 1);
+    const scores = agents.map((agent) => this.score(task, agent, accountByAgent.get(agent.id), performanceByAgent.get(agent.id), activeByAgent.get(agent.id) ?? 0))
+      .sort((a,b) => b.finalScore - a.finalScore || a.agentId.localeCompare(b.agentId)).slice(0, 20);
+    const chosen = task.assignedAgentId ? scores.find((score) => score.agentId === task.assignedAgentId && score.eligible) : scores.find((score) => score.eligible);
+    if (!chosen) {
+      await this.createCapabilityRequestIfPossible(ownerId, task, requestId, ipAddress);
+      await this.update(task, { status: "WAITING", selection: scores });
+      throw new ExecutionError(409, "NO_ELIGIBLE_WORKFORCE_AGENT", "No funded agent has the required bounded skills and capabilities.");
+    }
+    const agent = await this.requireAgent(ownerId, chosen.agentId);
+    if (task.createdByAgentId) this.assertDelegationAuthority(await this.requireAgent(ownerId, task.createdByAgentId), agent, task.type === "CAPABILITY_REQUEST" ? "QUESTION" : task.type);
+    task = await this.update(task, { status: "ASSIGNED", assignedAgentId: agent.id, selection: scores });
+    await this.workforce.setActivation(ownerId, agent.id, "ACTIVE", requestId, ipAddress);
+    try {
+      const reserveAmount = Math.max(1, Math.min(task.economicBudget, 10));
+      const reservation = await this.economy.reserve({ ownerId, agentId: agent.id, amount: reserveAmount, costType: "TASK_EXECUTION", reasonCode: "WORKFORCE_TASK_RESERVATION", idempotencyKey: `workforce-task:${task.id}`, references: { taskId: task.id } });
+      task = await this.update(task, { status: "RESERVED", reservationId: reservation.reservation.id, reservedCredits: reserveAmount });
+      const metrics = this.metrics(ownerId); metrics.assignments++; metrics.matchingLatencyTotalMs += performance.now() - matchingStartedAt; metrics.peakActiveAgents = Math.max(metrics.peakActiveAgents, allTasks.filter((item) => ["RESERVED","RUNNING"].includes(item.status)).length + 1);
+      await this.audit({ eventType: "WORKFORCE_TASK_SCHEDULED", ownerId, outcome: "SUCCESS", reason: "Deterministic scheduler selected and reserved one bounded specialist.", requestId, ipAddress, metadata: { taskId, agentId: agent.id, score: chosen.finalScore, reservationId: reservation.reservation.id } });
+      return { task };
+    } catch (error) {
+      await this.workforce.setActivation(ownerId, agent.id, "DORMANT", requestId, ipAddress);
+      await this.update(task, { status: "QUEUED", assignedAgentId: null });
+      throw error;
+    }
+  }
+
+  async execute(ownerId: string, taskId: string, requestId: string, ipAddress: string) {
+    let task = await this.requireTask(ownerId, taskId);
+    if (task.status === "COMPLETED") return { task };
+    if (this.#controllers.has(task.id)) throw new ExecutionError(409, "TASK_EXECUTION_LEASE_HELD", "This task already has one bounded runtime lease.");
+    if (task.status === "QUEUED") task = (await this.schedule(ownerId, taskId, requestId, ipAddress)).task;
+    if (task.status !== "RESERVED" || !task.assignedAgentId || !task.reservationId)
+      throw new ExecutionError(409, "TASK_NOT_RESERVED", "Task execution requires a selected agent and economic reservation.");
+    const agent = await this.requireAgent(ownerId, task.assignedAgentId);
+    const reservationId = task.reservationId;
+    const controller = new AbortController(); this.#controllers.set(task.id, controller);
+    task = await this.update(task, { status: "RUNNING", startedAt: this.now().toISOString() });
+    let sessionId: string | null = null;
+    try {
+      const developmentInput = DevelopmentInputSchema.safeParse(task.inputs.developmentInput);
+      if (developmentInput.success) {
+        const delegated = await this.externalHarvest.executeDelegation({ ownerId, requestId, ipAddress, signal: controller.signal, body: {
+          managerAgentId: task.createdByAgentId ?? "engineering_manager", specialistAgentId: agent.id, task: task.objective,
+          contextSummary: `${task.title}. Only supplied source and bounded evidence are in scope.`, requestedMemoryScopes: ["ENGINEERING"],
+          requestedCapabilities: task.requiredCapabilities, requestedSkills: task.requiredSkills, tokenBudget: 8_000,
+          costBudgetUsd: Math.min(5, task.economicBudget / 100), sandboxProfileId: "registered_validation_readonly", developmentInput: developmentInput.data,
+        } });
+        this.metrics(ownerId).providerCalls++;
+        if (delegated.status !== "COMPLETE") throw new ExecutionError(502,"SANDBOX_DELEGATION_FAILED","The bounded development delegation failed closed.");
+        const actualCost = Math.max(1,Math.min(task.reservedCredits,2));
+        await this.economy.settle({ ownerId, agentId: agent.id, reservationId, actualCost, idempotencyKey: `workforce-settle:${task.id}`, reasonCode: "WORKFORCE_SANDBOX_TASK_SETTLED", references: { taskId: task.id } });
+        task = await this.update(task,{ status:"REVIEW_REQUIRED", resultSummary: delegated.summary, resultConfidence: delegated.confidence,
+          actualCost, aiRequestId: delegated.ai.requestId, providerId: delegated.ai.providerId, modelId: delegated.ai.modelId,
+          sandboxStatus: delegated.tests?.status ?? "UNAVAILABLE", artifactCount: delegated.artifacts.length,
+          evidenceRefs: [...new Set([...task.evidenceRefs,...delegated.artifacts.map((artifact) => `artifact:${artifact.name}`)])],
+        });
+        await this.message(ownerId,task,agent.id,task.createdByAgentId,"REVIEW_REQUEST",{ summary: delegated.summary, sandboxStatus: task.sandboxStatus, artifactCount: task.artifactCount },task.evidenceRefs);
+        return { task };
+      }
+      const runtime = await this.agentOs.startIsolatedDelegation({ ownerId, managerAgentId: task.createdByAgentId ?? "engineering_manager", specialistAgentId: agent.id, delegationId: task.id, task: task.objective,
+        contextSummary: `${task.title}. Evidence references: ${task.evidenceRefs.join(", ") || "none"}.`, memoryRefs: [], memoryScopes: [agent.workforce?.memoryScopeId ?? `agent:${agent.id}`],
+        capabilityRefs: task.requiredCapabilities, skillRefs: task.requiredSkills, knowledgeSourceRefs: [], contextTokenBudget: 8_000,
+        sandboxProfileId: agent.workforce?.executionPlacement === "LOCAL_ONLY" ? "local_bounded_v1" : "shared_bounded_v1", requestId });
+      sessionId = runtime.session.id;
+      const routed = await this.aiRouter.executeStructured({ purpose: "REASONING", input: [{ role: "user", content: [{ type: "text", text: task.objective }] }],
+        systemInstructions: ["You are an Alexa workforce specialist. Return a bounded result only. Do not execute tools, grant authority, approve work, or expand task scope."],
+        context: [{ sourceType: "AGENT", trustLevel: "TRUSTED", content: { role: agent.displayName, taskId: task.id, evidenceRefs: task.evidenceRefs, memoryScopeRefs: task.memoryScopeRefs, allowedSkills: task.requiredSkills, allowedCapabilities: task.requiredCapabilities, parentTranscriptIncluded: false } }],
+        outputMode: "STRUCTURED", schema: RuntimeResultSchema, schemaName: "alexa_workforce_task_result", maxOutputTokens: 1_500,
+        temperature: 0.1, reasoning: "MEDIUM", risk: task.riskLevel, privacy: agent.workforce?.executionPlacement === "LOCAL_ONLY" ? "LOCAL_ONLY" : "STANDARD",
+        locality: agent.workforce?.executionPlacement === "REMOTE_PREFERRED" ? "ALLOW_REMOTE" : "PREFER_LOCAL", allowCloud: agent.workforce?.executionPlacement !== "LOCAL_ONLY",
+        allowFallback: true, allowClarification: false, maxAttempts: 2, maxCloudEscalations: 1, maxContextTokens: 8_000,
+        economicMaxInputTokens: 8_000, agentId: agent.id, taskId: task.id,
+        economicContext: { ownerId, purpose: "REASONING", autonomyMode: "ASSISTED", taskId: task.id, costCenter: "workforce-runtime" },
+        metadata: { rootTaskId: task.rootTaskId, parentTaskId: task.parentTaskId, parentTranscriptIncluded: false },
+      }, { signal: controller.signal });
+      this.metrics(ownerId).providerCalls++;
+      const result = RuntimeResultSchema.safeParse(routed.structuredOutput);
+      if (routed.outcome !== "SUCCESS" || !result.success) throw new ExecutionError(502, "WORKFORCE_AI_RESULT_INVALID", "AIRouter did not return a valid bounded workforce result.");
+      const actualCost = Math.max(1, Math.min(task.reservedCredits, Math.ceil((routed.usage?.totalTokens ?? 1) / 2_000)));
+      await this.economy.settle({ ownerId, agentId: agent.id, reservationId, actualCost, idempotencyKey: `workforce-settle:${task.id}`, reasonCode: "WORKFORCE_TASK_SETTLED", references: { taskId: task.id } });
+      await this.agentOs.completeIsolatedDelegation({ ownerId, sessionId, outputSummary: result.data.summary, confidence: result.data.confidence, aiRequestId: routed.requestId, providerId: routed.providerId ?? "unknown", modelId: routed.modelId ?? "unknown", sandboxStatus: "UNAVAILABLE", artifactCount: 0, errorCode: null, requestId });
+      const reviewRequired = task.riskLevel !== "LOW" || task.type === "REVIEW";
+      task = await this.update(task, { status: reviewRequired ? "REVIEW_REQUIRED" : "COMPLETED", resultSummary: result.data.summary,
+        resultConfidence: result.data.confidence, evidenceRefs: [...new Set([...task.evidenceRefs, ...result.data.evidence])], actualCost,
+        aiRequestId: routed.requestId, providerId: routed.providerId ?? null, modelId: routed.modelId ?? null, completedAt: reviewRequired ? null : this.now().toISOString() });
+      await this.message(ownerId, task, agent.id, task.createdByAgentId, reviewRequired ? "REVIEW_REQUEST" : "RESULT", { summary: result.data.summary, confidence: result.data.confidence }, task.evidenceRefs);
+      return { task };
+    } catch (error) {
+      if (task.reservationId) await this.economy.release({ ownerId, agentId: agent.id, reservationId: task.reservationId, idempotencyKey: `workforce-release:${task.id}`, reasonCode: "WORKFORCE_TASK_FAILED" }).catch(() => undefined);
+      if (sessionId) await this.agentOs.completeIsolatedDelegation({ ownerId, sessionId, outputSummary: "Workforce task failed closed.", confidence: 0, aiRequestId: crypto.randomUUID(), providerId: "none", modelId: "none", sandboxStatus: "FAILED", artifactCount: 0, errorCode: error instanceof Error ? error.name : "WORKFORCE_EXECUTION_FAILED", requestId }).catch(() => undefined);
+      const retry = task.retryCount < task.maxRetries && !controller.signal.aborted;
+      task = await this.update(task, { status: retry ? "QUEUED" : controller.signal.aborted ? "CANCELLED" : "FAILED", retryCount: retry ? task.retryCount + 1 : task.retryCount, assignedAgentId: retry ? null : task.assignedAgentId, reservationId: null, reservedCredits: 0 });
+      if (!retry) throw error;
+      return { task };
+    } finally {
+      this.#controllers.delete(task.id);
+      await this.workforce.setActivation(ownerId, agent.id, "DORMANT", requestId, ipAddress).catch(() => undefined);
+    }
+  }
+
+  async sendMessage(ownerId: string, body: unknown) {
+    const parsed = CreateWorkforceMessageRequestSchema.parse(body);
+    const task = await this.requireTask(ownerId, parsed.taskId);
+    await this.requireAgent(ownerId, parsed.fromAgentId);
+    if (parsed.toAgentId) await this.requireAgent(ownerId, parsed.toAgentId);
+    const messages = (await this.store.listMessages(ownerId, 500)).filter((item) => item.taskId === task.id);
+    if (messages.length >= MAX_MESSAGES_PER_TASK) throw new ExecutionError(409, "TASK_MESSAGE_LIMIT", "The bounded task message limit is reached.");
+    const message = await this.message(ownerId, task, parsed.fromAgentId, parsed.toAgentId, parsed.type, parsed.payload, parsed.evidenceRefs);
+    return { message };
+  }
+
+  async updateObjectiveBounds(ownerId:string,taskId:string,patch:{priority?:"low"|"normal"|"high"|"urgent";economicBudget?:number;expiresAt?:string|null;objectiveConstraints?:string[]}) {
+    const task=await this.requireTask(ownerId,taskId);
+    if(patch.economicBudget!==undefined&&patch.economicBudget<task.reservedCredits) throw new ExecutionError(409,"TASK_BUDGET_BELOW_RESERVATION","Task budget cannot be reduced below its current reservation.");
+    return this.update(task,{
+      ...(patch.priority?{priority:patch.priority}:{}),
+      ...(patch.economicBudget!==undefined?{economicBudget:patch.economicBudget}:{}),
+      ...(patch.expiresAt!==undefined?{expiresAt:patch.expiresAt}:{}),
+      ...(patch.objectiveConstraints?{inputs:{...task.inputs,objectiveConstraints:patch.objectiveConstraints}}:{}),
+    });
+  }
+
+  async complete(ownerId: string, taskId: string, body: unknown, requestId: string, ipAddress: string) {
+    const parsed = CompleteWorkforceTaskRequestSchema.parse(body); let task = await this.requireTask(ownerId, taskId);
+    if (task.status === "COMPLETED" && task.resultSummary === parsed.resultSummary) return { task };
+    if (!task.assignedAgentId || !["RUNNING","WAITING"].includes(task.status)) throw new ExecutionError(409, "TASK_NOT_COMPLETABLE", "Only active tasks may submit a result.");
+    if (parsed.actualCost > task.reservedCredits) throw new ExecutionError(409, "COST_EXCEEDS_RESERVATION", "Actual cost cannot exceed the task reservation.");
+    const assignedAgentId = task.assignedAgentId;
+    if (task.reservationId) await this.economy.settle({ ownerId, agentId: assignedAgentId, reservationId: task.reservationId, actualCost: parsed.actualCost, idempotencyKey: `manual-settle:${task.id}`, reasonCode: "WORKFORCE_RESULT_SETTLED", references: { taskId: task.id } });
+    task = await this.update(task, { status: parsed.reviewRequired || task.riskLevel !== "LOW" ? "REVIEW_REQUIRED" : "COMPLETED", resultSummary: parsed.resultSummary, resultConfidence: parsed.resultConfidence, actualCost: parsed.actualCost, evidenceRefs: [...new Set([...task.evidenceRefs,...parsed.evidenceRefs])], completedAt: parsed.reviewRequired ? null : this.now().toISOString() });
+    await this.workforce.setActivation(ownerId, assignedAgentId, "DORMANT", requestId, ipAddress);
+    return { task };
+  }
+
+  async review(ownerId: string, taskId: string, body: unknown, requestId: string, ipAddress: string) {
+    const parsed = SubmitWorkforceReviewRequestSchema.parse(body); let task = await this.requireTask(ownerId, taskId);
+    const duplicate = (await this.store.listReviews(ownerId,500)).find((item) => item.taskId === taskId && item.reviewerAgentId === parsed.reviewerAgentId);
+    if (duplicate) return { task, review: duplicate };
+    if (task.status !== "REVIEW_REQUIRED" || !task.assignedAgentId) throw new ExecutionError(409, "REVIEW_NOT_REQUIRED", "This task is not awaiting review.");
+    const subjectAgentId = task.assignedAgentId;
+    const reviewer = await this.requireAgent(ownerId, parsed.reviewerAgentId);
+    if (reviewer.id === subjectAgentId || !["review","security","testing"].includes(reviewer.role)) throw new ExecutionError(403, "INDEPENDENT_REVIEWER_REQUIRED", "A separate eligible reviewer is required.");
+    const review = WorkforceRuntimeReviewSchema.parse({ id: crypto.randomUUID(), ownerId, taskId, reviewerAgentId: reviewer.id, subjectAgentId, verdict: parsed.verdict, findings: parsed.findings, evidenceRefs: parsed.evidenceRefs, createdAt: this.now().toISOString() });
+    await this.store.saveReview(review);
+    task = await this.update(task, { status: parsed.verdict === "PASS" ? "COMPLETED" : parsed.verdict === "FAIL" ? "FAILED" : "WAITING", completedAt: parsed.verdict === "PASS" ? this.now().toISOString() : null, evidenceRefs: [...new Set([...task.evidenceRefs,...parsed.evidenceRefs])] });
+    await this.message(ownerId, task, reviewer.id, subjectAgentId, "REVIEW_RESULT", { verdict: parsed.verdict, findings: parsed.findings }, parsed.evidenceRefs);
+    if (parsed.verdict === "PASS") await this.economy.rewardVerified({ ownerId, agentId: subjectAgentId, amount: 1, authority: "WORKFLOW_EVALUATOR", idempotencyKey: `workforce-reward:${task.id}`, reasonCode: "INDEPENDENT_REVIEW_PASSED", outcome: { taskId: task.id, predictedSuccessProbability: task.resultConfidence ?? 0.5, estimatedCost: task.reservedCredits, estimatedDurationMs: task.startedAt ? Math.max(0, this.now().getTime() - new Date(task.startedAt).getTime()) : 0, actualSuccess: true, actualCost: task.actualCost, actualDurationMs: task.startedAt ? Math.max(0, this.now().getTime() - new Date(task.startedAt).getTime()) : 0, qualityScore: task.resultConfidence ?? 0.5, verificationResult: "VERIFIED", evidenceRefs: task.evidenceRefs.slice(0,20) } });
+    await this.audit({ eventType: "WORKFORCE_TASK_REVIEWED", ownerId, outcome: "SUCCESS", reason: "Independent structured review recorded.", requestId, ipAddress, metadata: { taskId, reviewerAgentId: reviewer.id, verdict: parsed.verdict } });
+    return { task, review };
+  }
+
+  async cancel(ownerId: string, taskId: string, requestId: string, ipAddress: string) {
+    const root = await this.requireTask(ownerId, taskId); this.#controllers.get(root.id)?.abort();
+    const descendants = (await this.store.listTasks(ownerId, 500)).filter((item) => item.rootTaskId === root.rootTaskId && !["COMPLETED","FAILED","CANCELLED","EXPIRED"].includes(item.status));
+    for (const task of descendants) { this.#controllers.get(task.id)?.abort(); await this.update(task, { status: "CANCELLED" }); if (task.reservationId && task.assignedAgentId) await this.economy.release({ ownerId, agentId: task.assignedAgentId, reservationId: task.reservationId, idempotencyKey: `cancel:${task.id}`, reasonCode: "ROOT_TASK_CANCELLED" }).catch(() => undefined); }
+    await this.audit({ eventType: "WORKFORCE_TASK_CANCELLED", ownerId, outcome: "SUCCESS", reason: "Root cancellation propagated through the bounded task tree.", requestId, ipAddress, metadata: { rootTaskId: root.rootTaskId, cancelledCount: descendants.length } });
+    return this.dashboard(ownerId);
+  }
+
+  async recover(ownerId: string, requestId: string, ipAddress: string) {
+    const uncertain = (await this.store.listTasks(ownerId,500)).filter((task) => ["ASSIGNED","RESERVED","RUNNING"].includes(task.status));
+    for (const task of uncertain) await this.update(task,{ status: "RECOVERY_REVIEW_REQUIRED" });
+    await this.audit({ eventType: "WORKFORCE_RUNTIME_RECOVERED", ownerId, outcome: "SUCCESS", reason: "Uncertain work was held for recovery review and was not replayed.", requestId, ipAddress, metadata: { reviewRequiredCount: uncertain.length } });
+    return this.dashboard(ownerId);
+  }
+
+  private score(task: WorkforceRuntimeTask, agent: AgentRecord, account: Awaited<ReturnType<AgentEconomyService["dashboard"]>>["accounts"][number] | undefined, performance: Awaited<ReturnType<AgentEconomyService["dashboard"]>>["performance"][number] | undefined, activeCount: number): WorkforceMatchScore {
+    const skillFit = fit(task.requiredSkills, [...agent.workforce?.skills ?? [], ...agent.supportedTasks]);
+    const capabilityFit = fit(task.requiredCapabilities, agent.capabilities);
+    const reputation = (account?.reputation ?? 0) / 100; const calibration = performance?.calibration ?? 0.5;
+    const costEfficiency = performance ? Math.min(1, performance.costEfficiency / 2) : 0.5;
+    const availability = activeCount === 0 && ["available","busy"].includes(agent.status) ? 1 : 0;
+    const departmentFit = !task.preferredDepartmentId || agent.workforce?.departmentId === task.preferredDepartmentId ? 1 : 0.35;
+    const capacityPenalty = Math.min(1, activeCount * 0.35);
+    const funded = Boolean(account && account.economyStatus !== "SUSPENDED" && account.availableCredits >= Math.max(1, Math.min(task.economicBudget, 10)));
+    const lifecycle = !["disabled","unhealthy","paused"].includes(agent.status);
+    const eligible = lifecycle && funded && availability > 0 && skillFit >= (task.requiredSkills.length ? 0.5 : 1) && capabilityFit === 1;
+    const finalScore = round(skillFit*0.25 + capabilityFit*0.25 + reputation*0.13 + calibration*0.1 + costEfficiency*0.08 + availability*0.1 + departmentFit*0.09 - capacityPenalty*0.2);
+    return { agentId: agent.id, skillFit: round(skillFit), capabilityFit: round(capabilityFit), reputation: round(reputation), calibration: round(calibration), costEfficiency: round(costEfficiency), availability, departmentFit, capacityPenalty, finalScore, predictedSuccess: round(reputation * 0.45 + calibration * 0.35 + skillFit * 0.2), estimatedCost: Math.max(1, Math.min(task.economicBudget, 10)), estimatedDurationMs: 60_000, eligible, reasons: [funded ? "economic budget available" : "insufficient economic budget", lifecycle ? "lifecycle available" : "lifecycle blocked", capabilityFit === 1 ? "capabilities matched" : "missing required capability"] };
+  }
+
+  private assertDelegationAuthority(from: AgentRecord, to: AgentRecord, type: "WORK"|"QUESTION"|"REVIEW") {
+    const sameDepartment = from.workforce?.departmentId && from.workforce.departmentId === to.workforce?.departmentId;
+    const managesTarget = to.workforce?.managerAgentId === from.id || to.workforce?.parentAgentId === from.id;
+    const reviewerRequest = type === "REVIEW" && ["review","security","testing"].includes(to.role);
+    if (!sameDepartment && !managesTarget && !reviewerRequest) throw new ExecutionError(403, "DELEGATION_AUTHORITY_DENIED", "Cross-department delegation requires a governed specialist review route.");
+  }
+
+  private async createCapabilityRequestIfPossible(ownerId: string, task: WorkforceRuntimeTask, requestId: string, ipAddress: string) {
+    if (!task.requiredCapabilities.length || !task.createdByAgentId) return;
+    await this.message(ownerId, task, task.createdByAgentId, null, "CAPABILITY_REQUEST", { missingCapabilities: task.requiredCapabilities }, task.evidenceRefs);
+    const applicationId = typeof task.inputs.applicationId === "string" ? task.inputs.applicationId : null;
+    if (applicationId) await this.capabilityStudio.createRequest({ ownerId, requestId, ipAddress, body: { applicationId, requestedIntent: `Provide ${task.requiredCapabilities.join(", ")}`, desiredOutcome: task.objective, contextSummary: task.title, requestedBy: "AGENT", requestingAgentId: task.createdByAgentId } });
+  }
+  private async message(ownerId: string, task: WorkforceRuntimeTask, fromAgentId: string, toAgentId: string|null, type: "TASK"|"RESULT"|"QUESTION"|"ANSWER"|"DELEGATION"|"REVIEW_REQUEST"|"REVIEW_RESULT"|"CAPABILITY_REQUEST"|"ESCALATION"|"PROPOSAL"|"EVIDENCE"|"STATUS_UPDATE", payload: Record<string, unknown>, evidenceRefs: string[]) {
+    const message = WorkforceRuntimeMessageSchema.parse({ id: crypto.randomUUID(), ownerId, organizationId: task.organizationId, fromAgentId, toAgentId, taskId: task.id, type, payload, evidenceRefs, createdAt: this.now().toISOString() }); await this.store.saveMessage(message); return message;
+  }
+  private async update(task: WorkforceRuntimeTask, patch: Partial<WorkforceRuntimeTask>) { const updated = WorkforceRuntimeTaskSchema.parse({ ...task, ...patch, updatedAt: this.now().toISOString() }); await this.store.saveTask(updated); await this.lifecycleSink?.handleWorkforceTaskChanged(updated); return updated; }
+  private async requireTask(ownerId: string, id: string) { const task = await this.store.findTask(ownerId,id); if (!task) throw new ExecutionError(404,"WORKFORCE_TASK_NOT_FOUND","Workforce task not found."); return task; }
+  private async requireAgent(ownerId: string, id: string) { const agent = await this.agentStore.findAgent(ownerId,id); if (!agent?.workforce) throw new ExecutionError(404,"WORKFORCE_AGENT_NOT_FOUND","Workforce agent not found."); return agent; }
+  private metrics(ownerId:string) { const existing = this.#metrics.get(ownerId); if (existing) return existing; const created = { assignments:0, providerCalls:0, matchingLatencyTotalMs:0, peakActiveAgents:0 }; this.#metrics.set(ownerId,created); return created; }
+  private auditEvent(input: {ownerId:string;requestId:string;ipAddress:string}, eventType:"WORKFORCE_TASK_CREATED", reason:string, metadata:Record<string,string|number|boolean|null>) { return this.audit({ eventType, ownerId: input.ownerId, outcome:"SUCCESS", reason, requestId: input.requestId, ipAddress:input.ipAddress, metadata }); }
+}

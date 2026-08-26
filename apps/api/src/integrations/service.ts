@@ -10,16 +10,30 @@ import {
 } from "@alexa-control/shared";
 
 import type { GovernanceAuditWriter } from "../governance/approval-service.js";
+import type { ApprovalService } from "../governance/approval-service.js";
 import { ExecutionError } from "../execution/errors.js";
 import { BUILT_IN_INTEGRATIONS, builtInCapabilities } from "./builtins.js";
 import type { IntegrationStore } from "./store.js";
+import { BusinessOperationsRuntime, type AgentBusinessAuthorityVerifier, type BusinessOutcomeSinks } from "./business-runtime.js";
+import type { ReviewedBusinessProvider } from "./business-providers.js";
 
 export class IntegrationRegistryService {
+  #business?:BusinessOperationsRuntime;
   constructor(
     readonly store: IntegrationStore,
     readonly audit: GovernanceAuditWriter,
     readonly now: () => Date = () => new Date(),
   ) {}
+
+  enableBusinessOperations(approvals:ApprovalService){this.#business=new BusinessOperationsRuntime(this.store,approvals,this.audit,this.now);return this.#business;}
+  setBusinessProvider(provider:ReviewedBusinessProvider){this.requireBusiness().setProvider(provider);}
+  setBusinessOutcomeSinks(sinks:BusinessOutcomeSinks){this.requireBusiness().setOutcomeSinks(sinks);}
+  setAgentBusinessAuthorityVerifier(verifier:AgentBusinessAuthorityVerifier){this.requireBusiness().setAgentAuthorityVerifier(verifier);}
+  async businessDashboard(ownerId:string){await this.ensureBuiltIns(ownerId);return this.requireBusiness().dashboard(ownerId);}
+  async requestBusinessAction(input:{ownerId:string;body:unknown;requestId:string;ipAddress:string}){await this.ensureBuiltIns(input.ownerId,input.requestId);return this.requireBusiness().request(input);}
+  async reconcileBusinessAction(input:{ownerId:string;executionId:string;requestId:string;ipAddress:string}){return this.requireBusiness().reconcile(input);}
+  async ingestBusinessWebhook(input:{ownerId:string;body:unknown;signature:string;timestamp:string;secret:string;requestId:string;ipAddress:string}){await this.ensureBuiltIns(input.ownerId,input.requestId);return this.requireBusiness().ingestWebhook(input);}
+  async saveBusinessCheckpoint(ownerId:string,integrationId:string,stream:string,cursor:string,sourceTimestamp:string|null){return this.requireBusiness().checkpoint(ownerId,integrationId,stream,cursor,sourceTimestamp);}
 
   async ensureBuiltIns(ownerId: string, requestId = "system") {
     const at = this.now().toISOString();
@@ -292,4 +306,6 @@ export class IntegrationRegistryService {
       );
     return capability;
   }
+
+  private requireBusiness(){if(!this.#business)throw new ExecutionError(503,"BUSINESS_OPERATIONS_NOT_CONFIGURED","The governed business operations runtime is not configured.");return this.#business;}
 }

@@ -67,10 +67,38 @@ private func children(_ element: AXUIElement) -> [AXUIElement] {
     (attribute(element, kAXChildrenAttribute) as? [AXUIElement]) ?? []
 }
 
-private func matches(_ element: AXUIElement, _ target: Target) -> Bool {
+private func elements(_ element: AXUIElement, _ name: String) -> [AXUIElement] {
+    (attribute(element, name) as? [AXUIElement]) ?? []
+}
+
+private func element(_ element: AXUIElement, _ name: String) -> AXUIElement? {
+    guard let value = attribute(element, name),
+          CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
+    return (value as! AXUIElement)
+}
+
+private func appendUnique(_ candidate: AXUIElement?, to elements: inout [AXUIElement]) {
+    guard let candidate,
+          !elements.contains(where: { CFEqual($0, candidate) }) else { return }
+    elements.append(candidate)
+}
+
+private let reviewedComposerSubmitLabels: Set<String> = [
+    "send", "send message", "send prompt", "submit"
+]
+
+private func matches(_ element: AXUIElement, _ target: Target, _ operation: String) -> Bool {
     guard stringAttribute(element, kAXRoleAttribute) == target.role else { return false }
     if let identifier = target.identifier,
        stringAttribute(element, kAXIdentifierAttribute) != identifier { return false }
+    if operation == "submit_composer",
+       target.type == "BUTTON",
+       target.label == "Send",
+       target.identifier == nil {
+        return labels(element).contains {
+            reviewedComposerSubmitLabels.contains($0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
+        }
+    }
     if let label = target.label,
        !labels(element).contains(where: { $0.caseInsensitiveCompare(label) == .orderedSame }) {
         return false
@@ -78,14 +106,26 @@ private func matches(_ element: AXUIElement, _ target: Target) -> Bool {
     return true
 }
 
-private func findMatches(root: AXUIElement, target: Target) -> [AXUIElement] {
-    var queue: [(AXUIElement, Int)] = [(root, 0)]
+private func findMatches(root: AXUIElement, target: Target, operation: String) -> [AXUIElement] {
+    // Chromium can report an empty AXWindows collection while still exposing
+    // its browser chrome through AXFocusedWindow/AXMainWindow. Prefer those
+    // reviewed structural roots and fall back to the application tree.
+    var roots: [AXUIElement] = []
+    appendUnique(element(root, kAXFocusedWindowAttribute), to: &roots)
+    appendUnique(element(root, kAXMainWindowAttribute), to: &roots)
+    for window in elements(root, kAXWindowsAttribute) {
+        appendUnique(window, to: &roots)
+    }
+    if roots.isEmpty { roots.append(root) }
+    var queue: [(AXUIElement, Int)] = roots.map {
+        ($0, 0)
+    }
     var found: [AXUIElement] = []
     var visited = 0
     while !queue.isEmpty && visited < 2_000 {
         let (element, depth) = queue.removeFirst()
         visited += 1
-        if matches(element, target) { found.append(element) }
+        if matches(element, target, operation) { found.append(element) }
         if depth < 20 {
             queue.append(contentsOf: children(element).map { ($0, depth + 1) })
         }
@@ -93,7 +133,17 @@ private func findMatches(root: AXUIElement, target: Target) -> [AXUIElement] {
     return found
 }
 
-guard AXIsProcessTrusted() else {
+private func accessibilityTrusted() -> Bool {
+    // Ensure this launched app bundle is registered with AppKit before TCC
+    // evaluates Accessibility consent for its stable signing identity.
+    _ = NSApplication.shared
+    if AXIsProcessTrusted() { return true }
+    let promptKey = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+    _ = AXIsProcessTrustedWithOptions([promptKey: true] as CFDictionary)
+    return false
+}
+
+guard accessibilityTrusted() else {
     emit(Result(status: "PERMISSION_DENIED", semanticId: nil, matchedCount: 0))
 }
 guard let data = try? FileHandle.standardInput.readToEnd(),
@@ -111,7 +161,7 @@ guard let application = NSRunningApplication.runningApplications(
     emit(Result(status: "APP_NOT_RUNNING", semanticId: nil, matchedCount: 0))
 }
 let root = AXUIElementCreateApplication(application.processIdentifier)
-let found = findMatches(root: root, target: request.target)
+let found = findMatches(root: root, target: request.target, operation: request.operation)
 guard found.count == 1, let target = found.first else {
     emit(Result(
         status: found.isEmpty ? "TARGET_NOT_FOUND" : "TARGET_AMBIGUOUS",
@@ -120,8 +170,13 @@ guard found.count == 1, let target = found.first else {
     ))
 }
 let role = stringAttribute(target, kAXRoleAttribute) ?? request.target.role
-let label = request.target.label ?? labels(target).first
-let identifier = request.target.identifier ?? stringAttribute(target, kAXIdentifierAttribute)
+// The reviewed composer fallback deliberately has no stable label. Bind its
+// digest to the frozen request rather than provider-private dynamic AX text.
+let label = request.target.label
+// A reviewed fallback target intentionally has no stable identifier. Do not
+// silently incorporate a provider-private runtime identifier into its frozen
+// digest; matching already requires one exact visible role/label target.
+let identifier = request.target.identifier
 let semanticId = semanticHash(role: role, label: label, identifier: identifier)
 guard semanticId == request.target.semanticId else {
     emit(Result(status: "TARGET_STALE", semanticId: semanticId, matchedCount: 1))

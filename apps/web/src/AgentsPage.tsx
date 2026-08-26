@@ -3,9 +3,16 @@ import { useState, type FormEvent } from "react";
 
 import type { AgentPriority } from "@alexa-control/shared";
 import type { ApiClient } from "./api.js";
+import { AgentEconomyPanel } from "./AgentEconomyPanel.js";
+import { AgentWorkforceGraph } from "./AgentWorkforceGraph.js";
 
 export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
   const queryClient = useQueryClient();
+  const [workspaceView, setWorkspaceView] = useState<"agents" | "workforce" | "economy">(() => {
+    const view = new URLSearchParams(window.location.search).get("view");
+    return view === "workforce" || view === "economy" ? view : "agents";
+  });
+  const [directoryQuery, setDirectoryQuery] = useState("");
   const [agentId, setAgentId] = useState("planning_agent");
   const [title, setTitle] = useState("Plan a safe implementation");
   const [objective, setObjective] = useState(
@@ -49,13 +56,36 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
     queryFn: apiClient.getAgentSocietyDashboard,
     refetchInterval: 10_000,
   });
+  const workforce = useQuery({
+    queryKey: ["agent-workforce-graph", "agents-directory"],
+    queryFn: () => apiClient.getAgentWorkforceGraph("limit=160"),
+    refetchInterval: 15_000,
+  });
+  const runtime = useQuery({
+    queryKey: ["workforce-runtime"],
+    queryFn: apiClient.getWorkforceRuntime,
+    refetchInterval: 5_000,
+  });
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ["agents-dashboard"] });
     await queryClient.invalidateQueries({ queryKey: ["agent-os-dashboard"] });
     await queryClient.invalidateQueries({ queryKey: ["agent-society-dashboard"] });
+    await queryClient.invalidateQueries({ queryKey: ["workforce-runtime"] });
   };
   const createTask = useMutation({
     mutationFn: apiClient.createAgentTask,
+    onSuccess: refresh,
+  });
+  const queueRuntimeTask = useMutation({
+    mutationFn: apiClient.createWorkforceRuntimeTask,
+    onSuccess: refresh,
+  });
+  const runRuntimeTask = useMutation({
+    mutationFn: apiClient.executeWorkforceRuntimeTask,
+    onSuccess: refresh,
+  });
+  const cancelRuntimeTask = useMutation({
+    mutationFn: apiClient.cancelWorkforceRuntimeTask,
     onSuccess: refresh,
   });
   const completeTask = useMutation({
@@ -110,44 +140,163 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
     });
   };
   const selectedAgent = dashboard.data?.agents.find((agent) => agent.id === agentId);
+  const directoryAgents = (workforce.data?.nodes ?? [])
+    .filter((agent) => agent.kind === "AGENT")
+    .filter((agent) => `${agent.label} ${agent.subtitle}`.toLowerCase().includes(directoryQuery.trim().toLowerCase()))
+    .slice(0, 20);
+
+  if (workspaceView === "economy") {
+    return (
+      <section className="placeholder-page wide-page governance-page">
+        <p className="eyebrow">Governed resource accounting</p>
+        <h1>Agent Economy</h1>
+        <p>Internal credits buy bounded resources, never permissions, approvals, capabilities, trust, or reputation.</p>
+        <nav className="workspace-tabs" aria-label="Agent workspace views">
+          <button onClick={() => setWorkspaceView("agents")} type="button">Agents</button>
+          <button onClick={() => setWorkspaceView("workforce")} type="button">Workforce</button>
+          <button aria-current="page" className="active" type="button">Economy</button>
+        </nav>
+        <AgentEconomyPanel apiClient={apiClient} />
+      </section>
+    );
+  }
+
+  if (workspaceView === "workforce") {
+    return (
+      <section className="placeholder-page wide-page governance-page workforce-page">
+        <p className="eyebrow">Organizational intelligence</p>
+        <h1>Agent Workforce</h1>
+        <p>Inspect the Alexa-governed organization, dormant specialist registry, scoped memory, finite capabilities, and lazy runtime participation.</p>
+        <nav className="workspace-tabs" aria-label="Agent workspace views">
+          <button onClick={() => setWorkspaceView("agents")} type="button">Agents</button>
+          <button aria-current="page" className="active" type="button">Workforce</button>
+          <button onClick={() => setWorkspaceView("economy")} type="button">Economy</button>
+        </nav>
+        <AgentWorkforceGraph apiClient={apiClient} />
+      </section>
+    );
+  }
 
   return (
-    <section className="placeholder-page wide-page governance-page">
-      <p className="eyebrow">Phase 7</p>
-      <h1>Multi-Agent Engineering System</h1>
+    <section className="placeholder-page wide-page governance-page agents-control-page">
+      <p className="eyebrow">Agent operations</p>
+      <h1>Alexa Workforce</h1>
       <p>
         Specialist agents coordinate through structured tasks, immutable messages,
         shared context, consensus records, and workflow checkpoints. No agent receives
         extra execution permission or can bypass patch approval.
       </p>
+      <nav className="workspace-tabs" aria-label="Agent workspace views">
+        <button aria-current="page" className="active" type="button">Agents</button>
+        <button onClick={() => setWorkspaceView("workforce")} type="button">Workforce</button>
+        <button onClick={() => setWorkspaceView("economy")} type="button">Economy</button>
+      </nav>
 
       <section className="status-grid">
-        <article className="status-card">
-          <span>Agents</span>
-          <strong>{dashboard.data?.agents.length ?? 0}</strong>
+          <article className="status-card">
+            <span>Agents</span>
+          <strong>{workforce.data?.summary.registered ?? dashboard.data?.agents.length ?? 0}</strong>
           <small>Specialist registry</small>
         </article>
         <article className="status-card">
           <span>Open tasks</span>
           <strong>
-            {dashboard.data?.tasks.filter((task) => task.status !== "completed")
-              .length ?? 0}
+            {runtime.data?.summary.queued ?? 0}
           </strong>
           <small>Deterministic scheduler state</small>
         </article>
-        <article className="status-card">
-          <span>Messages</span>
-          <strong>{dashboard.data?.messages.length ?? 0}</strong>
-          <small>Immutable timeline</small>
+          <article className="status-card">
+            <span>Consensus</span>
+            <strong>{runtime.data?.summary.running ?? 0}</strong>
+            <small>Bounded active contexts</small>
         </article>
         <article className="status-card">
           <span>Dynamic</span>
-          <strong>{dashboard.data?.dynamicWorkforce?.dynamicAgents.length ?? 0}</strong>
-          <small>Temporary specialists</small>
+          <strong>{runtime.data?.summary.waitingReview ?? 0}</strong>
+          <small>Independent review gates</small>
         </article>
       </section>
 
-      <section className="panel-list">
+      <aside className="agents-side-rail" aria-label="Agent runtime controls">
+        <section className="agent-rail-card agent-rail-runtime">
+          <p className="eyebrow">Agent OS runtime</p>
+          <div className="agent-rail-metrics">
+            <span><strong>{agentOsDashboard.data?.manifests.length ?? 0}</strong><small>Registered</small></span>
+            <span><strong>{agentOsDashboard.data?.packages.length ?? 0}</strong><small>Packages</small></span>
+            <span><strong>{runtime.data?.summary.running ?? 0}</strong><small>Running</small></span>
+            <span><strong>{agentOsDashboard.data?.sessions.length ?? 0}</strong><small>Sessions</small></span>
+          </div>
+          <p>Sessions prepare bounded context only. They do not deploy work or bypass approvals.</p>
+          <button disabled={!selectedAgent || startAgentOsSession.isPending} onClick={() => startAgentOsSession.mutate({ agentId, inputSummary: agentOsInput })} type="button">Start Agent OS session</button>
+          <input aria-label="Agent OS session context" onChange={(event) => setAgentOsInput(event.target.value)} value={agentOsInput} />
+        </section>
+
+        <section className="agent-rail-card agent-rail-capabilities">
+          <p className="eyebrow">Capability registry</p>
+          {(dashboard.data?.dynamicWorkforce?.capabilities ?? []).slice(0, 6).map((capability) => <div className="agent-capability-meter" key={capability.id}><span>{capability.id}</span><strong>{Math.round(capability.confidence * 100)}%</strong><i><b style={{ width: `${Math.round(capability.confidence * 100)}%` }} /></i></div>)}
+          {(dashboard.data?.dynamicWorkforce?.capabilities.length ?? 0) === 0 ? <p className="agent-rail-empty">No bounded capability records are available.</p> : null}
+        </section>
+
+        <section className="agent-rail-card">
+          <p className="eyebrow">Dynamic agents</p>
+          <strong>{dashboard.data?.dynamicWorkforce?.dynamicAgents.length ?? 0} temporary agents active</strong>
+          <p>Compose a governed team only for a detected capability gap.</p>
+        </section>
+
+        <section className="agent-rail-card agent-rail-adaptive">
+          <p className="eyebrow">Adaptive workflows</p>
+          <textarea aria-label="Adaptive workflow goal" onChange={(event) => setTeamGoal(event.target.value)} rows={3} value={teamGoal} />
+          <button disabled={composeTeam.isPending} onClick={() => composeTeam.mutate({ goal: teamGoal, repositoryIds: [] })} type="button">Compose adaptive team</button>
+        </section>
+
+        <section className="agent-rail-card agent-rail-tasks">
+          <p className="eyebrow">Task assignments</p>
+          {(runtime.data?.tasks ?? []).filter((task) => !["COMPLETED", "FAILED", "CANCELLED", "EXPIRED"].includes(task.status)).slice(0, 4).map((task) => <div className="agent-rail-task" key={task.id}><strong>{task.title}</strong><small>{task.status} · {task.assignedAgentId ?? "matching"}</small></div>)}
+          {(runtime.data?.tasks.length ?? 0) === 0 ? <p className="agent-rail-empty">No live workforce tasks.</p> : null}
+        </section>
+
+        <section className="agent-rail-card">
+          <p className="eyebrow">Message timeline</p>
+          <input aria-label="Status message" onChange={(event) => setMessageBody(event.target.value)} value={messageBody} />
+          <button disabled={!selectedAgent || sendMessage.isPending} onClick={() => sendMessage.mutate({ senderAgentId: "engineering_manager", recipientAgentId: agentId, messageType: "status", payload: { body: messageBody }, evidence: ["Dashboard-originated structured message."], priority: "normal" })} type="button">Send status message</button>
+        </section>
+
+        <section className="agent-rail-card">
+          <p className="eyebrow">Consensus panel</p>
+          <input aria-label="Consensus topic" onChange={(event) => setConsensusTopic(event.target.value)} value={consensusTopic} />
+          <button disabled={createConsensus.isPending} onClick={() => createConsensus.mutate({ topic: consensusTopic, rule: "required_specialist", requiredAgentIds: ["security_agent", "review_agent", "testing_agent"] })} type="button">Open specialist consensus</button>
+        </section>
+      </aside>
+
+      <div className="agents-main-column">
+        <section className="panel-list workforce-runtime-panel">
+        <div className="agent-runtime-heading">
+          <div><p className="eyebrow">On-demand workforce</p><h2>Live task runtime</h2></div>
+          <span>{runtime.data?.summary.active ?? 0} active · {runtime.data?.summary.dormant ?? 0} dormant · {runtime.data?.metrics.providerCalls ?? 0} provider calls · {Math.round(runtime.data?.metrics.matchingLatencyMs ?? 0)} ms match</span>
+        </div>
+        <form className="workforce-runtime-create" onSubmit={(event) => { event.preventDefault(); queueRuntimeTask.mutate({ createdByAgentId: "engineering_manager", assignedAgentId: null, title, objective, priority, requiredSkills: [], requiredCapabilities: [], economicBudget: 10, evidenceRefs: ["owner:dashboard"] }); }}>
+          <input aria-label="Runtime task title" onChange={(event) => setTitle(event.target.value)} value={title} />
+          <input aria-label="Runtime task objective" onChange={(event) => setObjective(event.target.value)} value={objective} />
+          <button disabled={queueRuntimeTask.isPending} type="submit">Queue task</button>
+        </form>
+        <div className="workforce-runtime-list">
+          {(runtime.data?.tasks ?? []).slice(0, 8).map((task) => {
+            const selected = task.selection.find((score) => score.agentId === task.assignedAgentId) ?? task.selection[0];
+            return <article key={task.id}>
+              <i className={`runtime-task-state state-${task.status.toLowerCase()}`} />
+              <div><strong>{task.title}</strong><span>{task.assignedAgentId ?? "Awaiting deterministic match"} · depth {task.depth} · {task.actualCost || task.reservedCredits} credits</span></div>
+              {selected ? <small>match {Math.round(selected.finalScore * 100)}% · skills {Math.round(selected.skillFit * 100)}% · capabilities {Math.round(selected.capabilityFit * 100)}%</small> : <small>{task.status}</small>}
+              <div className="runtime-task-actions">
+                {task.status === "QUEUED" ? <button disabled={runRuntimeTask.isPending} onClick={() => runRuntimeTask.mutate(task.id)} type="button">Run</button> : null}
+                {! ["COMPLETED", "FAILED", "CANCELLED", "EXPIRED"].includes(task.status) ? <button disabled={cancelRuntimeTask.isPending} onClick={() => cancelRuntimeTask.mutate(task.id)} type="button">Cancel</button> : null}
+              </div>
+            </article>;
+          })}
+          {(runtime.data?.tasks.length ?? 0) === 0 ? <p className="agent-rail-empty">Queue a bounded task to activate one specialist through the shared runtime.</p> : null}
+        </div>
+      </section>
+
+      <section className="panel-list agent-society-panel">
         <h2>Agent Society</h2>
         <p>
           Agent Society organizes specialists into departments, task forces, leadership
@@ -280,7 +429,7 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
         ))}
       </section>
 
-      <section className="panel-list">
+      <section className="panel-list agent-runtime-panel">
         <h2>Agent OS runtime</h2>
         <p>
           Agent OS turns every permanent and dynamic specialist into a manifest-backed
@@ -380,7 +529,7 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
         ) : null}
       </section>
 
-      <section className="panel-list">
+      <section className="panel-list agent-adaptive-panel">
         <h2>Adaptive workforce</h2>
         <form
           className="policy-form"
@@ -418,7 +567,7 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
         ) : null}
       </section>
 
-      <section className="panel-list">
+      <section className="panel-list agent-dynamic-panel">
         <h2>Dynamic agents</h2>
         {dashboard.data?.dynamicWorkforce?.dynamicAgents.map((agent) => (
           <article className="panel" key={agent.id}>
@@ -452,7 +601,7 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
         ) : null}
       </section>
 
-      <section className="panel-list">
+      <section className="panel-list agent-capability-panel">
         <h2>Capability registry</h2>
         <section className="status-grid">
           {dashboard.data?.dynamicWorkforce?.capabilities
@@ -467,43 +616,23 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
         </section>
       </section>
 
-      <section className="panel-list">
-        <h2>Agent overview</h2>
-        {dashboard.data?.agents.map((agent) => {
-          const health = dashboard.data.health.find(
-            (candidate) => candidate.agentId === agent.id,
-          );
-          const metrics = dashboard.data.metrics.find(
-            (candidate) => candidate.agentId === agent.id,
-          );
-          return (
-            <article className="panel" key={agent.id}>
-              <p className="eyebrow">
-                {agent.role} · {agent.status}
-              </p>
-              <h3>{agent.displayName}</h3>
-              <p>{agent.healthSummary}</p>
-              <p>Capabilities: {agent.capabilities.join(", ")}</p>
-              <dl>
-                <div>
-                  <dt>Health</dt>
-                  <dd>{health?.state ?? "unknown"}</dd>
-                </div>
-                <div>
-                  <dt>Assigned</dt>
-                  <dd>{metrics?.assignedTaskCount ?? 0}</dd>
-                </div>
-                <div>
-                  <dt>Messages</dt>
-                  <dd>{metrics?.messageCount ?? 0}</dd>
-                </div>
-              </dl>
-            </article>
-          );
-        })}
+      <section className="panel-list agent-directory-panel">
+        <div className="agent-directory-heading">
+          <div><p className="eyebrow">Agent directory</p><h2>Registered workforce</h2></div>
+          <small>{directoryAgents.length} of {workforce.data?.summary.registered ?? 0}</small>
+        </div>
+        <div className="agent-directory-toolbar">
+          <input aria-label="Search agents" onChange={(event) => setDirectoryQuery(event.target.value)} placeholder="Search agents..." value={directoryQuery} />
+          <button className="secondary-button" onClick={() => setWorkspaceView("workforce")} type="button">Open workforce graph</button>
+        </div>
+        <div className="agent-directory-table" role="table" aria-label="Registered agent directory">
+          <div className="agent-directory-row agent-directory-header" role="row"><span>Agent</span><span>Specialization</span><span>Health</span><span>State</span><span>Members</span></div>
+          {directoryAgents.map((agent) => <button className="agent-directory-row" key={agent.id} onClick={() => setWorkspaceView("workforce")} role="row" type="button"><strong>{agent.label}</strong><span>{agent.subtitle}</span><span><i className={`agent-health-dot state-${agent.status.toLowerCase()}`} />{agent.status === "FAILED" || agent.status === "BLOCKED" ? "attention" : "healthy"}</span><span>{agent.status.toLowerCase()}</span><span>{agent.childCount}</span></button>)}
+          {directoryAgents.length === 0 ? <p className="notice">No registered workforce entries match this search.</p> : null}
+        </div>
       </section>
 
-      <form className="policy-form" onSubmit={submitTask}>
+      <form className="policy-form agent-task-panel" onSubmit={submitTask}>
         <h2>Task assignment</h2>
         <label>
           Agent
@@ -545,7 +674,7 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
         </button>
       </form>
 
-      <section className="panel-list">
+      <section className="panel-list agent-task-history-panel">
         <h2>Task assignments</h2>
         {dashboard.data?.tasks.map((task) => (
           <article className="panel" key={task.id}>
@@ -567,7 +696,7 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
         ))}
       </section>
 
-      <section className="panel-list">
+      <section className="panel-list agent-message-panel">
         <h2>Message timeline</h2>
         <div className="button-row">
           <button
@@ -605,7 +734,7 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
         ))}
       </section>
 
-      <section className="panel-list">
+      <section className="panel-list agent-consensus-panel">
         <h2>Consensus panel</h2>
         <div className="button-row">
           <button
@@ -636,6 +765,7 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
           </article>
         ))}
       </section>
+      </div>
     </section>
   );
 };

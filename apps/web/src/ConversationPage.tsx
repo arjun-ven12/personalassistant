@@ -90,23 +90,23 @@ export const ConversationPage = ({ apiClient }: { apiClient: ApiClient }) => {
     mutationFn: (input: {
       turnId: string;
       kind: "CORRECT" | "WRONG_ROUTE" | "WRONG_ANSWER" | "MISSING_CONTEXT";
-    }) => apiClient.recordConversationTurnFeedback(input.turnId, {
-      kind: input.kind,
-      note: null,
-    }),
+    }) =>
+      apiClient.recordConversationTurnFeedback(input.turnId, {
+        kind: input.kind,
+        note: null,
+      }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["conversation-center"] });
     },
   });
   const replayMutation = useMutation({
-    mutationFn: (input: {
-      turnId: string;
-      route: "DETERMINISTIC" | "GEMMA" | "GPT";
-    }) => apiClient.replayConversationTurn(input.turnId, input.route),
+    mutationFn: (input: { turnId: string; route: "DETERMINISTIC" | "GEMMA" | "GPT" }) =>
+      apiClient.replayConversationTurn(input.turnId, input.route),
   });
   const activeSession =
-    conversation.data?.sessions.find((session) => session.lifecycleState !== "archived") ??
-    conversation.data?.sessions[0];
+    conversation.data?.sessions.find(
+      (session) => session.lifecycleState !== "archived",
+    ) ?? conversation.data?.sessions[0];
   const filteredHistory = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return (conversation.data?.history ?? []).filter((turn) => {
@@ -131,9 +131,33 @@ export const ConversationPage = ({ apiClient }: { apiClient: ApiClient }) => {
         (record) => record.conversationId === activeSession.id,
       )
     : null;
+  const contextQuery = new URLSearchParams(window.location.search);
+  const attachedContext =
+    contextQuery.get("contextId") && contextQuery.get("contextKind")
+      ? {
+          id: contextQuery.get("contextId")!,
+          kind: contextQuery.get("contextKind")!,
+          label: contextQuery.get("contextLabel") ?? "Selected entity",
+        }
+      : null;
 
   return (
     <section className="voice-center conversation-center">
+      {attachedContext ? (
+        <section className="conversation-attached-context">
+          <div>
+            <p className="eyebrow">Structured context attached</p>
+            <h3>{attachedContext.label}</h3>
+            <span>
+              {attachedContext.kind} · {attachedContext.id}
+            </span>
+          </div>
+          <div>
+            <strong>Ask Alexa</strong>
+            <span>Try: Why is this behind? What is blocked? What happens next?</span>
+          </div>
+        </section>
+      ) : null}
       <div className="voice-hero">
         <div>
           <p className="eyebrow">Phase 15B · Conversational Intelligence</p>
@@ -222,11 +246,14 @@ export const ConversationPage = ({ apiClient }: { apiClient: ApiClient }) => {
         <div className="voice-timeline">
           {filteredHistory.slice(0, 100).map((entry) => (
             <article
-              className={selectedTurnId === entry.id ? "conversation-turn-selected" : undefined}
+              className={
+                selectedTurnId === entry.id ? "conversation-turn-selected" : undefined
+              }
               key={entry.id}
               onClick={() => setSelectedTurnId(entry.id)}
               onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") setSelectedTurnId(entry.id);
+                if (event.key === "Enter" || event.key === " ")
+                  setSelectedTurnId(entry.id);
               }}
               role="button"
               tabIndex={0}
@@ -271,11 +298,15 @@ export const ConversationPage = ({ apiClient }: { apiClient: ApiClient }) => {
               </div>
               <div>
                 <dt>Resolution</dt>
-                <dd>{activeContinuity.resolutionPath.join(" → ") || "No resolution yet"}</dd>
+                <dd>
+                  {activeContinuity.resolutionPath.join(" → ") || "No resolution yet"}
+                </dd>
               </div>
               <div>
                 <dt>Last turn</dt>
-                <dd>{activeContinuity.processedTurns[0]?.turnId ?? "No processed turn"}</dd>
+                <dd>
+                  {activeContinuity.processedTurns[0]?.turnId ?? "No processed turn"}
+                </dd>
               </div>
               <div>
                 <dt>Pending intent</dt>
@@ -287,7 +318,9 @@ export const ConversationPage = ({ apiClient }: { apiClient: ApiClient }) => {
               </div>
               <div>
                 <dt>Missing information</dt>
-                <dd>{activeContinuity.pendingIntent?.missingSlots.join(", ") || "None"}</dd>
+                <dd>
+                  {activeContinuity.pendingIntent?.missingSlots.join(", ") || "None"}
+                </dd>
               </div>
               <div>
                 <dt>Resolved information</dt>
@@ -359,71 +392,154 @@ export const ConversationPage = ({ apiClient }: { apiClient: ApiClient }) => {
             </button>
           </div>
           <dl className="conversation-inspector-grid">
-            <div><dt>Speech act</dt><dd>{selectedTurn.speechAct ?? "Not recorded"}</dd></div>
-            <div><dt>Route</dt><dd>{selectedTurn.routeStages.join(" → ")}</dd></div>
-            <div><dt>Provider</dt><dd>{selectedTurn.responseProviderId ?? "Deterministic"}</dd></div>
-            <div><dt>Model</dt><dd>{selectedTurn.responseModelId ?? "None"}</dd></div>
-            <div><dt>Latency</dt><dd>{selectedTurn.latencyMs} ms</dd></div>
-            <div><dt>Tokens</dt><dd>{selectedTurn.tokenUsage?.totalTokens ?? "Not reported"}</dd></div>
-            <div><dt>Cost</dt><dd>{selectedTurn.costUsd === null ? "Not reported" : `$${selectedTurn.costUsd}`}</dd></div>
-            <div><dt>Reservation</dt><dd>{selectedTurn.economicReservationId ?? "None"}</dd></div>
-            <div><dt>Execution</dt><dd>{selectedTurn.executionStatus}</dd></div>
-            <div><dt>Page chunks</dt><dd>{selectedTurn.pageChunkCount}</dd></div>
-            <div><dt>Memory items</dt><dd>{selectedTurn.memoryItemCount}</dd></div>
+            <div>
+              <dt>Speech act</dt>
+              <dd>{selectedTurn.speechAct ?? "Not recorded"}</dd>
+            </div>
+            <div>
+              <dt>Route</dt>
+              <dd>{selectedTurn.routeStages.join(" → ")}</dd>
+            </div>
+            <div>
+              <dt>Provider</dt>
+              <dd>{selectedTurn.responseProviderId ?? "Deterministic"}</dd>
+            </div>
+            <div>
+              <dt>Model</dt>
+              <dd>{selectedTurn.responseModelId ?? "None"}</dd>
+            </div>
+            <div>
+              <dt>Latency</dt>
+              <dd>{selectedTurn.latencyMs} ms</dd>
+            </div>
+            <div>
+              <dt>Tokens</dt>
+              <dd>{selectedTurn.tokenUsage?.totalTokens ?? "Not reported"}</dd>
+            </div>
+            <div>
+              <dt>Cost</dt>
+              <dd>
+                {selectedTurn.costUsd === null
+                  ? "Not reported"
+                  : `$${selectedTurn.costUsd}`}
+              </dd>
+            </div>
+            <div>
+              <dt>Reservation</dt>
+              <dd>{selectedTurn.economicReservationId ?? "None"}</dd>
+            </div>
+            <div>
+              <dt>Execution</dt>
+              <dd>{selectedTurn.executionStatus}</dd>
+            </div>
+            <div>
+              <dt>Page chunks</dt>
+              <dd>{selectedTurn.pageChunkCount}</dd>
+            </div>
+            <div>
+              <dt>Memory items</dt>
+              <dd>{selectedTurn.memoryItemCount}</dd>
+            </div>
           </dl>
-          <p><strong>Transcript:</strong> {selectedTurn.transcript}</p>
-          <p><strong>Response:</strong> {selectedTurn.responseText ?? "No response"}</p>
-          <p><strong>Safety:</strong> {selectedTurn.safeExplanation ?? "Legacy turn"}</p>
+          <p>
+            <strong>Transcript:</strong> {selectedTurn.transcript}
+          </p>
+          <p>
+            <strong>Response:</strong> {selectedTurn.responseText ?? "No response"}
+          </p>
+          <p>
+            <strong>Safety:</strong> {selectedTurn.safeExplanation ?? "Legacy turn"}
+          </p>
           {selectedTurn.activeContext ? (
             <p>
               <strong>Active context:</strong>{" "}
-              {selectedTurn.activeContext.documentTitle ?? selectedTurn.activeContext.applicationName}
-              {selectedTurn.contextReferences.some((item) => item.source === "SELECTION")
+              {selectedTurn.activeContext.documentTitle ??
+                selectedTurn.activeContext.applicationName}
+              {selectedTurn.contextReferences.some(
+                (item) => item.source === "SELECTION",
+              )
                 ? " · selection used transiently"
                 : ""}
             </p>
           ) : null}
           <p>
             <strong>Context sources:</strong>{" "}
-            {selectedTurn.contextReferences.map((item) => item.source).join(", ") || "None"}
+            {selectedTurn.contextReferences.map((item) => item.source).join(", ") ||
+              "None"}
           </p>
           <div className="conversation-feedback-actions">
             <button
               disabled={feedbackMutation.isPending}
-              onClick={() => feedbackMutation.mutate({ turnId: selectedTurn.id, kind: "CORRECT" })}
+              onClick={() =>
+                feedbackMutation.mutate({ turnId: selectedTurn.id, kind: "CORRECT" })
+              }
               title="Mark correct"
               type="button"
-            ><ThumbsUp size={15} /> Correct</button>
+            >
+              <ThumbsUp size={15} /> Correct
+            </button>
             <button
               disabled={feedbackMutation.isPending}
-              onClick={() => feedbackMutation.mutate({ turnId: selectedTurn.id, kind: "WRONG_ROUTE" })}
+              onClick={() =>
+                feedbackMutation.mutate({
+                  turnId: selectedTurn.id,
+                  kind: "WRONG_ROUTE",
+                })
+              }
               type="button"
-            ><ThumbsDown size={15} /> Wrong route</button>
+            >
+              <ThumbsDown size={15} /> Wrong route
+            </button>
             <button
               disabled={feedbackMutation.isPending}
-              onClick={() => feedbackMutation.mutate({ turnId: selectedTurn.id, kind: "WRONG_ANSWER" })}
+              onClick={() =>
+                feedbackMutation.mutate({
+                  turnId: selectedTurn.id,
+                  kind: "WRONG_ANSWER",
+                })
+              }
               type="button"
-            >Wrong answer</button>
+            >
+              Wrong answer
+            </button>
             <button
               disabled={feedbackMutation.isPending}
-              onClick={() => feedbackMutation.mutate({ turnId: selectedTurn.id, kind: "MISSING_CONTEXT" })}
+              onClick={() =>
+                feedbackMutation.mutate({
+                  turnId: selectedTurn.id,
+                  kind: "MISSING_CONTEXT",
+                })
+              }
               type="button"
-            >Missing context</button>
+            >
+              Missing context
+            </button>
           </div>
-          <div className="conversation-replay-controls" role="group" aria-label="Dry-run replay route">
+          <div
+            className="conversation-replay-controls"
+            role="group"
+            aria-label="Dry-run replay route"
+          >
             {(["DETERMINISTIC", "GEMMA", "GPT"] as const).map((route) => (
               <button
                 disabled={replayMutation.isPending}
                 key={route}
-                onClick={() => replayMutation.mutate({ turnId: selectedTurn.id, route })}
+                onClick={() =>
+                  replayMutation.mutate({ turnId: selectedTurn.id, route })
+                }
                 type="button"
-              >{route}</button>
+              >
+                {route}
+              </button>
             ))}
           </div>
           {replayMutation.data?.turnId === selectedTurn.id ? (
             <p>
-              <strong>Dry-run replay:</strong> {replayMutation.data.route} · {replayMutation.data.classification} · {replayMutation.data.execution}
-              {replayMutation.data.responseText ? ` · ${replayMutation.data.responseText}` : ""}
+              <strong>Dry-run replay:</strong> {replayMutation.data.route} ·{" "}
+              {replayMutation.data.classification} · {replayMutation.data.execution}
+              {replayMutation.data.responseText
+                ? ` · ${replayMutation.data.responseText}`
+                : ""}
             </p>
           ) : null}
         </section>

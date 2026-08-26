@@ -56,6 +56,9 @@ private final class WhisperAudioCapture: NSObject {
   private func startCapture() {
     stopCapture(reset: true)
     let input = audioEngine.inputNode
+    // Use macOS voice processing when it is available. This keeps ambient noise
+    // and speaker bleed out of the local VAD before Whisper sees an utterance.
+    try? input.setVoiceProcessingEnabled(true)
     let format = input.outputFormat(forBus: 0)
     guard format.sampleRate > 0, format.channelCount > 0 else {
       emit(["type": "error", "code": "STT_AUDIO_CAPTURE_ERROR"])
@@ -138,12 +141,14 @@ private final class WhisperAudioCapture: NSObject {
       noiseFloor = (noiseFloor * 0.98) + (min(level, noiseFloor + 0.02) * 0.02)
     }
 
-    let speechThreshold = min(0.24, max(0.055, noiseFloor + 0.035))
+    // A visible audio level is not itself evidence of speech. Keep a meaningful
+    // margin over the learned room floor and require a sustained voiced segment.
+    let speechThreshold = min(0.28, max(0.075, noiseFloor + 0.05))
     if level >= speechThreshold {
       consecutiveSpeechBuffers += 1
       candidateSpeechSamples += samples.count
       // Reject short keyboard/click transients before they become Whisper jobs.
-      if candidateSpeechSamples >= Self.outputSampleRate / 5 && !speechDetected {
+      if candidateSpeechSamples >= (Self.outputSampleRate * 2) / 5 && !speechDetected {
         speechDetected = true
         utterance = preRoll
       }
@@ -179,7 +184,7 @@ private final class WhisperAudioCapture: NSObject {
   }
 
   private func completeUtterance() {
-    guard !completing, utterance.count >= Self.outputSampleRate / 4 else { return }
+    guard !completing, utterance.count >= (Self.outputSampleRate * 2) / 5 else { return }
     completing = true
     audioEngine.stop()
     if tapInstalled {

@@ -75,7 +75,7 @@ export const registerValidationRoutes = (
         context.security.requireAuthentication,
         context.security.requireTrustedOrigin,
         context.security.requireCsrf,
-        context.security.verifyPrivateNetwork,
+        context.security.verifyTransportNetwork,
       ],
     },
     async (request) => {

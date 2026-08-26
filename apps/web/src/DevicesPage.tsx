@@ -1,16 +1,34 @@
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { ApiClient } from "./api.js";
 
 export const DevicesPage = ({ apiClient }: { apiClient: ApiClient }) => {
   const queryClient = useQueryClient();
+  const [pairingPollUntil, setPairingPollUntil] = useState<number | null>(null);
   const devices = useQuery({
     queryKey: ["devices"],
     queryFn: apiClient.getDevices,
+    refetchInterval: pairingPollUntil !== null ? 1_500 : false,
   });
   const intent = useMutation({
     mutationFn: apiClient.createPairingIntent,
+    onSuccess: async () => {
+      setPairingPollUntil(Date.now() + 60_000);
+      await queryClient.invalidateQueries({ queryKey: ["devices"] });
+    },
   });
+
+  useEffect(() => {
+    if (pairingPollUntil === null) return;
+    const remainingMs = pairingPollUntil - Date.now();
+    if (remainingMs <= 0) {
+      setPairingPollUntil(null);
+      return;
+    }
+    const timeout = window.setTimeout(() => setPairingPollUntil(null), remainingMs);
+    return () => window.clearTimeout(timeout);
+  }, [pairingPollUntil]);
   const mutateDevice = useMutation({
     mutationFn: ({
       action,
@@ -58,6 +76,9 @@ export const DevicesPage = ({ apiClient }: { apiClient: ApiClient }) => {
               Paste this exact code into the Mac Agent. Expires{" "}
               {new Date(intent.data.expiresAt).toLocaleTimeString()}.
             </span>
+            {pairingPollUntil !== null ? (
+              <span>Watching for the Mac Agent pairing request for one minute.</span>
+            ) : null}
           </div>
         ) : null}
       </div>

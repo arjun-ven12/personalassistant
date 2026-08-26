@@ -6,7 +6,7 @@ import {
   type AIModelDescriptor,
 } from "@alexa-control/shared";
 import { z } from "zod";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { AIModelRegistry, AIProviderRegistry } from "../registry.js";
 import { AIRuntimeService } from "../runtime-service.js";
 import { AIRouterService } from "./service.js";
@@ -122,6 +122,35 @@ describe("AIRouterService", () => {
     });
     expect(result.providerId).toBe("openai");
     expect(result.modelId).toBe("luna");
+  });
+
+  it("attributes enrolled agent provider usage through the bounded economy hook", async () => {
+    const { router, economics } = await makeRouter();
+    const ownerId = crypto.randomUUID();
+    const agentId = crypto.randomUUID();
+    await authorizeCloud(economics, ownerId);
+    const accounting = {
+      reserveProviderCost: vi.fn().mockResolvedValue("internal-reservation"),
+      settleProviderCost: vi.fn().mockResolvedValue(undefined),
+      releaseProviderCost: vi.fn().mockResolvedValue(undefined),
+    };
+    router.setAgentEconomyAccounting(accounting);
+    const result = await router.executeStructured({
+      ...request(),
+      economicContext: {
+        ownerId,
+        agentId,
+        purpose: "INTERPRETATION",
+        autonomyMode: "INTERACTIVE",
+        priority: "IMPORTANT",
+      },
+      schemaName: "test",
+      schema: z.object({ intent: z.string(), entities: z.record(z.string(), z.unknown()), confidence: z.number(), requiresClarification: z.boolean() }),
+    });
+    expect(result.outcome).toBe("SUCCESS");
+    expect(accounting.reserveProviderCost).toHaveBeenCalledOnce();
+    expect(accounting.settleProviderCost).toHaveBeenCalledWith(expect.objectContaining({ ownerId, agentId, reservationId: "internal-reservation", locality: "REMOTE" }));
+    expect(accounting.releaseProviderCost).not.toHaveBeenCalled();
   });
 
   it("returns clarification instead of accepting low confidence", async () => {

@@ -75,6 +75,43 @@ export const AgentRecordSchema = z
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime(),
     healthSummary: z.string().min(1).max(500),
+    workforce: z
+      .object({
+        organizationId: z.string().uuid(),
+        departmentId: z.string().uuid(),
+        parentAgentId: z.string().min(3).max(120).nullable(),
+        managerAgentId: z.string().min(3).max(120).nullable(),
+        specialization: z.string().min(1).max(160),
+        description: z.string().min(1).max(500),
+        skills: z.array(z.string().min(2).max(120)).min(1).max(30),
+        memoryScopeId: z.string().min(3).max(160),
+        departmentMemoryScopeId: z.string().min(3).max(160),
+        organizationMemoryScopeId: z.string().min(3).max(160),
+        capabilityProfileId: z.string().min(3).max(160),
+        missingCapabilities: z.array(z.string().min(3).max(120)).max(30),
+        modelPolicyId: z.enum([
+          "CHEAP_ROUTINE",
+          "LOCAL_FIRST",
+          "BALANCED",
+          "STRONG_REASONING",
+          "SECURITY_REVIEW",
+        ]),
+        activationPolicyId: z.string().min(3).max(160),
+        executionPlacement: z.enum([
+          "LOCAL",
+          "REMOTE_ALLOWED",
+          "REMOTE_PREFERRED",
+          "LOCAL_ONLY",
+        ]),
+        evaluationProfile: z.array(z.string().min(2).max(120)).min(1).max(20),
+        source: z.enum(["ALEXA_NATIVE", "EVERYTHING_CLAUDE_CODE"]),
+        sourcePath: z.string().max(500).nullable(),
+        sourceVersion: z.string().max(80).nullable(),
+        license: z.string().max(80).nullable(),
+        importedAt: z.iso.datetime(),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 
@@ -395,14 +432,14 @@ export const RetireDynamicAgentRequestSchema = z
 
 export const AgentDashboardResponseSchema = z
   .object({
-    agents: z.array(AgentRecordSchema).max(100),
+    agents: z.array(AgentRecordSchema).max(1_000),
     tasks: z.array(AgentTaskRecordSchema).max(500),
     messages: z.array(AgentMessageRecordSchema).max(500),
     contexts: z.array(AgentContextRecordSchema).max(200),
     consensus: z.array(AgentConsensusRecordSchema).max(200),
     conflicts: z.array(AgentConflictRecordSchema).max(200),
-    health: z.array(AgentHealthRecordSchema).max(100),
-    metrics: z.array(AgentMetricsRecordSchema).max(100),
+    health: z.array(AgentHealthRecordSchema).max(1_000),
+    metrics: z.array(AgentMetricsRecordSchema).max(1_000),
     dynamicWorkforce: z
       .object({
         templates: z.array(AgentTemplateRecordSchema).max(100),
@@ -418,7 +455,7 @@ export const AgentDashboardResponseSchema = z
   })
   .strict();
 
-export const AgentListResponseSchema = z.array(AgentRecordSchema).max(100);
+export const AgentListResponseSchema = z.array(AgentRecordSchema).max(1_000);
 export const AgentTaskListResponseSchema = z.array(AgentTaskRecordSchema).max(500);
 export const AgentMessageListResponseSchema = z
   .array(AgentMessageRecordSchema)
@@ -429,10 +466,10 @@ export const AgentConsensusListResponseSchema = z
 export const AgentConflictListResponseSchema = z
   .array(AgentConflictRecordSchema)
   .max(200);
-export const AgentHealthListResponseSchema = z.array(AgentHealthRecordSchema).max(100);
+export const AgentHealthListResponseSchema = z.array(AgentHealthRecordSchema).max(1_000);
 export const AgentMetricsListResponseSchema = z
   .array(AgentMetricsRecordSchema)
-  .max(100);
+  .max(1_000);
 export const AgentTaskResponseSchema = z
   .object({ task: AgentTaskRecordSchema })
   .strict();

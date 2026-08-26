@@ -27,6 +27,7 @@ interface NativeProviderDescriptor {
   applicationId: string;
   bundleIdentifier: string;
   processName: string;
+  processVerificationArgs?: readonly string[];
   implementedCapabilities: NativeProviderCapability[];
   unsupportedCapabilities: NativeProviderCapability[];
 }
@@ -171,7 +172,16 @@ const descriptors: NativeProviderDescriptor[] = [
     providerId: "provider.codex",
     applicationId: "codex",
     bundleIdentifier: "com.openai.codex",
-    processName: "Codex",
+    // The registered com.openai.codex bundle is hosted by the ChatGPT macOS app.
+    // Verify the actual executable process after Launch Services opens it.
+    processName: "ChatGPT",
+    // macOS reports the main Electron process under a truncated path. Verify
+    // the fixed ChatGPT bundle process family rather than accepting a generic
+    // process or relying on Launch Services success alone.
+    processVerificationArgs: [
+      "-f",
+      "ChatGPT\\.app",
+    ],
     implementedCapabilities: [
       "launch",
       "focus",
@@ -386,7 +396,10 @@ export class MacNativeProviderHost {
     const deadline = Date.now() + 5_000;
     while (Date.now() <= deadline) {
       try {
-        await this.runner("/usr/bin/pgrep", ["-x", descriptor.processName]);
+        await this.runner(
+          "/usr/bin/pgrep",
+          descriptor.processVerificationArgs ?? ["-x", descriptor.processName],
+        );
         return;
       } catch {
         await wait(250);

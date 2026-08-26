@@ -1,6 +1,6 @@
 import { parseApiEnvironment } from "@alexa-control/config";
 
-parseApiEnvironment({
+const privateProfile = parseApiEnvironment({
   NODE_ENV: "production",
   API_HOST: "127.0.0.1",
   WEB_ORIGIN: "https://assistant-host.example.ts.net",
@@ -32,4 +32,35 @@ parseApiEnvironment({
   PRIVILEGED_EXECUTION_ENABLED: "false",
 });
 
-process.stdout.write("Production configuration invariants validated.\n");
+const cloudProfile = parseApiEnvironment({
+  NODE_ENV: "production",
+  DEPLOYMENT_MODE: "cloud",
+  API_HOST: "0.0.0.0",
+  PORT: "3001",
+  PUBLIC_BASE_URL: "https://api.assistant.example",
+  WEB_ORIGIN: "https://assistant.example",
+  ALLOWED_HOSTS: "api.assistant.example",
+  TRUSTED_PROXY_MODE: "one-hop",
+  PRIVATE_NETWORK_REQUIRED: "false",
+  TAILSCALE_REQUIRED: "false",
+  NETWORK_VERIFIER_MODE: "unknown",
+  STORE_MODE: "postgres",
+  DATABASE_URL: "postgresql://placeholder.invalid/assistant?sslmode=require",
+  DATABASE_POOL_SIZE: "10",
+  DATABASE_SSL_MODE: "require",
+  REDIS_URL: "https://placeholder.upstash.io",
+  REDIS_TOKEN: "placeholder-token",
+  REDIS_NAMESPACE: "personalassistant",
+  CACHE_ENABLED: "true",
+  EMBEDDING_PROVIDER: "disabled",
+  OPENAI_ENABLED: "false",
+  LOCAL_AI_ENABLED: "false",
+  SESSION_COOKIE_NAME: "__Host-assistant_session",
+  AUTH_ALLOW_OWNER_BOOTSTRAP: "false",
+  LOG_REDACTION_ENABLED: "true",
+  PRIVILEGED_EXECUTION_ENABLED: "false",
+});
+
+process.stdout.write(
+  `Production configuration invariants validated for ${privateProfile.DEPLOYMENT_MODE} and ${cloudProfile.DEPLOYMENT_MODE} profiles.\n`,
+);

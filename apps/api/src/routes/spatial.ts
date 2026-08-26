@@ -18,7 +18,7 @@ const authenticateNativeSpatialDevice = async (
 ) => {
   const envelope = SignedCommandEnvelopeSchema.parse(request.body);
   const device = await context.identity.store.findDeviceById(envelope.deviceId);
-  if (!device || device.trustStatus !== "TRUSTED")
+  if (!device || device.trustStatus !== "TRUSTED" || device.deviceType !== "MAC_AGENT")
     throw new ExecutionError(
       403,
       "TRUSTED_DEVICE_REQUIRED",
@@ -33,7 +33,7 @@ const authenticateNativeSpatialDevice = async (
       ? { tailscaleUserName: request.headers["tailscale-user-name"] }
       : {}),
   });
-  if (network.state !== "PRIVATE_NETWORK")
+  if (context.privateNetworkRequired && network.state !== "PRIVATE_NETWORK")
     throw new ExecutionError(
       403,
       "PRIVATE_NETWORK_REQUIRED",
@@ -46,9 +46,13 @@ const authenticateNativeSpatialDevice = async (
       "The device signature is invalid.",
     );
   const now = new Date();
+  const issuedAt = new Date(envelope.issuedAt);
+  const expiresAt = new Date(envelope.expiresAt);
+  const toleranceMs = context.signedRequestToleranceSeconds * 1_000;
   if (
-    new Date(envelope.expiresAt) <= now ||
-    new Date(envelope.issuedAt).getTime() > now.getTime() + 30_000
+    expiresAt <= now ||
+    Math.abs(now.getTime() - issuedAt.getTime()) > toleranceMs ||
+    expiresAt.getTime() - issuedAt.getTime() > toleranceMs
   )
     throw new ExecutionError(
       401,

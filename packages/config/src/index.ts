@@ -27,8 +27,11 @@ const decimalValue = z.string().regex(/^\d+(\.\d{1,8})?$/);
 export const ApiEnvironmentSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+    DEPLOYMENT_MODE: z.enum(["private", "cloud"]).default("private"),
     API_HOST: z.string().min(1).default("127.0.0.1"),
     API_PORT: z.coerce.number().int().min(1).max(65_535).default(3001),
+    PORT: z.coerce.number().int().min(1).max(65_535).optional(),
+    PUBLIC_BASE_URL: z.string().url().optional(),
     WEB_ORIGIN: z.string().url().default("http://localhost:5173"),
     LOG_LEVEL: z
       .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
@@ -46,7 +49,7 @@ export const ApiEnvironmentSchema = z
       .min(1)
       .default("/var/run/tailscale/tailscaled.sock"),
     TAILSCALE_TRUST_SERVE_PROXY: booleanValue.default(false),
-    TRUSTED_PROXY_MODE: z.enum(["none", "loopback"]).default("none"),
+    TRUSTED_PROXY_MODE: z.enum(["none", "loopback", "one-hop"]).default("none"),
     ALLOWED_HOSTS: csv.default(["localhost", "127.0.0.1"]),
     STORE_MODE: z.enum(["memory", "postgres"]).default("memory"),
     DATABASE_URL: z.string().trim().min(1).optional(),
@@ -309,21 +312,6 @@ export const ApiEnvironmentSchema = z
         "Production intelligence infrastructure requires semantic search.",
       ],
       [
-        environment.TAILSCALE_REQUIRED,
-        "TAILSCALE_REQUIRED",
-        "Production requires Tailscale.",
-      ],
-      [
-        environment.PRIVATE_NETWORK_REQUIRED,
-        "PRIVATE_NETWORK_REQUIRED",
-        "Production requires private-network enforcement.",
-      ],
-      [
-        environment.NETWORK_VERIFIER_MODE === "tailscale",
-        "NETWORK_VERIFIER_MODE",
-        "Production requires the Tailscale network verifier.",
-      ],
-      [
         environment.WEB_ORIGIN.startsWith("https://"),
         "WEB_ORIGIN",
         "Production requires an exact HTTPS web origin.",
@@ -335,22 +323,6 @@ export const ApiEnvironmentSchema = z
           ),
         "ALLOWED_HOSTS",
         "Production requires exact host names.",
-      ],
-      [
-        Boolean(environment.TAILSCALE_EXPECTED_DNS_NAME) &&
-          environment.ALLOWED_HOSTS.includes(
-            environment.TAILSCALE_EXPECTED_DNS_NAME ?? "",
-          ) &&
-          new URL(environment.WEB_ORIGIN).hostname ===
-            environment.TAILSCALE_EXPECTED_DNS_NAME,
-        "TAILSCALE_EXPECTED_DNS_NAME",
-        "The expected tailnet DNS name must match the origin and host allowlist.",
-      ],
-      [
-        environment.TRUSTED_PROXY_MODE === "loopback" &&
-          environment.TAILSCALE_TRUST_SERVE_PROXY,
-        "TRUSTED_PROXY_MODE",
-        "The hardened loopback topology requires the trusted local Serve proxy.",
       ],
       [
         environment.SESSION_COOKIE_NAME.startsWith("__Host-"),
@@ -373,19 +345,97 @@ export const ApiEnvironmentSchema = z
         "Public Funnel exposure is unsupported.",
       ],
       [
-        environment.API_HOST === "127.0.0.1" ||
-          environment.API_HOST === "::1" ||
-          environment.API_HOST === "localhost",
-        "API_HOST",
-        "The hardened Serve topology requires a loopback API bind address.",
-      ],
-      [
         !environment.READ_ONLY_EXECUTION_ENABLED ||
           Boolean(environment.SERVER_EXECUTION_SIGNING_KEY_PATH),
         "SERVER_EXECUTION_SIGNING_KEY_PATH",
         "Read-only execution requires a persistent server signing key.",
       ],
     ];
+    if (environment.DEPLOYMENT_MODE === "private") {
+      productionRequirements.push(
+        [
+          environment.TAILSCALE_REQUIRED,
+          "TAILSCALE_REQUIRED",
+          "Private production requires Tailscale.",
+        ],
+        [
+          environment.PRIVATE_NETWORK_REQUIRED,
+          "PRIVATE_NETWORK_REQUIRED",
+          "Private production requires private-network enforcement.",
+        ],
+        [
+          environment.NETWORK_VERIFIER_MODE === "tailscale",
+          "NETWORK_VERIFIER_MODE",
+          "Private production requires the Tailscale network verifier.",
+        ],
+        [
+          Boolean(environment.TAILSCALE_EXPECTED_DNS_NAME) &&
+            environment.ALLOWED_HOSTS.includes(
+              environment.TAILSCALE_EXPECTED_DNS_NAME ?? "",
+            ) &&
+            new URL(environment.WEB_ORIGIN).hostname ===
+              environment.TAILSCALE_EXPECTED_DNS_NAME,
+          "TAILSCALE_EXPECTED_DNS_NAME",
+          "The expected tailnet DNS name must match the origin and host allowlist.",
+        ],
+        [
+          environment.TRUSTED_PROXY_MODE === "loopback" &&
+            environment.TAILSCALE_TRUST_SERVE_PROXY,
+          "TRUSTED_PROXY_MODE",
+          "The hardened loopback topology requires the trusted local Serve proxy.",
+        ],
+        [
+          environment.API_HOST === "127.0.0.1" ||
+            environment.API_HOST === "::1" ||
+            environment.API_HOST === "localhost",
+          "API_HOST",
+          "The hardened Serve topology requires a loopback API bind address.",
+        ],
+      );
+    } else {
+      const publicBaseUrl = environment.PUBLIC_BASE_URL
+        ? new URL(environment.PUBLIC_BASE_URL)
+        : null;
+      productionRequirements.push(
+        [
+          Boolean(publicBaseUrl) && publicBaseUrl?.protocol === "https:",
+          "PUBLIC_BASE_URL",
+          "Cloud production requires one canonical HTTPS public base URL.",
+        ],
+        [
+          Boolean(publicBaseUrl) &&
+            environment.ALLOWED_HOSTS.includes(publicBaseUrl?.hostname ?? ""),
+          "ALLOWED_HOSTS",
+          "Cloud production must allow exactly the configured public API host.",
+        ],
+        [
+          !environment.PRIVATE_NETWORK_REQUIRED,
+          "PRIVATE_NETWORK_REQUIRED",
+          "Cloud production uses trusted-device signatures instead of requiring every client to be on a private network.",
+        ],
+        [
+          !environment.TAILSCALE_REQUIRED &&
+            environment.NETWORK_VERIFIER_MODE === "unknown",
+          "NETWORK_VERIFIER_MODE",
+          "Cloud production must not trust Tailscale identity headers or a test verifier.",
+        ],
+        [
+          environment.TRUSTED_PROXY_MODE === "one-hop",
+          "TRUSTED_PROXY_MODE",
+          "Cloud production requires one explicitly trusted TLS-terminating proxy hop.",
+        ],
+        [
+          environment.API_HOST === "0.0.0.0" || environment.API_HOST === "::",
+          "API_HOST",
+          "Cloud containers must bind on all container interfaces.",
+        ],
+        [
+          !environment.LOCAL_AI_ENABLED,
+          "LOCAL_AI_ENABLED",
+          "Cloud production must not depend on a Mac-local Ollama runtime.",
+        ],
+      );
+    }
     for (const [valid, path, message] of productionRequirements) {
       if (!valid) context.addIssue({ code: "custom", path: [path], message });
     }
@@ -402,7 +452,9 @@ export const MacAgentEnvironmentSchema = z
     ALEXA_API_BASE_URL: z.string().url().default("http://localhost:3001"),
     ALEXA_WEB_BASE_URL: z.string().url().default("http://localhost:5173"),
     ALEXA_AGENT_LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),
-    DESKTOP_STT_PROVIDER: z.enum(["whisper_cpp", "apple_speech"]).default("whisper_cpp"),
+    DESKTOP_STT_PROVIDER: z
+      .enum(["whisper_cpp", "apple_speech"])
+      .default("whisper_cpp"),
     DESKTOP_STT_FALLBACK_PROVIDER: z
       .enum(["apple_speech", "disabled"])
       .default("apple_speech"),
@@ -441,7 +493,26 @@ export const MacAgentEnvironmentSchema = z
       .max(262_144)
       .default(262_144),
   })
-  .passthrough();
+  .passthrough()
+  .superRefine((environment, context) => {
+    const api = new URL(environment.ALEXA_API_BASE_URL);
+    const web = new URL(environment.ALEXA_WEB_BASE_URL);
+    const localHosts = new Set(["localhost", "127.0.0.1", "::1"]);
+    if (!localHosts.has(api.hostname) && api.protocol !== "https:") {
+      context.addIssue({
+        code: "custom",
+        path: ["ALEXA_API_BASE_URL"],
+        message: "Remote Mac Agent API connections require HTTPS.",
+      });
+    }
+    if (!localHosts.has(web.hostname) && web.protocol !== "https:") {
+      context.addIssue({
+        code: "custom",
+        path: ["ALEXA_WEB_BASE_URL"],
+        message: "Remote owner approval URLs require HTTPS.",
+      });
+    }
+  });
 
 export const parseApiEnvironment = (environment: Record<string, unknown>) =>
   ApiEnvironmentSchema.parse(environment);

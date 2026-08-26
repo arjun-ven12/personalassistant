@@ -55,6 +55,28 @@ describe("MacNativeProviderHost", () => {
     expect(runner).toHaveBeenNthCalledWith(2, "/usr/bin/pgrep", ["-x", "Code"]);
   });
 
+  it("verifies the registered Codex bundle against its actual ChatGPT host process", async () => {
+    const runner = vi.fn(() => Promise.resolve());
+    const host = new MacNativeProviderHost(runner);
+
+    const result = await host.execute({
+      providerId: "provider.codex",
+      applicationId: "codex",
+      capability: "launch",
+      arguments: {},
+    });
+
+    expect(result).toMatchObject({ status: "verified", verified: true });
+    expect(runner).toHaveBeenNthCalledWith(1, "/usr/bin/open", [
+      "-b",
+      "com.openai.codex",
+    ]);
+    expect(runner).toHaveBeenNthCalledWith(2, "/usr/bin/pgrep", [
+      "-f",
+      "ChatGPT\\.app",
+    ]);
+  });
+
   it("opens browser URLs but rejects non-http schemes", async () => {
     const runner = vi.fn(() => Promise.resolve());
     const host = new MacNativeProviderHost(runner);

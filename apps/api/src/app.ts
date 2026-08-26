@@ -94,6 +94,27 @@ import {
 } from "./agent-society/store.js";
 import { AgentSocietyService } from "./agent-society/service.js";
 import { registerAgentSocietyRoutes } from "./routes/agent-society.js";
+import {
+  InMemoryAgentEconomyStore,
+  type AgentEconomyStore,
+} from "./agent-economy/store.js";
+import { PostgresAgentEconomyStore } from "./agent-economy/postgres-store.js";
+import { AgentEconomyService } from "./agent-economy/service.js";
+import { registerAgentEconomyRoutes } from "./routes/agent-economy.js";
+import { AgentWorkforceService } from "./agent-workforce/service.js";
+import {
+  InMemoryAgentWorkforceStore,
+  type AgentWorkforceStore,
+} from "./agent-workforce/store.js";
+import { PostgresAgentWorkforceStore } from "./agent-workforce/postgres-store.js";
+import { registerAgentWorkforceRoutes } from "./routes/agent-workforce.js";
+import { WorkforceRuntimeService } from "./workforce-runtime/service.js";
+import {
+  InMemoryWorkforceRuntimeStore,
+  type WorkforceRuntimeStore,
+} from "./workforce-runtime/store.js";
+import { PostgresWorkforceRuntimeStore } from "./workforce-runtime/postgres-store.js";
+import { registerWorkforceRuntimeRoutes } from "./routes/workforce-runtime.js";
 import { InMemoryMemoryStore, type MemoryStore } from "./memory/store.js";
 import { MemoryIndexerService } from "./memory/service.js";
 import { ExplicitMemoryTeachingService } from "./memory/explicit-teaching-service.js";
@@ -193,7 +214,13 @@ import { registerVoiceRoutes } from "./routes/voice.js";
 import { ActiveContextService } from "./active-context/service.js";
 import { registerActiveContextRoutes } from "./routes/active-context.js";
 import { registerExecutiveRoutes } from "./routes/executive.js";
+import { registerObjectiveRoutes } from "./routes/objectives.js";
 import { ExecutiveBrainService } from "./executive/service.js";
+import { ObjectiveEngineService } from "./objectives/service.js";
+import { ExperimentService } from "./experiments/service.js";
+import { registerExperimentRoutes } from "./routes/experiments.js";
+import { BusinessOSService } from "./business-os/service.js";
+import { registerBusinessOSRoutes } from "./routes/business-os.js";
 import { InMemoryExecutiveStore, type ExecutiveStore } from "./executive/store.js";
 import { ReflectionEngineService } from "./reflection/service.js";
 import { ReflectionAutomationCoordinator } from "./reflection/automation.js";
@@ -279,6 +306,7 @@ import { registerProductionContextSources } from "./ai/context/sources.js";
 export const LOG_REDACTION_PATHS = [
   "req.headers.authorization",
   "req.headers.cookie",
+  "req.headers.x-csrf-token",
   "res.headers.set-cookie",
   "password",
   "*.password",
@@ -289,6 +317,11 @@ export const LOG_REDACTION_PATHS = [
   "*.recoveryCodes",
   "*.privateKey",
   "*.DATABASE_URL",
+  "*.REDIS_TOKEN",
+  "*.REDIS_PASSWORD",
+  "*.OPENAI_API_KEY",
+  "*.GOOGLE_CLIENT_SECRET",
+  "*.authorization",
 ] as const;
 
 export interface BuildApiOptions {
@@ -312,7 +345,8 @@ export interface BuildApiOptions {
   recentAuthTtlSeconds?: number;
   recoveryCodeCount?: number;
   allowedHosts?: string[];
-  trustedProxyMode?: "none" | "loopback";
+  trustedProxyMode?: "none" | "loopback" | "one-hop";
+  deploymentMode?: "private" | "cloud";
   persistenceMode?: "in_memory_development" | "postgresql";
   databaseReady?: () => Promise<boolean>;
   migrationState?: () => Promise<"current" | "outdated" | "unknown">;
@@ -329,6 +363,9 @@ export interface BuildApiOptions {
   agentCognitionStore?: AgentCognitionStore;
   agentEvolutionStore?: AgentEvolutionStore;
   agentSocietyStore?: AgentSocietyStore;
+  agentEconomyStore?: AgentEconomyStore;
+  agentWorkforceStore?: AgentWorkforceStore;
+  workforceRuntimeStore?: WorkforceRuntimeStore;
   memoryStore?: MemoryStore;
   advisorStore?: AdvisorStore;
   intentStore?: IntentStore;
@@ -402,6 +439,7 @@ export const buildApi = async ({
   recoveryCodeCount = 10,
   allowedHosts = ["localhost", "127.0.0.1"],
   trustedProxyMode = "none",
+  deploymentMode = "private",
   persistenceMode = "in_memory_development",
   databaseReady = () => Promise.resolve(true),
   migrationState = () => Promise.resolve("current"),
@@ -418,6 +456,9 @@ export const buildApi = async ({
   agentCognitionStore = new InMemoryAgentCognitionStore(),
   agentEvolutionStore = new InMemoryAgentEvolutionStore(),
   agentSocietyStore = new InMemoryAgentSocietyStore(),
+  agentEconomyStore,
+  agentWorkforceStore,
+  workforceRuntimeStore,
   memoryStore = new InMemoryMemoryStore(),
   advisorStore = new InMemoryAdvisorStore(),
   intentStore = new InMemoryIntentStore(),
@@ -511,6 +552,21 @@ export const buildApi = async ({
     maxRepositoryScanResultBytes: 4_194_304,
   },
 }: BuildApiOptions): Promise<FastifyInstance> => {
+  const resolvedAgentEconomyStore =
+    agentEconomyStore ??
+    (database
+      ? new PostgresAgentEconomyStore(database.pool)
+      : new InMemoryAgentEconomyStore());
+  const resolvedAgentWorkforceStore =
+    agentWorkforceStore ??
+    (database
+      ? new PostgresAgentWorkforceStore(database.pool)
+      : new InMemoryAgentWorkforceStore());
+  const resolvedWorkforceRuntimeStore =
+    workforceRuntimeStore ??
+    (database
+      ? new PostgresWorkforceRuntimeStore(database.pool)
+      : new InMemoryWorkforceRuntimeStore());
   const economicAuthority =
     aiEconomics ??
     (database
@@ -561,7 +617,9 @@ export const buildApi = async ({
     trustProxy:
       trustedProxyMode === "loopback"
         ? (address, hop) => hop === 0 && isLoopbackAddress(address)
-        : false,
+        : trustedProxyMode === "one-hop"
+          ? 1
+          : false,
     genReqId: () => crypto.randomUUID(),
     logController: new LogController({
       disableRequestLogging: false,
@@ -646,6 +704,7 @@ export const buildApi = async ({
     signedRequestToleranceSeconds,
     networkVerifier,
     executionEnabled: () => false,
+    privateNetworkRequired,
     securityState,
   });
   const governanceAudit = async (
@@ -694,6 +753,7 @@ export const buildApi = async ({
     async (input) => {
       await conversationContinuity.recordGovernedInteractionSettlement(input);
     },
+    privateNetworkRequired,
   );
   const repositories = new RepositoryService(
     repositoryStore,
@@ -731,6 +791,19 @@ export const buildApi = async ({
     integrationStore,
     governanceAudit,
     now,
+  );
+  integrations.enableBusinessOperations(approvals);
+  integrations.setAgentBusinessAuthorityVerifier(
+    async ({ ownerId, agentId, organizationId, capability }) => {
+      const agent = await agentStore.findAgent(ownerId, agentId);
+      return Boolean(
+        agent &&
+        agent.status !== "disabled" &&
+        agent.status !== "paused" &&
+        agent.capabilities.includes(capability) &&
+        (!organizationId || agent.workforce?.organizationId === organizationId),
+      );
+    },
   );
   const agentFactory = new AgentFactoryService(
     agentStore,
@@ -792,6 +865,22 @@ export const buildApi = async ({
     governanceAudit,
     now,
   );
+  const agentEconomy = new AgentEconomyService(
+    resolvedAgentEconomyStore,
+    agentStore,
+    governanceAudit,
+    now,
+  );
+  const agentWorkforce = new AgentWorkforceService(
+    resolvedAgentWorkforceStore,
+    agents,
+    agentStore,
+    agentSociety,
+    agentEconomy,
+    governanceAudit,
+    now,
+  );
+  canonicalRouter.setAgentEconomyAccounting(agentEconomy);
   const retrieval = new RetrievalService(
     memoryStore,
     embeddings,
@@ -1165,7 +1254,112 @@ export const buildApi = async ({
     governanceAudit,
     now,
   );
+  const workforceRuntime = new WorkforceRuntimeService(
+    resolvedWorkforceRuntimeStore,
+    agentStore,
+    agentWorkforce,
+    agentEconomy,
+    agentOs,
+    externalHarvest,
+    canonicalRouter,
+    capabilityStudio,
+    governanceAudit,
+    now,
+  );
+  const objectives = new ObjectiveEngineService(
+    executiveStore,
+    workforceRuntime,
+    governanceAudit,
+    now,
+    crossApplicationWorkflows,
+    capabilityStudio,
+  );
+  const experiments = new ExperimentService(
+    executiveStore,
+    governanceAudit,
+    learningEngine,
+    now,
+  );
+  const businessOS = new BusinessOSService(
+    objectives,
+    workforceRuntime,
+    agentEconomy,
+    experiments,
+    integrations,
+    approvals,
+    crossApplicationWorkflows,
+    now,
+  );
+  experiments.setReplanSink(objectives);
+  integrations.setBusinessOutcomeSinks({
+    objectiveMetric: async ({ ownerId, objectiveId, kpiId, value }) => {
+      await objectives.observeMetric({
+        ownerId,
+        objectiveId,
+        body: { kpiId, value, source: "CALCULATED" },
+        requestId: `external-metric:${kpiId}`,
+        ipAddress: "system",
+      });
+    },
+    experimentMetric: async ({
+      ownerId,
+      experimentId,
+      variantId,
+      subjectId,
+      metricId,
+      value,
+      evidenceRef,
+    }) => {
+      await experiments.observe({
+        ownerId,
+        experimentId,
+        body: {
+          variantId,
+          subjectId,
+          metricId,
+          value,
+          costCredits: 0,
+          durationMs: 0,
+          success: true,
+          source: "EXTERNAL_VERIFIED",
+          evidenceRefs: [evidenceRef],
+          idempotencyKey: `external:${evidenceRef}`,
+        },
+        requestId: `external-experiment:${evidenceRef}`,
+        ipAddress: "system",
+      });
+    },
+    verifiedReward: async ({ ownerId, agentId, taskId, evidenceRef }) => {
+      try {
+        await agentEconomy.rewardVerified({
+          ownerId,
+          agentId,
+          amount: 1,
+          authority: "WORKFLOW_EVALUATOR",
+          idempotencyKey: `external:${evidenceRef}`,
+          reasonCode: "VERIFIED_EXTERNAL_OUTCOME",
+          outcome: {
+            taskId,
+            predictedSuccessProbability: 0.5,
+            estimatedCost: 0,
+            estimatedDurationMs: 0,
+            actualSuccess: true,
+            actualCost: 0,
+            actualDurationMs: 0,
+            qualityScore: 1,
+            verificationResult: "VERIFIED",
+            evidenceRefs: [evidenceRef],
+          },
+        });
+      } catch {
+        /* Optional economy enrollment must not block external outcome processing. */
+      }
+    },
+  });
+  workforceRuntime.setLifecycleSink(objectives);
+  crossApplicationWorkflows.setLifecycleSink(objectives);
   const context: ApiRouteContext = {
+    deploymentMode,
     identity,
     security,
     securityState,
@@ -1173,6 +1367,7 @@ export const buildApi = async ({
     cookieName: sessionCookieName,
     secureCookies: nodeEnvironment === "production",
     sessionTtlSeconds,
+    signedRequestToleranceSeconds,
     privateNetworkRequired,
     governance,
     governanceStore,
@@ -1218,6 +1413,12 @@ export const buildApi = async ({
     agentEvolutionStore,
     agentSociety,
     agentSocietyStore,
+    agentEconomy,
+    agentEconomyStore: resolvedAgentEconomyStore,
+    agentWorkforce,
+    agentWorkforceStore: resolvedAgentWorkforceStore,
+    workforceRuntime,
+    workforceRuntimeStore: resolvedWorkforceRuntimeStore,
     memory,
     explicitMemoryTeaching,
     memoryStore,
@@ -1264,6 +1465,9 @@ export const buildApi = async ({
     activeContext,
     executive,
     executiveStore,
+    objectives,
+    experiments,
+    businessOS,
     reflection,
     reflectionStore,
     skillEvolution,
@@ -1416,6 +1620,9 @@ export const buildApi = async ({
   registerAgentCognitionRoutes(app, context);
   registerAgentEvolutionRoutes(app, context);
   registerAgentSocietyRoutes(app, context);
+  registerAgentEconomyRoutes(app, context);
+  registerAgentWorkforceRoutes(app, context);
+  registerWorkforceRuntimeRoutes(app, context);
   registerMemoryRoutes(app, context);
   registerInfrastructureRoutes(app, context);
   registerAdvisorRoutes(app, context);
@@ -1436,6 +1643,9 @@ export const buildApi = async ({
   registerVoiceRoutes(app, context);
   registerActiveContextRoutes(app, context);
   registerExecutiveRoutes(app, context);
+  registerObjectiveRoutes(app, context);
+  registerExperimentRoutes(app, context);
+  registerBusinessOSRoutes(app, context);
   registerReflectionRoutes(app, context);
   registerSkillEvolutionRoutes(app, context);
   registerIntentRecordingRoutes(app, context);

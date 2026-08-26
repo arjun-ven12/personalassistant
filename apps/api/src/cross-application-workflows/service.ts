@@ -314,12 +314,15 @@ const valueType = (value: unknown): "string" | "number" | "boolean" | "date" | "
 };
 
 export class CrossApplicationWorkflowService {
+  private lifecycleSink: { handleWorkflowChanged(ownerId:string,graphId:string,eventType:string):Promise<void> } | undefined;
   constructor(
     readonly store: CrossApplicationWorkflowStore,
     readonly coreAdapters: CoreAdapterService,
     readonly audit: GovernanceAuditWriter,
     readonly now: () => Date = () => new Date(),
   ) {}
+
+  setLifecycleSink(sink: NonNullable<CrossApplicationWorkflowService["lifecycleSink"]>) { this.lifecycleSink=sink; }
 
   async dashboard(ownerId: string) {
     await this.ensureBuiltInTemplates(ownerId);
@@ -857,6 +860,7 @@ export class CrossApplicationWorkflowService {
         createdAt: this.now().toISOString(),
       }),
     );
+    await this.lifecycleSink?.handleWorkflowChanged(ownerId,graphId,eventType);
   }
 }
 

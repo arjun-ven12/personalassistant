@@ -21,7 +21,12 @@ const setup = async (
     "interact",
     "edit_text",
   ],
-  options: { includeChromeSearchObject?: boolean; now?: () => Date } = {},
+  options: {
+    includeChromeSearchObject?: boolean;
+    includeChatGptComposerObject?: boolean;
+    includeChatGptSendObject?: boolean;
+    now?: () => Date;
+  } = {},
 ) => {
   const ownerId = crypto.randomUUID();
   const appStore = new InMemoryApplicationAdapterStore();
@@ -51,6 +56,13 @@ const setup = async (
     status: "healthy",
     updatedAt: at.toISOString(),
   });
+  const safariProvider = providerStore.getProvider(ownerId, "provider.safari");
+  if (!safariProvider) throw new Error("Safari provider baseline missing.");
+  providerStore.saveProvider({
+    ...safariProvider,
+    status: "healthy",
+    updatedAt: at.toISOString(),
+  });
   appStore.saveTrustedApplication(
     TrustedApplicationRecordSchema.parse({
       id: "chatgpt",
@@ -62,6 +74,27 @@ const setup = async (
       executablePath: null,
       executablePathUserSupplied: false,
       codeSignature: "Developer ID Application: OpenAI",
+      permissionsGranted: permissions,
+      capabilities: ["navigation", "editing", "semantic_registry"],
+      status: "trusted",
+      lastSeenAt: at.toISOString(),
+      trustLevel: "interaction",
+      securityProfile: "strict",
+      createdAt: at.toISOString(),
+      updatedAt: at.toISOString(),
+    }),
+  );
+  appStore.saveTrustedApplication(
+    TrustedApplicationRecordSchema.parse({
+      id: "safari",
+      ownerId,
+      applicationName: "Safari",
+      bundleIdentifier: "com.apple.Safari",
+      stableIdentifier: "safari",
+      applicationVersion: "1",
+      executablePath: null,
+      executablePathUserSupplied: false,
+      codeSignature: "Apple",
       permissionsGranted: permissions,
       capabilities: ["navigation", "editing", "semantic_registry"],
       status: "trusted",
@@ -94,11 +127,14 @@ const setup = async (
     }),
   );
   const entries = [
-      ["chatgpt", "composer", "editor"],
-      ["chatgpt", "Send", "button"],
-      ["chatgpt", "Sign In", "button"],
-      ["chatgpt", "Delete", "button"],
-    ];
+    ...(options.includeChatGptComposerObject === false
+      ? []
+      : [["chatgpt", "composer", "editor"]]),
+    ...(options.includeChatGptSendObject === false ? [] : [["chatgpt", "Send", "button"]]),
+    ["chatgpt", "Sign In", "button"],
+    ["chatgpt", "Delete", "button"],
+    ["chrome", "Submit", "button"],
+  ];
   if (options.includeChromeSearchObject !== false)
     entries.push(["chrome", "Search", "search_field"]);
   const objects = new Map(
@@ -268,6 +304,61 @@ describe("ApplicationInteractionService", () => {
     });
   });
 
+  it("uses the bounded single-composer fallback when ChatGPT has no registered target", async () => {
+    const { plan } = await setup(undefined, { includeChatGptComposerObject: false });
+
+    const typed = await plan({
+      utterance: "Type hello into ChatGPT.",
+      origin: "voice",
+    });
+
+    expect(typed.clarification).toBeNull();
+    expect(typed.request).toMatchObject({
+      applicationId: "chatgpt",
+      capability: "insert_text",
+      target: {
+        type: "COMPOSER",
+        role: "AXTextArea",
+        label: null,
+        identifier: null,
+        source: "EXPLICIT",
+      },
+    });
+  });
+
+  it("uses the reviewed ChatGPT submit fallback after an exact completed insertion", async () => {
+    const { plan } = await setup(undefined, {
+      includeChatGptComposerObject: false,
+      includeChatGptSendObject: false,
+    });
+    const typed = await plan({
+      utterance: "Type hello into ChatGPT.",
+      origin: "voice",
+    });
+
+    const submitted = await plan({
+      utterance: "Send it.",
+      origin: "voice",
+      previousInteractionProposal: {
+        status: "EXECUTED",
+        parameters: { request: typed.request },
+      },
+    });
+
+    expect(submitted.clarification).toBeNull();
+    expect(submitted.request).toMatchObject({
+      applicationId: "chatgpt",
+      capability: "submit_composer",
+      target: {
+        type: "BUTTON",
+        role: "AXButton",
+        label: "Send",
+        identifier: null,
+        source: "EXPLICIT",
+      },
+    });
+  });
+
   it("plans refresh as the finite reviewed browser reload capability", async () => {
     const { plan } = await setup();
 
@@ -283,8 +374,24 @@ describe("ApplicationInteractionService", () => {
       target: {
         type: "BUTTON",
         role: "AXButton",
-        label: "Reload this page",
+        label: "Reload",
       },
+    });
+  });
+
+  it("normalizes the dictated Chat GPT application name before planning launch", async () => {
+    const { plan } = await setup();
+
+    const launch = await plan({
+      utterance: "Open Chat GPT.",
+      origin: "voice",
+      currentApplicationId: "safari",
+    });
+
+    expect(launch.clarification).toBeNull();
+    expect(launch.request).toMatchObject({
+      applicationId: "chatgpt",
+      capability: "launch",
     });
   });
 
@@ -320,6 +427,40 @@ describe("ApplicationInteractionService", () => {
     expect(result).toMatchObject({
       status: "SUCCESS",
       providerId: "provider.chrome",
+      executionRequestId,
+      capability: "insert_text",
+    });
+  });
+
+  it("uses the reviewed Safari search field fallback when registry metadata is missing", async () => {
+    const { executionRequestId, ownerId, plan, service } = await setup();
+
+    const planned = (await plan({
+      utterance: "Type in hello in the search bar in Safari",
+      origin: "voice",
+      currentApplicationId: "safari",
+      conversationId: crypto.randomUUID(),
+      proposalId: crypto.randomUUID(),
+    })).request;
+
+    expect(planned).toMatchObject({
+      applicationId: "safari",
+      capability: "insert_text",
+      text: "hello",
+      target: {
+        type: "TEXT_FIELD",
+        role: "AXTextField",
+        label: "Smart Search Field",
+        identifier: null,
+        registryObjectId: null,
+        registryVersion: null,
+      },
+    });
+
+    const result = await service.execute(executeInput(ownerId, planned));
+    expect(result).toMatchObject({
+      status: "SUCCESS",
+      providerId: "provider.safari",
       executionRequestId,
       capability: "insert_text",
     });
@@ -493,6 +634,30 @@ describe("ApplicationInteractionService", () => {
     const result = await service.execute(executeInput(ownerId, planned));
     expect(result.status).toBe("POLICY_DENIED");
     expect(result.message).toMatch(/not classified as a reviewed benign/i);
+  });
+
+  it("queues an exact reviewed Submit control through approval-gated activation", async () => {
+    const { executionRequestId, ownerId, plan, service } = await setup();
+    const planned = (await plan({
+      utterance: "Click Submit button in Chrome.",
+      origin: "voice",
+      conversationId: crypto.randomUUID(),
+      proposalId: crypto.randomUUID(),
+    })).request;
+
+    expect(planned).toMatchObject({
+      applicationId: "chrome",
+      capability: "activate_semantic_control",
+      target: { label: "Submit", type: "BUTTON" },
+    });
+
+    const result = await service.execute(executeInput(ownerId, planned));
+    expect(result).toMatchObject({
+      status: "SUCCESS",
+      providerId: "provider.chrome",
+      executionRequestId,
+      capability: "activate_semantic_control",
+    });
   });
 
   it("denies a mutating request that is not bound to its exact confirmed proposal", async () => {

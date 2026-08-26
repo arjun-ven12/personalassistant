@@ -17,12 +17,13 @@ import {
   Workflow,
   Zap,
 } from "lucide-react";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 
 import type { ApiClient } from "./api.js";
 import type { BrainRuntimeSummary } from "@alexa-control/shared";
 import type { SceneRepositoryNode, SceneWorkflowNode } from "./HomeScene3D.js";
 import { usePersistentVoiceRuntime } from "./PersistentVoiceRuntime.js";
+import { NeedsAttentionFeed } from "./BusinessOSComponents.js";
 
 type TelemetryTone = "accent" | "success" | "warning" | "danger" | "muted";
 
@@ -97,15 +98,27 @@ const TelemetryWidget = ({ item }: { item: TelemetryItem }) => (
 const LazyHomeScene3D = lazy(() => import("./HomeScene3D.js"));
 
 type BrainNode = BrainRuntimeSummary["nodes"][number];
+type ConstellationNode = Omit<BrainNode, "id"> & {
+  id: string;
+  category: "SYSTEM" | "DEPARTMENT" | "AGENT";
+  departmentId?: string;
+};
+
+const workforceNodeStatus = (status: string): BrainNode["status"] => {
+  if (status === "ACTIVE") return "ACTIVE";
+  if (["BLOCKED", "FAILED"].includes(status)) return "DEGRADED";
+  if (status === "SUSPENDED") return "WARNING";
+  return "IDLE";
+};
 
 const BrainConstellation = ({
   nodes,
   selectedNodeId,
   onSelectNode,
 }: {
-  nodes: BrainNode[];
+  nodes: ConstellationNode[];
   selectedNodeId: string | null;
-  onSelectNode: (node: BrainNode) => void;
+  onSelectNode: (node: ConstellationNode) => void;
 }) => {
   const displayNodes =
     nodes.length > 0
@@ -118,17 +131,25 @@ const BrainConstellation = ({
             value: "Synchronizing",
             detail: ["Awaiting Alexa brain state"],
             active: false,
-          } satisfies BrainNode,
+            category: "SYSTEM",
+          } satisfies ConstellationNode,
         ];
   return (
     <div className="agent-constellation brain-constellation" aria-label="Alexa cognitive systems">
-      {displayNodes.map((node, index) => {
-        const angle = (index / displayNodes.length) * Math.PI * 2 - Math.PI / 2;
+      {displayNodes.map((node) => {
+        const categoryNodes = displayNodes.filter((candidate) => candidate.category === node.category);
+        const categoryIndex = categoryNodes.findIndex((candidate) => candidate.id === node.id);
+        const angle = (categoryIndex / categoryNodes.length) * Math.PI * 2 - Math.PI / 2;
+        const radius = node.category === "SYSTEM"
+          ? { x: 142, y: 106 }
+          : node.category === "DEPARTMENT"
+            ? { x: 276, y: 194 }
+            : { x: 188, y: 164 };
         return (
           <button
             aria-label={`${node.label}: ${node.status}, ${node.value}`}
             aria-pressed={selectedNodeId === node.id}
-            className={`agent-star brain-node brain-status-${node.status.toLowerCase()} ${node.active ? "is-active" : ""} ${selectedNodeId === node.id ? "selected" : ""}`}
+            className={`agent-star brain-node brain-node-${node.category.toLowerCase()} brain-status-${node.status.toLowerCase()} ${node.active ? "is-active" : ""} ${selectedNodeId === node.id ? "selected" : ""}`}
             key={node.id}
             onClick={() => {
               onSelectNode(node);
@@ -140,8 +161,8 @@ const BrainConstellation = ({
             }}
             style={
               {
-                "--node-x": `${Math.cos(angle) * 185}px`,
-                "--node-y": `${Math.sin(angle) * 118}px`,
+                "--node-x": `${Math.cos(angle) * radius.x}px`,
+                "--node-y": `${Math.sin(angle) * radius.y}px`,
                 "--progress": node.active ? "100%" : "0%",
               } as React.CSSProperties
             }
@@ -156,7 +177,7 @@ const BrainConstellation = ({
   );
 };
 
-const SelectedBrainNodeCard = ({ node }: { node: BrainNode | null }) => {
+const SelectedBrainNodeCard = ({ node }: { node: ConstellationNode | null }) => {
   const displayed =
     node ??
     ({
@@ -166,7 +187,8 @@ const SelectedBrainNodeCard = ({ node }: { node: BrainNode | null }) => {
       value: "Select a cognitive system",
       detail: ["Live bounded runtime state appears here."],
       active: false,
-    } satisfies BrainNode);
+      category: "SYSTEM",
+    } satisfies ConstellationNode);
   return (
     <aside className="selected-agent-card" aria-live="polite">
       <p className="eyebrow">Selected brain node</p>
@@ -228,6 +250,7 @@ export const HomeCommandCenter = ({ apiClient }: { apiClient: ApiClient }) => {
   const voiceRuntime = usePersistentVoiceRuntime();
   const [localStopAsserted, setLocalStopAsserted] = useState(false);
   const [selectedBrainNodeId, setSelectedBrainNodeId] = useState<string | null>(null);
+  const [expandedDepartmentId, setExpandedDepartmentId] = useState<string | null>(null);
 
   const health = useQuery({
     queryKey: ["health"],
@@ -280,6 +303,16 @@ export const HomeCommandCenter = ({ apiClient }: { apiClient: ApiClient }) => {
     queryKey: ["brain-runtime-summary"],
     queryFn: apiClient.getBrainRuntimeSummary,
     refetchInterval: 5_000,
+  });
+  const workforce = useQuery({
+    queryKey: ["agent-workforce-graph", "home-constellation"],
+    queryFn: () => apiClient.getAgentWorkforceGraph("limit=160"),
+    refetchInterval: 15_000,
+  });
+  const businessOS = useQuery({
+    queryKey: ["business-os-summary"],
+    queryFn: apiClient.getBusinessOSSummary,
+    refetchInterval: 15_000,
   });
 
   const stop = useMutation({
@@ -376,10 +409,40 @@ export const HomeCommandCenter = ({ apiClient }: { apiClient: ApiClient }) => {
       status: workflow.status,
       progress: workflowProgressForStatus(workflow.status),
     })) ?? [];
-  const selectedBrainNode =
-    selectedBrainNodeId === null
-      ? null
-      : (brain.data?.nodes.find((node) => node.id === selectedBrainNodeId) ?? null);
+  const constellationNodes = useMemo<ConstellationNode[]>(() => {
+    const systems = (brain.data?.nodes ?? []).map((node) => ({ ...node, category: "SYSTEM" as const }));
+    const departments = (workforce.data?.nodes ?? [])
+      .filter((node) => node.kind === "DEPARTMENT")
+      .map((node) => ({
+        id: `department:${node.departmentId}`,
+        label: node.label,
+        status: workforceNodeStatus(node.status),
+        value: `${node.childCount} specialists`,
+        detail: [node.subtitle, "Select to expand the bounded specialist view."],
+        active: node.status === "ACTIVE",
+        category: "DEPARTMENT" as const,
+        ...(node.departmentId ? { departmentId: node.departmentId } : {}),
+      }));
+    const specialists = expandedDepartmentId === null
+      ? []
+      : (workforce.data?.nodes ?? [])
+        .filter((node) => node.kind === "AGENT" && node.departmentId === expandedDepartmentId)
+        .slice(0, 8)
+        .map((node) => ({
+          id: `agent:${node.id}`,
+          label: node.label,
+          status: workforceNodeStatus(node.status),
+          value: node.status.toLowerCase(),
+          detail: [node.subtitle, "Bounded department specialist."],
+          active: node.status === "ACTIVE",
+          category: "AGENT" as const,
+          ...(node.departmentId ? { departmentId: node.departmentId } : {}),
+        }));
+    return [...systems, ...departments, ...specialists];
+  }, [brain.data?.nodes, expandedDepartmentId, workforce.data?.nodes]);
+  const selectedBrainNode = selectedBrainNodeId === null
+    ? null
+    : (constellationNodes.find((node) => node.id === selectedBrainNodeId) ?? null);
   return (
     <section
       className="home-command-center home-command-center-structured"
@@ -400,11 +463,13 @@ export const HomeCommandCenter = ({ apiClient }: { apiClient: ApiClient }) => {
         </div>
       </header>
 
+      <NeedsAttentionFeed compact data={businessOS.data} />
+
       <div className="command-hero-card">
         <div className="command-core-stage" aria-label="Interactive AI ecosystem core">
           <div className="mesh-stage-heading">
             <span>Alexa brain</span>
-            <small>{numericStatus(brain.data?.nodes.length)} cognitive systems · select a node</small>
+            <small>{numericStatus(brain.data?.nodes.length)} cognitive systems · {numericStatus(workforce.data?.summary.departments)} departments · select a node</small>
           </div>
           <div className="scene-canvas command-core-canvas">
             {reduceMotion ? (
@@ -432,8 +497,13 @@ export const HomeCommandCenter = ({ apiClient }: { apiClient: ApiClient }) => {
             Alexa core online
           </div>
           <BrainConstellation
-            nodes={brain.data?.nodes ?? []}
-            onSelectNode={(node) => setSelectedBrainNodeId(node.id)}
+            nodes={constellationNodes}
+            onSelectNode={(node) => {
+              setSelectedBrainNodeId(node.id);
+              if (node.category === "DEPARTMENT") {
+                setExpandedDepartmentId((current) => current === node.departmentId ? null : node.departmentId ?? null);
+              }
+            }}
             selectedNodeId={selectedBrainNode?.id ?? selectedBrainNodeId}
           />
           <RepositoryGalaxy count={repositories.data?.length ?? 0} />

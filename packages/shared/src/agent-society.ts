@@ -51,6 +51,7 @@ export const OrganizationRecordSchema = z
     ownerId: z.string().uuid(),
     name: z.string().min(1).max(160),
     mission: z.string().min(1).max(1_000),
+    governorAgentId: z.string().min(3).max(120).nullable().optional(),
     status: z.enum(["active", "archived"]),
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime(),
@@ -64,7 +65,9 @@ export const DepartmentRecordSchema = z
     organizationId: z.string().uuid(),
     name: z.string().min(1).max(120),
     responsibility: z.string().min(1).max(1_000),
+    parentDepartmentId: z.string().uuid().nullable().optional(),
     leadAgentId: z.string().min(3).max(120).nullable(),
+    status: z.enum(["active", "archived"]).optional(),
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime(),
   })

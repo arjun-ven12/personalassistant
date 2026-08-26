@@ -25,6 +25,8 @@ describe("whisper.cpp desktop STT", () => {
     expect(isUsableWhisperTranscript("[BLANK_AUDIO]")).toBe(false);
     expect(isUsableWhisperTranscript("(silence)")).toBe(false);
     expect(isUsableWhisperTranscript("[noise]")).toBe(false);
+    expect(isUsableWhisperTranscript("(sighs)")).toBe(false);
+    expect(isUsableWhisperTranscript("[keyboard typing]")).toBe(false);
     expect(isUsableWhisperTranscript("Open the Devices page")).toBe(true);
   });
 });

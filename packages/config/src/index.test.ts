@@ -14,6 +14,7 @@ describe("environment validation", () => {
     expect(api.SESSION_COOKIE_NAME).toBe("alexa_session");
     expect(api.SESSION_TTL_SECONDS).toBe(28_800);
     expect(api.STORE_MODE).toBe("memory");
+    expect(api.DEPLOYMENT_MODE).toBe("private");
     expect(api.CACHE_ENABLED).toBe(true);
     expect(api.EMBEDDING_PROVIDER).toBe("disabled");
     expect(api.MEMORY_ENABLED).toBe(true);
@@ -39,6 +40,19 @@ describe("environment validation", () => {
     expect(() =>
       parseApiEnvironment({ OPENAI_ACCOUNTING_INPUT_PER_MILLION_TOKENS: "free" }),
     ).toThrow();
+    expect(() =>
+      parseMacAgentEnvironment({
+        ALEXA_API_BASE_URL: "http://api.alexa.example",
+        ALEXA_WEB_BASE_URL: "https://alexa.example",
+      }),
+    ).toThrow();
+    expect(() =>
+      parseMacAgentEnvironment({
+        ALEXA_API_BASE_URL: "https://api.alexa.example",
+        ALEXA_WEB_BASE_URL: "https://alexa.example",
+        ALEXA_REQUIRE_PRIVATE_NETWORK: "false",
+      }),
+    ).not.toThrow();
   });
 
   it("fails closed for incomplete production security configuration", () => {
@@ -86,6 +100,67 @@ describe("environment validation", () => {
         AUTH_ALLOW_OWNER_BOOTSTRAP: "false",
       }),
     ).not.toThrow();
+  });
+
+  it("accepts a fail-closed public cloud container profile", () => {
+    expect(() =>
+      parseApiEnvironment({
+        NODE_ENV: "production",
+        DEPLOYMENT_MODE: "cloud",
+        API_HOST: "0.0.0.0",
+        PORT: "8080",
+        PUBLIC_BASE_URL: "https://api.alexa.example",
+        WEB_ORIGIN: "https://alexa.example",
+        ALLOWED_HOSTS: "api.alexa.example",
+        TRUSTED_PROXY_MODE: "one-hop",
+        PRIVATE_NETWORK_REQUIRED: "false",
+        TAILSCALE_REQUIRED: "false",
+        NETWORK_VERIFIER_MODE: "unknown",
+        STORE_MODE: "postgres",
+        DATABASE_URL: "postgresql://placeholder.invalid/assistant?sslmode=require",
+        REDIS_URL: "https://placeholder.upstash.io",
+        REDIS_TOKEN: "placeholder-token",
+        SESSION_COOKIE_NAME: "__Host-alexa_session",
+        AUTH_ALLOW_OWNER_BOOTSTRAP: "false",
+        LOCAL_AI_ENABLED: "false",
+        EMBEDDING_PROVIDER: "disabled",
+        OPENAI_ENABLED: "false",
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects cloud profiles without HTTPS, exact hosts, or bounded proxy trust", () => {
+    const base = {
+      NODE_ENV: "production",
+      DEPLOYMENT_MODE: "cloud",
+      API_HOST: "0.0.0.0",
+      PUBLIC_BASE_URL: "https://api.alexa.example",
+      WEB_ORIGIN: "https://alexa.example",
+      ALLOWED_HOSTS: "api.alexa.example",
+      TRUSTED_PROXY_MODE: "one-hop",
+      PRIVATE_NETWORK_REQUIRED: "false",
+      STORE_MODE: "postgres",
+      DATABASE_URL: "postgresql://placeholder.invalid/assistant?sslmode=require",
+      REDIS_URL: "https://placeholder.upstash.io",
+      REDIS_TOKEN: "placeholder-token",
+      SESSION_COOKIE_NAME: "__Host-alexa_session",
+      AUTH_ALLOW_OWNER_BOOTSTRAP: "false",
+      LOCAL_AI_ENABLED: "false",
+      EMBEDDING_PROVIDER: "disabled",
+      OPENAI_ENABLED: "false",
+    };
+    expect(() =>
+      parseApiEnvironment({ ...base, PUBLIC_BASE_URL: "http://api.alexa.example" }),
+    ).toThrow();
+    expect(() =>
+      parseApiEnvironment({ ...base, ALLOWED_HOSTS: "other.example" }),
+    ).toThrow();
+    expect(() =>
+      parseApiEnvironment({ ...base, TRUSTED_PROXY_MODE: "none" }),
+    ).toThrow();
+    expect(() =>
+      parseApiEnvironment({ ...base, PRIVATE_NETWORK_REQUIRED: "true" }),
+    ).toThrow();
   });
 
   it("rejects execution and unsafe production network modes", () => {

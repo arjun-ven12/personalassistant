@@ -26,6 +26,45 @@ const capability = (
 
 export const BUILT_IN_INTEGRATIONS: BuiltInIntegration[] = [
   {
+    id: "gmail",
+    provider: "gmail",
+    category: "communication",
+    displayName: "Gmail",
+    version: "1.0.0",
+    supportedAuth: ["oauth"],
+    healthSummary: "Gmail business operations require an owner-connected OAuth account.",
+    capabilities: [
+      capability({ id: "gmail.email.read", name: "Email retrieval", description: "Search bounded email metadata and read a selected thread.", category: "communication", risk: "low", approvalRequired: false, destructive: false, operations: ["email.search", "email.read_thread"] }),
+      capability({ id: "gmail.email.draft", name: "Email drafts", description: "Create a bounded draft without sending it.", category: "communication", risk: "medium", approvalRequired: false, destructive: false, operations: ["email.create_draft"] }),
+      capability({ id: "gmail.email.send", name: "Approved email send", description: "Send one reviewed draft with idempotent verification.", category: "communication", risk: "high", approvalRequired: true, destructive: false, operations: ["email.send_draft"] }),
+    ],
+  },
+  {
+    id: "crm",
+    provider: "crm",
+    category: "crm",
+    displayName: "CRM",
+    version: "1.0.0",
+    supportedAuth: ["oauth", "service_account"],
+    healthSummary: "CRM operations use finite lead read and mutation capabilities.",
+    capabilities: [
+      capability({ id: "crm.lead.read", name: "Lead retrieval", description: "Search and read bounded lead records.", category: "crm", risk: "low", approvalRequired: false, destructive: false, operations: ["crm.search_leads", "crm.read_lead"] }),
+      capability({ id: "crm.lead.write", name: "Lead updates", description: "Create leads, update stages, or append notes after review.", category: "crm", risk: "medium", approvalRequired: true, destructive: false, operations: ["crm.create_lead", "crm.update_stage", "crm.add_note"] }),
+    ],
+  },
+  {
+    id: "analytics",
+    provider: "analytics",
+    category: "analytics",
+    displayName: "Business Analytics",
+    version: "1.0.0",
+    supportedAuth: ["oauth", "service_account"],
+    healthSummary: "Analytics exposes validated metric windows only, never arbitrary queries.",
+    capabilities: [
+      capability({ id: "analytics.metric.read", name: "Metric observations", description: "Read a registered metric for a bounded time window.", category: "analytics", risk: "low", approvalRequired: false, destructive: false, operations: ["analytics.read_metric"] }),
+    ],
+  },
+  {
     id: "github",
     provider: "github",
     category: "git_provider",
@@ -44,7 +83,17 @@ export const BUILT_IN_INTEGRATIONS: BuiltInIntegration[] = [
         risk: "low",
         approvalRequired: false,
         destructive: false,
-        operations: ["repositories.list", "pull_requests.list", "checks.read"],
+        operations: ["repositories.list", "pull_requests.list", "checks.read", "github.read_issue", "github.read_pull_request"],
+      }),
+      capability({
+        id: "github.issue.write",
+        name: "Issue creation",
+        description: "Create a bounded issue after explicit approval.",
+        category: "git_provider",
+        risk: "medium",
+        approvalRequired: true,
+        destructive: false,
+        operations: ["github.create_issue"],
       }),
       capability({
         id: "github.pull_request.write",

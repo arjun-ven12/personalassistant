@@ -87,6 +87,7 @@ const selectPreferredMacAgent = (
 
 const nativeProviderPolicyTool = (
   capability: NativeProviderCapability,
+  applicationId?: string,
 ): string | null => {
   if (capability === "launch") return "app.open";
   if (
@@ -123,12 +124,24 @@ const nativeProviderPolicyTool = (
     return "browser.navigate";
   }
   if (["find", "search"].includes(capability)) return "browser.read_page";
-  if (["bookmark", "close_tab", "save_file", "new_folder", "clear_terminal"].includes(capability)) {
+  if (
+    ["bookmark", "close_tab", "save_file", "new_folder", "clear_terminal"].includes(
+      capability,
+    )
+  ) {
     return "browser.interact";
   }
-  if (["insert_text", "replace_selection", "activate_semantic_control"].includes(capability))
+  if (
+    ["insert_text", "replace_selection", "activate_semantic_control"].includes(
+      capability,
+    )
+  )
     return "browser.interact";
-  if (capability === "submit_composer") return "browser.submit_form";
+  if (capability === "submit_composer") {
+    return ["chatgpt", "codex"].includes(applicationId ?? "")
+      ? "application.submit_ai_composer"
+      : "browser.submit_form";
+  }
   if (["run_approved_command", "interrupt_command"].includes(capability)) {
     return "project.run_registered_script";
   }
@@ -159,6 +172,7 @@ export class ExecutionService {
       executionRequestId: string;
       status: "SUCCEEDED" | "FAILED" | "CANCELLED" | "TIMED_OUT";
     }) => Promise<void>,
+    readonly privateNetworkRequired = true,
   ) {}
 
   async create(input: {
@@ -205,7 +219,7 @@ export class ExecutionService {
         "VALIDATION_SERVICE_REQUIRED",
         "Validation execution must be requested through the validation service.",
       );
-    if (input.networkState !== "PRIVATE_NETWORK")
+    if (this.privateNetworkRequired && input.networkState !== "PRIVATE_NETWORK")
       throw new ExecutionError(
         403,
         "PRIVATE_NETWORK_REQUIRED",
@@ -402,14 +416,17 @@ export class ExecutionService {
         "TRUSTED_NATIVE_EXECUTION_UNAVAILABLE",
         "Trusted native execution transport is unavailable.",
       );
-    if (input.networkState !== "PRIVATE_NETWORK")
+    if (this.privateNetworkRequired && input.networkState !== "PRIVATE_NETWORK")
       throw new ExecutionError(
         403,
         "PRIVATE_NETWORK_REQUIRED",
         "Private-network verification is required.",
       );
     const parsed = NativeCapabilityDispatchRequestSchema.parse(input.request);
-    const policyToolName = nativeProviderPolicyTool(parsed.capability);
+    const policyToolName = nativeProviderPolicyTool(
+      parsed.capability,
+      parsed.applicationId,
+    );
     if (!policyToolName)
       throw new ExecutionError(
         403,
@@ -439,7 +456,9 @@ export class ExecutionService {
       toolName: policyToolName,
       applicationId: parsed.applicationId,
       arguments: parsed,
-      requestedCapabilities: [policyToolName],
+      // Policy tools and finite capabilities are distinct identifiers. For
+      // example, browser.submit_form is governed by browser.interact.
+      requestedCapabilities: tool?.requiredCapabilities ?? [],
     });
     const securityState = await this.governance.store.getSecurityState();
     const evaluation = await this.governance.policyEngine.evaluate({
@@ -793,10 +812,7 @@ export class ExecutionService {
       const nativeRequest = NativeCapabilityDispatchRequestSchema.parse(
         request.arguments,
       );
-      if (
-        nativeRequest.interactionProposalId &&
-        this.onGovernedInteractionSettled
-      )
+      if (nativeRequest.interactionProposalId && this.onGovernedInteractionSettled)
         await this.onGovernedInteractionSettled({
           ownerId,
           proposalId: nativeRequest.interactionProposalId,

@@ -46,19 +46,42 @@ const reviewedBuiltinBrowserReloadTargets: Record<
   string,
   { role: string; label: string; type: "BUTTON" }
 > = {
-  chrome: { role: "AXButton", label: "Reload this page", type: "BUTTON" },
+  chrome: { role: "AXButton", label: "Reload", type: "BUTTON" },
   safari: { role: "AXButton", label: "Reload current page", type: "BUTTON" },
+};
+
+const reviewedBuiltinComposerTargets: Record<
+  string,
+  { role: string; label: null; type: "COMPOSER" }
+> = {
+  // These Electron clients do not consistently publish a stable AX identifier
+  // for the composer. The native provider still requires exactly one visible
+  // AXTextArea in the trusted registered application before it can proceed.
+  chatgpt: { role: "AXTextArea", label: null, type: "COMPOSER" },
+  codex: { role: "AXTextArea", label: null, type: "COMPOSER" },
+};
+
+const reviewedBuiltinComposerSubmitTargets: Record<
+  string,
+  { role: string; label: "Send"; type: "BUTTON" }
+> = {
+  chatgpt: { role: "AXButton", label: "Send", type: "BUTTON" },
+  codex: { role: "AXButton", label: "Send", type: "BUTTON" },
 };
 
 const reviewedBuiltinProviderTarget = (
   request: GovernedApplicationInteractionRequest,
 ) => {
   if (!request.target) return false;
-  if (!["insert_text", "replace_selection", "focus_semantic_control", "reload"].includes(request.capability))
+  if (!["insert_text", "replace_selection", "focus_semantic_control", "reload", "submit_composer"].includes(request.capability))
     return false;
-  const builtin = request.capability === "reload"
-    ? reviewedBuiltinBrowserReloadTargets[request.applicationId]
-    : reviewedBuiltinBrowserSearchTargets[request.applicationId];
+  const builtin = request.target.type === "COMPOSER"
+    ? reviewedBuiltinComposerTargets[request.applicationId]
+    : request.capability === "submit_composer"
+      ? reviewedBuiltinComposerSubmitTargets[request.applicationId]
+    : request.capability === "reload"
+      ? reviewedBuiltinBrowserReloadTargets[request.applicationId]
+      : reviewedBuiltinBrowserSearchTargets[request.applicationId];
   return (
     !!builtin &&
     request.target.type === builtin.type &&
@@ -97,7 +120,7 @@ const secureTarget = (request: GovernedApplicationInteractionRequest) =>
 
 const reviewedBenignControl = (request: GovernedApplicationInteractionRequest) =>
   request.capability !== "activate_semantic_control" ||
-  /^(?:sign in|search|next|previous|continue|cancel|close|open|select|expand|collapse|show|hide)$/i.test(
+  /^(?:sign in|search|submit|next|previous|continue|cancel|close|open|select|expand|collapse|show|hide)$/i.test(
     request.target?.label?.trim() ?? "",
   );
 
@@ -200,7 +223,7 @@ export class ApplicationInteractionService {
       previous.data.target?.type === "COMPOSER"
         ? previous.data
         : null;
-    const submissionRequested = /\b(?:send|submit)(?: it| this| message)?\b/i.test(
+    const submissionRequested = /^\s*(?:send|submit)(?: it| this| message)?[.!?]?\s*$/i.test(
       utterance,
     );
     const applicationId =
@@ -668,13 +691,18 @@ export class ApplicationInteractionService {
     type: "TEXT_FIELD" | "BUTTON" | "COMPOSER",
     query: string,
   ) {
-    const builtin = type === "BUTTON" && /^reload$/i.test(query)
-      ? reviewedBuiltinBrowserReloadTargets[applicationId]
-      : reviewedBuiltinBrowserSearchTargets[applicationId];
+    const builtin = type === "COMPOSER" && /^composer$/i.test(query)
+      ? reviewedBuiltinComposerTargets[applicationId]
+      : type === "BUTTON" && /^send$/i.test(query)
+        ? reviewedBuiltinComposerSubmitTargets[applicationId]
+      : type === "BUTTON" && /^reload$/i.test(query)
+        ? reviewedBuiltinBrowserReloadTargets[applicationId]
+        : reviewedBuiltinBrowserSearchTargets[applicationId];
     if (
       !builtin ||
       (type === "TEXT_FIELD" && !/^search$/i.test(query)) ||
-      (type === "BUTTON" && !/^reload$/i.test(query))
+      (type === "BUTTON" && !/^(?:reload|send)$/i.test(query)) ||
+      (type === "COMPOSER" && !/^composer$/i.test(query))
     ) return null;
     return NativeSemanticInteractionTargetSchema.parse({
       type: builtin.type,
@@ -708,7 +736,7 @@ export class ApplicationInteractionService {
       [/\b(?:vs\s*code|visual studio code)\b/i, "vscode"],
       [/\bsafari\b/i, "safari"],
       [/\b(?:chrome|google chrome)\b/i, "chrome"],
-      [/\bchatgpt\b/i, "chatgpt"],
+      [/\bchat\s*gpt\b/i, "chatgpt"],
       [/\bcodex\b/i, "codex"],
       [/\bfinder\b/i, "finder"],
     ];

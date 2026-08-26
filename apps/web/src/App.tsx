@@ -16,6 +16,7 @@ import {
   Search,
   Shield,
   Sparkles,
+  Target,
   UserCircle,
   Workflow,
   Zap,
@@ -52,6 +53,7 @@ import { CommandsPage } from "./CommandsPage.js";
 import { CommandStudioPage } from "./CommandStudioPage.js";
 import { ConversationPage } from "./ConversationPage.js";
 import { ExecutivePage } from "./ExecutivePage.js";
+import { ObjectivesPage } from "./ObjectivesPage.js";
 import { PersonalityPage } from "./PersonalityPage.js";
 import { PersistentSpatialRuntimeProvider } from "./PersistentSpatialRuntime.js";
 import { PersistentVoiceRuntimeProvider } from "./PersistentVoiceRuntime.js";
@@ -82,6 +84,7 @@ const navigation: Array<{
   { path: "/automation", label: "Automation", icon: Zap, section: "Operations" },
   { path: "/agents", label: "Agents", icon: Bot, section: "Operations" },
   { path: "/workflows", label: "Workflows", icon: Workflow, section: "Operations" },
+  { path: "/objectives", label: "Objectives", icon: Target, section: "Operations" },
   { path: "/skills", label: "Skills", icon: Sparkles, section: "Operations" },
   { path: "/applications", label: "Applications", icon: Layers3, section: "Environment" },
   { path: "/workspace", label: "Workspace", icon: Boxes, section: "Environment" },
@@ -242,7 +245,6 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
     },
   ];
   const automationTabs: WorkspaceTab[] = [
-    { id: "overview", label: "Overview", content: <TasksPage apiClient={apiClient} /> },
     {
       id: "tasks",
       label: "Tasks & schedules",
@@ -264,21 +266,6 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
       label: "History",
       advanced: true,
       content: <CommandsPage apiClient={apiClient} />,
-    },
-  ];
-  const agentTabs: WorkspaceTab[] = [
-    {
-      id: "overview",
-      label: "Overview",
-      content: <AgentsPage apiClient={apiClient} />,
-    },
-    { id: "agents", label: "Agents", content: <AgentsPage apiClient={apiClient} /> },
-    { id: "teams", label: "Teams", content: <AgentsPage apiClient={apiClient} /> },
-    {
-      id: "evolution",
-      label: "Evolution",
-      advanced: true,
-      content: <ExecutivePage apiClient={apiClient} />,
     },
   ];
   const workspaceTabs: WorkspaceTab[] = [
@@ -539,7 +526,7 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
                 ) : null}
                 {pathname === "/automation" ? (
                   <TabbedWorkspacePage
-                    activeTab={activeTab || "overview"}
+                    activeTab={activeTab || "tasks"}
                     description="Manage the work Alexa is tracking, scheduling, and routing."
                     onTabChange={(tab) => selectTab("/automation", tab)}
                     tabs={automationTabs}
@@ -547,13 +534,7 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
                   />
                 ) : null}
                 {pathname === "/agents" ? (
-                  <TabbedWorkspacePage
-                    activeTab={activeTab || "overview"}
-                    description="Inspect Alexa's autonomous workers, teams, activity, and performance."
-                    onTabChange={(tab) => selectTab("/agents", tab)}
-                    tabs={agentTabs}
-                    title="Agents"
-                  />
+                  <AgentsPage apiClient={apiClient} />
                 ) : null}
                 {pathname === "/workflows" ? (
                   <OperationalPage
@@ -562,6 +543,9 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
                   >
                     <WorkflowsPage apiClient={apiClient} />
                   </OperationalPage>
+                ) : null}
+                {pathname === "/objectives" ? (
+                  <ObjectivesPage apiClient={apiClient} />
                 ) : null}
                 {pathname === "/skills" ? (
                   <OperationalPage

@@ -11,6 +11,11 @@ export const ApprovalsPage = ({ apiClient }: { apiClient: ApiClient }) => {
     queryKey: ["approvals"],
     queryFn: () => apiClient.getApprovals(),
   });
+  const business = useQuery({
+    queryKey: ["business-operations"],
+    queryFn: apiClient.getBusinessOperations,
+    refetchInterval: 15_000,
+  });
   const recentAuthenticate = useMutation({
     mutationFn: async () => {
       if (!recentApprovalId) throw new Error("No approval selected.");
@@ -74,6 +79,7 @@ export const ApprovalsPage = ({ apiClient }: { apiClient: ApiClient }) => {
       <div className="registry-list">
         {approvals.data?.map((approval) => {
           const pending = approval.status === "PENDING";
+          const externalAction = business.data?.executions.find((item) => item.approvalId === approval.id);
           const needsRecentAuth =
             approval.approvalRequirement === "recent_authentication";
           return (
@@ -158,6 +164,7 @@ export const ApprovalsPage = ({ apiClient }: { apiClient: ApiClient }) => {
                   the underlying action.
                 </div>
               ) : null}
+              {externalAction ? <section className="approval-impact"><div><span>IF APPROVED</span><p>The exact {externalAction.capability} action may continue after current policy, capability, and provider checks. {externalAction.references.workflowRunId ? "Its linked workflow branch can resume." : "No linked workflow impact is recorded."}</p></div><div><span>IF REJECTED</span><p>This exact action remains denied. {externalAction.references.taskId || externalAction.references.workflowRunId ? "Its dependent branch remains blocked until a different governed path is selected." : "No downstream dependency is recorded."}</p></div></section> : null}
             </article>
           );
         })}

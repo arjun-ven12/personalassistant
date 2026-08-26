@@ -153,7 +153,7 @@ export const registerSecurityRoutes = (
         context.security.requireAuthentication,
         context.security.requireTrustedOrigin,
         context.security.requireCsrf,
-        context.security.verifyPrivateNetwork,
+        context.security.verifyTransportNetwork,
       ],
     },
     async (request) => {
@@ -204,7 +204,7 @@ export const registerSecurityRoutes = (
   app.post(
     "/api/security/recovery-codes/verify",
     {
-      preHandler: [context.security.verifyPrivateNetwork],
+      preHandler: [context.security.verifyTransportNetwork],
       config: { rateLimit: { max: 5, timeWindow: "30 minutes" } },
     },
     async (request) => {

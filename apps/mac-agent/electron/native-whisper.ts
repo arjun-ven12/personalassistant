@@ -84,9 +84,30 @@ export const isUsableWhisperTranscript = (value: string) => {
     .replace(/[[\]()<>_-]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  return !new Set(["blank audio", "silence", "no speech", "music", "noise"]).has(
-    sentinel,
-  );
+  return !new Set([
+    "blank audio",
+    "silence",
+    "no speech",
+    "music",
+    "noise",
+    "background noise",
+    "wind",
+    "breathing",
+    "breath",
+    "sigh",
+    "sighs",
+    "sighing",
+    "cough",
+    "coughing",
+    "laugh",
+    "laughing",
+    "keyboard",
+    "typing",
+    "keyboard typing",
+    "applause",
+    "clapping",
+    "humming",
+  ]).has(sentinel);
 };
 
 export const checkWhisperCppHealth = async (config: WhisperCppConfig) => {

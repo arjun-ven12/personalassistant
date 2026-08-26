@@ -54,11 +54,13 @@ const statusObject = <TStatus extends z.ZodType>(status: TStatus) =>
 export const SystemStatusResponseSchema = z
   .object({
     api: statusObject(z.literal("online")),
-    database: statusObject(z.literal("not_configured")),
-    redis: statusObject(z.literal("not_configured")),
-    aiProvider: statusObject(z.literal("not_configured")),
+    database: statusObject(z.enum(["online", "degraded", "offline", "not_configured"])),
+    redis: statusObject(z.enum(["online", "degraded", "offline", "not_configured"])),
+    aiProvider: statusObject(
+      z.enum(["online", "degraded", "offline", "not_configured"]),
+    ),
     macAgent: statusObject(z.enum(["online", "offline", "not_connected"])),
-    privateNetwork: statusObject(z.literal("not_configured")),
+    privateNetwork: statusObject(z.enum(["online", "not_configured", "disabled"])),
     gestureEngine: statusObject(z.literal("not_started")),
     execution: z.object({ enabled: z.boolean() }).strict(),
   })

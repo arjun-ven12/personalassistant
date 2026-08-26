@@ -433,6 +433,7 @@ const networkVerifier =
         : new UnknownNetworkVerifier();
 
 const app = await buildApi({
+  deploymentMode: environment.DEPLOYMENT_MODE,
   corsOrigin: environment.WEB_ORIGIN,
   privateNetworkRequired: environment.PRIVATE_NETWORK_REQUIRED,
   nodeEnvironment: environment.NODE_ENV,
@@ -474,7 +475,8 @@ const app = await buildApi({
   migrationState: async () => (database ? (await database.status()).state : "current"),
   productionNetworkVerifierConfigured:
     environment.NODE_ENV !== "production" ||
-    environment.NETWORK_VERIFIER_MODE === "tailscale",
+    environment.NETWORK_VERIFIER_MODE === "tailscale" ||
+    environment.DEPLOYMENT_MODE === "cloud",
   executionStore,
   repositoryStore,
   patchStore,
@@ -569,7 +571,7 @@ process.once("SIGTERM", () => {
 try {
   await app.listen({
     host: environment.API_HOST,
-    port: environment.API_PORT,
+    port: environment.PORT ?? environment.API_PORT,
   });
 } catch (error) {
   app.log.fatal({ err: error }, "API failed to start");

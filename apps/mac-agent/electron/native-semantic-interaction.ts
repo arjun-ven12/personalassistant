@@ -39,7 +39,11 @@ export const NativeSemanticBridgeResultSchema = z
       "UNSUPPORTED",
       "FAILED",
     ]),
-    semanticId: z.string().regex(/^[a-f0-9]{64}$/).nullable(),
+    semanticId: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .nullable()
+      .default(null),
     matchedCount: z.number().int().nonnegative().max(10_000),
   })
   .strict();

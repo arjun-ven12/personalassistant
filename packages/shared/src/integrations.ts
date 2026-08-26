@@ -8,6 +8,9 @@ export const IntegrationProviderSchema = z.enum([
   "vscode",
   "github_actions",
   "vercel",
+  "gmail",
+  "crm",
+  "analytics",
 ]);
 
 export const IntegrationCategorySchema = z.enum([
@@ -18,6 +21,8 @@ export const IntegrationCategorySchema = z.enum([
   "ide",
   "ci_cd",
   "deployment",
+  "crm",
+  "analytics",
 ]);
 
 export const IntegrationStatusSchema = z.enum([

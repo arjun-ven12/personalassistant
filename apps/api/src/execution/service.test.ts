@@ -423,6 +423,69 @@ describe("ExecutionService policy integration", () => {
     });
   });
 
+  it("maps reviewed AI composer submission to an explicit-approval-only capability", async () => {
+    const normal = await setup();
+    const now = new Date();
+
+    await expect(
+      normal.service.createNativeProviderExecution({
+        ownerId: normal.ownerId,
+        sessionId: crypto.randomUUID(),
+        request: {
+          providerId: "provider.chatgpt",
+          applicationId: "chatgpt",
+          capability: "submit_composer",
+          arguments: {
+            target: {
+              type: "BUTTON",
+              role: "AXButton",
+              label: "Send",
+              identifier: null,
+              semanticId: "b".repeat(64),
+              registryObjectId: null,
+              registryVersion: null,
+              secure: false,
+              source: "EXPLICIT",
+              confidence: 0.94,
+              capturedAt: now.toISOString(),
+              expiresAt: new Date(now.getTime() + 5 * 60_000).toISOString(),
+            },
+          },
+        },
+        networkState: "PRIVATE_NETWORK",
+        ipAddress: "127.0.0.1",
+        requestId: crypto.randomUUID(),
+        policyApplication: {
+          id: "chatgpt",
+          ownerId: normal.ownerId,
+          displayName: "ChatGPT",
+          macBundleId: "com.openai.chat",
+          enabled: true,
+          permissions: {
+            open: true,
+            focus: true,
+            inspectWindow: false,
+            captureWindow: false,
+            automate: false,
+            sendKeyboardShortcuts: false,
+            readSemanticStructure: true,
+            navigate: true,
+            interact: true,
+            editText: true,
+            openFiles: false,
+            createDocuments: false,
+            deleteContent: false,
+            executeCommands: false,
+            clipboardAccess: false,
+          },
+          riskOverrides: {},
+          createdAt: now.toISOString(),
+          updatedAt: now.toISOString(),
+        },
+      }),
+    ).rejects.toMatchObject({ code: "APPROVAL_REQUIRED" });
+  });
+
   it("reuses an approved interaction proposal identity when execution is retried", async () => {
     const normal = await setup();
     const sessionId = crypto.randomUUID();

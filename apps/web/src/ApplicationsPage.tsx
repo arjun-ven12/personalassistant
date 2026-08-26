@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 
 import type { AdapterPermission, ApplicationPermissions } from "@alexa-control/shared";
 
 import { ApiClientError, type ApiClient } from "./api.js";
+import { ContextualAskAlexa } from "./BusinessOSComponents.js";
 
 const emptyPermissions: ApplicationPermissions = {
   open: false,
@@ -37,6 +38,7 @@ const adapterPermissions: AdapterPermission[] = [
 
 export const ApplicationsPage = ({ apiClient }: { apiClient: ApiClient }) => {
   const queryClient = useQueryClient();
+  const scrollTopRef = useRef<number | null>(null);
   const [id, setId] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [bundleId, setBundleId] = useState("");
@@ -65,6 +67,35 @@ export const ApplicationsPage = ({ apiClient }: { apiClient: ApiClient }) => {
     queryFn: apiClient.getNativeProviderRuntime,
     refetchInterval: 10_000,
   });
+  const integrations = useQuery({
+    queryKey: ["integrations"],
+    queryFn: apiClient.getIntegrationsDashboard,
+    refetchInterval: 15_000,
+  });
+  const business = useQuery({
+    queryKey: ["business-operations"],
+    queryFn: apiClient.getBusinessOperations,
+    refetchInterval: 15_000,
+  });
+  const businessOS = useQuery({
+    queryKey: ["business-os-summary"],
+    queryFn: apiClient.getBusinessOSSummary,
+    refetchInterval: 15_000,
+  });
+  const preserveScrollPosition = () => {
+    scrollTopRef.current =
+      document.querySelector<HTMLElement>(".content")?.scrollTop ?? null;
+  };
+  const restoreScrollPosition = () => {
+    const scrollTop = scrollTopRef.current;
+    if (scrollTop === null) return;
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const content = document.querySelector<HTMLElement>(".content");
+        if (content) content.scrollTop = scrollTop;
+      });
+    });
+  };
   const create = useMutation({
     mutationFn: apiClient.createApplication,
     onSuccess: async () => {
@@ -82,8 +113,11 @@ export const ApplicationsPage = ({ apiClient }: { apiClient: ApiClient }) => {
       applicationId: string;
       input: Parameters<ApiClient["updateApplication"]>[1];
     }) => apiClient.updateApplication(applicationId, input),
-    onSuccess: async () =>
-      queryClient.invalidateQueries({ queryKey: ["applications"] }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["applications"] });
+      restoreScrollPosition();
+    },
+    onError: restoreScrollPosition,
   });
   const trustAdapter = useMutation({
     mutationFn: apiClient.trustApplicationAdapter,
@@ -95,7 +129,9 @@ export const ApplicationsPage = ({ apiClient }: { apiClient: ApiClient }) => {
     mutationFn: apiClient.updateApplicationAdapterPermissions,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["application-adapters"] });
+      restoreScrollPosition();
     },
+    onError: restoreScrollPosition,
   });
   const refreshCapabilities = useMutation({
     mutationFn: apiClient.refreshApplicationCapabilities,
@@ -160,6 +196,125 @@ export const ApplicationsPage = ({ apiClient }: { apiClient: ApiClient }) => {
         Registering an application does not allow the system to open or control it
         during Phase 2.3. Executable paths are never accepted.
       </p>
+      <section className="business-integrations">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Business connections</p>
+            <h2>Operational integrations</h2>
+          </div>
+          <small>
+            Credentials remain in the configured secret provider and are never shown
+            here.
+          </small>
+        </div>
+        <div className="business-integration-grid">
+          {integrations.data?.integrations
+            .filter((item) => ["gmail", "crm", "analytics", "github"].includes(item.id))
+            .map((item) => {
+              const health = integrations.data?.health.find(
+                (entry) => entry.integrationId === item.id,
+              );
+              const capabilities =
+                integrations.data?.capabilities.filter(
+                  (entry) => entry.integrationId === item.id,
+                ) ?? [];
+              const granted = new Set(
+                integrations.data?.permissions
+                  .filter(
+                    (entry) =>
+                      entry.integrationId === item.id && entry.state === "granted",
+                  )
+                  .map((entry) => entry.capabilityId),
+              );
+              const checkpoint = business.data?.checkpoints
+                .filter((entry) => entry.integrationId === item.id)
+                .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
+              const impact = businessOS.data?.providerImpact.find(
+                (entry) => entry.provider === item.id,
+              );
+              return (
+                <article key={item.id}>
+                  <header>
+                    <div>
+                      <strong>{item.displayName}</strong>
+                      <span
+                        className={`integration-health health-${health?.state ?? "unknown"}`}
+                      >
+                        {health?.credentialStatus === "expired"
+                          ? "REAUTH REQUIRED"
+                          : (health?.state ?? "unknown").toUpperCase()}
+                      </span>
+                    </div>
+                    <small>{item.healthSummary}</small>
+                  </header>
+                  <div className="integration-impact">
+                    <span>
+                      <b>{impact?.activeObjectives ?? 0}</b> objectives
+                    </span>
+                    <span>
+                      <b>{impact?.workflowRuns ?? 0}</b> workflows
+                    </span>
+                    <span>
+                      <b>{impact?.queuedTasks ?? 0}</b> queued tasks
+                    </span>
+                    <span>
+                      <b>{impact?.experiments ?? 0}</b> experiments
+                    </span>
+                  </div>
+                  <div className="integration-capability-list">
+                    {capabilities.map((capability) => (
+                      <span key={capability.id}>
+                        <i className={granted.has(capability.id) ? "granted" : ""} />
+                        {capability.name}
+                      </span>
+                    ))}
+                  </div>
+                  <footer>
+                    <span>
+                      {capabilities.filter((item) => granted.has(item.id)).length} of{" "}
+                      {capabilities.length} capabilities granted
+                    </span>
+                    <span>
+                      {checkpoint
+                        ? `Synced ${new Date(checkpoint.updatedAt).toLocaleString()}`
+                        : "No sync recorded"}
+                    </span>
+                    <ContextualAskAlexa
+                      kind="PROVIDER"
+                      id={item.id}
+                      label={item.displayName}
+                    />
+                  </footer>
+                </article>
+              );
+            })}
+        </div>
+        <section className="business-capability-overview">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">What can Alexa do?</p>
+              <h3>Current business capability</h3>
+            </div>
+          </div>
+          <div>
+            {businessOS.data?.capabilities.map((capability) => (
+              <article key={capability.id}>
+                <span
+                  className={`capability-state state-${capability.state.toLowerCase()}`}
+                >
+                  {capability.state.replaceAll("_", " ")}
+                </span>
+                <strong>{capability.name}</strong>
+                <small>
+                  {capability.usedByObjectives} objectives ·{" "}
+                  {capability.usedByWorkflows} workflows · {capability.usedByAgents}{" "}
+                  agents · {capability.queuedActions} queued
+                </small>
+              </article>
+            ))}
+          </div>
+        </section>
+      </section>
       <form className="registry-form" onSubmit={submit}>
         <label>
           Stable ID
@@ -311,7 +466,8 @@ export const ApplicationsPage = ({ apiClient }: { apiClient: ApiClient }) => {
                 <label key={permission}>
                   <input
                     checked={enabled}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      preserveScrollPosition();
                       update.mutate({
                         applicationId: application.id,
                         input: {
@@ -320,8 +476,8 @@ export const ApplicationsPage = ({ apiClient }: { apiClient: ApiClient }) => {
                             [permission]: event.target.checked,
                           },
                         },
-                      })
-                    }
+                      });
+                    }}
                     type="checkbox"
                   />
                   {permission}
@@ -455,6 +611,7 @@ export const ApplicationsPage = ({ apiClient }: { apiClient: ApiClient }) => {
                     <input
                       checked={granted.has(permission)}
                       onChange={(event) => {
+                        preserveScrollPosition();
                         const next = new Set(application.permissionsGranted);
                         if (event.target.checked) {
                           next.add(permission);
@@ -497,10 +654,10 @@ export const ApplicationsPage = ({ apiClient }: { apiClient: ApiClient }) => {
             <p className="eyebrow">Phase 18D Adapter Management Center</p>
             <h2>Universal Application Adapter SDK</h2>
             <p>
-              Reviewed adapters install into the existing Application Adapter
-              Framework, Provider Runtime, semantic object model, and transport.
-              The Planner discovers capabilities dynamically and keeps
-              application-specific logic out of core planning.
+              Reviewed adapters install into the existing Application Adapter Framework,
+              Provider Runtime, semantic object model, and transport. The Planner
+              discovers capabilities dynamically and keeps application-specific logic
+              out of core planning.
             </p>
           </div>
         </div>
@@ -510,8 +667,8 @@ export const ApplicationsPage = ({ apiClient }: { apiClient: ApiClient }) => {
             ? "available"
             : "loading"}{" "}
           · duplicates provider registry:{" "}
-          {String(adapterSdk.data?.metadata.duplicatesProviderRegistry ?? false)} ·
-          raw UI automation: disabled
+          {String(adapterSdk.data?.metadata.duplicatesProviderRegistry ?? false)} · raw
+          UI automation: disabled
         </div>
         <section className="status-grid">
           <article className="status-card">
@@ -656,7 +813,9 @@ export const ApplicationsPage = ({ apiClient }: { apiClient: ApiClient }) => {
           <article className="status-card">
             <span>Core adapters</span>
             <strong>{coreAdapters.data?.adapters.length ?? 0}</strong>
-            <small>VS Code, Finder, browsers, Terminal, Notes, Calendar, Reminders</small>
+            <small>
+              VS Code, Finder, browsers, Terminal, Notes, Calendar, Reminders
+            </small>
           </article>
           <article className="status-card">
             <span>Semantic capabilities</span>
@@ -732,9 +891,9 @@ export const ApplicationsPage = ({ apiClient }: { apiClient: ApiClient }) => {
         <summary>Interaction providers and reviewed capabilities</summary>
         <div className="advanced-panel-body">
           <p>
-            Context reading and application interaction are independent. Providers
-            below expose finite semantic operations only; raw Accessibility,
-            coordinates, key replay, scripts, and shell execution remain unavailable.
+            Context reading and application interaction are independent. Providers below
+            expose finite semantic operations only; raw Accessibility, coordinates, key
+            replay, scripts, and shell execution remain unavailable.
           </p>
           {nativeProviders.data?.nativeProviders.map((provider) => {
             const trusted = adapterDashboard.data?.trustedApplications.find(
@@ -765,15 +924,26 @@ export const ApplicationsPage = ({ apiClient }: { apiClient: ApiClient }) => {
                   </div>
                 </div>
                 <p>
-                  Context: {trusted?.permissionsGranted.includes("read_semantic_structure") ? "Allowed" : "Denied"}
-                  {" · "}Interaction: {trusted?.permissionsGranted.includes("interact") ? "Allowed" : "Denied"}
+                  Context:{" "}
+                  {trusted?.permissionsGranted.includes("read_semantic_structure")
+                    ? "Allowed"
+                    : "Denied"}
+                  {" · "}Interaction:{" "}
+                  {trusted?.permissionsGranted.includes("interact")
+                    ? "Allowed"
+                    : "Denied"}
                   {" · "}Health: {health?.status ?? "unknown"}
                 </p>
                 <p>
-                  Reviewed capabilities: {capabilities.filter((item) => item.enabled).map((item) => item.capability).join(", ") || "none"}
+                  Reviewed capabilities:{" "}
+                  {capabilities
+                    .filter((item) => item.enabled)
+                    .map((item) => item.capability)
+                    .join(", ") || "none"}
                 </p>
                 <small>
-                  Reviewed version {provider.version} · last execution {latest?.status ?? "none"}
+                  Reviewed version {provider.version} · last execution{" "}
+                  {latest?.status ?? "none"}
                 </small>
               </article>
             );

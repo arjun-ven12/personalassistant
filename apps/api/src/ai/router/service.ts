@@ -19,6 +19,34 @@ import { AIPromptCompiler } from "../context/service.js";
 import type { CognitiveContextService } from "../context/service.js";
 import { ActiveAIRequestRegistry } from "../active-request-registry.js";
 
+export interface AgentInternalEconomyAccounting {
+  reserveProviderCost(input: {
+    ownerId: string;
+    agentId: string;
+    providerRequestId: string;
+    estimatedCostUsd?: string;
+    estimatedTokens: number;
+    locality: "LOCAL" | "REMOTE";
+    workflowId?: string;
+    taskId?: string;
+  }): Promise<string | undefined>;
+  settleProviderCost(input: {
+    ownerId: string;
+    agentId: string;
+    reservationId: string;
+    providerRequestId: string;
+    actualCostUsd?: string;
+    totalTokens?: number;
+    locality: "LOCAL" | "REMOTE";
+  }): Promise<void>;
+  releaseProviderCost(input: {
+    ownerId: string;
+    agentId: string;
+    reservationId: string;
+    providerRequestId: string;
+  }): Promise<void>;
+}
+
 export type AIRouterExecutionOptions = { signal?: AbortSignal };
 
 const roleForPurpose = (
@@ -38,6 +66,7 @@ const isRetryable = (error: unknown) =>
 
 export class AIRouterService {
   private emergencyStopCheck: () => Promise<boolean> = () => Promise.resolve(false);
+  private agentEconomy?: AgentInternalEconomyAccounting;
   private readonly attempts: Array<AIRouterResponse> = [];
   private readonly failures = new Map<string, { count: number; openedUntil: number }>();
   private readonly counters: AIRouterMetrics = {
@@ -64,6 +93,10 @@ export class AIRouterService {
 
   setEmergencyStopCheck(check: () => Promise<boolean>) {
     this.emergencyStopCheck = check;
+  }
+
+  setAgentEconomyAccounting(accounting: AgentInternalEconomyAccounting) {
+    this.agentEconomy = accounting;
   }
 
   assess(request: AIRouterRequest) {
@@ -213,6 +246,7 @@ export class AIRouterService {
       if (cloudEscalations > request.maxCloudEscalations) continue;
       const key = modelKey(candidate.providerId, candidate.modelId);
       let reservationId: string | undefined;
+      let agentEconomyReservationId: string | undefined;
       let contextId: string | undefined;
       let inferenceRequest: AIInferenceRequest = canonicalBase;
       if (this.contextService && request.economicContext) {
@@ -438,6 +472,47 @@ export class AIRouterService {
           continue;
         }
       }
+      if (this.agentEconomy && request.economicContext?.agentId) {
+        try {
+          agentEconomyReservationId = await this.agentEconomy.reserveProviderCost({
+            ownerId: request.economicContext.ownerId,
+            agentId: request.economicContext.agentId,
+            providerRequestId: canonicalRequestId,
+            ...(economicTrace?.estimatedCostUsd
+              ? { estimatedCostUsd: economicTrace.estimatedCostUsd }
+              : {}),
+            estimatedTokens:
+              economicCandidate.estimatedInputTokens + economicCandidate.maxOutputTokens,
+            locality: candidate.locality,
+            ...(request.economicContext.workflowId
+              ? { workflowId: request.economicContext.workflowId }
+              : {}),
+            ...(request.economicContext.taskId
+              ? { taskId: request.economicContext.taskId }
+              : {}),
+          });
+        } catch (error) {
+          if (reservationId)
+            await this.economics?.release(
+              request.economicContext.ownerId,
+              reservationId,
+            );
+          attempts.push({
+            attemptId,
+            ...(contextId ? { contextId } : {}),
+            providerId: candidate.providerId,
+            modelId: candidate.modelId,
+            locality: candidate.locality,
+            status: "SKIPPED",
+            reason:
+              error instanceof Error
+                ? error.message.slice(0, 300)
+                : "Agent economic reservation failed.",
+            errorCode: "AGENT_ECONOMIC_BUDGET",
+          });
+          continue;
+        }
+      }
       try {
         this.activeRequests.update(canonicalRequestId, { state: "INFERENCE", providerId: candidate.providerId, modelId: candidate.modelId, ...(reservationId ? { reservationId } : {}) });
         const base = {
@@ -494,7 +569,7 @@ export class AIRouterService {
               ? ("PROVIDER_REPORTED" as const)
               : ("ESTIMATED" as const),
           };
-          await this.economics.settle(
+          const providerLedger = await this.economics.settle(
             reservationId,
             request.economicContext,
             {
@@ -510,6 +585,24 @@ export class AIRouterService {
             { routeId, attemptId, ...(contextId ? { contextId } : {}) },
             canonicalRequestId,
           );
+          if (
+            this.agentEconomy &&
+            request.economicContext.agentId &&
+            agentEconomyReservationId
+          )
+            await this.agentEconomy.settleProviderCost({
+              ownerId: request.economicContext.ownerId,
+              agentId: request.economicContext.agentId,
+              reservationId: agentEconomyReservationId,
+              providerRequestId: canonicalRequestId,
+              ...(providerLedger.actualCostUsd
+                ? { actualCostUsd: providerLedger.actualCostUsd }
+                : {}),
+              ...(result.usage?.totalTokens === undefined
+                ? {}
+                : { totalTokens: result.usage.totalTokens }),
+              locality: candidate.locality,
+            });
         }
         const confidence = this.confidence(result.structuredOutput);
         if (confidence !== undefined && confidence < this.acceptThreshold(complexity)) {
@@ -606,6 +699,19 @@ export class AIRouterService {
           modelId: candidate.modelId,
         });
       } catch (error) {
+        if (
+          this.agentEconomy &&
+          request.economicContext?.agentId &&
+          agentEconomyReservationId
+        )
+          await this.agentEconomy
+            .releaseProviderCost({
+              ownerId: request.economicContext.ownerId,
+              agentId: request.economicContext.agentId,
+              reservationId: agentEconomyReservationId,
+              providerRequestId: canonicalRequestId,
+            })
+            .catch(() => undefined);
         if (this.economics && request.economicContext) {
           try {
             const cancelled = error instanceof Error && error.name === "AbortError";

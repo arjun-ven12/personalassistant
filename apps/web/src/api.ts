@@ -111,7 +111,19 @@ import {
   IntegrationDashboardResponseSchema,
   IntegrationOperationResponseSchema,
   IntegrationPermissionListResponseSchema,
+  BusinessOperationsDashboardSchema,
+  BusinessOSExecutiveSummarySchema,
+  BusinessExecutionRecordSchema,
   AgentDashboardResponseSchema,
+  AgentEconomyDashboardSchema,
+  AgentEconomyAccountResponseSchema,
+  WorkforceGraphResponseSchema,
+  WorkforceAgentDetailSchema,
+  WorkforceImportReportSchema,
+  WorkforceRuntimeDashboardSchema,
+  WorkforceRuntimeTaskResponseSchema,
+  WorkforceRuntimeMessageResponseSchema,
+  WorkforceRuntimeReviewResponseSchema,
   AgentTaskResponseSchema,
   AgentMessageResponseSchema,
   AgentConsensusResponseSchema,
@@ -125,6 +137,13 @@ import {
   TeamCompositionResponseSchema,
   DynamicAgentListResponseSchema,
   type ComposeTeamRequest,
+  type AgentEconomyStatus,
+  type EnrollAgentEconomyRequest,
+  type AllocateAgentCreditsRequest,
+  type CreateWorkforceTaskRequest,
+  type CreateWorkforceMessageRequest,
+  type CompleteWorkforceTaskRequest,
+  type SubmitWorkforceReviewRequest,
   MemoryCenterResponseSchema,
   MemorySearchResponseSchema,
   KnowledgeGraphResponseSchema,
@@ -197,6 +216,16 @@ import {
   MacroRecordSchema,
   TaskCenterResponseSchema,
   ExecutiveDashboardSchema,
+  ObjectiveDashboardSchema,
+  ObjectiveDraftResponseSchema,
+  CreateObjectiveRequestSchema,
+  ModifyObjectiveRequestSchema,
+  ObjectiveModificationResultSchema,
+  ObserveObjectiveMetricRequestSchema,
+  ExperimentDashboardSchema,
+  CreateExperimentRequestSchema,
+  RecordExperimentObservationRequestSchema,
+  ModifyExperimentRequestSchema,
   ReflectionDashboardSchema,
   SkillEvolutionDashboardSchema,
   SkillCandidateIdRequestSchema,
@@ -277,6 +306,7 @@ import {
   type CreateCapabilityRequest,
   type CreateWorkflowRequest,
   type IntegrationOperationRequest,
+  type BusinessActionRequest,
   type CreateAgentTaskRequest,
   type CreateAgentMessageRequest,
   type CreateAgentConsensusRequest,
@@ -1091,11 +1121,90 @@ export const createApiClient = (baseUrl: string) => {
         IntegrationOperationResponseSchema,
         jsonBody(input),
       ),
+    getBusinessOperations: () =>
+      requestAndValidate(baseUrl, "/api/integrations/business/dashboard", BusinessOperationsDashboardSchema),
+    getBusinessOSSummary: () =>
+      requestAndValidate(baseUrl, "/api/business-os/summary", BusinessOSExecutiveSummarySchema),
+    requestBusinessAction: (input: BusinessActionRequest) =>
+      requestAndValidate(baseUrl, "/api/integrations/business/actions", BusinessExecutionRecordSchema, jsonBody(input)),
+    reconcileBusinessAction: (executionId: string) =>
+      requestAndValidate(baseUrl, `/api/integrations/business/executions/${encodeURIComponent(executionId)}/reconcile`, BusinessExecutionRecordSchema, jsonBody({})),
     getAgentsDashboard: () =>
       requestAndValidate(
         baseUrl,
         "/api/agents/dashboard",
         AgentDashboardResponseSchema,
+      ),
+    getAgentEconomyDashboard: () =>
+      requestAndValidate(
+        baseUrl,
+        "/api/agent-economy/dashboard",
+        AgentEconomyDashboardSchema,
+      ),
+    enrollAgentEconomy: (agentId: string, input: EnrollAgentEconomyRequest = {}) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/agent-economy/agents/${encodeURIComponent(agentId)}/enroll`,
+        AgentEconomyAccountResponseSchema,
+        jsonBody(input),
+      ),
+    allocateAgentCredits: (agentId: string, input: AllocateAgentCreditsRequest) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/agent-economy/agents/${encodeURIComponent(agentId)}/allocate`,
+        AgentEconomyAccountResponseSchema,
+        jsonBody(input),
+      ),
+    updateAgentEconomyStatus: (agentId: string, status: AgentEconomyStatus) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/agent-economy/agents/${encodeURIComponent(agentId)}/status`,
+        AgentEconomyAccountResponseSchema,
+        jsonBody({ status }),
+      ),
+    getAgentWorkforceGraph: (query = "") =>
+      requestAndValidate(
+        baseUrl,
+        `/api/agent-workforce/graph${query ? `?${query}` : ""}`,
+        WorkforceGraphResponseSchema,
+      ),
+    getWorkforceRuntime: () =>
+      requestAndValidate(baseUrl, "/api/workforce-runtime", WorkforceRuntimeDashboardSchema),
+    createWorkforceRuntimeTask: (input: CreateWorkforceTaskRequest) =>
+      requestAndValidate(baseUrl, "/api/workforce-runtime/tasks", WorkforceRuntimeTaskResponseSchema, jsonBody(input)),
+    scheduleWorkforceRuntimeTask: (taskId: string) =>
+      requestAndValidate(baseUrl, `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/schedule`, WorkforceRuntimeTaskResponseSchema, jsonBody({})),
+    executeWorkforceRuntimeTask: (taskId: string) =>
+      requestAndValidate(baseUrl, `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/execute`, WorkforceRuntimeTaskResponseSchema, jsonBody({})),
+    completeWorkforceRuntimeTask: (taskId: string, input: CompleteWorkforceTaskRequest) =>
+      requestAndValidate(baseUrl, `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/complete`, WorkforceRuntimeTaskResponseSchema, jsonBody(input)),
+    reviewWorkforceRuntimeTask: (taskId: string, input: SubmitWorkforceReviewRequest) =>
+      requestAndValidate(baseUrl, `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/reviews`, WorkforceRuntimeReviewResponseSchema, jsonBody(input)),
+    cancelWorkforceRuntimeTask: (taskId: string) =>
+      requestAndValidate(baseUrl, `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/cancel`, WorkforceRuntimeDashboardSchema, jsonBody({})),
+    recoverWorkforceRuntime: () =>
+      requestAndValidate(baseUrl, "/api/workforce-runtime/recover", WorkforceRuntimeDashboardSchema, jsonBody({})),
+    sendWorkforceRuntimeMessage: (input: CreateWorkforceMessageRequest) =>
+      requestAndValidate(baseUrl, "/api/workforce-runtime/messages", WorkforceRuntimeMessageResponseSchema, jsonBody(input)),
+    getAgentWorkforceDetail: (agentId: string) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/agent-workforce/agents/${encodeURIComponent(agentId)}`,
+        WorkforceAgentDetailSchema,
+      ),
+    bootstrapAgentWorkforce: () =>
+      requestAndValidate(
+        baseUrl,
+        "/api/agent-workforce/bootstrap",
+        WorkforceImportReportSchema,
+        jsonBody({}),
+      ),
+    updateAgentWorkforceActivation: (agentId: string, state: "ACTIVE" | "DORMANT") =>
+      requestAndValidate(
+        baseUrl,
+        `/api/agent-workforce/agents/${encodeURIComponent(agentId)}/activation`,
+        WorkforceAgentDetailSchema,
+        jsonBody({ state }),
       ),
     getDynamicWorkforce: () =>
       requestAndValidate(
@@ -1912,6 +2021,36 @@ export const createApiClient = (baseUrl: string) => {
       requestAndValidate(baseUrl, "/api/tasks", TaskCenterResponseSchema),
     getExecutiveDashboard: () =>
       requestAndValidate(baseUrl, "/api/executive", ExecutiveDashboardSchema),
+    getObjectives: () =>
+      requestAndValidate(baseUrl, "/api/objectives", ObjectiveDashboardSchema),
+    createObjective: (input: unknown) =>
+      requestAndValidate(baseUrl, "/api/objectives", ObjectiveDraftResponseSchema, jsonBody(CreateObjectiveRequestSchema.parse(input))),
+    activateObjective: (objectiveId: string, idempotencyKey: string) =>
+      requestAndValidate(baseUrl, `/api/objectives/${objectiveId}/activate`, ObjectiveDashboardSchema, jsonBody({ idempotencyKey })),
+    pauseObjective: (objectiveId: string, idempotencyKey: string) =>
+      requestAndValidate(baseUrl, `/api/objectives/${objectiveId}/pause`, ObjectiveDashboardSchema, jsonBody({ idempotencyKey })),
+    replanObjective: (objectiveId: string, idempotencyKey: string) =>
+      requestAndValidate(baseUrl, `/api/objectives/${objectiveId}/replan`, ObjectiveDashboardSchema, jsonBody({ idempotencyKey })),
+    cancelObjective: (objectiveId: string, idempotencyKey: string) =>
+      requestAndValidate(baseUrl, `/api/objectives/${objectiveId}/cancel`, ObjectiveDashboardSchema, jsonBody({ idempotencyKey })),
+    modifyObjective: (objectiveId: string, input: unknown) =>
+      requestAndValidate(baseUrl, `/api/objectives/${objectiveId}`, ObjectiveModificationResultSchema, jsonBody(ModifyObjectiveRequestSchema.parse(input), "PATCH")),
+    observeObjectiveMetric: (objectiveId: string, input: unknown) =>
+      requestAndValidate(baseUrl, `/api/objectives/${objectiveId}/observations`, ObjectiveDashboardSchema, jsonBody(ObserveObjectiveMetricRequestSchema.parse(input))),
+    getObjectiveExperiments: (objectiveId: string) =>
+      requestAndValidate(baseUrl, `/api/objectives/${objectiveId}/experiments`, ExperimentDashboardSchema),
+    createExperiment: (objectiveId: string, input: unknown) =>
+      requestAndValidate(baseUrl, `/api/objectives/${objectiveId}/experiments`, ExperimentDashboardSchema, jsonBody(CreateExperimentRequestSchema.parse(input))),
+    activateExperiment: (experimentId: string, idempotencyKey: string) =>
+      requestAndValidate(baseUrl, `/api/experiments/${experimentId}/activate`, ExperimentDashboardSchema, jsonBody({idempotencyKey})),
+    pauseExperiment: (experimentId: string, idempotencyKey: string) =>
+      requestAndValidate(baseUrl, `/api/experiments/${experimentId}/pause`, ExperimentDashboardSchema, jsonBody({idempotencyKey})),
+    stopExperiment: (experimentId: string, idempotencyKey: string) =>
+      requestAndValidate(baseUrl, `/api/experiments/${experimentId}/stop`, ExperimentDashboardSchema, jsonBody({idempotencyKey})),
+    modifyExperiment: (experimentId: string, input: unknown) =>
+      requestAndValidate(baseUrl, `/api/experiments/${experimentId}`, ExperimentDashboardSchema, jsonBody(ModifyExperimentRequestSchema.parse(input),"PATCH")),
+    recordExperimentObservation: (experimentId: string, input: unknown) =>
+      requestAndValidate(baseUrl, `/api/experiments/${experimentId}/observations`, ExperimentDashboardSchema, jsonBody(RecordExperimentObservationRequestSchema.parse(input))),
     getReflectionDashboard: () =>
       requestAndValidate(baseUrl, "/api/reflections", ReflectionDashboardSchema),
     getSkillEvolutionDashboard: () =>
