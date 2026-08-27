@@ -1,5 +1,7 @@
 :{$PORT:4173} {
   encode zstd gzip
+  @runtime_config path /runtime-config.js
+  header @runtime_config Cache-Control "no-store"
   root * /srv
   try_files {path} /index.html
   file_server
