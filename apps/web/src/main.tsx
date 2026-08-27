@@ -7,7 +7,17 @@ import { App } from "./App.js";
 import { createApiClient } from "./api.js";
 import "./styles.css";
 
-const environment = parseWebEnvironment(import.meta.env);
+declare global {
+  interface Window {
+    __ALEXA_RUNTIME_CONFIG__?: { apiBaseUrl?: string };
+  }
+}
+
+const runtimeApiBaseUrl = window.__ALEXA_RUNTIME_CONFIG__?.apiBaseUrl;
+const environment = parseWebEnvironment({
+  ...import.meta.env,
+  ...(runtimeApiBaseUrl ? { VITE_API_BASE_URL: runtimeApiBaseUrl } : {}),
+});
 const apiClient = createApiClient(environment.VITE_API_BASE_URL);
 const queryClient = new QueryClient({
   defaultOptions: {
