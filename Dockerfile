@@ -25,7 +25,7 @@ COPY --from=builder /runtime ./
 RUN mkdir -p /app/api/.local && chown node:node /app/api/.local
 
 USER node
-VOLUME ["/app/api/.local"]
+# Railway mounts persistent storage through its service Volume configuration.
 EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||process.env.API_PORT||3001)+'/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"

@@ -10,4 +10,10 @@ coverage/
 apps/mac-agent/release/
 .local/
 apps/api/.local/
+apps/android/.gradle/
+apps/android/build/
+apps/android/app/build/
+apps/android/local.properties
+apps/android/*.jks
+apps/android/*.keystore
 external-research/
