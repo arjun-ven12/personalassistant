@@ -380,6 +380,7 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
     },
   ];
 
+  
   return (
     <SpatialFrameworkProvider onInteraction={recordSpatialInteraction}>
       <PersistentSpatialRuntimeProvider apiClient={apiClient} onNavigate={navigate}>
