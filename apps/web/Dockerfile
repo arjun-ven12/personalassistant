@@ -22,4 +22,4 @@ COPY apps/web/Caddyfile /etc/caddy/Caddyfile
 COPY --from=builder /workspace/apps/web/dist /srv
 
 EXPOSE 4173
-CMD ["sh", "-c", "printf 'window.__ALEXA_RUNTIME_CONFIG__={apiBaseUrl:\"%s\"};\\n' \"$VITE_API_BASE_URL\" > /srv/runtime-config.js && exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile"]
+CMD ["sh", "-c", "printf 'window.__ALEXA_RUNTIME_CONFIG__={apiBaseUrl:window.location.origin};\\n' > /srv/runtime-config.js && exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile"]
