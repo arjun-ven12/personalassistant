@@ -4,6 +4,8 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [react()],
   build: {
+    // Keep the hosted control plane compatible with Safari on supported macOS releases.
+    target: "safari13",
     rollupOptions: {
       output: {
         manualChunks: {
