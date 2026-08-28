@@ -173,7 +173,9 @@ private fun Response<*>.toFailure(gson: Gson): AlexaFailure {
     // being revoked. Only an explicit revocation removes local authority.
     "DEVICE_REVOKED" -> AlexaFailure.DeviceRevoked
     "TRUSTED_DEVICE_REQUIRED" -> AlexaFailure.DeviceNotEligible
-    "INVALID_SIGNATURE", "SIGNED_REQUEST_EXPIRED", "DUPLICATE_NONCE" -> AlexaFailure.Unauthorized
+    // A signed-command error is scoped to that command. It must never discard a
+    // valid owner session or make a trusted device appear revoked.
+    "INVALID_SIGNATURE", "SIGNED_REQUEST_EXPIRED", "DUPLICATE_NONCE" -> AlexaFailure.SignedRequestRejected
     else -> if (code() == 401) AlexaFailure.Unauthorized else AlexaFailure.InvalidResponse
   }
 }

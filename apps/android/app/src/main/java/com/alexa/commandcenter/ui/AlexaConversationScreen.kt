@@ -1,8 +1,8 @@
 package com.alexa.commandcenter.ui
 
+import android.view.MotionEvent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,9 +18,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -275,6 +276,7 @@ private fun RuntimeStateRow(label: String, showStop: Boolean, onStop: () -> Unit
 }
 
 @Composable
+@OptIn(ExperimentalComposeUiApi::class)
 private fun PushToTalkButton(
   state: AlexaUiState,
   onRequestPermission: () -> Unit,
@@ -289,22 +291,30 @@ private fun PushToTalkButton(
     modifier = Modifier
       .size(56.dp)
       .semantics { contentDescription = if (recording) "Recording. Release to send." else "Press and hold to talk to Alexa." }
-      .pointerInput(state.microphoneAccess, enabled) {
-        detectTapGestures(
-          onPress = {
-            if (!enabled) return@detectTapGestures
+      .pointerInteropFilter { event ->
+        if (!enabled) return@pointerInteropFilter false
+        when (event.actionMasked) {
+          MotionEvent.ACTION_DOWN -> {
             if (state.microphoneAccess != MicrophoneAccess.GRANTED) {
               onRequestPermission()
-              return@detectTapGestures
+              false
+            } else {
+              haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+              onStart()
+              true
             }
-            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-            onStart()
-            if (tryAwaitRelease()) {
-              haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-              onRelease()
-            } else onCancel()
-          },
-        )
+          }
+          MotionEvent.ACTION_UP -> {
+            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onRelease()
+            true
+          }
+          MotionEvent.ACTION_CANCEL -> {
+            onCancel()
+            true
+          }
+          else -> true
+        }
       },
     shape = CircleShape,
     color = when {

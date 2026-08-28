@@ -357,6 +357,12 @@ class AlexaViewModel(
       )
       return
     }
+    if (failure == AlexaFailure.SignedRequestRejected) {
+      mutableState.value = mutableState.value.copy(
+        error = "Alexa could not verify this device request. Your session and device pairing remain intact.",
+      )
+      return
+    }
     if (failure == AlexaFailure.Unauthorized) {
       repository.clearSession()
       mutableState.value = mutableState.value.copy(screen = AlexaScreenState.Login, error = "Authentication is required.")
@@ -368,6 +374,7 @@ class AlexaViewModel(
       AlexaFailure.RateLimited -> "Too many requests. Try again shortly."
       AlexaFailure.ServerUnavailable -> "Alexa is temporarily unavailable."
       AlexaFailure.DeviceNotEligible -> "This trusted device is not enabled for that Alexa feature yet."
+      AlexaFailure.SignedRequestRejected -> "Alexa could not verify this device request. Your session and device pairing remain intact."
       else -> "The request could not be completed."
     })
   }
