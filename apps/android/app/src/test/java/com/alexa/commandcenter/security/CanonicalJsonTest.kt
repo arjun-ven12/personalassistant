@@ -21,4 +21,11 @@ class CanonicalJsonTest {
       canonical,
     )
   }
+
+  @Test
+  fun `normalizes decimal numbers like JSON stringify before signing`() {
+    val canonical = CanonicalJson.value(mapOf("confidence" to JsonPrimitive(1.0)))
+
+    assertEquals("{\"confidence\":1}", canonical)
+  }
 }

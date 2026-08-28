@@ -13,6 +13,7 @@ import java.security.MessageDigest
 import java.security.Signature
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
+import java.math.BigDecimal
 import java.time.Instant
 import java.util.Base64
 import java.util.UUID
@@ -157,12 +158,21 @@ internal object CanonicalJson {
   fun value(value: Any?): String = when (value) {
     null -> "null"
     is String -> "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
-    is Boolean, is Number -> value.toString()
+    is Boolean -> value.toString()
+    is Number -> canonicalNumber(value)
     is JsonElement -> value(value.asJsonObjectOrNull())
     is Map<*, *> -> value.entries.sortedBy { it.key.toString() }
       .joinToString(separator = ",", prefix = "{", postfix = "}") { "${value(it.key.toString())}:${value(it.value)}" }
     is Iterable<*> -> value.joinToString(separator = ",", prefix = "[", postfix = "]") { value(it) }
     else -> error("Signed payload contains an unsupported value.")
+  }
+
+  private fun canonicalNumber(value: Number): String = runCatching {
+    // JSON.parse turns 1.0 into the JavaScript number 1, then JSON.stringify
+    // emits "1". Match that canonical form before signing Android envelopes.
+    BigDecimal(value.toString()).stripTrailingZeros().toPlainString()
+  }.getOrElse {
+    error("Signed payload contains a non-finite number.")
   }
 
   private fun JsonElement.asJsonObjectOrNull(): Any? = when {

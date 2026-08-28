@@ -428,6 +428,7 @@ class AlexaViewModel(
             voiceError = "The response was interrupted. Retry uses the same protected turn ID.",
           )
         } else {
+          mutableState.value = mutableState.value.copy(pendingTurn = null)
           showFailure(error)
           if (mutableState.value.screen is AlexaScreenState.Shell) {
             mutableState.value = mutableState.value.copy(
