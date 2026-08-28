@@ -37,6 +37,25 @@ fun AlexaApp(
   onRefresh: () -> Unit,
   onLock: () -> Unit,
   onForgetDevice: () -> Unit,
+  onCreateObjective: (CreateObjectiveRequest) -> Unit,
+  onObjectiveAction: (String, String) -> Unit,
+  onModifyObjective: (String, Int?, String?) -> Unit,
+  onApprovalDecision: (String, Boolean) -> Unit,
+  onAgentSelected: (String) -> Unit,
+  onWorkflowSelected: (String) -> Unit,
+  onExperimentsSelected: (String) -> Unit,
+  onRequestMicrophonePermission: () -> Unit = {},
+  onStartRecording: () -> Unit = {},
+  onReleaseRecording: () -> Unit = {},
+  onCancelRecording: () -> Unit = {},
+  onSubmitMessage: (String) -> Unit = {},
+  onRetryMessage: () -> Unit = {},
+  onStopResponse: () -> Unit = {},
+  onStopSpeaking: () -> Unit = {},
+  onTtsEnabled: (Boolean) -> Unit = {},
+  onNewConversation: () -> Unit = {},
+  onSelectConversation: (String) -> Unit = {},
+  onLoadEarlierMessages: () -> Unit = {},
 ) {
   MaterialTheme(colorScheme = darkColorScheme(primary = AlexaBlue, surface = AlexaSurface)) {
     Surface(color = AlexaBackground, modifier = Modifier.fillMaxSize()) {
@@ -45,7 +64,32 @@ fun AlexaApp(
         AlexaScreenState.Login -> LoginScreen(state.error, onLogin)
         is AlexaScreenState.Registration -> RegistrationScreen(screen, state.error, onCreatePairing, onRegister, onRefreshApproval)
         AlexaScreenState.BiometricLocked -> CenterMessage("Unlock Alexa with biometrics")
-        AlexaScreenState.Shell -> ShellScreen(state, environment, onRefresh, onLock, onForgetDevice)
+        AlexaScreenState.Shell -> CommandCenterShell(
+          state = state,
+          environment = environment,
+          onRefresh = onRefresh,
+          onLock = onLock,
+          onForgetDevice = onForgetDevice,
+          onCreateObjective = onCreateObjective,
+          onObjectiveAction = onObjectiveAction,
+          onModifyObjective = onModifyObjective,
+          onApprovalDecision = onApprovalDecision,
+          onAgentSelected = onAgentSelected,
+          onWorkflowSelected = onWorkflowSelected,
+          onExperimentsSelected = onExperimentsSelected,
+          onRequestMicrophonePermission = onRequestMicrophonePermission,
+          onStartRecording = onStartRecording,
+          onReleaseRecording = onReleaseRecording,
+          onCancelRecording = onCancelRecording,
+          onSubmitMessage = onSubmitMessage,
+          onRetryMessage = onRetryMessage,
+          onStopResponse = onStopResponse,
+          onStopSpeaking = onStopSpeaking,
+          onTtsEnabled = onTtsEnabled,
+          onNewConversation = onNewConversation,
+          onSelectConversation = onSelectConversation,
+          onLoadEarlierMessages = onLoadEarlierMessages,
+        )
       }
     }
   }
@@ -94,59 +138,6 @@ fun AlexaApp(
   }
 }
 
-@Composable private fun ShellScreen(state: AlexaUiState, environment: AlexaEnvironmentConfig, onRefresh: () -> Unit, onLock: () -> Unit, onForgetDevice: () -> Unit) {
-  var destination by remember { mutableStateOf("Home") }
-  val destinations = listOf("Home" to Icons.Outlined.Home, "Objectives" to Icons.Outlined.Flag, "Workforce" to Icons.Outlined.Groups, "Approvals" to Icons.Outlined.TaskAlt, "Alexa" to Icons.Outlined.AutoAwesome)
-  Scaffold(bottomBar = { NavigationBar(containerColor = AlexaSurface) { destinations.forEach { (label, icon) -> NavigationBarItem(selected = destination == label, onClick = { destination = label }, icon = { Icon(icon, label) }, label = { Text(label) }) } } }) { padding ->
-    Box(Modifier.padding(padding)) {
-      when (destination) {
-        "Home" -> HomeScreen(state, environment, onRefresh)
-        "Alexa" -> SettingsScreen(state, environment, onLock, onForgetDevice)
-        else -> FoundationPlaceholder(destination)
-      }
-    }
-  }
-}
-
-@Composable private fun HomeScreen(state: AlexaUiState, environment: AlexaEnvironmentConfig, onRefresh: () -> Unit) {
-  Column(Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState())) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-      Column(Modifier.weight(1f)) { Text("Alexa", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold); Text("CEO Command Center", color = AlexaBlue) }
-      IconButton(onClick = onRefresh) { Icon(Icons.Outlined.Refresh, "Refresh status") }
-    }
-    Spacer(Modifier.height(18.dp))
-    ConnectionBanner(state.connection, state.lastUpdatedAt)
-    state.error?.let { ErrorText(it) }
-    Spacer(Modifier.height(14.dp))
-    StatusCard("System status") {
-      val components = state.health?.components.orEmpty()
-      StatusRow("API", components["api"]?.state ?: "Unknown")
-      StatusRow("PostgreSQL", components["postgres"]?.state ?: "Unknown")
-      StatusRow("Redis", components["redis"]?.state ?: "Unknown")
-      StatusRow("AIRouter", components["aiRouter"]?.state ?: "Unknown")
-      StatusRow("Scheduler", components["scheduler"]?.state ?: "Unknown")
-      StatusRow("Mac Agent", state.summary?.capabilities?.deviceExecutable?.macAgent ?: "Unknown")
-    }
-    Spacer(Modifier.height(12.dp))
-    StatusCard("This device") {
-      StatusRow("Trust", state.device?.trustStatus?.name ?: "Unregistered")
-      StatusRow("Environment", environment.environment.name)
-      StatusRow("Backend", state.summary?.deploymentMode ?: "Unavailable")
-      StatusRow("Last authenticated", state.lastUpdatedAt?.let(::formatTime) ?: "Not yet")
-    }
-  }
-}
-
-@Composable private fun SettingsScreen(state: AlexaUiState, environment: AlexaEnvironmentConfig, onLock: () -> Unit, onForgetDevice: () -> Unit) {
-  Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-    Text("Alexa settings", style = MaterialTheme.typography.headlineSmall)
-    StatusCard("Connection") { Text(environment.apiBaseUrl, style = MaterialTheme.typography.bodySmall, color = Color.LightGray); StatusRow("State", state.connection.name); StatusRow("Device trust", state.device?.trustStatus?.name ?: "Unregistered") }
-    OutlinedButton(onClick = onLock, modifier = Modifier.fillMaxWidth()) { Text("Lock now") }
-    OutlinedButton(onClick = onForgetDevice, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Text("Sign out and forget this device") }
-  }
-}
-
-@Composable private fun FoundationPlaceholder(label: String) = CenterMessage("$label foundation is ready for its next mobile phase.")
 @Composable private fun CenterMessage(message: String) = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(message, color = Color.LightGray) }
 @Composable private fun ErrorText(message: String) = Text(message, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 12.dp))
 @Composable private fun StatusPill(text: String, color: Color) = Text(text, color = color, modifier = Modifier.background(color.copy(alpha = .12f), RoundedCornerShape(20.dp)).padding(horizontal = 10.dp, vertical = 6.dp))

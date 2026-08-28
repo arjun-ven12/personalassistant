@@ -89,6 +89,7 @@ data class DeviceRegistration(
 sealed interface AlexaFailure {
   data object Unauthorized : AlexaFailure
   data object DeviceRevoked : AlexaFailure
+  data object DeviceNotEligible : AlexaFailure
   data object NetworkUnavailable : AlexaFailure
   data object ServerUnavailable : AlexaFailure
   data object Timeout : AlexaFailure

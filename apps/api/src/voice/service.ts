@@ -402,6 +402,69 @@ export class VoiceRuntimeService {
             contextReferences,
           })
         : null;
+    if (continuity?.duplicate) {
+      const previous = (await this.store.listConversation(input.ownerId, 200)).find(
+        (item) => item.id === turnId,
+      );
+      const replay =
+        previous ??
+        ConversationHistoryRecordSchema.parse({
+          id: turnId,
+          ownerId: input.ownerId,
+          conversationId: conversationSession.id,
+          sessionId: parsed.sessionId ?? null,
+          role: "user",
+          transcript: parsed.transcript,
+          normalizedTranscript,
+          confidence: parsed.confidence,
+          isFinal: parsed.isFinal,
+          language: parsed.language ?? null,
+          wakeWordDetected: parsed.wakeWordDetected,
+          interruption: false,
+          commandId: null,
+          intentCreated: false,
+          responseText:
+            continuity.responseText ?? "That turn is already being processed.",
+          responseSource: "PRECODED",
+          responseProviderId: null,
+          responseModelId: null,
+          classification: deterministic.classification,
+          speechAct: deterministic.speechAct,
+          interpretation: null,
+          routeStages: ["PRECODED"],
+          activeContext: activeContext
+            ? { ...activeContext, selectedText: null }
+            : null,
+          contextReferences,
+          providerAttempts: [],
+          latencyMs: Math.round(performance.now() - started),
+          tokenUsage: null,
+          costUsd: null,
+          economicReservationId: null,
+          executionStatus: "NONE",
+          clarificationReason: null,
+          safeExplanation: "Duplicate turn replayed without re-execution.",
+          contextSourceCount: contextReferences.length,
+          pageChunkCount: parsed.pageContext?.chunks.length ?? 0,
+          memoryItemCount: contextReferences.filter(
+            (item) => item.source === "MEMORY",
+          ).length,
+          createdAt: at,
+        });
+      return VoiceTranscriptResponseSchema.parse({
+        dashboard: await this.transcriptResponseDashboard(input.ownerId),
+        conversation: replay,
+        commandResponse: null,
+        routed: replay.intentCreated,
+        responseText: replay.responseText,
+        responseSource: replay.responseSource,
+        responseProviderId: replay.responseProviderId,
+        responseModelId: replay.responseModelId,
+        approvalRequestId: null,
+        classification: replay.classification ?? deterministic.classification,
+        routeStages: replay.routeStages,
+      });
+    }
     const explicitTeaching =
       parsed.isFinal && !interruption
         ? parseExplicitMemoryTeaching(parsed.transcript)
@@ -962,7 +1025,7 @@ export class VoiceRuntimeService {
       ? { ...activeContext, selectedText: null }
       : null;
     const conversation = ConversationHistoryRecordSchema.parse({
-      id: crypto.randomUUID(),
+      id: turnId,
       ownerId: input.ownerId,
       sessionId: parsed.sessionId ?? null,
       role: "user",

@@ -577,7 +577,7 @@ export const RecordVoiceTranscriptRequestSchema = z
     confidence: z.number().min(0).max(1),
     language: z.string().min(2).max(40).nullable().optional(),
     wakeWordDetected: z.boolean().default(false),
-    source: z.enum(["browser", "electron", "api"]).default("browser"),
+    source: z.enum(["browser", "electron", "android", "api"]).default("browser"),
     pageContext: VoicePageContextSchema.optional(),
   })
   .strict();
@@ -612,7 +612,7 @@ export const DeviceVoiceRuntimePayloadSchema = z.discriminatedUnion("operation",
     .strict(),
 ]);
 
-export const VoiceCaptureClientTypeSchema = z.enum(["WEB", "OVERLAY"]);
+export const VoiceCaptureClientTypeSchema = z.enum(["WEB", "OVERLAY", "ANDROID"]);
 export const VoiceCaptureLeaseRequestSchema = z
   .object({
     action: z.enum(["acquire", "takeover", "heartbeat", "release", "status"]),

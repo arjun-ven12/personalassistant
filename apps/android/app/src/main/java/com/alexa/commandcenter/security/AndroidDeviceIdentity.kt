@@ -5,20 +5,27 @@ import android.security.keystore.KeyProperties
 import com.alexa.commandcenter.model.PublicKeyJwk
 import com.alexa.commandcenter.model.SignedEnvelope
 import com.google.gson.JsonElement
+import java.security.KeyFactory
+import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.MessageDigest
 import java.security.Signature
+import java.security.spec.PKCS8EncodedKeySpec
+import java.security.spec.X509EncodedKeySpec
 import java.time.Instant
 import java.util.Base64
 import java.util.UUID
 
-class AndroidDeviceIdentity(private val alias: String = "alexa.android.device.ed25519.v1") {
+class AndroidDeviceIdentity(
+  private val secureValues: SecureValues,
+  private val alias: String = "alexa.android.device.ed25519.v1",
+) {
   private val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
 
   fun publicKey(): PublicKeyJwk {
-    val keyPair = keyPair()
-    val encoded = keyPair.public.encoded
+    val encoded = keyPair().public.encoded
+    require(encoded.size >= 32) { "Android Keystore returned an invalid Ed25519 public key." }
     val raw = encoded.copyOfRange(encoded.size - 32, encoded.size)
     return PublicKeyJwk(x = Base64.getUrlEncoder().withoutPadding().encodeToString(raw))
   }
@@ -43,6 +50,7 @@ class AndroidDeviceIdentity(private val alias: String = "alexa.android.device.ed
     val signer = Signature.getInstance("Ed25519")
     signer.initSign(keyPair().private)
     signer.update(CanonicalJson.value(unsigned.toMap()).toByteArray())
+    val signature = Base64.getUrlEncoder().withoutPadding().encodeToString(signer.sign())
     return SignedEnvelope(
       commandId = unsigned.commandId,
       deviceId = unsigned.deviceId,
@@ -50,24 +58,78 @@ class AndroidDeviceIdentity(private val alias: String = "alexa.android.device.ed
       expiresAt = unsigned.expiresAt,
       nonce = unsigned.nonce,
       payload = unsigned.payload,
-      signature = Base64.getUrlEncoder().withoutPadding().encodeToString(signer.sign()),
+      signature = signature,
     )
   }
 
   fun delete() {
     if (keyStore.containsAlias(alias)) keyStore.deleteEntry(alias)
+    secureValues.remove(SOFTWARE_PRIVATE_KEY)
+    secureValues.remove(SOFTWARE_PUBLIC_KEY)
   }
 
-  private fun keyPair(): java.security.KeyPair {
+  private fun keyPair(): KeyPair {
+    softwareKeyPair()?.let { return it }
+
     val existing = keyStore.getEntry(alias, null) as? KeyStore.PrivateKeyEntry
-    if (existing != null) return java.security.KeyPair(existing.certificate.publicKey, existing.privateKey)
+    if (existing != null) {
+      val pair = KeyPair(existing.certificate.publicKey, existing.privateKey)
+      if (isValidEd25519Pair(pair)) return pair
+      keyStore.deleteEntry(alias)
+    }
+
     val generator = KeyPairGenerator.getInstance("Ed25519", "AndroidKeyStore")
     generator.initialize(
       KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_SIGN)
+        .setDigests(KeyProperties.DIGEST_NONE)
         .setUserAuthenticationRequired(false)
         .build(),
     )
-    return generator.generateKeyPair()
+    val hardwarePair = generator.generateKeyPair()
+    if (isValidEd25519Pair(hardwarePair)) return hardwarePair
+
+    keyStore.deleteEntry(alias)
+    return KeyPairGenerator.getInstance("Ed25519").generateKeyPair().also { pair ->
+      check(isValidEd25519Pair(pair)) { "No valid Ed25519 provider is available on this device." }
+      secureValues.write(SOFTWARE_PRIVATE_KEY, Base64.getEncoder().encodeToString(pair.private.encoded))
+      secureValues.write(SOFTWARE_PUBLIC_KEY, Base64.getEncoder().encodeToString(pair.public.encoded))
+    }
+  }
+
+  private fun softwareKeyPair(): KeyPair? {
+    val privateEncoded = secureValues.read(SOFTWARE_PRIVATE_KEY) ?: return null
+    val publicEncoded = secureValues.read(SOFTWARE_PUBLIC_KEY) ?: return null
+    return runCatching {
+      val factory = KeyFactory.getInstance("Ed25519")
+      KeyPair(
+        factory.generatePublic(X509EncodedKeySpec(Base64.getDecoder().decode(publicEncoded))),
+        factory.generatePrivate(PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateEncoded))),
+      )
+    }.getOrElse {
+      secureValues.remove(SOFTWARE_PRIVATE_KEY)
+      secureValues.remove(SOFTWARE_PUBLIC_KEY)
+      null
+    }
+  }
+
+  private fun isValidEd25519Pair(pair: KeyPair): Boolean = runCatching {
+    val challenge = "alexa-android-ed25519-self-test".toByteArray()
+    val signer = Signature.getInstance("Ed25519").apply {
+      initSign(pair.private)
+      update(challenge)
+    }
+    val signature = signer.sign()
+    signature.size == ED25519_SIGNATURE_BYTES && Signature.getInstance("Ed25519").run {
+      initVerify(pair.public)
+      update(challenge)
+      verify(signature)
+    }
+  }.getOrDefault(false)
+
+  private companion object {
+    const val SOFTWARE_PRIVATE_KEY = "device_ed25519_private_pkcs8"
+    const val SOFTWARE_PUBLIC_KEY = "device_ed25519_public_x509"
+    const val ED25519_SIGNATURE_BYTES = 64
   }
 
   private data class UnsignedEnvelope(
@@ -91,15 +153,15 @@ class AndroidDeviceIdentity(private val alias: String = "alexa.android.device.ed
   }
 }
 
-private object CanonicalJson {
+internal object CanonicalJson {
   fun value(value: Any?): String = when (value) {
     null -> "null"
     is String -> "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
     is Boolean, is Number -> value.toString()
     is JsonElement -> value(value.asJsonObjectOrNull())
     is Map<*, *> -> value.entries.sortedBy { it.key.toString() }
-      .joinToString(prefix = "{", postfix = "}") { "${value(it.key.toString())}:${value(it.value)}" }
-    is Iterable<*> -> value.joinToString(prefix = "[", postfix = "]") { value(it) }
+      .joinToString(separator = ",", prefix = "{", postfix = "}") { "${value(it.key.toString())}:${value(it.value)}" }
+    is Iterable<*> -> value.joinToString(separator = ",", prefix = "[", postfix = "]") { value(it) }
     else -> error("Signed payload contains an unsupported value.")
   }
 

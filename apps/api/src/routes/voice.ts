@@ -31,14 +31,21 @@ const VoiceSessionHistoryResponseSchema = z
     sessions: z.array(VoiceSessionRecordSchema).max(100),
   })
   .strict();
+const MAC_VOICE_DEVICE_TYPES = new Set<string>(["MAC_AGENT"]);
+const TRUSTED_VOICE_DEVICE_TYPES = new Set<string>(["MAC_AGENT", "ANDROID"]);
 
 export const authenticateTrustedDeviceEnvelope = async (
   request: FastifyRequest,
   context: ApiRouteContext,
+  allowedDeviceTypes: ReadonlySet<string> = MAC_VOICE_DEVICE_TYPES,
 ) => {
   const envelope = SignedCommandEnvelopeSchema.parse(request.body);
   const device = await context.identity.store.findDeviceById(envelope.deviceId);
-  if (!device || device.trustStatus !== "TRUSTED" || device.deviceType !== "MAC_AGENT")
+  if (
+    !device ||
+    device.trustStatus !== "TRUSTED" ||
+    !allowedDeviceTypes.has(device.deviceType)
+  )
     throw new ExecutionError(
       403,
       "TRUSTED_DEVICE_REQUIRED",
@@ -105,8 +112,10 @@ export const registerVoiceRoutes = (app: FastifyInstance, context: ApiRouteConte
       const { device, envelope, network } = await authenticateTrustedDeviceEnvelope(
         request,
         context,
+        TRUSTED_VOICE_DEVICE_TYPES,
       );
       const payload = DeviceVoiceRuntimePayloadSchema.parse(envelope.payload);
+      const clientType = device.deviceType === "ANDROID" ? "ANDROID" : "OVERLAY";
       if (payload.operation === "start_session")
         return VoiceDashboardResponseSchema.parse(
           await context.voice.createSession({
@@ -124,19 +133,22 @@ export const registerVoiceRoutes = (app: FastifyInstance, context: ApiRouteConte
             ownerId: device.ownerId,
             deviceId: device.id,
             voiceSessionId,
-            clientType: "OVERLAY",
+            clientType,
           }))
         )
           throw new ExecutionError(
             409,
             "VOICE_CAPTURE_NOT_OWNED",
-            "Voice capture is no longer owned by this overlay.",
+            "Voice capture is no longer owned by this trusted device.",
           );
         return VoiceTranscriptResponseSchema.parse(
           await context.voice.recordTranscript({
             ownerId: device.ownerId,
             deviceId: device.id,
-            body: { ...payload.transcript, source: "electron" },
+            body: {
+              ...payload.transcript,
+              source: device.deviceType === "ANDROID" ? "android" : "electron",
+            },
             requestId: envelope.commandId,
             ipAddress: request.ip,
             governanceSessionId: device.id,
@@ -150,7 +162,7 @@ export const registerVoiceRoutes = (app: FastifyInstance, context: ApiRouteConte
             ownerId: device.ownerId,
             deviceId: device.id,
             voiceSessionId: payload.voiceSessionId,
-            clientType: "OVERLAY",
+            clientType,
             action: payload.action,
           }),
         );

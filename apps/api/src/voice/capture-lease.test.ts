@@ -45,6 +45,19 @@ describe("VoiceCaptureLeaseService", () => {
     ).resolves.toMatchObject({ status: "ACQUIRED", owner: "OVERLAY" });
   });
 
+  it("keeps Android capture device-bound and mutually exclusive with web capture", async () => {
+    const { leases } = setup();
+    await expect(
+      leases.act({ ownerId: ownerA, deviceId: deviceA, voiceSessionId: sessionA, clientType: "ANDROID", action: "acquire" }),
+    ).resolves.toMatchObject({ status: "ACQUIRED", owner: "ANDROID" });
+    await expect(
+      leases.act({ ownerId: ownerA, deviceId: null, voiceSessionId: sessionB, clientType: "WEB", action: "acquire" }),
+    ).resolves.toMatchObject({ status: "DENIED", owner: "ANDROID" });
+    await expect(
+      leases.act({ ownerId: ownerA, deviceId: deviceB, voiceSessionId: sessionB, clientType: "ANDROID", action: "acquire" }),
+    ).resolves.toMatchObject({ status: "ACQUIRED", owner: "ANDROID" });
+  });
+
   it("is idempotent, rejects a wrong-session release, and frees the exact owner", async () => {
     const { leases } = setup();
     const input = { ownerId: ownerA, deviceId: null, voiceSessionId: sessionA, clientType: "WEB" as const };

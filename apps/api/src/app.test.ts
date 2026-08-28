@@ -687,7 +687,7 @@ describe("Phase 2.1 API", () => {
       url: `/api/devices/${androidDeviceId}/approve`,
       headers: cloudMutationHeaders,
     });
-    const signAndroid = async (payload: Record<string, string>) => {
+    const signAndroid = async (payload: SignedCommandEnvelope["payload"]) => {
       const now = new Date();
       return signEnvelope(androidKeys.pair.privateKey, {
         commandId: crypto.randomUUID(),
@@ -723,12 +723,112 @@ describe("Phase 2.1 API", () => {
     expect(nativeSummaryReplay.json()).toMatchObject({
       error: { code: "DUPLICATE_NONCE" },
     });
+    const voiceSession = await cloud.inject({
+      method: "POST",
+      url: "/api/voice/device-runtime",
+      payload: await signAndroid({
+        operation: "start_session",
+        session: {
+          microphoneDeviceId: null,
+          wakeWordEnabled: false,
+          reuseActiveSession: false,
+        },
+      }),
+    });
+    expect(voiceSession.statusCode).toBe(200);
+    const voiceSessionId = z
+      .object({ sessions: z.array(z.object({ id: z.string().uuid() })).min(1) })
+      .passthrough()
+      .parse(voiceSession.json()).sessions[0]!.id;
+    const lease = await cloud.inject({
+      method: "POST",
+      url: "/api/voice/device-runtime",
+      payload: await signAndroid({
+        operation: "capture_lease",
+        action: "acquire",
+        voiceSessionId,
+      }),
+    });
+    expect(lease.statusCode).toBe(200);
+    expect(lease.json()).toMatchObject({ status: "ACQUIRED", owner: "ANDROID" });
+    const turnId = crypto.randomUUID();
+    const submitAndroidTurn = () =>
+      signAndroid({
+        operation: "submit_transcript",
+        transcript: {
+          sessionId: voiceSessionId,
+          turnId,
+          transcript: "Hello Alexa",
+          isFinal: true,
+          confidence: 0.98,
+          language: "en-SG",
+          wakeWordDetected: false,
+          source: "android",
+        },
+      }).then((payload) =>
+        cloud.inject({
+          method: "POST",
+          url: "/api/voice/device-runtime",
+          payload,
+        }),
+      );
+    const androidTurn = await submitAndroidTurn();
+    expect(androidTurn.statusCode).toBe(200);
+    expect(androidTurn.json()).toMatchObject({
+      conversation: { id: turnId, transcript: "Hello Alexa", sessionId: voiceSessionId },
+    });
+    const duplicateAndroidTurn = await submitAndroidTurn();
+    expect(duplicateAndroidTurn.statusCode).toBe(200);
+    expect(duplicateAndroidTurn.json()).toMatchObject({ routed: false });
+    const sharedConversation = await cloud.inject({
+      method: "GET",
+      url: "/api/conversations",
+      headers: { cookie: cloudCookie },
+    });
+    expect(sharedConversation.statusCode).toBe(200);
+    const sharedConversationBody = sharedConversation.json();
+    expect(sharedConversationBody).toMatchObject({
+      history: expect.arrayContaining([
+        expect.objectContaining({ transcript: "Hello Alexa", sessionId: voiceSessionId }),
+      ]),
+      continuity: expect.arrayContaining([
+        expect.objectContaining({
+          processedTurns: expect.arrayContaining([
+            expect.objectContaining({ turnId }),
+          ]),
+        }),
+      ]),
+    });
+    expect(
+      z.object({ history: z.array(z.object({ id: z.string().uuid() }).passthrough()) })
+        .passthrough()
+        .parse(sharedConversationBody)
+        .history.filter((item) => item.id === turnId),
+    ).toHaveLength(1);
     const androidMacChannelDenied = await cloud.inject({
       method: "POST",
       url: "/api/agent/execution",
       payload: await signAndroid({ operation: "poll" }),
     });
     expect(androidMacChannelDenied.statusCode).toBe(403);
+    await cloud.inject({
+      method: "POST",
+      url: `/api/devices/${androidDeviceId}/revoke`,
+      headers: cloudMutationHeaders,
+    });
+    const revokedAndroidVoice = await cloud.inject({
+      method: "POST",
+      url: "/api/voice/device-runtime",
+      payload: await signAndroid({
+        operation: "capture_lease",
+        action: "status",
+        voiceSessionId,
+      }),
+    });
+    expect(revokedAndroidVoice.statusCode).toBe(403);
+    expect(revokedAndroidVoice.json()).toMatchObject({
+      error: { code: "TRUSTED_DEVICE_REQUIRED" },
+    });
     await cloud.close();
   });
 
