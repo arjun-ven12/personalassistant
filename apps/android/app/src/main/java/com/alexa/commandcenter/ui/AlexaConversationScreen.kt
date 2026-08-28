@@ -1,8 +1,8 @@
 package com.alexa.commandcenter.ui
 
-import android.view.MotionEvent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,10 +18,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -228,12 +226,16 @@ fun AlexaConversationScreen(
           ) { Icon(Icons.AutoMirrored.Outlined.Send, "Send message") }
         },
       )
+      if (state.voiceState == MobileVoiceState.RECORDING) {
+        IconButton(onClick = onCancelRecording) {
+          Icon(Icons.Outlined.Close, "Discard recording", tint = ConversationRed)
+        }
+      }
       PushToTalkButton(
         state = state,
         onRequestPermission = onRequestMicrophonePermission,
         onStart = onStartRecording,
         onRelease = onReleaseRecording,
-        onCancel = onCancelRecording,
       )
     }
   }
@@ -276,13 +278,11 @@ private fun RuntimeStateRow(label: String, showStop: Boolean, onStop: () -> Unit
 }
 
 @Composable
-@OptIn(ExperimentalComposeUiApi::class)
 private fun PushToTalkButton(
   state: AlexaUiState,
   onRequestPermission: () -> Unit,
   onStart: () -> Unit,
   onRelease: () -> Unit,
-  onCancel: () -> Unit,
 ) {
   val recording = state.voiceState == MobileVoiceState.RECORDING
   val enabled = state.connection == ConnectionState.ONLINE && state.pendingTurn == null
@@ -290,30 +290,16 @@ private fun PushToTalkButton(
   Surface(
     modifier = Modifier
       .size(56.dp)
-      .semantics { contentDescription = if (recording) "Recording. Release to send." else "Press and hold to talk to Alexa." }
-      .pointerInteropFilter { event ->
-        if (!enabled) return@pointerInteropFilter false
-        when (event.actionMasked) {
-          MotionEvent.ACTION_DOWN -> {
-            if (state.microphoneAccess != MicrophoneAccess.GRANTED) {
-              onRequestPermission()
-              false
-            } else {
-              haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-              onStart()
-              true
-            }
-          }
-          MotionEvent.ACTION_UP -> {
-            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            onRelease()
-            true
-          }
-          MotionEvent.ACTION_CANCEL -> {
-            onCancel()
-            true
-          }
-          else -> true
+      .semantics { contentDescription = if (recording) "Recording. Tap to stop and send." else "Start voice recording." }
+      .clickable(enabled = enabled) {
+        if (state.microphoneAccess != MicrophoneAccess.GRANTED) {
+          onRequestPermission()
+        } else if (recording) {
+          haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+          onRelease()
+        } else {
+          haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+          onStart()
         }
       },
     shape = CircleShape,
