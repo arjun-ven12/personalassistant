@@ -15,6 +15,7 @@ const MAX_EXPLORATION_RATIO=.2;
 const CONFIGURATION_KEYS=new Set(["workflowTemplateId","messageStyle","channel","timingBucket","agentSelectionPolicy","modelPolicy","reviewDepth","researchMethod"]);
 type Guardrail=Experiment["guardrails"][number];
 type ReplanSink={proposeExperimentReplan(input:{ownerId:string;objectiveId:string;experimentId:string;winnerVariantId:string;evidence:Record<string,unknown>}):Promise<void>};
+type ExperimentNotificationSink={dispatch(input:{ownerId:string;eventId:string;category:"EXPERIMENT_COMPLETED";severity:"NORMAL"|"HIGH";objectKind:"EXPERIMENT";objectId:string;stateVersion:string;title:string}):Promise<void>};
 
 const words=(value:string)=>new Set(value.toLowerCase().match(/[a-z0-9]+/g)??[]);
 const similarity=(left:string,right:string)=>{const a=words(left),b=words(right);const intersection=[...a].filter((item)=>b.has(item)).length;return intersection/Math.max(1,new Set([...a,...b]).size);};
@@ -26,8 +27,10 @@ const metricValue=(observations:ExperimentObservation[],aggregation:"RATE"|"AVER
 
 export class ExperimentService {
   #replanSink?:ReplanSink;
+  #notificationSink?:ExperimentNotificationSink;
   constructor(readonly store:ExecutiveStore,readonly audit:GovernanceAuditWriter,readonly learning?:Pick<LearningEngineService,"ingest">,readonly now:()=>Date=()=>new Date()){}
   setReplanSink(sink:ReplanSink){this.#replanSink=sink;}
+  setNotificationSink(sink:ExperimentNotificationSink){this.#notificationSink=sink;}
 
   async dashboard(ownerId:string,objectiveId?:string){
     const [experiments,variants,assignments,observations,allocations,results,timeline]=await Promise.all([
@@ -137,5 +140,5 @@ export class ExperimentService {
   private initialAllocations(count:number,level:"LOW"|"BALANCED"|"HIGH"){if(count===2)return level==="LOW"?[70,30]:level==="HIGH"?[50,50]:[60,40];return level==="LOW"?[60,20,20]:level==="HIGH"?[34,33,33]:[50,25,25];}
   private async requireObjective(ownerId:string,id:string){const objective=await this.store.findObjectiveExecution(ownerId,id);if(!objective)throw new ExecutionError(404,"OBJECTIVE_NOT_FOUND","Objective was not found.");return objective;}
   private async requireExperiment(ownerId:string,id:string){const experiment=(await this.store.listExperiments(ownerId)).find((item)=>item.id===id);if(!experiment)throw new ExecutionError(404,"EXPERIMENT_NOT_FOUND","Experiment was not found.");return experiment;}
-  private async timeline(ownerId:string,experimentId:string,type:ExperimentTimelineEvent["type"],summary:string,idempotencyKey:string|null,metadata:Record<string,unknown>){await this.store.saveExperimentTimeline(ExperimentTimelineEventSchema.parse({id:crypto.randomUUID(),ownerId,experimentId,type,summary,idempotencyKey,metadata,createdAt:this.now().toISOString()}));}
+  private async timeline(ownerId:string,experimentId:string,type:ExperimentTimelineEvent["type"],summary:string,idempotencyKey:string|null,metadata:Record<string,unknown>){const event=ExperimentTimelineEventSchema.parse({id:crypto.randomUUID(),ownerId,experimentId,type,summary,idempotencyKey,metadata,createdAt:this.now().toISOString()});await this.store.saveExperimentTimeline(event);if(type==="COMPLETED"||type==="GUARDRAIL_BREACHED")await this.#notificationSink?.dispatch({ownerId,eventId:event.id,category:"EXPERIMENT_COMPLETED",severity:type==="GUARDRAIL_BREACHED"?"HIGH":"NORMAL",objectKind:"EXPERIMENT",objectId:experimentId,stateVersion:type,title:type==="GUARDRAIL_BREACHED"?"Experiment needs attention":"Experiment completed"}).catch(()=>undefined);}
 }

@@ -162,6 +162,7 @@ import { LocalAIService } from "./local-ai/service.js";
 import { createAIRuntime, createCanonicalAIServices } from "./ai/bootstrap.js";
 import { AIEconomicsService } from "./ai/economics/service.js";
 import { PostgresAIEconomicsStore } from "./ai/economics/postgres-store.js";
+import { FcmPushProvider } from "./notifications/provider.js";
 
 if (process.env.NODE_ENV !== "production") {
   try {
@@ -540,6 +541,9 @@ const app = await buildApi({
   cognitiveContext: canonicalAI.cognitiveContext,
   aiRouter: canonicalAI.aiRouter,
   readOnlyExecutionEnabled: environment.READ_ONLY_EXECUTION_ENABLED,
+  ...(environment.FCM_PROJECT_ID
+    ? { pushProvider: new FcmPushProvider(environment.FCM_PROJECT_ID) }
+    : {}),
   executionLimits: {
     requestTtlSeconds: environment.EXECUTION_REQUEST_TTL_SECONDS,
     resultRetentionSeconds: environment.EXECUTION_RESULT_RETENTION_SECONDS,

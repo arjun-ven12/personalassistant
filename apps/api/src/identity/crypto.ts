@@ -69,3 +69,29 @@ export const verifyEnvelopeSignature = async (
     new TextEncoder().encode(canonicalizeSignedCommand(unsignedEnvelope)),
   );
 };
+
+export const verifyEd25519Signature = async (
+  publicKey: Ed25519PublicKey,
+  value: string,
+  signature: string,
+) => {
+  const key = await webcrypto.subtle.importKey(
+    "jwk",
+    {
+      kty: publicKey.kty,
+      crv: publicKey.crv,
+      x: publicKey.x,
+      ...(publicKey.ext === undefined ? {} : { ext: publicKey.ext }),
+      ...(publicKey.key_ops === undefined ? {} : { key_ops: [...publicKey.key_ops] }),
+    },
+    { name: "Ed25519" },
+    false,
+    ["verify"],
+  );
+  return webcrypto.subtle.verify(
+    "Ed25519",
+    key,
+    Buffer.from(signature, "base64url"),
+    new TextEncoder().encode(value),
+  );
+};

@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -70,9 +71,27 @@ fun CommandCenterShell(
   onNewConversation: () -> Unit,
   onSelectConversation: (String) -> Unit,
   onLoadEarlierMessages: () -> Unit,
+  onApprovalSelected: (String) -> Unit,
+  onNotificationTargetConsumed: () -> Unit,
+  onNotificationPreferences: (NotificationPreferences) -> Unit,
+  onApprovalDecisionWithReason: (String, Boolean, String?) -> Unit,
 ) {
   var destination by rememberSaveable { mutableStateOf("Home") }
   var secondaryDestination by rememberSaveable { mutableStateOf<String?>(null) }
+  var selectedApprovalId by rememberSaveable { mutableStateOf<String?>(null) }
+  LaunchedEffect(state.notificationTarget, state.connection) {
+    val target = state.notificationTarget ?: return@LaunchedEffect
+    when (target.kind) {
+      "APPROVAL" -> { destination = "Approvals"; selectedApprovalId = target.objectId; onApprovalSelected(target.objectId) }
+      "OBJECTIVE" -> destination = "Objectives"
+      "WORKFLOW" -> { destination = "Alexa"; secondaryDestination = "Workflows" }
+      "AGENT" -> { destination = "Workforce"; onAgentSelected(target.objectId) }
+      "ECONOMY" -> { destination = "Alexa"; secondaryDestination = "Economy" }
+      "EXPERIMENT" -> { destination = "Alexa"; secondaryDestination = "Experiments"; onExperimentsSelected("__all__") }
+      "SYSTEM", "DEVICE" -> { destination = "Alexa"; secondaryDestination = "System" }
+    }
+    if (state.connection == ConnectionState.ONLINE) onNotificationTargetConsumed()
+  }
   val destinations = listOf(
     "Home" to Icons.Outlined.Home,
     "Objectives" to Icons.Outlined.Flag,
@@ -101,13 +120,13 @@ fun CommandCenterShell(
           "Home" -> ExecutiveHome(state, onRefresh, onObjectiveAction, onApprovalDecision)
           "Objectives" -> ObjectivesScreen(state, onCreateObjective, onObjectiveAction, onModifyObjective)
           "Workforce" -> WorkforceScreen(state.commandCenter?.workforce, state.agentDetails, onAgentSelected)
-          "Approvals" -> ApprovalsScreen(state, onApprovalDecision)
+          "Approvals" -> ApprovalsScreen(state, selectedApprovalId, { selectedApprovalId = it; if (it.isNotBlank()) onApprovalSelected(it) }, onApprovalDecisionWithReason)
           else -> when (secondaryDestination) {
             "Activity" -> ActivityScreen(state, onBack = { secondaryDestination = null })
             "Workflows" -> WorkflowsScreen(state, onWorkflowSelected, onBack = { secondaryDestination = null })
             "Economy" -> EconomyScreen(state, onBack = { secondaryDestination = null })
             "Experiments" -> ExperimentsScreen(state, onExperimentsSelected, onBack = { secondaryDestination = null })
-            "System" -> SystemScreen(state, environment, onBack = { secondaryDestination = null })
+            "System" -> SystemScreen(state, environment, onNotificationPreferences, onBack = { secondaryDestination = null })
             else -> AlexaConversationScreen(
               state = state,
               environment = environment,
@@ -157,7 +176,7 @@ fun CommandCenterShell(
     state.error?.let { item { ErrorBanner(it) } }
     item { OrganizationMetrics(snapshot, state.health?.status) }
     item {
-      SectionTitle("Needs your attention", snapshot?.approvals?.size?.let { "$it pending" })
+      SectionTitle("Needs your attention", snapshot?.attention?.total?.let { "$it pending" })
       AttentionList(snapshot, state, onObjectiveAction, onApprovalDecision)
     }
     item {
@@ -190,7 +209,7 @@ fun CommandCenterShell(
         Metric("Available", workforce?.dormant ?: 0)
       }
       Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Metric("Attention", (objectives?.atRisk ?: 0) + (objectives?.blocked ?: 0))
+        Metric("Attention", snapshot?.attention?.total ?: 0)
         Metric("Pending", snapshot?.approvals?.size ?: 0)
         Metric("Spent", economy?.spentCredits ?: 0, "cr")
       }
@@ -408,16 +427,42 @@ fun CommandCenterShell(
   }
 }, confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } })
 
-@Composable private fun ApprovalsScreen(state: AlexaUiState, onDecision: (String, Boolean) -> Unit) = LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+@Composable private fun ApprovalsScreen(state: AlexaUiState, selectedApprovalId: String?, onSelected: (String) -> Unit, onDecision: (String, Boolean, String?) -> Unit) {
+  val selected = selectedApprovalId?.let { state.approvalDetails[it] ?: state.commandCenter?.approvals?.firstOrNull { approval -> approval.id == it } }
+  LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
   item { Header("Approvals", "Owner decisions remain governed by backend policy.") }
   items(state.commandCenter?.approvals.orEmpty(), key = { it.id }) { approval ->
-    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp), color = CcSurface, border = BorderStroke(1.dp, CcBorder)) { Column(Modifier.padding(12.dp)) {
+    Surface(Modifier.fillMaxWidth().clickable { onSelected(approval.id) }, shape = RoundedCornerShape(8.dp), color = CcSurface, border = BorderStroke(1.dp, CcBorder)) { Column(Modifier.padding(12.dp)) {
       Row(Modifier.fillMaxWidth()) { Text(approval.humanSummary, Modifier.weight(1f), fontWeight = FontWeight.SemiBold); StatusPill(approval.riskLevel) }
       Text("${approval.toolName} · expires ${approval.expiresAt}", style = MaterialTheme.typography.bodySmall, color = Color.LightGray)
-      Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { Button(enabled = state.connection == ConnectionState.ONLINE, onClick = { onDecision(approval.id, true) }) { Text("Approve") }; OutlinedButton(enabled = state.connection == ConnectionState.ONLINE, onClick = { onDecision(approval.id, false) }) { Text("Reject") } }
+      Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { Button(enabled = state.connection == ConnectionState.ONLINE, onClick = { onDecision(approval.id, true, null) }) { Text("Approve") }; OutlinedButton(enabled = state.connection == ConnectionState.ONLINE, onClick = { onSelected(approval.id) }) { Text("Review") } }
     } }
   }
   if (state.commandCenter?.approvals.isNullOrEmpty()) item { EmptyLine("No approvals are waiting.") }
+  }
+  selected?.let { ApprovalDetailDialog(it, state.connection == ConnectionState.ONLINE, onDismiss = { onSelected("") }, onDecision = onDecision) }
+}
+
+@Composable private fun ApprovalDetailDialog(approval: Approval, online: Boolean, onDismiss: () -> Unit, onDecision: (String, Boolean, String?) -> Unit) {
+  var rejectionMode by remember(approval.id) { mutableStateOf(false) }
+  var rejectionReason by remember(approval.id) { mutableStateOf("") }
+  AlertDialog(
+    onDismissRequest = onDismiss,
+    title = { Text("Approval detail") },
+    text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+      Text(approval.humanSummary, fontWeight = FontWeight.SemiBold)
+      Detail("Requested action", approval.toolName)
+      Detail("Risk", approval.riskLevel)
+      Detail("Authentication", if (approval.approvalRequirement == "recent_authentication") "Biometric step-up" else "Owner decision")
+      Detail("Status", approval.status)
+      Detail("Requested", approval.requestedAt)
+      Detail("Expires", approval.expiresAt)
+      Text("The backend revalidates expiry, policy, capabilities, device trust, and the canonical action digest before accepting this decision.", style = MaterialTheme.typography.bodySmall, color = Color.LightGray)
+      if (rejectionMode) OutlinedTextField(rejectionReason, { rejectionReason = it.take(300) }, label = { Text("Optional rejection reason") }, modifier = Modifier.fillMaxWidth(), minLines = 2, maxLines = 4)
+    } },
+    confirmButton = { Button(enabled = online && approval.status == "PENDING", onClick = { onDecision(approval.id, !rejectionMode, rejectionReason.trim().takeIf { it.isNotBlank() }) }) { Text(if (rejectionMode) "Confirm reject" else "Approve") } },
+    dismissButton = { Row { TextButton(onClick = { rejectionMode = !rejectionMode }, enabled = approval.status == "PENDING") { Text(if (rejectionMode) "Back" else "Reject") }; TextButton(onClick = onDismiss) { Text("Close") } } },
+  )
 }
 
 @Composable private fun AlexaPlaceholder(state: AlexaUiState, environment: AlexaEnvironmentConfig, onLock: () -> Unit, onForgetDevice: () -> Unit, onOpen: (String) -> Unit) = LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -489,7 +534,7 @@ private data class ExecutiveActivity(val category: String, val summary: String, 
   var objectiveId by rememberSaveable { mutableStateOf<String?>(null) }
   LaunchedEffect(objectives.firstOrNull()?.id) { if (objectiveId == null) objectiveId = objectives.firstOrNull()?.id }
   objectiveId?.let { LaunchedEffect(it) { onLoad(it) } }
-  val dashboard = objectiveId?.let { state.experimentDashboards[it] }
+  val dashboard = state.experimentDashboards["__all__"] ?: objectiveId?.let { state.experimentDashboards[it] }
   LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
     item { BackHeader("Experiments", "Evidence-backed learning under objective budgets.", onBack) }
     item { FilterRow(objectives.take(5).map { it.id.take(8) }, objectiveId?.take(8).orEmpty()) { short -> objectiveId = objectives.firstOrNull { it.id.startsWith(short) }?.id } }
@@ -500,16 +545,19 @@ private data class ExecutiveActivity(val category: String, val summary: String, 
   }
 }
 
-@Composable private fun SystemScreen(state: AlexaUiState, environment: AlexaEnvironmentConfig, onBack: () -> Unit) = LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+@Composable private fun SystemScreen(state: AlexaUiState, environment: AlexaEnvironmentConfig, onPreferences: (NotificationPreferences) -> Unit, onBack: () -> Unit) = LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
   item { BackHeader("System", "Executive runtime health without secrets or debug data.", onBack) }
   item { ConnectionStateBanner(state.connection, state.lastUpdatedAt) }
   item { Surface(shape = RoundedCornerShape(8.dp), color = CcSurface, border = BorderStroke(1.dp, CcBorder)) { Column(Modifier.padding(14.dp)) { Text("Cloud runtime", fontWeight = FontWeight.SemiBold); state.health?.components.orEmpty().forEach { (name, component) -> Detail(name, component.state) }; Detail("Backend", state.summary?.deploymentMode ?: "Unknown") } } }
   item { Surface(shape = RoundedCornerShape(8.dp), color = CcSurface, border = BorderStroke(1.dp, CcBorder)) { Column(Modifier.padding(14.dp)) { Text("Devices and execution", fontWeight = FontWeight.SemiBold); Detail("Android device", state.device?.trustStatus?.name ?: "Unregistered"); Detail("Mac Agent", state.summary?.capabilities?.deviceExecutable?.macAgent ?: "Unknown"); Detail("Active workflows", state.commandCenter?.workflows?.count { it.status !in setOf("COMPLETED", "CANCELLED") }?.toString() ?: "0"); Detail("Approval backlog", state.commandCenter?.approvals?.size?.toString() ?: "0") } } }
+  item { state.notificationPreferences?.let { response -> Surface(shape = RoundedCornerShape(8.dp), color = CcSurface, border = BorderStroke(1.dp, CcBorder)) { Column(Modifier.padding(14.dp)) { Text("Notifications", fontWeight = FontWeight.SemiBold); Detail("Android permission", if (state.notificationPermissionGranted) "Allowed" else "Denied"); PreferenceSwitch("Approvals", response.preferences.approvals) { onPreferences(response.preferences.copy(approvals = it)) }; PreferenceSwitch("Objective risk", response.preferences.objectiveRisk) { onPreferences(response.preferences.copy(objectiveRisk = it)) }; PreferenceSwitch("Workflow failures", response.preferences.workflowFailures) { onPreferences(response.preferences.copy(workflowFailures = it)) }; PreferenceSwitch("Budget alerts", response.preferences.budgetAlerts) { onPreferences(response.preferences.copy(budgetAlerts = it)) }; PreferenceSwitch("Experiment results", response.preferences.experimentResults) { onPreferences(response.preferences.copy(experimentResults = it)) }; PreferenceSwitch("Device events", response.preferences.deviceEvents) { onPreferences(response.preferences.copy(deviceEvents = it)) }; Detail("Security alerts", "Always on") } } } ?: EmptyLine("Notification preferences are unavailable offline.") }
   item { Detail("API endpoint", environment.apiBaseUrl) }
 }
 
+@Composable private fun PreferenceSwitch(label: String, checked: Boolean, onChecked: (Boolean) -> Unit) = Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall); Switch(checked, onCheckedChange = onChecked) }
+
 @Composable private fun Header(title: String, subtitle: String, action: (() -> Unit)? = null) = Row(Modifier.fillMaxWidth().padding(vertical = 18.dp), verticalAlignment = Alignment.CenterVertically) { Column(Modifier.weight(1f)) { Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold); Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.LightGray) }; action?.let { IconButton(onClick = it) { Icon(Icons.Outlined.Add, "Create objective") } } }
-@Composable private fun BackHeader(title: String, subtitle: String, onBack: () -> Unit) = Row(Modifier.fillMaxWidth().padding(vertical = 18.dp), verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, "Back") }; Column { Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold); Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.LightGray) } }
+@Composable private fun BackHeader(title: String, subtitle: String, onBack: () -> Unit) = Row(Modifier.fillMaxWidth().padding(vertical = 18.dp), verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back") }; Column { Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold); Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.LightGray) } }
 @Composable private fun SectionTitle(title: String, value: String? = null) = Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) { Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold); value?.let { Text(it, color = CcBlue, style = MaterialTheme.typography.labelMedium) } }
 @Composable private fun FilterRow(options: List<String>, selected: String, onSelected: (String) -> Unit) = Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) { options.forEach { option -> FilterChip(selected = option == selected, onClick = { onSelected(option) }, label = { Text(option) }) } }
 @Composable private fun Detail(label: String, value: String) = Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label, color = Color.LightGray, style = MaterialTheme.typography.bodySmall); Text(value, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis) }

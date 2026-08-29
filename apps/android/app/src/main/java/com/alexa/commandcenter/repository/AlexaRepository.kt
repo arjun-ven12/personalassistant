@@ -92,7 +92,8 @@ class AlexaRepository(
     val approvals = async { api.pendingApprovals() }
     val economy = async { api.economy() }
     val workflows = async { api.workflows() }
-    val results = listOf(objectives.await(), workforce.await(), approvals.await(), economy.await(), workflows.await())
+    val attention = async { api.attention() }
+    val results = listOf(objectives.await(), workforce.await(), approvals.await(), economy.await(), workflows.await(), attention.await())
     val failure = results.firstOrNull { it.isFailure }?.exceptionOrNull()
     if (failure != null) Result.failure(failure) else Result.success(
       CommandCenterSnapshot(
@@ -101,13 +102,15 @@ class AlexaRepository(
         approvals = approvals.await().getOrDefault(emptyList()),
         economy = economy.await().getOrNull(),
         workflows = workflows.await().getOrDefault(emptyList()),
+        attention = attention.await().getOrDefault(ExecutiveAttention()),
       ),
     )
   }
 
   suspend fun workforceAgent(id: String): Result<WorkforceAgentDetail> = api.workforceAgent(id)
+  suspend fun approval(id: String): Result<Approval> = api.approval(id)
   suspend fun workflow(id: String): Result<WorkflowDetail> = api.workflow(id)
-  suspend fun experiments(objectiveId: String): Result<ExperimentDashboard> = api.experiments(objectiveId)
+  suspend fun experiments(objectiveId: String): Result<ExperimentDashboard> = if (objectiveId == "__all__") api.allExperiments() else api.experiments(objectiveId)
 
   suspend fun conversations(): Result<ConversationCenter> = api.conversations()
     .onSuccess { cache.save(CONVERSATION_CACHE_KEY, gson.toJson(it), System.currentTimeMillis()) }
@@ -197,28 +200,100 @@ class AlexaRepository(
       request = api::cancelConversationTurn,
     ).map { Unit }
 
-  suspend fun createObjective(request: CreateObjectiveRequest): Result<Unit> = withCsrf { csrf ->
-    api.createObjective(csrf, request).map { Unit }
-  }
+  suspend fun createObjective(request: CreateObjectiveRequest): Result<Unit> = signedDeviceRequest(
+    payload = mapOf(
+      "operation" to JsonPrimitive("objective_create"),
+      "request" to gson.toJsonTree(request),
+    ),
+    request = api::mobileObjectiveCreate,
+  ).map { Unit }
 
-  suspend fun transitionObjective(objectiveId: String, action: String): Result<ObjectiveDashboard> = withCsrf { csrf ->
-    val mutation = ObjectiveMutationRequest(UUID.randomUUID().toString())
-    when (action) {
-      "pause" -> api.pauseObjective(objectiveId, csrf, mutation)
-      "resume" -> api.resumeObjective(objectiveId, csrf, mutation)
-      "cancel" -> api.cancelObjective(objectiveId, csrf, mutation)
-      else -> Result.failure(IllegalArgumentException("Unsupported objective action."))
-    }
-  }
+  suspend fun transitionObjective(objectiveId: String, action: String): Result<ObjectiveDashboard> =
+    signedDeviceRequest(
+      payload = mapOf(
+        "operation" to JsonPrimitive("objective_action"),
+        "objectiveId" to JsonPrimitive(objectiveId),
+        "action" to JsonPrimitive(action),
+        "idempotencyKey" to JsonPrimitive(UUID.randomUUID().toString()),
+      ),
+      request = { deviceId, envelope -> api.mobileObjectiveAction(objectiveId, deviceId, envelope) },
+    )
 
-  suspend fun modifyObjective(objectiveId: String, budgetCredits: Int?, priority: String?): Result<Unit> = withCsrf { csrf ->
-    api.modifyObjective(objectiveId, csrf, ModifyObjectiveRequest(UUID.randomUUID().toString(), budgetCredits, priority)).map { Unit }
-  }
+  suspend fun modifyObjective(objectiveId: String, budgetCredits: Int?, priority: String?): Result<Unit> =
+    signedDeviceRequest(
+      payload = buildMap {
+        put("operation", JsonPrimitive("objective_modify"))
+        put("objectiveId", JsonPrimitive(objectiveId))
+        put("idempotencyKey", JsonPrimitive(UUID.randomUUID().toString()))
+        budgetCredits?.let { put("budgetCredits", JsonPrimitive(it)) }
+        priority?.let { put("priority", JsonPrimitive(it)) }
+      },
+      request = { deviceId, envelope -> api.mobileObjectiveModify(objectiveId, deviceId, envelope) },
+    ).map { Unit }
 
-  suspend fun decideApproval(approvalId: String, approve: Boolean, reason: String? = null): Result<Approval> = withCsrf { csrf ->
-    val request = ApprovalDecisionRequest(reason)
-    if (approve) api.approve(approvalId, csrf, request) else api.reject(approvalId, csrf, request)
-  }
+  suspend fun decideApproval(approvalId: String, approve: Boolean, reason: String? = null): Result<Approval> =
+    signedDeviceRequest(
+      payload = buildMap {
+        put("operation", JsonPrimitive("approval_decision"))
+        put("approvalId", JsonPrimitive(approvalId))
+        put("decision", JsonPrimitive(if (approve) "APPROVE" else "REJECT"))
+        reason?.takeIf { it.isNotBlank() }?.let { put("reason", JsonPrimitive(it.trim())) }
+      },
+      request = { deviceId, envelope -> api.mobileApprovalDecision(approvalId, deviceId, envelope) },
+    )
+
+  suspend fun registerPushToken(token: String, appVersion: String): Result<PushRegistrationResponse> =
+    signedDeviceRequest(
+      payload = mapOf(
+        "operation" to JsonPrimitive("register_push_token"),
+        "pushToken" to JsonPrimitive(token),
+        "platform" to JsonPrimitive("ANDROID"),
+        "appVersion" to JsonPrimitive(appVersion),
+      ),
+      request = api::registerPushToken,
+    )
+
+  suspend fun unregisterPushToken(): Result<PushRegistrationResponse> = signedDeviceRequest(
+    payload = mapOf("operation" to JsonPrimitive("unregister_push_token")),
+    request = api::unregisterPushToken,
+  )
+
+  suspend fun notificationPreferences(): Result<NotificationPreferencesResponse> = api.notificationPreferences()
+
+  suspend fun updateNotificationPreferences(preferences: NotificationPreferences): Result<NotificationPreferencesResponse> =
+    signedDeviceRequest(
+      payload = mapOf(
+        "operation" to JsonPrimitive("update_notification_preferences"),
+        "preferences" to gson.toJsonTree(preferences),
+      ),
+      request = api::updateNotificationPreferences,
+    )
+
+  suspend fun beginMobileRecentAuth(): Result<RecentAuthChallenge> = signedDeviceRequest(
+    payload = mapOf(
+      "operation" to JsonPrimitive("mobile_recent_auth_challenge"),
+      "purpose" to JsonPrimitive("approve_high_risk_action"),
+    ),
+    request = api::mobileRecentAuthChallenge,
+  )
+
+  suspend fun verifyMobileRecentAuth(challenge: RecentAuthChallenge, biometricSignature: String): Result<RecentAuthStatus> = signedDeviceRequest(
+    payload = mapOf(
+      "operation" to JsonPrimitive("mobile_recent_auth_verify"),
+      "challengeId" to JsonPrimitive(challenge.challengeId),
+      "challengeToken" to JsonPrimitive(challenge.challengeToken),
+      "biometricSignature" to JsonPrimitive(biometricSignature),
+    ),
+    request = api::mobileRecentAuthVerify,
+  )
+
+  suspend fun registerBiometricKey(publicKey: PublicKeyJwk): Result<BiometricKeyRegistrationResponse> = signedDeviceRequest(
+    payload = mapOf(
+      "operation" to JsonPrimitive("register_mobile_biometric_key"),
+      "publicKey" to gson.toJsonTree(publicKey),
+    ),
+    request = api::registerBiometricKey,
+  )
 
   fun cachedSummary(): Pair<AlexaSummary, Long>? = cache.read("summary")?.let {
     runCatching { gson.fromJson(it.json, AlexaSummary::class.java) to it.updatedAt }.getOrNull()
@@ -240,11 +315,6 @@ class AlexaRepository(
     deviceIdentity.delete()
   }
 
-  private suspend fun <T> withCsrf(action: suspend (String) -> Result<T>): Result<T> = api.csrf().fold(
-    onSuccess = { action(it.token) },
-    onFailure = Result<T>::failure,
-  )
-
   private fun clearOnRevocation(error: Throwable) {
     if ((error as? AlexaApiException)?.failure == AlexaFailure.DeviceRevoked) clearAuthority()
   }
@@ -252,6 +322,13 @@ class AlexaRepository(
   private suspend fun <T> signedVoiceRequest(
     payload: Map<String, JsonElement>,
     request: suspend (SignedEnvelope) -> Result<T>,
+  ): Result<T> {
+    return signedDeviceRequest(payload) { _, envelope -> request(envelope) }
+  }
+
+  private suspend fun <T> signedDeviceRequest(
+    payload: Map<String, JsonElement>,
+    request: suspend (String, SignedEnvelope) -> Result<T>,
   ): Result<T> {
     val device = registrationStore.load()?.takeIf { it.trustStatus == DeviceTrustStatus.TRUSTED }
       ?: return Result.failure(AlexaApiException(AlexaFailure.Unauthorized))
@@ -261,7 +338,7 @@ class AlexaRepository(
     }
     return runCatching { deviceIdentity.signEnvelope(device.deviceId, payload) }
       .fold(
-        onSuccess = { envelope -> request(envelope).onFailure(::clearOnRevocation) },
+        onSuccess = { envelope -> request(device.deviceId, envelope).onFailure(::clearOnRevocation) },
         onFailure = {
           clearAuthority()
           Result.failure(AlexaApiException(AlexaFailure.DeviceRevoked))

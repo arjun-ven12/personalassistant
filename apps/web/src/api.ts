@@ -2039,6 +2039,8 @@ export const createApiClient = (baseUrl: string) => {
       requestAndValidate(baseUrl, `/api/objectives/${objectiveId}/observations`, ObjectiveDashboardSchema, jsonBody(ObserveObjectiveMetricRequestSchema.parse(input))),
     getObjectiveExperiments: (objectiveId: string) =>
       requestAndValidate(baseUrl, `/api/objectives/${objectiveId}/experiments`, ExperimentDashboardSchema),
+    getExperiments: () =>
+      requestAndValidate(baseUrl, "/api/experiments", ExperimentDashboardSchema),
     createExperiment: (objectiveId: string, input: unknown) =>
       requestAndValidate(baseUrl, `/api/objectives/${objectiveId}/experiments`, ExperimentDashboardSchema, jsonBody(CreateExperimentRequestSchema.parse(input))),
     activateExperiment: (experimentId: string, idempotencyKey: string) =>

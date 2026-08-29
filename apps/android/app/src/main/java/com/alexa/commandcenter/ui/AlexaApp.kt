@@ -56,6 +56,10 @@ fun AlexaApp(
   onNewConversation: () -> Unit = {},
   onSelectConversation: (String) -> Unit = {},
   onLoadEarlierMessages: () -> Unit = {},
+  onApprovalSelected: (String) -> Unit = {},
+  onNotificationTargetConsumed: () -> Unit = {},
+  onNotificationPreferences: (NotificationPreferences) -> Unit = {},
+  onApprovalDecisionWithReason: (String, Boolean, String?) -> Unit = { _, _, _ -> },
 ) {
   MaterialTheme(colorScheme = darkColorScheme(primary = AlexaBlue, surface = AlexaSurface)) {
     Surface(color = AlexaBackground, modifier = Modifier.fillMaxSize()) {
@@ -77,6 +81,10 @@ fun AlexaApp(
           onAgentSelected = onAgentSelected,
           onWorkflowSelected = onWorkflowSelected,
           onExperimentsSelected = onExperimentsSelected,
+          onApprovalSelected = onApprovalSelected,
+          onNotificationTargetConsumed = onNotificationTargetConsumed,
+          onNotificationPreferences = onNotificationPreferences,
+          onApprovalDecisionWithReason = onApprovalDecisionWithReason,
           onRequestMicrophonePermission = onRequestMicrophonePermission,
           onStartRecording = onStartRecording,
           onReleaseRecording = onReleaseRecording,

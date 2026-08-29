@@ -4,13 +4,16 @@ import {
   CanonicalRuntimeHealthSchema,
   CsrfTokenResponseSchema,
   PairingRequestResponseSchema,
+  PolicyEvaluationResponseSchema,
   RepositoryListResponseSchema,
   SessionListResponseSchema,
+  ExperimentDashboardSchema,
   WorkforceGraphResponseSchema,
   WorkforceImportReportSchema,
   WorkforceRuntimeDashboardSchema,
   WorkforceRuntimeTaskResponseSchema,
   canonicalizeSignedCommand,
+  mobileRecentAuthSigningPayload,
   type SignedCommandEnvelope,
 } from "@alexa-control/shared";
 import type { FastifyInstance } from "fastify";
@@ -20,6 +23,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import { buildApi } from "./app.js";
+import { BUILT_IN_TOOLS } from "./governance/defaults.js";
+import { InMemoryGovernanceStore } from "./governance/store.js";
+import { StaticNetworkVerifier } from "./identity/network.js";
 
 const origin = "http://localhost:5173";
 const password = "Violet-Harbor-2026!";
@@ -244,6 +250,39 @@ describe("Phase 2.1 API", () => {
         sharedAIRouter: true,
         hierarchyGrantsAuthority: false,
         creditsGrantAuthority: false,
+      },
+    });
+  });
+
+  it("serves a global owner-scoped experiment dashboard without placeholder data", async () => {
+    const denied = await app.inject({
+      method: "GET",
+      url: "/api/experiments",
+    });
+    expect(denied.statusCode).toBe(401);
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/experiments",
+      headers: { cookie },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(ExperimentDashboardSchema.parse(response.json())).toMatchObject({
+      experiments: [],
+      variants: [],
+      observations: [],
+      summary: {
+        running: 0,
+        paused: 0,
+        completed: 0,
+        budgetAllocated: 0,
+        budgetSpent: 0,
+      },
+      invariants: {
+        experimentsGrantAuthority: false,
+        verifiedEvidenceOnly: true,
+        objectiveBudgetConserved: true,
+        existingSchedulerUsed: true,
       },
     });
   });
@@ -574,6 +613,8 @@ describe("Phase 2.1 API", () => {
       deploymentMode: "cloud",
       nodeEnvironment: "test",
       logger: false,
+      governanceStore: new InMemoryGovernanceStore(BUILT_IN_TOOLS, false),
+      networkVerifier: new StaticNetworkVerifier("PRIVATE_NETWORK"),
     });
     const registration = await cloud.inject({
       method: "POST",
@@ -700,6 +741,109 @@ describe("Phase 2.1 API", () => {
         protocolVersion: "1",
       });
     };
+    const pushRegistration = await cloud.inject({
+      method: "POST",
+      url: "/api/v1/devices/push-token",
+      headers: { cookie: cloudCookie, "x-device-id": androidDeviceId },
+      payload: await signAndroid({
+        operation: "register_push_token",
+        pushToken: "test-fcm-token-with-sufficient-length-0001",
+        platform: "ANDROID",
+        appVersion: "0.1.0-test",
+      }),
+    });
+    expect(pushRegistration.statusCode).toBe(200);
+    expect(pushRegistration.json()).toMatchObject({
+      registered: true,
+      deviceId: androidDeviceId,
+      enabled: true,
+    });
+    const unsignedPush = await cloud.inject({
+      method: "POST",
+      url: "/api/v1/devices/push-token",
+      headers: { cookie: cloudCookie, "x-device-id": androidDeviceId },
+      payload: {
+        operation: "register_push_token",
+        pushToken: "untrusted-payload-cannot-register-token",
+      },
+    });
+    expect(unsignedPush.statusCode).toBe(400);
+    const biometricKeys = await createDeviceKeyPair();
+    const biometricRegistration = await cloud.inject({
+      method: "POST",
+      url: "/api/v1/device/biometric-key",
+      headers: { cookie: cloudCookie, "x-device-id": androidDeviceId },
+      payload: await signAndroid({
+        operation: "register_mobile_biometric_key",
+        publicKey: biometricKeys.publicKey,
+      }),
+    });
+    expect(biometricRegistration.statusCode).toBe(200);
+    const recentAuthChallenge = await cloud.inject({
+      method: "POST",
+      url: "/api/v1/device/recent-auth/challenge",
+      headers: { cookie: cloudCookie, "x-device-id": androidDeviceId },
+      payload: await signAndroid({
+        operation: "mobile_recent_auth_challenge",
+        purpose: "approve_high_risk_action",
+      }),
+    });
+    expect(recentAuthChallenge.statusCode).toBe(200);
+    const challenge = z.object({ challengeId: z.string().uuid(), challengeToken: z.string().min(32) }).parse(recentAuthChallenge.json());
+    const biometricSignature = await webcrypto.subtle.sign(
+      "Ed25519",
+      biometricKeys.pair.privateKey,
+      new TextEncoder().encode(mobileRecentAuthSigningPayload(challenge.challengeId, challenge.challengeToken, androidDeviceId)),
+    );
+    const recentAuthVerify = await cloud.inject({
+      method: "POST",
+      url: "/api/v1/device/recent-auth/verify",
+      headers: { cookie: cloudCookie, "x-device-id": androidDeviceId },
+      payload: await signAndroid({
+        operation: "mobile_recent_auth_verify",
+        challengeId: challenge.challengeId,
+        challengeToken: challenge.challengeToken,
+        biometricSignature: Buffer.from(biometricSignature).toString("base64url"),
+      }),
+    });
+    expect(recentAuthVerify.statusCode).toBe(200);
+    expect(recentAuthVerify.json()).toMatchObject({ active: true, purpose: "approve_high_risk_action" });
+    const mobileApprovalEvaluation = await cloud.inject({
+      method: "POST",
+      url: "/api/policies/evaluate",
+      headers: cloudMutationHeaders,
+      payload: { action: { actionId: crypto.randomUUID(), toolName: "security.modify", arguments: {} } },
+    });
+    const mobileApprovalResult = PolicyEvaluationResponseSchema.parse(mobileApprovalEvaluation.json());
+    expect(mobileApprovalResult.evaluation.approvalRequestId, JSON.stringify(mobileApprovalResult.evaluation)).toBeDefined();
+    const mobileApprovalId = mobileApprovalResult.evaluation.approvalRequestId!;
+    const approveFromAndroid = async () => cloud.inject({
+      method: "POST",
+      url: `/api/v1/device/approvals/${mobileApprovalId}/decision`,
+      headers: { cookie: cloudCookie, "x-device-id": androidDeviceId },
+      payload: await signAndroid({ operation: "approval_decision", approvalId: mobileApprovalId, decision: "APPROVE" }),
+    });
+    const mobileApproved = await approveFromAndroid();
+    expect(mobileApproved.statusCode).toBe(200);
+    expect(mobileApproved.json()).toMatchObject({ id: mobileApprovalId, status: "APPROVED" });
+    const duplicateMobileDecision = await approveFromAndroid();
+    expect(duplicateMobileDecision.statusCode).toBe(409);
+    expect(duplicateMobileDecision.json()).toMatchObject({ error: { code: "APPROVAL_ALREADY_DECIDED" } });
+    const rejectionEvaluation = await cloud.inject({
+      method: "POST",
+      url: "/api/policies/evaluate",
+      headers: cloudMutationHeaders,
+      payload: { action: { actionId: crypto.randomUUID(), toolName: "security.modify", arguments: { requestedChange: "bounded-test" } } },
+    });
+    const rejectionApprovalId = PolicyEvaluationResponseSchema.parse(rejectionEvaluation.json()).evaluation.approvalRequestId!;
+    const rejectedFromAndroid = await cloud.inject({
+      method: "POST",
+      url: `/api/v1/device/approvals/${rejectionApprovalId}/decision`,
+      headers: { cookie: cloudCookie, "x-device-id": androidDeviceId },
+      payload: await signAndroid({ operation: "approval_decision", approvalId: rejectionApprovalId, decision: "REJECT", reason: "Replan within the existing policy." }),
+    });
+    expect(rejectedFromAndroid.statusCode).toBe(200);
+    expect(rejectedFromAndroid.json()).toMatchObject({ id: rejectionApprovalId, status: "REJECTED", rejectionReason: "Replan within the existing policy." });
     const nativeSummaryEnvelope = await signAndroid({ operation: "system_summary" });
     const nativeSummary = await cloud.inject({
       method: "POST",
@@ -786,24 +930,39 @@ describe("Phase 2.1 API", () => {
       headers: { cookie: cloudCookie },
     });
     expect(sharedConversation.statusCode).toBe(200);
-    const sharedConversationBody = sharedConversation.json();
-    expect(sharedConversationBody).toMatchObject({
-      history: expect.arrayContaining([
-        expect.objectContaining({ transcript: "Hello Alexa", sessionId: voiceSessionId }),
-      ]),
-      continuity: expect.arrayContaining([
-        expect.objectContaining({
-          processedTurns: expect.arrayContaining([
-            expect.objectContaining({ turnId }),
-          ]),
-        }),
-      ]),
-    });
+    const sharedConversationBody = z
+      .object({
+        history: z.array(
+          z
+            .object({
+              id: z.string().uuid(),
+              transcript: z.string(),
+              sessionId: z.string().uuid(),
+            })
+            .passthrough(),
+        ),
+        continuity: z.array(
+          z
+            .object({
+              processedTurns: z.array(z.object({ turnId: z.string().uuid() }).passthrough()),
+            })
+            .passthrough(),
+        ),
+      })
+      .passthrough()
+      .parse(sharedConversation.json());
     expect(
-      z.object({ history: z.array(z.object({ id: z.string().uuid() }).passthrough()) })
-        .passthrough()
-        .parse(sharedConversationBody)
-        .history.filter((item) => item.id === turnId),
+      sharedConversationBody.history.some(
+        (item) => item.transcript === "Hello Alexa" && item.sessionId === voiceSessionId,
+      ),
+    ).toBe(true);
+    expect(
+      sharedConversationBody.continuity.some((item) =>
+        item.processedTurns.some((turn) => turn.turnId === turnId),
+      ),
+    ).toBe(true);
+    expect(
+      sharedConversationBody.history.filter((item) => item.id === turnId),
     ).toHaveLength(1);
     const androidMacChannelDenied = await cloud.inject({
       method: "POST",

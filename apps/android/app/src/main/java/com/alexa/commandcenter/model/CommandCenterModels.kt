@@ -197,6 +197,7 @@ data class CommandCenterSnapshot(
   val approvals: List<Approval> = emptyList(),
   val economy: EconomyDashboard? = null,
   val workflows: List<Workflow> = emptyList(),
+  val attention: ExecutiveAttention = ExecutiveAttention(),
 )
 
 data class CreateObjectiveRequest(

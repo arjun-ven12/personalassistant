@@ -221,6 +221,14 @@ import { ExperimentService } from "./experiments/service.js";
 import { registerExperimentRoutes } from "./routes/experiments.js";
 import { BusinessOSService } from "./business-os/service.js";
 import { registerBusinessOSRoutes } from "./routes/business-os.js";
+import { registerMobileExecutiveRoutes } from "./routes/mobile-executive.js";
+import { ExecutiveNotificationService } from "./notifications/service.js";
+import { DisabledPushProvider, type PushProvider } from "./notifications/provider.js";
+import {
+  InMemoryNotificationStore,
+  PostgresNotificationStore,
+  type NotificationStore,
+} from "./notifications/store.js";
 import { InMemoryExecutiveStore, type ExecutiveStore } from "./executive/store.js";
 import { ReflectionEngineService } from "./reflection/service.js";
 import { ReflectionAutomationCoordinator } from "./reflection/automation.js";
@@ -402,6 +410,8 @@ export interface BuildApiOptions {
   database?: PostgresDatabase;
   serverExecutionSigner?: ServerExecutionSigner;
   readOnlyExecutionEnabled?: boolean;
+  notificationStore?: NotificationStore;
+  pushProvider?: PushProvider;
   localAI?: LocalAIService;
   aiRuntime?: AIRuntimeService;
   aiRouter?: AIRouterService;
@@ -518,6 +528,8 @@ export const buildApi = async ({
   database,
   serverExecutionSigner,
   readOnlyExecutionEnabled = false,
+  notificationStore,
+  pushProvider = new DisabledPushProvider(),
   localAI = new LocalAIService(
     new OllamaLocalRuntime("http://127.0.0.1:11434"),
     new LocalModelRegistry(),
@@ -721,6 +733,18 @@ export const buildApi = async ({
       ...(input.metadata ? { metadata: input.metadata } : {}),
     });
   };
+  const resolvedNotificationStore =
+    notificationStore ??
+    (persistenceMode === "postgresql" && database
+      ? new PostgresNotificationStore(database.pool)
+      : new InMemoryNotificationStore());
+  const notifications = new ExecutiveNotificationService(
+    resolvedNotificationStore,
+    identityStore,
+    pushProvider,
+    governanceAudit,
+    now,
+  );
   const registry = new RegistryService(governanceStore);
   const approvals = new ApprovalService(
     governanceStore,
@@ -1290,6 +1314,9 @@ export const buildApi = async ({
     crossApplicationWorkflows,
     now,
   );
+  approvals.setNotificationSink(notifications);
+  objectives.setNotificationSink(notifications);
+  experiments.setNotificationSink(notifications);
   experiments.setReplanSink(objectives);
   integrations.setBusinessOutcomeSinks({
     objectiveMetric: async ({ ownerId, objectiveId, kpiId, value }) => {
@@ -1468,6 +1495,7 @@ export const buildApi = async ({
     objectives,
     experiments,
     businessOS,
+    notifications,
     reflection,
     reflectionStore,
     skillEvolution,
@@ -1589,6 +1617,24 @@ export const buildApi = async ({
         });
       }
     }
+    if (["INVALID_SIGNATURE", "DUPLICATE_NONCE"].includes(code)) {
+      const envelope = SignedCommandEnvelopeSchema.safeParse(request.body);
+      const device = envelope.success
+        ? await identityStore.findDeviceById(envelope.data.deviceId)
+        : undefined;
+      if (device) {
+        void notifications.dispatch({
+          ownerId: device.ownerId,
+          eventId: `security:${request.id}:${code}`,
+          category: "SECURITY_EVENT",
+          severity: code === "INVALID_SIGNATURE" ? "CRITICAL" : "HIGH",
+          objectKind: "SYSTEM",
+          objectId: "mobile-request-security",
+          stateVersion: code,
+          title: "Alexa security event",
+        }).catch(() => undefined);
+      }
+    }
 
     return reply.status(statusCode).send({
       success: false,
@@ -1646,6 +1692,7 @@ export const buildApi = async ({
   registerObjectiveRoutes(app, context);
   registerExperimentRoutes(app, context);
   registerBusinessOSRoutes(app, context);
+  registerMobileExecutiveRoutes(app, context);
   registerReflectionRoutes(app, context);
   registerSkillEvolutionRoutes(app, context);
   registerIntentRecordingRoutes(app, context);

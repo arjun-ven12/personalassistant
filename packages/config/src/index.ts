@@ -156,6 +156,7 @@ export const ApiEnvironmentSchema = z
     GOOGLE_CLIENT_ID: z.string().min(1).optional(),
     GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
     GOOGLE_REDIRECT_URI: z.string().url().optional(),
+    FCM_PROJECT_ID: z.string().trim().min(1).max(160).optional(),
     LOCAL_AI_ENABLED: booleanValue.default(true),
     LOCAL_AI_RUNTIME: z.literal("ollama").default("ollama"),
     OLLAMA_BASE_URL: z.string().url().default("http://127.0.0.1:11434"),

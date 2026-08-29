@@ -151,6 +151,47 @@ export class SecurityStateService {
     return grant;
   }
 
+  async verifyTrustedDeviceBiometric(
+    identity: AuthenticatedIdentity,
+    input: { challengeId: string; challengeToken: string },
+  ) {
+    const challenge = await this.store.findRecentAuthChallenge(input.challengeId);
+    const now = this.#now();
+    const validChallenge =
+      challenge &&
+      challenge.ownerId === identity.user.id &&
+      challenge.sessionId === identity.session.id &&
+      challenge.purpose === "approve_high_risk_action" &&
+      challenge.usedAt === null &&
+      new Date(challenge.expiresAt).getTime() > now.getTime() &&
+      secretsMatch(challenge.tokenHash, hashSecret(input.challengeToken));
+    if (!validChallenge) {
+      throw new ApiSecurityError(
+        401,
+        "RECENT_AUTHENTICATION_FAILED",
+        "Recent authentication failed.",
+      );
+    }
+    await this.store.updateRecentAuthChallenge({
+      ...challenge,
+      usedAt: now.toISOString(),
+    });
+    const grant: StoredRecentAuthGrant = {
+      id: crypto.randomUUID(),
+      ownerId: identity.user.id,
+      sessionId: identity.session.id,
+      purpose: challenge.purpose,
+      createdAt: now.toISOString(),
+      expiresAt: new Date(
+        now.getTime() + this.options.recentAuthTtlSeconds * 1_000,
+      ).toISOString(),
+      consumedAt: null,
+      revokedAt: null,
+    };
+    await this.store.createRecentAuthGrant(grant);
+    return grant;
+  }
+
   async status(identity: AuthenticatedIdentity, purpose: RecentAuthPurpose) {
     const grant = await this.store.findRecentAuthGrant(
       identity.user.id,

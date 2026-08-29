@@ -299,4 +299,134 @@ describe("web API client", () => {
       "x-csrf-token": "y".repeat(43),
     });
   });
+
+  it("validates the global experiment dashboard with real decision states", async () => {
+    const now = new Date().toISOString();
+    const ownerId = "00000000-0000-4000-8000-000000000001";
+    const objectiveId = "00000000-0000-4000-8000-000000000002";
+    const experimentId = "00000000-0000-4000-8000-000000000003";
+    const variantId = "00000000-0000-4000-8000-000000000004";
+    const dashboard = {
+      experiments: [
+        {
+          id: experimentId,
+          ownerId,
+          organizationId: "alexa",
+          objectiveId,
+          projectId: null,
+          title: "Outreach strategy",
+          hypothesis:
+            "A problem-focused message will improve qualified replies over the concise baseline.",
+          expectedDirection: "INCREASE",
+          status: "COMPLETED",
+          trigger: "OWNER_REQUEST",
+          primaryMetric: {
+            id: "qualified_reply",
+            name: "Qualified reply rate",
+            direction: "HIGHER_IS_BETTER",
+            minimumMeaningfulImprovement: 0.1,
+            aggregation: "RATE",
+          },
+          guardrails: [],
+          explorationBudget: 20,
+          spentCredits: 10,
+          explorationLevel: "BALANCED",
+          minimumSampleSize: 5,
+          maxDurationHours: 168,
+          minimumReallocationIntervalMinutes: 60,
+          context: {},
+          configurationKeys: ["messageStyle"],
+          priorExperimentIds: [],
+          activationKey: "activate-experiment",
+          startedAt: now,
+          endedAt: now,
+          createdAt: now,
+          updatedAt: now,
+          invariants: {
+            authorityMayVary: false,
+            approvalsMayVary: false,
+            permissionsMayVary: false,
+            schedulerReused: true,
+          },
+        },
+      ],
+      variants: [
+        {
+          id: variantId,
+          ownerId,
+          experimentId,
+          name: "Problem focused",
+          role: "VARIANT",
+          strategyVersion: 1,
+          configuration: { messageStyle: "PROBLEM_FOCUSED" },
+          budgetCredits: 10,
+          spentCredits: 10,
+          allocationPercent: 100,
+          predictedSuccess: 0.7,
+          predictedCost: 10,
+          predictedMetricImpact: 0.2,
+          predictedDurationMs: 1000,
+          sampleSize: 5,
+          completedOutcomes: 5,
+          actualMetric: 1,
+          actualSuccessRate: 1,
+          actualCost: 10,
+          actualDurationMs: 5000,
+          status: "COMPLETED",
+          verdict: "WINNER",
+          calibration: 0.7,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      assignments: [],
+      observations: [],
+      allocations: [],
+      results: [
+        {
+          id: "00000000-0000-4000-8000-000000000005",
+          ownerId,
+          experimentId,
+          variantId: null,
+          verdict: "INCONCLUSIVE",
+          metricResults: {},
+          totalCost: 10,
+          durationMs: 5000,
+          sampleSize: 5,
+          confidence: 0.5,
+          evidenceRefs: [],
+          possibleProxyOptimization: false,
+          explanation: "Observed difference is below the threshold.",
+          createdAt: now,
+        },
+      ],
+      timeline: [],
+      summary: {
+        running: 0,
+        paused: 0,
+        completed: 1,
+        budgetAllocated: 20,
+        budgetSpent: 10,
+      },
+      invariants: {
+        experimentsGrantAuthority: false,
+        verifiedEvidenceOnly: true,
+        objectiveBudgetConserved: true,
+        existingSchedulerUsed: true,
+      },
+    };
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(dashboard), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(createApiClient("http://localhost:3001").getExperiments()).resolves.toMatchObject({
+      summary: { completed: 1 },
+      results: [{ verdict: "INCONCLUSIVE" }],
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:3001/api/experiments",
+      expect.objectContaining({ credentials: "include" }),
+    );
+  });
 });

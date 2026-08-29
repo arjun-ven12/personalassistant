@@ -16,6 +16,10 @@ val prodApiBaseUrl = providers.gradleProperty("PROD_API_BASE_URL")
 val prodWebOrigin = providers.gradleProperty("PROD_WEB_ORIGIN")
   .orElse("https://example.invalid")
   .get()
+val fcmProjectId = providers.gradleProperty("FCM_PROJECT_ID").orElse("").get()
+val fcmApplicationId = providers.gradleProperty("FCM_APPLICATION_ID").orElse("").get()
+val fcmApiKey = providers.gradleProperty("FCM_API_KEY").orElse("").get()
+val fcmSenderId = providers.gradleProperty("FCM_SENDER_ID").orElse("").get()
 
 android {
   namespace = "com.alexa.commandcenter"
@@ -27,6 +31,10 @@ android {
     targetSdk = 35
     versionCode = 1
     versionName = "0.1.0"
+    buildConfigField("String", "FCM_PROJECT_ID", "\"$fcmProjectId\"")
+    buildConfigField("String", "FCM_APPLICATION_ID", "\"$fcmApplicationId\"")
+    buildConfigField("String", "FCM_API_KEY", "\"$fcmApiKey\"")
+    buildConfigField("String", "FCM_SENDER_ID", "\"$fcmSenderId\"")
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
@@ -89,6 +97,7 @@ dependencies {
   implementation(libs.retrofit.gson)
   implementation(libs.gson)
   implementation(libs.kotlinx.coroutines.android)
+  implementation(libs.firebase.messaging)
 
   testImplementation(libs.junit)
   androidTestImplementation(libs.androidx.test.ext.junit)

@@ -178,6 +178,16 @@ export const registerDeviceRoutes = (
         reason: "Owner revoked device trust.",
         requestId: request.id,
       });
+      await context.notifications.dispatch({
+        ownerId: identity.user.id,
+        eventId: `device:${deviceId}:revoked:${device.revokedAt ?? "current"}`,
+        category: "DEVICE_EVENT",
+        severity: "HIGH",
+        objectKind: "DEVICE",
+        objectId: deviceId,
+        stateVersion: `REVOKED:${device.revokedAt ?? "current"}`,
+        title: "Device trust changed",
+      }).catch(() => undefined);
       return DeviceMutationResponseSchema.parse({
         success: true,
         device: toDeviceView(device),

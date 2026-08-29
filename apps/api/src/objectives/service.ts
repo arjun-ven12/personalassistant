@@ -30,8 +30,10 @@ const TERMINAL = new Set(["COMPLETED", "FAILED", "CANCELLED", "EXPIRED"]);
 const STAGNATION_MIN_OBSERVATIONS=3;
 const STAGNATION_WINDOW_MS=7*24*60*60*1_000;
 const STAGNATION_DELTA_RATIO=0.02;
+type ObjectiveNotificationSink={dispatch(input:{ownerId:string;eventId:string;category:"OBJECTIVE_AT_RISK"|"OBJECTIVE_BLOCKED"|"BUDGET_WARNING"|"IMPORTANT_OBJECTIVE_COMPLETED"|"WORKFLOW_FAILED"|"WORKFLOW_BLOCKED";severity:"NORMAL"|"HIGH"|"CRITICAL";objectKind:"OBJECTIVE"|"WORKFLOW";objectId:string;stateVersion:string;title:string}):Promise<void>};
 
 export class ObjectiveEngineService {
+  #notificationSink?: ObjectiveNotificationSink;
   constructor(
     readonly store: ExecutiveStore,
     readonly workforce: WorkforceRuntimeService,
@@ -40,6 +42,8 @@ export class ObjectiveEngineService {
     readonly workflows?: Pick<CrossApplicationWorkflowService,"dashboard"|"compose">,
     readonly capabilityStudio?: Pick<CapabilityStudioService,"createRequest">,
   ) {}
+
+  setNotificationSink(sink: ObjectiveNotificationSink) { this.#notificationSink=sink; }
 
   async dashboard(ownerId: string) {
     await this.refresh(ownerId);
@@ -255,6 +259,7 @@ export class ObjectiveEngineService {
   }
 
   async handleWorkflowChanged(ownerId:string,graphId:string,eventType:string) {
+    if (["WORKFLOW_FAILED","NODE_FAILED","WORKFLOW_BLOCKED"].includes(eventType)) await this.#notificationSink?.dispatch({ownerId,eventId:`workflow:${graphId}:${eventType}`,category:eventType.includes("FAILED")?"WORKFLOW_FAILED":"WORKFLOW_BLOCKED",severity:"HIGH",objectKind:"WORKFLOW",objectId:graphId,stateVersion:eventType,title:eventType.includes("FAILED")?"Workflow failed":"Workflow blocked"}).catch(()=>undefined);
     const project=(await this.store.listObjectiveProjects(ownerId)).find((item)=>item.workflowId===graphId);
     if(!project) return;
     const failed=eventType==="WORKFLOW_FAILED"||eventType==="NODE_FAILED";
@@ -415,5 +420,5 @@ export class ObjectiveEngineService {
     ].slice(0,count).map((item,index)=>({...item,budgetCredits:base+(index===count-1?remainder:0)}));
   }
   private async requireObjective(ownerId:string,id:string) { const value=await this.store.findObjectiveExecution(ownerId,id); if(!value) throw new ExecutionError(404,"OBJECTIVE_NOT_FOUND","Objective was not found."); return value; }
-  private async event(ownerId:string,objectiveExecutionId:string,type:"DRAFTED"|"PLAN_CREATED"|"ACTIVATED"|"PAUSED"|"RESUMED"|"PROGRESS_UPDATED"|"MONITORED"|"MODIFIED"|"REPLAN_PROPOSED"|"REPLANNED"|"BLOCKED"|"COMPLETED"|"CANCELLED",summary:string,idempotencyKey:string|null,metadata:Record<string,unknown>) { await this.store.saveObjectiveEvent(ObjectiveEventSchema.parse({id:crypto.randomUUID(),ownerId,objectiveExecutionId,type,summary,idempotencyKey,metadata,createdAt:this.now().toISOString()})); }
+  private async event(ownerId:string,objectiveExecutionId:string,type:"DRAFTED"|"PLAN_CREATED"|"ACTIVATED"|"PAUSED"|"RESUMED"|"PROGRESS_UPDATED"|"MONITORED"|"MODIFIED"|"REPLAN_PROPOSED"|"REPLANNED"|"BLOCKED"|"COMPLETED"|"CANCELLED",summary:string,idempotencyKey:string|null,metadata:Record<string,unknown>) { const event=ObjectiveEventSchema.parse({id:crypto.randomUUID(),ownerId,objectiveExecutionId,type,summary,idempotencyKey,metadata,createdAt:this.now().toISOString()}); await this.store.saveObjectiveEvent(event); const status=typeof metadata.status==="string"?metadata.status:type; const budgetStatus=typeof metadata.budgetStatus==="string"?metadata.budgetStatus:null; if(status==="AT_RISK"||status==="BLOCKED"||status==="COMPLETED"||budgetStatus==="BUDGET_AT_RISK") await this.#notificationSink?.dispatch({ownerId,eventId:event.id,category:budgetStatus==="BUDGET_AT_RISK"?"BUDGET_WARNING":status==="BLOCKED"?"OBJECTIVE_BLOCKED":status==="COMPLETED"?"IMPORTANT_OBJECTIVE_COMPLETED":"OBJECTIVE_AT_RISK",severity:status==="BLOCKED"?"CRITICAL":status==="COMPLETED"?"NORMAL":"HIGH",objectKind:"OBJECTIVE",objectId:objectiveExecutionId,stateVersion:`${status}:${budgetStatus??""}`,title:budgetStatus==="BUDGET_AT_RISK"?"Objective budget needs attention":status==="BLOCKED"?"Objective blocked":status==="COMPLETED"?"Objective completed":"Objective at risk"}).catch(()=>undefined); }
 }

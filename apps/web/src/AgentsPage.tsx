@@ -6,11 +6,29 @@ import type { ApiClient } from "./api.js";
 import { AgentEconomyPanel } from "./AgentEconomyPanel.js";
 import { AgentWorkforceGraph } from "./AgentWorkforceGraph.js";
 
+type AgentOperationsView =
+  | "agents"
+  | "workforce"
+  | "economy"
+  | "experiments"
+  | "activity"
+  | "system"
+  | "settings";
+
+const isAgentOperationsView = (value: string | null): value is AgentOperationsView =>
+  value === "agents" ||
+  value === "workforce" ||
+  value === "economy" ||
+  value === "experiments" ||
+  value === "activity" ||
+  value === "system" ||
+  value === "settings";
+
 export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
   const queryClient = useQueryClient();
-  const [workspaceView, setWorkspaceView] = useState<"agents" | "workforce" | "economy">(() => {
+  const [workspaceView, setWorkspaceView] = useState<AgentOperationsView>(() => {
     const view = new URLSearchParams(window.location.search).get("view");
-    return view === "workforce" || view === "economy" ? view : "agents";
+    return isAgentOperationsView(view) ? view : "agents";
   });
   const [directoryQuery, setDirectoryQuery] = useState("");
   const [agentId, setAgentId] = useState("planning_agent");
@@ -144,6 +162,29 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
     .filter((agent) => agent.kind === "AGENT")
     .filter((agent) => `${agent.label} ${agent.subtitle}`.toLowerCase().includes(directoryQuery.trim().toLowerCase()))
     .slice(0, 20);
+  const workspaceTabs = (
+    <nav className="workspace-tabs agent-operations-tabs" aria-label="Agent workspace views">
+      {[
+        ["agents", "Agents"],
+        ["workforce", "Workforce"],
+        ["economy", "Economy"],
+        ["experiments", "Experiments"],
+        ["activity", "Activity"],
+        ["system", "System"],
+        ["settings", "Settings"],
+      ].map(([view, label]) => (
+        <button
+          aria-current={workspaceView === view ? "page" : undefined}
+          className={workspaceView === view ? "active" : undefined}
+          key={view}
+          onClick={() => setWorkspaceView(view as AgentOperationsView)}
+          type="button"
+        >
+          {label}
+        </button>
+      ))}
+    </nav>
+  );
 
   if (workspaceView === "economy") {
     return (
@@ -151,11 +192,7 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
         <p className="eyebrow">Governed resource accounting</p>
         <h1>Agent Economy</h1>
         <p>Internal credits buy bounded resources, never permissions, approvals, capabilities, trust, or reputation.</p>
-        <nav className="workspace-tabs" aria-label="Agent workspace views">
-          <button onClick={() => setWorkspaceView("agents")} type="button">Agents</button>
-          <button onClick={() => setWorkspaceView("workforce")} type="button">Workforce</button>
-          <button aria-current="page" className="active" type="button">Economy</button>
-        </nav>
+        {workspaceTabs}
         <AgentEconomyPanel apiClient={apiClient} />
       </section>
     );
@@ -167,12 +204,56 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
         <p className="eyebrow">Organizational intelligence</p>
         <h1>Agent Workforce</h1>
         <p>Inspect the Alexa-governed organization, dormant specialist registry, scoped memory, finite capabilities, and lazy runtime participation.</p>
-        <nav className="workspace-tabs" aria-label="Agent workspace views">
-          <button onClick={() => setWorkspaceView("agents")} type="button">Agents</button>
-          <button aria-current="page" className="active" type="button">Workforce</button>
-          <button onClick={() => setWorkspaceView("economy")} type="button">Economy</button>
-        </nav>
+        {workspaceTabs}
         <AgentWorkforceGraph apiClient={apiClient} />
+      </section>
+    );
+  }
+
+  if (workspaceView === "experiments") {
+    return (
+      <section className="placeholder-page wide-page governance-page">
+        <p className="eyebrow">Strategy testing</p>
+        <h1>Agent Experiments</h1>
+        <p>Expose bounded objective experiments, variants, verified evidence, costs, and decisions without creating a second experiment engine.</p>
+        {workspaceTabs}
+        <AgentExperimentsPage apiClient={apiClient} />
+      </section>
+    );
+  }
+
+  if (workspaceView === "activity") {
+    return (
+      <section className="placeholder-page wide-page governance-page">
+        <p className="eyebrow">Business activity</p>
+        <h1>Agent Activity</h1>
+        <p>CEO-readable operational events from the Business OS read model. Raw logs, prompts, and secrets stay out of this surface.</p>
+        {workspaceTabs}
+        <AgentActivityPage apiClient={apiClient} />
+      </section>
+    );
+  }
+
+  if (workspaceView === "system") {
+    return (
+      <section className="placeholder-page wide-page governance-page">
+        <p className="eyebrow">Runtime health</p>
+        <h1>Agent System</h1>
+        <p>Safe Agent OS, scheduler, AIRouter, data, and economy summaries from existing health and runtime APIs.</p>
+        {workspaceTabs}
+        <AgentSystemPage apiClient={apiClient} />
+      </section>
+    );
+  }
+
+  if (workspaceView === "settings") {
+    return (
+      <section className="placeholder-page wide-page governance-page">
+        <p className="eyebrow">Governed configuration</p>
+        <h1>Agent Settings</h1>
+        <p>Safe owner-facing runtime configuration that already exists in backend contracts. No fabricated toggles or authority shortcuts.</p>
+        {workspaceTabs}
+        <AgentSettingsPage apiClient={apiClient} />
       </section>
     );
   }
@@ -186,11 +267,7 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
         shared context, consensus records, and workflow checkpoints. No agent receives
         extra execution permission or can bypass patch approval.
       </p>
-      <nav className="workspace-tabs" aria-label="Agent workspace views">
-        <button aria-current="page" className="active" type="button">Agents</button>
-        <button onClick={() => setWorkspaceView("workforce")} type="button">Workforce</button>
-        <button onClick={() => setWorkspaceView("economy")} type="button">Economy</button>
-      </nav>
+      {workspaceTabs}
 
       <section className="status-grid">
           <article className="status-card">
@@ -199,21 +276,21 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
           <small>Specialist registry</small>
         </article>
         <article className="status-card">
-          <span>Open tasks</span>
+          <span>Active</span>
           <strong>
-            {runtime.data?.summary.queued ?? 0}
+            {workforce.data?.summary.active ?? runtime.data?.summary.active ?? 0}
           </strong>
-          <small>Deterministic scheduler state</small>
+          <small>Lazy runtime participation</small>
         </article>
           <article className="status-card">
-            <span>Consensus</span>
-            <strong>{runtime.data?.summary.running ?? 0}</strong>
-            <small>Bounded active contexts</small>
+            <span>Dormant</span>
+            <strong>{workforce.data?.summary.dormant ?? runtime.data?.summary.dormant ?? 0}</strong>
+            <small>Metadata-only specialists</small>
         </article>
         <article className="status-card">
-          <span>Dynamic</span>
-          <strong>{runtime.data?.summary.waitingReview ?? 0}</strong>
-          <small>Independent review gates</small>
+          <span>Open tasks</span>
+          <strong>{(runtime.data?.summary.queued ?? 0) + (runtime.data?.summary.running ?? 0) + (runtime.data?.summary.waitingReview ?? 0)}</strong>
+          <small>Queued, running, or review</small>
         </article>
       </section>
 
@@ -626,8 +703,19 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
           <button className="secondary-button" onClick={() => setWorkspaceView("workforce")} type="button">Open workforce graph</button>
         </div>
         <div className="agent-directory-table" role="table" aria-label="Registered agent directory">
-          <div className="agent-directory-row agent-directory-header" role="row"><span>Agent</span><span>Specialization</span><span>Health</span><span>State</span><span>Members</span></div>
-          {directoryAgents.map((agent) => <button className="agent-directory-row" key={agent.id} onClick={() => setWorkspaceView("workforce")} role="row" type="button"><strong>{agent.label}</strong><span>{agent.subtitle}</span><span><i className={`agent-health-dot state-${agent.status.toLowerCase()}`} />{agent.status === "FAILED" || agent.status === "BLOCKED" ? "attention" : "healthy"}</span><span>{agent.status.toLowerCase()}</span><span>{agent.childCount}</span></button>)}
+          <div className="agent-directory-row agent-directory-header" role="row"><span>Agent</span><span>Specialization</span><span>Status</span><span>Credits</span><span>Reputation</span></div>
+          {directoryAgents.map((agent) => {
+            const currentTask = runtime.data?.tasks.find((task) => task.assignedAgentId === agent.id && !["COMPLETED", "FAILED", "CANCELLED", "EXPIRED"].includes(task.status));
+            return (
+              <button className="agent-directory-row" key={agent.id} onClick={() => setWorkspaceView("workforce")} role="row" type="button">
+                <strong>{agent.label}</strong>
+                <span>{currentTask ? currentTask.title : agent.subtitle}</span>
+                <span><i className={`agent-health-dot state-${agent.status.toLowerCase()}`} />{currentTask ? currentTask.status.toLowerCase() : agent.status.toLowerCase()}</span>
+                <span>{agent.credits ?? 0}</span>
+                <span>{agent.reputation?.toFixed(1) ?? "n/a"}</span>
+              </button>
+            );
+          })}
           {directoryAgents.length === 0 ? <p className="notice">No registered workforce entries match this search.</p> : null}
         </div>
       </section>
@@ -769,3 +857,281 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
     </section>
   );
 };
+
+const AgentExperimentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
+  const experiments = useQuery({
+    queryKey: ["experiments", "agent-operations"],
+    queryFn: apiClient.getExperiments,
+    refetchInterval: 30_000,
+  });
+  const [selectedId, setSelectedId] = useState("");
+  const selected = experiments.data?.experiments.find((item) => item.id === selectedId) ?? experiments.data?.experiments[0];
+  const variants = (experiments.data?.variants ?? []).filter((item) => item.experimentId === selected?.id);
+  const results = (experiments.data?.results ?? []).filter((item) => item.experimentId === selected?.id);
+  const timeline = (experiments.data?.timeline ?? []).filter((item) => item.experimentId === selected?.id).slice(0, 12);
+  const running = experiments.data?.experiments.filter((item) => item.status === "RUNNING") ?? [];
+  const needsAttention = experiments.data?.experiments.filter((item) => ["PAUSED", "FAILED", "STOPPED"].includes(item.status)) ?? [];
+  const completed = experiments.data?.experiments.filter((item) => item.status === "COMPLETED") ?? [];
+
+  if (experiments.isLoading) return <div className="notice">Loading experiments...</div>;
+
+  return (
+    <div className="agent-operations-page">
+      <section className="compact-metric-strip" aria-label="Experiment summary">
+        <span><small>Running</small><strong>{experiments.data?.summary.running ?? 0}</strong></span>
+        <span><small>Needs attention</small><strong>{needsAttention.length}</strong></span>
+        <span><small>Completed</small><strong>{experiments.data?.summary.completed ?? 0}</strong></span>
+        <span><small>Budget allocated</small><strong>{experiments.data?.summary.budgetAllocated ?? 0}</strong></span>
+        <span><small>Budget spent</small><strong>{experiments.data?.summary.budgetSpent ?? 0}</strong></span>
+      </section>
+
+      <div className="split-workspace">
+        <section className="panel-list">
+          <ExperimentSection title="Running" experiments={running} onSelect={setSelectedId} selectedId={selected?.id ?? ""} />
+          <ExperimentSection title="Needs Attention" experiments={needsAttention} onSelect={setSelectedId} selectedId={selected?.id ?? ""} />
+          <ExperimentSection title="Completed" experiments={completed} onSelect={setSelectedId} selectedId={selected?.id ?? ""} />
+          {experiments.data?.experiments.length === 0 ? <div className="notice">No experiments are currently running.</div> : null}
+        </section>
+
+        <aside className="panel-list economy-inspector">
+          <p className="eyebrow">Experiment detail</p>
+          <h2>{selected?.title ?? "Select an experiment"}</h2>
+          {selected ? (
+            <>
+              <dl className="compact-definition-list">
+                <div><dt>Status</dt><dd>{selected.status}</dd></div>
+                <div><dt>Objective</dt><dd>{selected.objectiveId}</dd></div>
+                <div><dt>Project</dt><dd>{selected.projectId ?? "None"}</dd></div>
+                <div><dt>Metric</dt><dd>{selected.primaryMetric.name}</dd></div>
+                <div><dt>Budget</dt><dd>{selected.spentCredits} / {selected.explorationBudget}</dd></div>
+                <div><dt>Decision</dt><dd>{decisionFor(results)}</dd></div>
+              </dl>
+              <article className="panel">
+                <p className="eyebrow">Hypothesis</p>
+                <p>{selected.hypothesis}</p>
+              </article>
+              <div className="dense-list">
+                {variants.map((variant) => (
+                  <div className="dense-row" key={variant.id}>
+                    <div>
+                      <strong>{variant.name}</strong>
+                      <small>{variant.role} · {variant.status} · allocation {variant.allocationPercent}%</small>
+                    </div>
+                    <div className="row-meta">
+                      <span className="mono-number">{variant.actualMetric ?? "no result"}</span>
+                      <span>{variant.spentCredits} credits</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <AgentOpsList
+                rows={timeline.map((event) => ({
+                  title: event.type,
+                  meta: new Date(event.createdAt).toLocaleString(),
+                  body: event.summary,
+                }))}
+                empty="No experiment timeline events."
+              />
+            </>
+          ) : null}
+        </aside>
+      </div>
+    </div>
+  );
+};
+
+const ExperimentSection = ({
+  title,
+  experiments,
+  selectedId,
+  onSelect,
+}: {
+  title: string;
+  experiments: Awaited<ReturnType<ApiClient["getExperiments"]>>["experiments"];
+  selectedId: string;
+  onSelect: (id: string) => void;
+}) => (
+  <section className="agent-ops-section">
+    <div className="section-heading-row"><div><p className="eyebrow">Experiments</p><h2>{title}</h2></div><span className="mono-meta">{experiments.length}</span></div>
+    <div className="dense-list">
+      {experiments.map((experiment) => (
+        <button className={`dense-row as-button${selectedId === experiment.id ? " is-selected" : ""}`} key={experiment.id} onClick={() => onSelect(experiment.id)} type="button">
+          <div><strong>{experiment.title}</strong><small>{experiment.hypothesis}</small></div>
+          <div className="row-meta"><span>{experiment.status}</span><span className="mono-number">{experiment.spentCredits}/{experiment.explorationBudget}</span></div>
+        </button>
+      ))}
+      {experiments.length === 0 ? <div className="notice">No {title.toLowerCase()} experiments.</div> : null}
+    </div>
+  </section>
+);
+
+const decisionFor = (
+  results: Awaited<ReturnType<ApiClient["getExperiments"]>>["results"],
+) => {
+  const result = results.find((item) => item.variantId === null) ?? results[0];
+  if (!result) return "RUNNING";
+  if (result.verdict === "WINNER") return "ADOPTED";
+  if (result.verdict === "LOSER") return "REJECTED";
+  if (result.verdict === "INCONCLUSIVE") return "INCONCLUSIVE";
+  return result.verdict;
+};
+
+const AgentActivityPage = ({ apiClient }: { apiClient: ApiClient }) => {
+  const businessOS = useQuery({
+    queryKey: ["business-os-summary", "agent-activity"],
+    queryFn: apiClient.getBusinessOSSummary,
+    refetchInterval: 30_000,
+  });
+  const [visible, setVisible] = useState(40);
+  const events = businessOS.data?.timeline.slice(0, visible) ?? [];
+
+  return (
+    <div className="agent-operations-page">
+      <section className="compact-metric-strip" aria-label="Activity summary">
+        <span><small>Attention</small><strong>{businessOS.data?.summary.attentionCount ?? 0}</strong></span>
+        <span><small>Critical</small><strong>{businessOS.data?.summary.criticalAlerts ?? 0}</strong></span>
+        <span><small>Approvals</small><strong>{businessOS.data?.summary.pendingApprovals ?? 0}</strong></span>
+        <span><small>Outcomes</small><strong>{businessOS.data?.summary.verifiedOutcomes ?? 0}</strong></span>
+      </section>
+      <section className="panel-list">
+        <div className="section-heading-row"><div><p className="eyebrow">Timeline</p><h2>Business activity</h2></div><span className="mono-meta">{events.length} shown</span></div>
+        <div className="dense-list">
+          {events.map((event) => (
+            <div className="dense-row" key={event.id}>
+              <div><strong>{event.title}</strong><small>{event.category} · {event.entity?.label ?? "System"}</small></div>
+              <div className="row-meta"><span>{event.entity?.status ?? "recorded"}</span><time>{new Date(event.occurredAt).toLocaleString()}</time></div>
+              <p>{event.summary}</p>
+            </div>
+          ))}
+          {events.length === 0 ? <div className="notice">No business activity recorded.</div> : null}
+        </div>
+        {(businessOS.data?.timeline.length ?? 0) > visible ? (
+          <button className="secondary-button" onClick={() => setVisible((value) => value + 40)} type="button">Load more activity</button>
+        ) : null}
+      </section>
+    </div>
+  );
+};
+
+const AgentSystemPage = ({ apiClient }: { apiClient: ApiClient }) => {
+  const system = useQuery({ queryKey: ["system-status", "agent-ops"], queryFn: apiClient.getSystemStatus, refetchInterval: 30_000 });
+  const workforce = useQuery({ queryKey: ["workforce-runtime", "system"], queryFn: apiClient.getWorkforceRuntime, refetchInterval: 15_000 });
+  const graph = useQuery({ queryKey: ["agent-workforce-graph", "system"], queryFn: () => apiClient.getAgentWorkforceGraph("limit=160"), refetchInterval: 30_000 });
+  const economy = useQuery({ queryKey: ["agent-economy-dashboard", "system"], queryFn: apiClient.getAgentEconomyDashboard, refetchInterval: 30_000 });
+  const agentOS = useQuery({ queryKey: ["agent-os-dashboard", "system"], queryFn: apiClient.getAgentOsDashboard, refetchInterval: 30_000 });
+  const providers = useQuery({ queryKey: ["ai-providers", "system"], queryFn: apiClient.getAIProviderHealth, refetchInterval: 30_000 });
+  const providerAvailable = providers.data?.filter((item) => item.status === "HEALTHY").length ?? 0;
+
+  return (
+    <div className="agent-operations-page">
+      <section className="status-grid">
+        <article className="status-card"><span>Registered</span><strong>{graph.data?.summary.registered ?? 0}</strong><small>Agent OS identities</small></article>
+        <article className="status-card"><span>Active</span><strong>{graph.data?.summary.active ?? 0}</strong><small>Runtime participants</small></article>
+        <article className="status-card"><span>Dormant</span><strong>{graph.data?.summary.dormant ?? 0}</strong><small>No model sessions</small></article>
+        <article className="status-card"><span>Open tasks</span><strong>{(workforce.data?.summary.queued ?? 0) + (workforce.data?.summary.running ?? 0) + (workforce.data?.summary.waitingReview ?? 0)}</strong><small>Scheduler backlog</small></article>
+      </section>
+      <div className="split-workspace">
+        <section className="panel-list">
+          <div className="section-heading-row"><div><p className="eyebrow">Execution</p><h2>Scheduler and Agent OS</h2></div></div>
+          <dl className="compact-definition-list">
+            <div><dt>Scheduler</dt><dd>{workforce.data ? "HEALTHY" : "Unavailable"}</dd></div>
+            <div><dt>Max concurrent</dt><dd>{workforce.data?.summary.maxConcurrent ?? "-"}</dd></div>
+            <div><dt>Active workflows</dt><dd>{workforce.data?.summary.running ?? 0}</dd></div>
+            <div><dt>Review queue</dt><dd>{workforce.data?.summary.waitingReview ?? 0}</dd></div>
+            <div><dt>Manifests</dt><dd>{agentOS.data?.manifests.length ?? 0}</dd></div>
+            <div><dt>Sessions</dt><dd>{agentOS.data?.sessions.length ?? 0}</dd></div>
+          </dl>
+        </section>
+        <section className="panel-list">
+          <div className="section-heading-row"><div><p className="eyebrow">Runtime</p><h2>Safe component health</h2></div></div>
+          <dl className="compact-definition-list">
+            <div><dt>API</dt><dd>{system.data?.api.status ?? "unknown"}</dd></div>
+            <div><dt>PostgreSQL</dt><dd>{system.data?.database.status ?? "unknown"}</dd></div>
+            <div><dt>Redis</dt><dd>{system.data?.redis.status ?? "unknown"}</dd></div>
+            <div><dt>AIRouter</dt><dd>{system.data?.aiProvider.status ?? "unknown"}</dd></div>
+            <div><dt>Providers available</dt><dd>{providerAvailable}</dd></div>
+            <div><dt>Execution enabled</dt><dd>{system.data?.execution.enabled ? "Yes" : "No"}</dd></div>
+          </dl>
+        </section>
+      </div>
+      <section className="compact-metric-strip" aria-label="System economy">
+        <span><small>Available credits</small><strong>{economy.data?.overview.availableCredits ?? 0}</strong></span>
+        <span><small>Reserved credits</small><strong>{economy.data?.overview.reservedCredits ?? 0}</strong></span>
+        <span><small>Spent credits</small><strong>{economy.data?.overview.spentCredits ?? 0}</strong></span>
+        <span><small>Completion rate</small><strong>{Math.round((workforce.data?.metrics.completionRate ?? 0) * 100)}%</strong></span>
+      </section>
+    </div>
+  );
+};
+
+const AgentSettingsPage = ({ apiClient }: { apiClient: ApiClient }) => {
+  const workforce = useQuery({ queryKey: ["workforce-runtime", "settings"], queryFn: apiClient.getWorkforceRuntime });
+  const economy = useQuery({ queryKey: ["agent-economy-dashboard", "settings"], queryFn: apiClient.getAgentEconomyDashboard });
+  const experiments = useQuery({ queryKey: ["experiments", "settings"], queryFn: apiClient.getExperiments });
+  const agentOS = useQuery({ queryKey: ["agent-os-dashboard", "settings"], queryFn: apiClient.getAgentOsDashboard });
+
+  return (
+    <div className="agent-operations-page">
+      <section className="panel-list">
+        <div className="section-heading-row"><div><p className="eyebrow">Workforce</p><h2>Runtime policy</h2></div><span className="mono-meta">Read-only</span></div>
+        <dl className="compact-definition-list">
+          <div><dt>Max concurrent active agents</dt><dd>{workforce.data?.summary.maxConcurrent ?? "-"}</dd></div>
+          <div><dt>Max task depth</dt><dd>{workforce.data?.invariants.maxTaskDepth ?? "-"}</dd></div>
+          <div><dt>Shared AIRouter</dt><dd>{workforce.data?.invariants.sharedAIRouter ? "Enabled" : "Unknown"}</dd></div>
+          <div><dt>Dedicated model per agent</dt><dd>{workforce.data?.invariants.dedicatedModelPerAgent ? "Yes" : "No"}</dd></div>
+        </dl>
+      </section>
+      <section className="panel-list">
+        <div className="section-heading-row"><div><p className="eyebrow">Economy</p><h2>Credit authority</h2></div><span className="mono-meta">Credits are not reputation</span></div>
+        <dl className="compact-definition-list">
+          <div><dt>Grant authority</dt><dd>{economy.data?.creditsGrantAuthority ?? "-"}</dd></div>
+          <div><dt>Credits buy authority</dt><dd>{economy.data?.creditsCanBuyAuthority ? "Yes" : "No"}</dd></div>
+          <div><dt>Credits buy reputation</dt><dd>{economy.data?.creditsCanBuyReputation ? "Yes" : "No"}</dd></div>
+          <div><dt>Economy accounts</dt><dd>{economy.data?.accounts.length ?? 0}</dd></div>
+        </dl>
+      </section>
+      <section className="panel-list">
+        <div className="section-heading-row"><div><p className="eyebrow">Experiments</p><h2>Experiment controls</h2></div><span className="mono-meta">Existing engine</span></div>
+        <dl className="compact-definition-list">
+          <div><dt>Experiments grant authority</dt><dd>{experiments.data?.invariants.experimentsGrantAuthority ? "Yes" : "No"}</dd></div>
+          <div><dt>Verified evidence only</dt><dd>{experiments.data?.invariants.verifiedEvidenceOnly ? "Yes" : "No"}</dd></div>
+          <div><dt>Objective budget conserved</dt><dd>{experiments.data?.invariants.objectiveBudgetConserved ? "Yes" : "No"}</dd></div>
+          <div><dt>Existing scheduler used</dt><dd>{experiments.data?.invariants.existingSchedulerUsed ? "Yes" : "No"}</dd></div>
+        </dl>
+      </section>
+      <section className="panel-list">
+        <div className="section-heading-row"><div><p className="eyebrow">AI and memory</p><h2>Registered policies</h2></div></div>
+        <div className="dense-list">
+          {(agentOS.data?.configurations ?? []).slice(0, 20).map((configuration) => (
+            <div className="dense-row" key={configuration.id}>
+              <div><strong>{configuration.agentId}</strong><small>parallelism {configuration.configuration.parallelism} · memory {configuration.configuration.memoryLimitItems}</small></div>
+              <div className="row-meta"><span>{configuration.configuration.defaultModel}</span><span>{configuration.signedChangeRequired ? "signed changes" : "unsigned"}</span></div>
+            </div>
+          ))}
+          {agentOS.data?.configurations.length === 0 ? <div className="notice">No Agent OS configurations registered.</div> : null}
+        </div>
+      </section>
+    </div>
+  );
+};
+
+const AgentOpsList = ({
+  rows,
+  empty,
+}: {
+  rows: Array<{ title: string; meta: string; body: string }>;
+  empty: string;
+}) => (
+  <div className="dense-list">
+    {rows.map((row, index) => (
+      <div className="dense-row" key={`${row.title}:${row.meta}:${index}`}>
+        <div>
+          <strong>{row.title}</strong>
+          <small>{row.meta}</small>
+        </div>
+        {row.body ? <p>{row.body}</p> : null}
+      </div>
+    ))}
+    {rows.length === 0 ? <div className="notice">{empty}</div> : null}
+  </div>
+);

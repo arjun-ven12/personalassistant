@@ -23,6 +23,7 @@ import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.PATCH
 import retrofit2.http.Path
+import retrofit2.http.HTTP
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.util.UUID
@@ -41,22 +42,29 @@ interface AlexaApiService {
   @GET("api/agent-workforce/graph") suspend fun workforceGraph(): Response<WorkforceGraph>
   @GET("api/agent-workforce/agents/{agentId}") suspend fun workforceAgent(@Path("agentId") id: String): Response<WorkforceAgentDetail>
   @GET("api/approvals?status=PENDING") suspend fun pendingApprovals(): Response<List<Approval>>
+  @GET("api/approvals/{approvalId}") suspend fun approval(@Path("approvalId") id: String): Response<Approval>
   @GET("api/agent-economy/dashboard") suspend fun economy(): Response<EconomyDashboard>
   @GET("api/workflows") suspend fun workflows(): Response<List<Workflow>>
   @GET("api/workflows/{workflowId}") suspend fun workflow(@Path("workflowId") id: String): Response<WorkflowDetail>
   @GET("api/objectives/{objectiveId}/experiments") suspend fun experiments(@Path("objectiveId") id: String): Response<ExperimentDashboard>
+  @GET("api/experiments") suspend fun allExperiments(): Response<ExperimentDashboard>
   @GET("api/conversations") suspend fun conversations(): Response<ConversationCenter>
   @POST("api/voice/device-runtime") suspend fun startVoiceSession(@Body envelope: SignedEnvelope): Response<VoiceDashboard>
   @POST("api/voice/device-runtime") suspend fun voiceCaptureLease(@Body envelope: SignedEnvelope): Response<VoiceCaptureLeaseResponse>
   @POST("api/voice/device-runtime") suspend fun submitConversationTurn(@Body envelope: SignedEnvelope): Response<VoiceTranscriptResponse>
   @POST("api/voice/device-runtime") suspend fun cancelConversationTurn(@Body envelope: SignedEnvelope): Response<JsonObject>
-  @POST("api/objectives") suspend fun createObjective(@Header("X-CSRF-Token") csrf: String, @Body request: CreateObjectiveRequest): Response<Any>
-  @POST("api/objectives/{objectiveId}/pause") suspend fun pauseObjective(@Path("objectiveId") id: String, @Header("X-CSRF-Token") csrf: String, @Body request: ObjectiveMutationRequest): Response<ObjectiveDashboard>
-  @POST("api/objectives/{objectiveId}/activate") suspend fun resumeObjective(@Path("objectiveId") id: String, @Header("X-CSRF-Token") csrf: String, @Body request: ObjectiveMutationRequest): Response<ObjectiveDashboard>
-  @POST("api/objectives/{objectiveId}/cancel") suspend fun cancelObjective(@Path("objectiveId") id: String, @Header("X-CSRF-Token") csrf: String, @Body request: ObjectiveMutationRequest): Response<ObjectiveDashboard>
-  @PATCH("api/objectives/{objectiveId}") suspend fun modifyObjective(@Path("objectiveId") id: String, @Header("X-CSRF-Token") csrf: String, @Body request: ModifyObjectiveRequest): Response<Any>
-  @POST("api/approvals/{approvalId}/approve") suspend fun approve(@Path("approvalId") id: String, @Header("X-CSRF-Token") csrf: String, @Body request: ApprovalDecisionRequest): Response<Approval>
-  @POST("api/approvals/{approvalId}/reject") suspend fun reject(@Path("approvalId") id: String, @Header("X-CSRF-Token") csrf: String, @Body request: ApprovalDecisionRequest): Response<Approval>
+  @POST("api/v1/devices/push-token") suspend fun registerPushToken(@Header("X-Device-Id") deviceId: String, @Body envelope: SignedEnvelope): Response<PushRegistrationResponse>
+  @HTTP(method = "DELETE", path = "api/v1/devices/push-token", hasBody = true) suspend fun unregisterPushToken(@Header("X-Device-Id") deviceId: String, @Body envelope: SignedEnvelope): Response<PushRegistrationResponse>
+  @GET("api/v1/notifications/preferences") suspend fun notificationPreferences(): Response<NotificationPreferencesResponse>
+  @PATCH("api/v1/notifications/preferences") suspend fun updateNotificationPreferences(@Header("X-Device-Id") deviceId: String, @Body envelope: SignedEnvelope): Response<NotificationPreferencesResponse>
+  @GET("api/v1/attention") suspend fun attention(): Response<ExecutiveAttention>
+  @POST("api/v1/device/recent-auth/challenge") suspend fun mobileRecentAuthChallenge(@Header("X-Device-Id") deviceId: String, @Body envelope: SignedEnvelope): Response<RecentAuthChallenge>
+  @POST("api/v1/device/recent-auth/verify") suspend fun mobileRecentAuthVerify(@Header("X-Device-Id") deviceId: String, @Body envelope: SignedEnvelope): Response<RecentAuthStatus>
+  @POST("api/v1/device/biometric-key") suspend fun registerBiometricKey(@Header("X-Device-Id") deviceId: String, @Body envelope: SignedEnvelope): Response<BiometricKeyRegistrationResponse>
+  @POST("api/v1/device/approvals/{approvalId}/decision") suspend fun mobileApprovalDecision(@Path("approvalId") approvalId: String, @Header("X-Device-Id") deviceId: String, @Body envelope: SignedEnvelope): Response<Approval>
+  @POST("api/v1/device/objectives/{objectiveId}/action") suspend fun mobileObjectiveAction(@Path("objectiveId") objectiveId: String, @Header("X-Device-Id") deviceId: String, @Body envelope: SignedEnvelope): Response<ObjectiveDashboard>
+  @POST("api/v1/device/objectives") suspend fun mobileObjectiveCreate(@Header("X-Device-Id") deviceId: String, @Body envelope: SignedEnvelope): Response<Any>
+  @POST("api/v1/device/objectives/{objectiveId}/modify") suspend fun mobileObjectiveModify(@Path("objectiveId") objectiveId: String, @Header("X-Device-Id") deviceId: String, @Body envelope: SignedEnvelope): Response<Any>
 }
 
 class AlexaApiClient private constructor(
@@ -75,22 +83,29 @@ class AlexaApiClient private constructor(
   suspend fun workforceGraph() = call { service.workforceGraph() }
   suspend fun workforceAgent(id: String) = call { service.workforceAgent(id) }
   suspend fun pendingApprovals() = call { service.pendingApprovals() }
+  suspend fun approval(id: String) = call { service.approval(id) }
   suspend fun economy() = call { service.economy() }
   suspend fun workflows() = call { service.workflows() }
   suspend fun workflow(id: String) = call { service.workflow(id) }
   suspend fun experiments(objectiveId: String) = call { service.experiments(objectiveId) }
+  suspend fun allExperiments() = call { service.allExperiments() }
   suspend fun conversations() = call { service.conversations() }
   suspend fun startVoiceSession(envelope: SignedEnvelope) = call { service.startVoiceSession(envelope) }
   suspend fun voiceCaptureLease(envelope: SignedEnvelope) = call { service.voiceCaptureLease(envelope) }
   suspend fun submitConversationTurn(envelope: SignedEnvelope) = call { service.submitConversationTurn(envelope) }
   suspend fun cancelConversationTurn(envelope: SignedEnvelope) = call { service.cancelConversationTurn(envelope) }
-  suspend fun createObjective(csrf: String, request: CreateObjectiveRequest) = call { service.createObjective(csrf, request) }
-  suspend fun pauseObjective(id: String, csrf: String, request: ObjectiveMutationRequest) = call { service.pauseObjective(id, csrf, request) }
-  suspend fun resumeObjective(id: String, csrf: String, request: ObjectiveMutationRequest) = call { service.resumeObjective(id, csrf, request) }
-  suspend fun cancelObjective(id: String, csrf: String, request: ObjectiveMutationRequest) = call { service.cancelObjective(id, csrf, request) }
-  suspend fun modifyObjective(id: String, csrf: String, request: ModifyObjectiveRequest) = call { service.modifyObjective(id, csrf, request) }
-  suspend fun approve(id: String, csrf: String, request: ApprovalDecisionRequest) = call { service.approve(id, csrf, request) }
-  suspend fun reject(id: String, csrf: String, request: ApprovalDecisionRequest) = call { service.reject(id, csrf, request) }
+  suspend fun registerPushToken(deviceId: String, envelope: SignedEnvelope) = call { service.registerPushToken(deviceId, envelope) }
+  suspend fun unregisterPushToken(deviceId: String, envelope: SignedEnvelope) = call { service.unregisterPushToken(deviceId, envelope) }
+  suspend fun notificationPreferences() = call { service.notificationPreferences() }
+  suspend fun updateNotificationPreferences(deviceId: String, envelope: SignedEnvelope) = call { service.updateNotificationPreferences(deviceId, envelope) }
+  suspend fun attention() = call { service.attention() }
+  suspend fun mobileRecentAuthChallenge(deviceId: String, envelope: SignedEnvelope) = call { service.mobileRecentAuthChallenge(deviceId, envelope) }
+  suspend fun mobileRecentAuthVerify(deviceId: String, envelope: SignedEnvelope) = call { service.mobileRecentAuthVerify(deviceId, envelope) }
+  suspend fun registerBiometricKey(deviceId: String, envelope: SignedEnvelope) = call { service.registerBiometricKey(deviceId, envelope) }
+  suspend fun mobileApprovalDecision(approvalId: String, deviceId: String, envelope: SignedEnvelope) = call { service.mobileApprovalDecision(approvalId, deviceId, envelope) }
+  suspend fun mobileObjectiveAction(objectiveId: String, deviceId: String, envelope: SignedEnvelope) = call { service.mobileObjectiveAction(objectiveId, deviceId, envelope) }
+  suspend fun mobileObjectiveCreate(deviceId: String, envelope: SignedEnvelope) = call { service.mobileObjectiveCreate(deviceId, envelope) }
+  suspend fun mobileObjectiveModify(objectiveId: String, deviceId: String, envelope: SignedEnvelope) = call { service.mobileObjectiveModify(objectiveId, deviceId, envelope) }
 
   private suspend fun <T> call(block: suspend () -> Response<T>): Result<T> = withContext(Dispatchers.IO) {
     try {
@@ -176,6 +191,8 @@ private fun Response<*>.toFailure(gson: Gson): AlexaFailure {
     // A signed-command error is scoped to that command. It must never discard a
     // valid owner session or make a trusted device appear revoked.
     "INVALID_SIGNATURE", "SIGNED_REQUEST_EXPIRED", "DUPLICATE_NONCE" -> AlexaFailure.SignedRequestRejected
+    "RECENT_AUTHENTICATION_REQUIRED" -> AlexaFailure.RecentAuthRequired
+    "APPROVAL_EXPIRED", "APPROVAL_ALREADY_DECIDED", "APPROVAL_NOT_FOUND" -> AlexaFailure.ApprovalConflict
     else -> if (code() == 401) AlexaFailure.Unauthorized else AlexaFailure.InvalidResponse
   }
 }

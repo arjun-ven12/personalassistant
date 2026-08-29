@@ -53,6 +53,7 @@ export * from "./desktop-skills.js";
 export * from "./memory.js";
 export * from "./memory-studio.js";
 export * from "./network.js";
+export * from "./notifications.js";
 export * from "./native-providers.js";
 export * from "./patches.js";
 export * from "./validation.js";

@@ -19963,6 +19963,15 @@ var AuditEventTypeSchema = external_exports.enum([
   "DEVICE_PAIR_REQUEST",
   "DEVICE_APPROVED",
   "DEVICE_REVOKED",
+  "DEVICE_PUSH_TOKEN_REGISTERED",
+  "DEVICE_PUSH_TOKEN_REMOVED",
+  "NOTIFICATION_PREFERENCE_UPDATED",
+  "PUSH_NOTIFICATION_ATTEMPTED",
+  "PUSH_NOTIFICATION_DEDUPLICATED",
+  "PUSH_NOTIFICATION_RATE_LIMITED",
+  "PUSH_NOTIFICATION_SUPPRESSED",
+  "PUSH_NOTIFICATION_ACCEPTED",
+  "PUSH_NOTIFICATION_REJECTED",
   "INVALID_SIGNATURE",
   "REPLAY_REJECTED",
   "REQUEST_DENIED",
@@ -28834,6 +28843,124 @@ var CognitiveExportResponseSchema = external_exports.object({
   rawVectorsExported: external_exports.literal(false)
 }).strict();
 
+// ../../packages/shared/src/notifications.ts
+var ExecutiveNotificationCategorySchema = external_exports.enum([
+  "APPROVAL_REQUIRED",
+  "OBJECTIVE_AT_RISK",
+  "OBJECTIVE_BLOCKED",
+  "WORKFLOW_FAILED",
+  "WORKFLOW_BLOCKED",
+  "AGENT_ESCALATION",
+  "BUDGET_WARNING",
+  "BUDGET_APPROVAL",
+  "SECURITY_EVENT",
+  "DEVICE_EVENT",
+  "EXPERIMENT_COMPLETED",
+  "IMPORTANT_OBJECTIVE_COMPLETED"
+]);
+var ExecutiveNotificationSeveritySchema = external_exports.enum([
+  "LOW",
+  "NORMAL",
+  "HIGH",
+  "CRITICAL"
+]);
+var ExecutiveNotificationObjectKindSchema = external_exports.enum([
+  "APPROVAL",
+  "OBJECTIVE",
+  "WORKFLOW",
+  "AGENT",
+  "ECONOMY",
+  "EXPERIMENT",
+  "SYSTEM",
+  "DEVICE"
+]);
+var DevicePushRegistrationOperationSchema = external_exports.object({
+  operation: external_exports.literal("register_push_token"),
+  pushToken: external_exports.string().trim().min(20).max(4096),
+  platform: external_exports.literal("ANDROID"),
+  appVersion: external_exports.string().trim().min(1).max(80)
+}).strict();
+var DevicePushUnregistrationOperationSchema = external_exports.object({ operation: external_exports.literal("unregister_push_token") }).strict();
+var NotificationPreferenceValuesSchema = external_exports.object({
+  approvals: external_exports.boolean(),
+  objectiveRisk: external_exports.boolean(),
+  workflowFailures: external_exports.boolean(),
+  budgetAlerts: external_exports.boolean(),
+  securityAlerts: external_exports.literal(true),
+  experimentResults: external_exports.boolean(),
+  deviceEvents: external_exports.boolean()
+}).strict();
+var NotificationPreferencesResponseSchema = external_exports.object({
+  preferences: NotificationPreferenceValuesSchema,
+  securityAlertsMandatory: external_exports.literal(true),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var UpdateNotificationPreferencesOperationSchema = external_exports.object({
+  operation: external_exports.literal("update_notification_preferences"),
+  preferences: NotificationPreferenceValuesSchema.partial()
+}).strict();
+var MobileRecentAuthChallengeOperationSchema = external_exports.object({
+  operation: external_exports.literal("mobile_recent_auth_challenge"),
+  purpose: external_exports.literal("approve_high_risk_action")
+}).strict();
+var MobileRecentAuthVerifyOperationSchema = external_exports.object({
+  operation: external_exports.literal("mobile_recent_auth_verify"),
+  challengeId: external_exports.string().uuid(),
+  challengeToken: external_exports.string().min(32).max(200),
+  biometricSignature: external_exports.string().trim().min(80).max(200)
+}).strict();
+var MobileBiometricKeyRegistrationOperationSchema = external_exports.object({
+  operation: external_exports.literal("register_mobile_biometric_key"),
+  publicKey: Ed25519PublicKeySchema
+}).strict();
+var MobileBiometricKeyRegistrationResponseSchema = external_exports.object({ registered: external_exports.literal(true), deviceId: external_exports.string().uuid() }).strict();
+var MobileApprovalDecisionOperationSchema = external_exports.object({
+  operation: external_exports.literal("approval_decision"),
+  approvalId: external_exports.string().uuid(),
+  decision: external_exports.enum(["APPROVE", "REJECT"]),
+  reason: external_exports.string().trim().min(1).max(300).optional()
+}).strict();
+var MobileObjectiveActionOperationSchema = external_exports.object({
+  operation: external_exports.literal("objective_action"),
+  objectiveId: external_exports.string().uuid(),
+  action: external_exports.enum(["pause", "resume", "cancel", "replan"]),
+  idempotencyKey: external_exports.string().uuid()
+}).strict();
+var MobileObjectiveCreateOperationSchema = external_exports.object({
+  operation: external_exports.literal("objective_create"),
+  request: CreateObjectiveRequestSchema
+}).strict();
+var MobileObjectiveModifyOperationSchema = external_exports.object({
+  operation: external_exports.literal("objective_modify"),
+  objectiveId: external_exports.string().uuid(),
+  idempotencyKey: external_exports.string().uuid(),
+  budgetCredits: external_exports.number().int().min(1).max(1e7).optional(),
+  priority: external_exports.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).optional()
+}).strict().refine((value) => value.budgetCredits !== void 0 || value.priority !== void 0, {
+  message: "At least one bounded objective change is required."
+});
+var PushRegistrationResponseSchema = external_exports.object({
+  registered: external_exports.boolean(),
+  deviceId: external_exports.string().uuid(),
+  enabled: external_exports.boolean(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var ExecutiveAttentionResponseSchema = external_exports.object({
+  total: external_exports.number().int().nonnegative(),
+  pendingApprovals: external_exports.number().int().nonnegative(),
+  blockedObjectives: external_exports.number().int().nonnegative(),
+  atRiskObjectives: external_exports.number().int().nonnegative(),
+  criticalSecurityEvents: external_exports.number().int().nonnegative()
+}).strict();
+var ExecutivePushPayloadSchema = external_exports.object({
+  type: ExecutiveNotificationCategorySchema,
+  objectKind: ExecutiveNotificationObjectKindSchema,
+  objectId: external_exports.string().trim().min(1).max(160),
+  eventId: external_exports.string().trim().min(1).max(200),
+  severity: ExecutiveNotificationSeveritySchema,
+  title: external_exports.string().trim().min(1).max(100)
+}).strict();
+
 // ../../packages/shared/src/workflows.ts
 var WorkflowStatusSchema = external_exports.enum([
   "PLANNED",
@@ -30696,7 +30823,7 @@ var RecordVoiceTranscriptRequestSchema = external_exports.object({
   confidence: external_exports.number().min(0).max(1),
   language: external_exports.string().min(2).max(40).nullable().optional(),
   wakeWordDetected: external_exports.boolean().default(false),
-  source: external_exports.enum(["browser", "electron", "api"]).default("browser"),
+  source: external_exports.enum(["browser", "electron", "android", "api"]).default("browser"),
   pageContext: VoicePageContextSchema.optional()
 }).strict();
 var DeviceVoiceRuntimePayloadSchema = external_exports.discriminatedUnion("operation", [
@@ -30720,7 +30847,7 @@ var DeviceVoiceRuntimePayloadSchema = external_exports.discriminatedUnion("opera
     voiceSessionId: external_exports.string().uuid()
   }).strict()
 ]);
-var VoiceCaptureClientTypeSchema = external_exports.enum(["WEB", "OVERLAY"]);
+var VoiceCaptureClientTypeSchema = external_exports.enum(["WEB", "OVERLAY", "ANDROID"]);
 var VoiceCaptureLeaseRequestSchema = external_exports.object({
   action: external_exports.enum(["acquire", "takeover", "heartbeat", "release", "status"]),
   voiceSessionId: external_exports.string().uuid()

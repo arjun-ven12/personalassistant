@@ -95,6 +95,63 @@ sealed interface AlexaFailure {
   data object ServerUnavailable : AlexaFailure
   data object Timeout : AlexaFailure
   data object RateLimited : AlexaFailure
+  data object RecentAuthRequired : AlexaFailure
+  data object ApprovalConflict : AlexaFailure
   data object InvalidResponse : AlexaFailure
   data class Unknown(val safeMessage: String) : AlexaFailure
+}
+
+data class PushRegistrationResponse(
+  val registered: Boolean,
+  val deviceId: String,
+  val enabled: Boolean,
+  val updatedAt: String,
+)
+
+data class NotificationPreferences(
+  val approvals: Boolean = true,
+  val objectiveRisk: Boolean = true,
+  val workflowFailures: Boolean = true,
+  val budgetAlerts: Boolean = true,
+  val securityAlerts: Boolean = true,
+  val experimentResults: Boolean = true,
+  val deviceEvents: Boolean = true,
+)
+
+data class NotificationPreferencesResponse(
+  val preferences: NotificationPreferences = NotificationPreferences(),
+  val securityAlertsMandatory: Boolean = true,
+  val updatedAt: String,
+)
+
+data class RecentAuthChallenge(
+  val challengeId: String,
+  val challengeToken: String,
+  val purpose: String,
+  val expiresAt: String,
+)
+
+data class RecentAuthStatus(
+  val active: Boolean,
+  val purpose: String? = null,
+  val expiresAt: String? = null,
+)
+
+data class BiometricKeyRegistrationResponse(val registered: Boolean, val deviceId: String)
+
+data class ExecutiveAttention(
+  val total: Int = 0,
+  val pendingApprovals: Int = 0,
+  val blockedObjectives: Int = 0,
+  val atRiskObjectives: Int = 0,
+  val criticalSecurityEvents: Int = 0,
+)
+
+data class NotificationTarget(val kind: String, val objectId: String, val eventId: String?) {
+  fun isValid(): Boolean = kind in VALID_KINDS && objectId.length in 1..160 &&
+    objectId.all { it.isLetterOrDigit() || it == '-' || it == '_' || it == ':' }
+
+  companion object {
+    private val VALID_KINDS = setOf("APPROVAL", "OBJECTIVE", "WORKFLOW", "AGENT", "ECONOMY", "EXPERIMENT", "SYSTEM", "DEVICE")
+  }
 }

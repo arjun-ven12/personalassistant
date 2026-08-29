@@ -27,12 +27,31 @@ export interface GovernanceAuditInput {
 
 export type GovernanceAuditWriter = (input: GovernanceAuditInput) => Awaitable<void>;
 
+type ApprovalNotificationSink = {
+  dispatch(input: {
+    ownerId: string;
+    eventId: string;
+    category: "APPROVAL_REQUIRED";
+    severity: "NORMAL" | "HIGH" | "CRITICAL";
+    objectKind: "APPROVAL";
+    objectId: string;
+    stateVersion: string;
+    title: string;
+  }): Promise<void>;
+};
+
 export class ApprovalService {
+  #notificationSink?: ApprovalNotificationSink;
+
   constructor(
     readonly store: GovernanceStore,
     readonly audit: GovernanceAuditWriter,
     readonly ttlSeconds = 900,
   ) {}
+
+  setNotificationSink(sink: ApprovalNotificationSink) {
+    this.#notificationSink = sink;
+  }
 
   async create(input: {
     ownerId: string;
@@ -98,6 +117,21 @@ export class ApprovalService {
       ipAddress: input.ipAddress,
       requestId: input.requestId,
     });
+    await this.#notificationSink?.dispatch({
+      ownerId: input.ownerId,
+      eventId: `approval:${created.id}:requested`,
+      category: "APPROVAL_REQUIRED",
+      severity:
+        created.riskLevel === "high"
+          ? "CRITICAL"
+          : created.riskLevel === "medium"
+            ? "HIGH"
+            : "NORMAL",
+      objectKind: "APPROVAL",
+      objectId: created.id,
+      stateVersion: `PENDING:${created.requestedAt}`,
+      title: "Alexa approval required",
+    }).catch(() => undefined);
     return this.toPublic(created);
   }
 

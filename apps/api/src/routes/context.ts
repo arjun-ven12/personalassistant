@@ -115,6 +115,7 @@ import type { SkillEvolutionStore } from "../skill-evolution/store.js";
 import type { CapabilityStudioService } from "../capability-studio/service.js";
 import type { CapabilityStudioStore } from "../capability-studio/store.js";
 import type { BusinessOSService } from "../business-os/service.js";
+import type { ExecutiveNotificationService } from "../notifications/service.js";
 
 export interface ApiRouteContext {
   deploymentMode: "private" | "cloud";
@@ -239,6 +240,7 @@ export interface ApiRouteContext {
   objectives: ObjectiveEngineService;
   experiments: ExperimentService;
   businessOS: BusinessOSService;
+  notifications: ExecutiveNotificationService;
   reflection: ReflectionEngineService;
   reflectionStore: ReflectionStore;
   skillEvolution: SkillEvolutionService;

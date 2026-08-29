@@ -26,6 +26,10 @@ sealed interface AlexaScreenState {
   data object Shell : AlexaScreenState
 }
 
+enum class BiometricPurpose { UNLOCK, APPROVAL_STEP_UP }
+data class BiometricRequest(val purpose: BiometricPurpose, val challenge: RecentAuthChallenge? = null)
+private data class PendingApprovalStepUp(val approvalId: String, val challenge: RecentAuthChallenge)
+
 data class AlexaUiState(
   val screen: AlexaScreenState = AlexaScreenState.Checking,
   val connection: ConnectionState = ConnectionState.OFFLINE,
@@ -35,6 +39,10 @@ data class AlexaUiState(
   val agentDetails: Map<String, WorkforceAgentDetail> = emptyMap(),
   val workflowDetails: Map<String, WorkflowDetail> = emptyMap(),
   val experimentDashboards: Map<String, ExperimentDashboard> = emptyMap(),
+  val approvalDetails: Map<String, Approval> = emptyMap(),
+  val notificationPreferences: NotificationPreferencesResponse? = null,
+  val notificationTarget: NotificationTarget? = null,
+  val notificationPermissionGranted: Boolean = false,
   val conversations: ConversationCenter? = null,
   val selectedConversationId: String? = null,
   val activeVoiceSessionId: String? = null,
@@ -58,8 +66,9 @@ class AlexaViewModel(
 ) : ViewModel() {
   private val mutableState = MutableStateFlow(AlexaUiState())
   val state = mutableState.asStateFlow()
-  private val biometricRequests = MutableSharedFlow<Unit>()
+  private val biometricRequests = MutableSharedFlow<BiometricRequest>()
   val requestsBiometric = biometricRequests.asSharedFlow()
+  private var pendingApprovalStepUp: PendingApprovalStepUp? = null
 
   init {
     connectivity.start()
@@ -121,11 +130,27 @@ class AlexaViewModel(
     )
   }
 
-  fun onBiometricSucceeded() {
+  fun onBiometricSucceeded(biometricSignature: String? = null) {
+    val pending = pendingApprovalStepUp
+    if (pending != null) {
+      pendingApprovalStepUp = null
+      viewModelScope.launch {
+        if (biometricSignature == null) return@launch showFailure(IllegalStateException("Biometric signature unavailable."))
+        repository.verifyMobileRecentAuth(pending.challenge, biometricSignature).fold(
+          onSuccess = { decideApproval(pending.approvalId, true) },
+          onFailure = ::showFailure,
+        )
+      }
+      return
+    }
     mutableState.value = mutableState.value.copy(screen = AlexaScreenState.Shell, error = null)
     refresh()
   }
-  fun onBiometricCancelled() { mutableState.value = mutableState.value.copy(error = "Alexa remains locked.") }
+  fun onBiometricCancelled() {
+    val wasStepUp = pendingApprovalStepUp != null
+    pendingApprovalStepUp = null
+    mutableState.value = mutableState.value.copy(error = if (wasStepUp) "Approval was not submitted." else "Alexa remains locked.")
+  }
 
   fun refresh() = viewModelScope.launch {
     if (mutableState.value.connection == ConnectionState.OFFLINE) return@launch cachedOfflineState()
@@ -134,10 +159,12 @@ class AlexaViewModel(
       val summary = repository.refreshSummary().getOrNull() ?: return@boundedReconnect false
       val commandCenter = repository.commandCenter().getOrNull()
       val conversations = repository.conversations().getOrNull()
+      val notificationPreferences = repository.notificationPreferences().getOrNull()
       mutableState.value = mutableState.value.withConversations(conversations).copy(
         health = health,
         summary = summary,
         commandCenter = commandCenter,
+        notificationPreferences = notificationPreferences,
         connection = ConnectionState.ONLINE,
         lastUpdatedAt = System.currentTimeMillis(),
         error = null,
@@ -150,7 +177,8 @@ class AlexaViewModel(
   fun onBackground() = lockController.onBackground(System.currentTimeMillis())
   fun onForeground() { if (lockController.requiresBiometricOnForeground(System.currentTimeMillis()) && repository.hasSession()) requireBiometric() }
   fun lockNow() = requireBiometric()
-  fun signOutAndForgetDevice() {
+  fun signOutAndForgetDevice() = viewModelScope.launch {
+    if (mutableState.value.connection == ConnectionState.ONLINE) repository.unregisterPushToken()
     repository.clearAuthority()
     mutableState.value = AlexaUiState(screen = AlexaScreenState.Login, connection = mutableState.value.connection)
   }
@@ -170,9 +198,71 @@ class AlexaViewModel(
     repository.modifyObjective(objectiveId, budgetCredits, priority).fold(onSuccess = { refresh() }, onFailure = ::showFailure)
   }
 
-  fun decideApproval(approvalId: String, approve: Boolean) = viewModelScope.launch {
+  fun decideApproval(approvalId: String, approve: Boolean) = decideApprovalWithReason(approvalId, approve, null)
+
+  fun decideApprovalWithReason(approvalId: String, approve: Boolean, reason: String?) = viewModelScope.launch {
     if (mutableState.value.connection != ConnectionState.ONLINE) return@launch showOfflineActionError()
-    repository.decideApproval(approvalId, approve).fold(onSuccess = { refresh() }, onFailure = ::showFailure)
+    repository.decideApproval(approvalId, approve, reason).fold(
+      onSuccess = { result ->
+        mutableState.value = mutableState.value.copy(approvalDetails = mutableState.value.approvalDetails + (result.id to result))
+        refresh()
+      },
+      onFailure = { error ->
+        if (approve && (error as? AlexaApiException)?.failure == AlexaFailure.RecentAuthRequired) {
+          repository.beginMobileRecentAuth().fold(
+            onSuccess = { challenge ->
+              pendingApprovalStepUp = PendingApprovalStepUp(approvalId, challenge)
+              biometricRequests.emit(BiometricRequest(BiometricPurpose.APPROVAL_STEP_UP, challenge))
+            },
+            onFailure = ::showFailure,
+          )
+        } else if ((error as? AlexaApiException)?.failure == AlexaFailure.ApprovalConflict) {
+          loadApprovalDetail(approvalId, force = true)
+          mutableState.value = mutableState.value.copy(error = "This approval changed elsewhere. Showing the current state.")
+        } else showFailure(error)
+      },
+    )
+  }
+
+  fun loadApprovalDetail(approvalId: String, force: Boolean = false) = viewModelScope.launch {
+    if (!force && mutableState.value.approvalDetails.containsKey(approvalId)) return@launch
+    repository.approval(approvalId).onSuccess { approval ->
+      mutableState.value = mutableState.value.copy(approvalDetails = mutableState.value.approvalDetails + (approvalId to approval))
+    }.onFailure(::showFailure)
+  }
+
+  fun registerPushToken(token: String, appVersion: String) = viewModelScope.launch {
+    if (mutableState.value.screen !is AlexaScreenState.Shell || mutableState.value.connection != ConnectionState.ONLINE) return@launch
+    repository.registerPushToken(token, appVersion).onFailure(::showFailure)
+  }
+
+  fun registerBiometricKey(publicKey: PublicKeyJwk) = viewModelScope.launch {
+    if (mutableState.value.screen !is AlexaScreenState.Shell || mutableState.value.connection != ConnectionState.ONLINE) return@launch
+    repository.registerBiometricKey(publicKey).onFailure(::showFailure)
+  }
+
+  fun updateNotificationPreferences(preferences: NotificationPreferences) = viewModelScope.launch {
+    repository.updateNotificationPreferences(preferences).onSuccess { updated ->
+      mutableState.value = mutableState.value.copy(notificationPreferences = updated)
+    }.onFailure(::showFailure)
+  }
+
+  fun onNotificationPermission(granted: Boolean) {
+    mutableState.value = mutableState.value.copy(notificationPermissionGranted = granted)
+  }
+
+  fun openNotification(target: NotificationTarget) {
+    if (!target.isValid()) return
+    mutableState.value = mutableState.value.copy(notificationTarget = target)
+    when (target.kind) {
+      "APPROVAL" -> loadApprovalDetail(target.objectId, force = true)
+      "WORKFLOW" -> loadWorkflowDetail(target.objectId)
+      "AGENT" -> loadAgentDetail(target.objectId)
+    }
+  }
+
+  fun consumeNotificationTarget() {
+    mutableState.value = mutableState.value.copy(notificationTarget = null)
   }
 
   fun loadAgentDetail(agentId: String) = viewModelScope.launch {
@@ -324,7 +414,7 @@ class AlexaViewModel(
 
   private fun requireBiometric() {
     mutableState.value = mutableState.value.copy(screen = AlexaScreenState.BiometricLocked, error = null)
-    viewModelScope.launch { biometricRequests.emit(Unit) }
+    viewModelScope.launch { biometricRequests.emit(BiometricRequest(BiometricPurpose.UNLOCK)) }
   }
 
   private fun cachedOfflineState() {
@@ -363,6 +453,11 @@ class AlexaViewModel(
       )
       return
     }
+    if (failure == AlexaFailure.ApprovalConflict) {
+      mutableState.value = mutableState.value.copy(error = "This approval is no longer pending. Refreshing current state.")
+      refresh()
+      return
+    }
     if (failure == AlexaFailure.Unauthorized) {
       repository.clearSession()
       mutableState.value = mutableState.value.copy(screen = AlexaScreenState.Login, error = "Authentication is required.")
@@ -375,6 +470,8 @@ class AlexaViewModel(
       AlexaFailure.ServerUnavailable -> "Alexa is temporarily unavailable."
       AlexaFailure.DeviceNotEligible -> "This trusted device is not enabled for that Alexa feature yet."
       AlexaFailure.SignedRequestRejected -> "Alexa could not verify this device request. Your session and device pairing remain intact."
+      AlexaFailure.RecentAuthRequired -> "Biometric confirmation is required for this approval."
+      AlexaFailure.ApprovalConflict -> "This approval is no longer pending."
       else -> "The request could not be completed."
     })
   }
