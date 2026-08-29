@@ -41,7 +41,6 @@ class AndroidVoiceController(context: Context) : RecognitionListener, TextToSpee
   private var captureListener: ((VoiceCaptureEvent) -> Unit)? = null
   private var speechListener: ((Boolean, String?) -> Unit)? = null
   private var ttsReady = false
-  private var captureFocus: AudioFocusRequest? = null
   private var speechFocus: AudioFocusRequest? = null
   private val timeout = Runnable {
     recognizer?.stopListening()
@@ -77,12 +76,9 @@ class AndroidVoiceController(context: Context) : RecognitionListener, TextToSpee
       listener(VoiceCaptureEvent.Failure("Speech recognition is unavailable on this device."))
       return
     }
-    captureFocus = focusRequest(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE).also {
-      if (audioManager.requestAudioFocus(it) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-        listener(VoiceCaptureEvent.Failure("The microphone is currently unavailable."))
-        return
-      }
-    }
+    // SpeechRecognizer owns microphone/audio focus while listening. Requesting
+    // exclusive focus here can make the recognizer's own service revoke our
+    // focus immediately, which cancels capture as soon as it starts.
     listener(VoiceCaptureEvent.Ready)
     recognizer.startListening(
       Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -105,7 +101,6 @@ class AndroidVoiceController(context: Context) : RecognitionListener, TextToSpee
   fun cancelCapture() {
     mainHandler.removeCallbacks(timeout)
     recognizer?.cancel()
-    releaseCaptureFocus()
     captureListener?.invoke(VoiceCaptureEvent.Cancelled)
     captureListener = null
   }
@@ -144,7 +139,6 @@ class AndroidVoiceController(context: Context) : RecognitionListener, TextToSpee
     recognizer?.destroy()
     tts.stop()
     tts.shutdown()
-    releaseCaptureFocus()
     releaseSpeechFocus()
   }
 
@@ -166,7 +160,6 @@ class AndroidVoiceController(context: Context) : RecognitionListener, TextToSpee
 
   override fun onError(error: Int) {
     mainHandler.removeCallbacks(timeout)
-    releaseCaptureFocus()
     val message = when (error) {
       SpeechRecognizer.ERROR_NO_MATCH -> "I couldn't hear a clear phrase."
       SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "No speech was detected."
@@ -182,7 +175,6 @@ class AndroidVoiceController(context: Context) : RecognitionListener, TextToSpee
 
   override fun onResults(results: Bundle?) {
     mainHandler.removeCallbacks(timeout)
-    releaseCaptureFocus()
     val candidates = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION).orEmpty()
     val confidence = results?.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES)?.firstOrNull()?.toDouble()
       ?.takeIf { it >= 0.0 } ?: 0.7
@@ -217,11 +209,6 @@ class AndroidVoiceController(context: Context) : RecognitionListener, TextToSpee
       }
     }
     .build()
-
-  private fun releaseCaptureFocus() {
-    captureFocus?.let(audioManager::abandonAudioFocusRequest)
-    captureFocus = null
-  }
 
   private fun releaseSpeechFocus() {
     speechFocus?.let(audioManager::abandonAudioFocusRequest)
