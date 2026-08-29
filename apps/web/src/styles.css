@@ -7402,7 +7402,7 @@ pre {
 .agents-side-rail {
   display: grid;
   grid-column: 2;
-  grid-row: auto;
+  grid-row: 6;
   align-self: start;
   gap: 14px;
 }
@@ -7411,6 +7411,7 @@ pre {
 .agents-main-column {
   display: grid;
   grid-column: 1;
+  grid-row: 6;
   align-content: start;
   gap: 16px;
 }
@@ -7640,6 +7641,8 @@ pre {
   .agent-adaptive-panel,
   .agent-dynamic-panel,
   .agent-capability-panel { grid-column: 1; }
+  .agents-main-column,
+  .agents-side-rail { grid-row: auto; }
   .agent-society-panel { grid-row: auto; }
   .workforce-runtime-panel { grid-row: auto; }
   .agent-task-panel { grid-template-columns: 1fr 1fr; }
