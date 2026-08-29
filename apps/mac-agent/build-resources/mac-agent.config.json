@@ -1,0 +1,13 @@
+{
+  "ALEXA_AGENT_ENVIRONMENT": "production",
+  "ALEXA_API_BASE_URL": "https://personalassistant-production-269b.up.railway.app",
+  "ALEXA_WEB_BASE_URL": "https://frontend-personal-assistant-production.up.railway.app",
+  "ALEXA_AGENT_LOG_LEVEL": "info",
+  "ALEXA_REQUIRE_PRIVATE_NETWORK": false,
+  "ALEXA_READ_ONLY_EXECUTION_ENABLED": true,
+  "ALEXA_EXECUTION_POLL_INTERVAL_MS": 5000,
+  "ALEXA_UPDATE_PROVIDER": "disabled",
+  "ALEXA_UPDATE_CHANNEL": "stable",
+  "ALEXA_UPDATE_AUTO_CHECK": false,
+  "ALEXA_UPDATE_CHECK_INTERVAL_HOURS": 6
+}

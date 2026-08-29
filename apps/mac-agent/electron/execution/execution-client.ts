@@ -17,10 +17,13 @@ import type { LocalDeviceIdentity } from "../services.js";
 import { apiErrorDetails } from "../services.js";
 import { dispatchReadOnlyCapability, type DispatcherLimits } from "./dispatcher.js";
 import { CapabilityError } from "./errors.js";
+import { reconnectDelayMs } from "../product-runtime.js";
 
 export interface ExecutionClientStatus {
   polling: boolean;
+  suspended: boolean;
   lastPollAt: string | null;
+  lastSuccessfulConnectionAt: string | null;
   currentExecutionRequestId: string | null;
   lastFailureCode: string | null;
   lastHeartbeatAt: string | null;
@@ -29,13 +32,16 @@ export interface ExecutionClientStatus {
 export class ReadOnlyExecutionClient {
   readonly status: ExecutionClientStatus = {
     polling: false,
+    suspended: false,
     lastPollAt: null,
+    lastSuccessfulConnectionAt: null,
     currentExecutionRequestId: null,
     lastFailureCode: null,
     lastHeartbeatAt: null,
   };
   #timer: ReturnType<typeof setTimeout> | undefined;
   #stopped = true;
+  #consecutiveFailures = 0;
   #lastCancellationCursor: string | undefined;
 
   constructor(
@@ -52,12 +58,16 @@ export class ReadOnlyExecutionClient {
         }
       | undefined = undefined,
     readonly fetchImplementation: typeof fetch = fetch,
+    readonly onStatusChanged: (status: Readonly<ExecutionClientStatus>) => void =
+      () => undefined,
   ) {}
 
   start() {
     if (!this.#stopped) return;
     this.#stopped = false;
+    this.status.suspended = false;
     this.status.polling = true;
+    this.notifyStatusChanged();
     void this.pollLoop();
   }
 
@@ -65,6 +75,26 @@ export class ReadOnlyExecutionClient {
     this.#stopped = true;
     this.status.polling = false;
     if (this.#timer) clearTimeout(this.#timer);
+    this.notifyStatusChanged();
+  }
+
+  suspend() {
+    this.status.suspended = true;
+    if (this.#timer) clearTimeout(this.#timer);
+    this.notifyStatusChanged();
+  }
+
+  resume() {
+    if (this.#stopped) return;
+    this.status.suspended = false;
+    this.#consecutiveFailures = 0;
+    if (this.#timer) clearTimeout(this.#timer);
+    this.notifyStatusChanged();
+    void this.pollLoop();
+  }
+
+  reconnectNow() {
+    this.resume();
   }
 
   private async signCommand(
@@ -243,7 +273,7 @@ export class ReadOnlyExecutionClient {
   }
 
   private async pollLoop() {
-    if (this.#stopped) return;
+    if (this.#stopped || this.status.suspended) return;
     try {
       this.status.lastPollAt = new Date().toISOString();
       const response = AgentPollResponseSchema.parse(
@@ -261,6 +291,8 @@ export class ReadOnlyExecutionClient {
             : {}),
         }),
       );
+      this.#consecutiveFailures = 0;
+      this.status.lastSuccessfulConnectionAt = new Date().toISOString();
       this.status.lastFailureCode = null;
       if (response.cancellations.length > 0) {
         this.#lastCancellationCursor = response.cancellations[0]!.cancelledAt;
@@ -280,13 +312,23 @@ export class ReadOnlyExecutionClient {
         this.status.lastFailureCode = null;
       }
     } catch (error) {
+      this.#consecutiveFailures += 1;
       this.status.lastFailureCode =
         error instanceof CapabilityError ? error.code : "AGENT_EXECUTION_POLL_FAILED";
       this.status.currentExecutionRequestId = null;
     } finally {
-      if (!this.#stopped)
-        this.#timer = setTimeout(() => void this.pollLoop(), this.intervalMs);
+      this.notifyStatusChanged();
+      if (!this.#stopped && !this.status.suspended) {
+        const delay = this.status.lastFailureCode
+          ? reconnectDelayMs(this.#consecutiveFailures - 1, this.intervalMs)
+          : this.intervalMs;
+        this.#timer = setTimeout(() => void this.pollLoop(), delay);
+      }
     }
+  }
+
+  private notifyStatusChanged() {
+    this.onStatusChanged({ ...this.status });
   }
 
   private async dispatchNativeProviderCapability(request: ReadOnlyExecutionRequest) {

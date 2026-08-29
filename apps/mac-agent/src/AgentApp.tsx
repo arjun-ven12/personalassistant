@@ -6,6 +6,7 @@ import type {
   AgentPairingStatus,
   CapabilityStatus,
   DeviceIdentityStatus,
+  MacAgentProductStatus,
   NativeProviderHostStatus,
   NativeSpatialStatus,
 } from "../electron/contracts.js";
@@ -20,6 +21,7 @@ const AgentControlApp = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const runtimeRef = useRef<NativeSpatialRuntime | null>(null);
   const [diagnostics, setDiagnostics] = useState<AgentDiagnostics | null>(null);
+  const [product, setProduct] = useState<MacAgentProductStatus | null>(null);
   const [capabilities, setCapabilities] = useState<CapabilityStatus>({});
   const [connection, setConnection] = useState<AgentConnectionResult | null>(null);
   const [pairing, setPairing] = useState<AgentPairingStatus | null>(null);
@@ -56,6 +58,7 @@ const AgentControlApp = () => {
   useEffect(() => {
     void Promise.all([
       window.alexaAgent.getAgentDiagnostics(),
+      window.alexaAgent.getProductStatus(),
       window.alexaAgent.getCapabilityStatus(),
       window.alexaAgent.getDeviceIdentityStatus(),
       window.alexaAgent.getNativeSpatialStatus(),
@@ -64,6 +67,7 @@ const AgentControlApp = () => {
       .then(
         ([
           nextDiagnostics,
+          nextProduct,
           nextCapabilities,
           nextIdentity,
           nextNative,
@@ -71,6 +75,7 @@ const AgentControlApp = () => {
         ]) => {
           setDiagnosticError(null);
           setDiagnostics(nextDiagnostics);
+          setProduct(nextProduct);
           setCapabilities(nextCapabilities);
           setIdentity(nextIdentity);
           setNativeSpatial(nextNative);
@@ -90,6 +95,16 @@ const AgentControlApp = () => {
       runtimeRef.current = null;
       void window.alexaAgent.stopNativeSpatialRuntime();
     };
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      void window.alexaAgent
+        .getProductStatus()
+        .then(setProduct)
+        .catch(() => undefined);
+    }, 15_000);
+    return () => window.clearInterval(timer);
   }, []);
 
   const submitNativeGesture = async (gesture: NativeSpatialGesture) => {
@@ -159,6 +174,18 @@ const AgentControlApp = () => {
     const result = await window.alexaAgent.testSecureApiConnection();
     setConnection(result);
     addLog(result.message);
+  };
+
+  const runUpdateAction = async (
+    action: () => Promise<MacAgentProductStatus["update"]>,
+  ) => {
+    try {
+      const update = await action();
+      setProduct((current) => (current ? { ...current, update } : current));
+      addLog(update.message);
+    } catch (error) {
+      addLog(error instanceof Error ? error.message : "Update operation failed.");
+    }
   };
 
   const resetIdentity = async () => {
@@ -236,6 +263,138 @@ const AgentControlApp = () => {
             : "Execution disabled"}
         </div>
       </header>
+
+      <section className="product-overview" aria-label="Mac Agent overview">
+        <div className="product-summary">
+          <div>
+            <p className="eyebrow">Mac execution device</p>
+            <h2>{product?.connectionState.replaceAll("_", " ") ?? "CONNECTING"}</h2>
+            <p>{product?.deviceName ?? "Loading device identity…"}</p>
+          </div>
+          <dl>
+            <div>
+              <dt>Environment</dt>
+              <dd>{product?.environment ?? "development"}</dd>
+            </div>
+            <div>
+              <dt>Backend</dt>
+              <dd>{product?.backend ?? "Loading…"}</dd>
+            </div>
+            <div>
+              <dt>Device ID</dt>
+              <dd>{product?.maskedDeviceId ?? "Not configured"}</dd>
+            </div>
+            <div>
+              <dt>Native helpers</dt>
+              <dd>{product?.nativeHelperStatus ?? "UNAVAILABLE"}</dd>
+            </div>
+            <div>
+              <dt>Capabilities</dt>
+              <dd>{product?.capabilityCount ?? 0}</dd>
+            </div>
+            <div>
+              <dt>Realtime</dt>
+              <dd>{product?.realtimeStatus ?? "INACTIVE"}</dd>
+            </div>
+          </dl>
+          <div className="product-actions">
+            <button
+              onClick={() => void window.alexaAgent.reconnect().then(setProduct)}
+              type="button"
+            >
+              Reconnect
+            </button>
+            <button
+              className="secondary-button"
+              onClick={() => void window.alexaAgent.exportDiagnostics()}
+              type="button"
+            >
+              Export diagnostics
+            </button>
+            <label className="login-toggle">
+              <input
+                checked={product?.launchAtLogin ?? false}
+                onChange={(event) =>
+                  void window.alexaAgent
+                    .setLaunchAtLogin({ enabled: event.target.checked })
+                    .then(setProduct)
+                }
+                type="checkbox"
+              />
+              Launch at login
+            </label>
+          </div>
+          <div className="update-summary">
+            <div>
+              <p className="eyebrow">
+                Updates · {product?.update.channel ?? "development"}
+              </p>
+              <strong>{product?.update.phase.replaceAll("_", " ") ?? "IDLE"}</strong>
+              <p>{product?.update.message ?? "Loading update status…"}</p>
+            </div>
+            <div className="product-actions">
+              <button
+                className="secondary-button"
+                disabled={
+                  !product?.update.enabled || product.update.phase === "CHECKING"
+                }
+                onClick={() =>
+                  void runUpdateAction(() => window.alexaAgent.checkForUpdates())
+                }
+                type="button"
+              >
+                Check for updates
+              </button>
+              {product?.update.phase === "AVAILABLE" ? (
+                <button
+                  onClick={() =>
+                    void runUpdateAction(() => window.alexaAgent.downloadUpdate())
+                  }
+                  type="button"
+                >
+                  Download
+                </button>
+              ) : null}
+              {product &&
+              ["DOWNLOADED", "RESTART_REQUIRED"].includes(product.update.phase) ? (
+                <button
+                  onClick={() =>
+                    void runUpdateAction(() => window.alexaAgent.restartToUpdate())
+                  }
+                  type="button"
+                >
+                  Restart to update
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+        <div className="permission-summary">
+          <div>
+            <p className="eyebrow">Permissions</p>
+            <h2>Capability readiness</h2>
+          </div>
+          {product
+            ? Object.entries(product.permissions).map(([permission, status]) => (
+                <button
+                  className="permission-row"
+                  disabled={status === "GRANTED" || status === "NOT_REQUIRED"}
+                  key={permission}
+                  onClick={() =>
+                    void window.alexaAgent.openPermissionSettings({
+                      permission:
+                        permission as keyof MacAgentProductStatus["permissions"],
+                    })
+                  }
+                  type="button"
+                >
+                  <span>{permission.replace(/([A-Z])/g, " $1")}</span>
+                  <strong>{status.replaceAll("_", " ")}</strong>
+                </button>
+              ))
+            : null}
+        </div>
+      </section>
 
       {diagnosticError ? (
         <section className="pairing-result" role="alert">
@@ -517,7 +676,12 @@ const AgentControlApp = () => {
         <form onSubmit={(event) => void beginPairing(event)}>
           <label>
             Device name
-            <input defaultValue="Owner Mac" name="deviceName" required type="text" />
+            <input
+              defaultValue={product?.deviceName ?? "Owner Mac"}
+              name="deviceName"
+              required
+              type="text"
+            />
           </label>
           <label>
             Pairing code

@@ -26,11 +26,36 @@ describe("environment validation", () => {
     expect(api.OPENAI_ACCOUNTING_OUTPUT_PER_MILLION_TOKENS).toBe("10");
     const macAgent = parseMacAgentEnvironment({});
     expect(macAgent.ALEXA_REQUIRE_PRIVATE_NETWORK).toBe(true);
+    expect(macAgent.ALEXA_AGENT_ENVIRONMENT).toBe("development");
     expect(macAgent.DESKTOP_STT_PROVIDER).toBe("whisper_cpp");
     expect(macAgent.DESKTOP_STT_FALLBACK_PROVIDER).toBe("apple_speech");
     expect(macAgent.DESKTOP_STT_WHISPER_MODEL_VERSION).toBe("ggml-base.en");
     expect(macAgent.DESKTOP_STT_WHISPER_NO_SPEECH_THRESHOLD).toBe(0.25);
+    expect(macAgent.ALEXA_UPDATE_PROVIDER).toBe("disabled");
+    expect(macAgent.ALEXA_UPDATE_AUTO_CHECK).toBe(false);
     expect(parseWebEnvironment({}).VITE_API_BASE_URL).toBe("http://localhost:3001");
+  });
+
+  it("requires an HTTPS feed for Mac Agent production updating", () => {
+    expect(() =>
+      parseMacAgentEnvironment({
+        ALEXA_UPDATE_PROVIDER: "generic",
+        ALEXA_UPDATE_FEED_URL: "http://updates.example.test/mac",
+      }),
+    ).toThrow();
+    expect(() =>
+      parseMacAgentEnvironment({
+        ALEXA_UPDATE_PROVIDER: "generic",
+        ALEXA_UPDATE_FEED_URL: "https://updates.example.test/mac",
+        ALEXA_UPDATE_AUTO_CHECK: "true",
+      }),
+    ).not.toThrow();
+  });
+
+  it("prevents production Mac Agent configuration from targeting localhost", () => {
+    expect(() =>
+      parseMacAgentEnvironment({ ALEXA_AGENT_ENVIRONMENT: "production" }),
+    ).toThrow();
   });
 
   it("rejects malformed ports and origins", () => {

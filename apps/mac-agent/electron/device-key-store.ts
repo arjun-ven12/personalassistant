@@ -18,6 +18,7 @@ export const LocalDeviceMetadataSchema = z
     deviceId: z.string().uuid(),
     fingerprint: z.string().min(1).max(200),
     trustStatus: z.enum(["PENDING", "TRUSTED", "REVOKED", "EXPIRED"]),
+    deviceName: z.string().trim().min(1).max(160).optional(),
     serverExecutionPublicKey: z.string().min(32).max(256).optional(),
     serverExecutionKeyFingerprint: z.string().min(16).max(200).optional(),
     workspaceMappingsConfirmedAt: z.iso.datetime().nullable().optional(),

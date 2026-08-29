@@ -298,7 +298,7 @@ export const runApplicationInteractionBenchmark = async () => {
           ...base,
           requestId: crypto.randomUUID(),
           body: {
-            applicationId: "figma",
+            applicationId: "slack",
             capability: "focus",
             target: null,
             text: null,

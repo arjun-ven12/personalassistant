@@ -69,13 +69,25 @@ describe("NativeProviderRuntime", () => {
     expect(dashboard.ocrAvailable).toBe(false);
     expect(dashboard.unrestrictedAccessibilityAvailable).toBe(false);
     expect(dashboard.nativeProviders.map((provider) => provider.name)).toEqual(
-      expect.arrayContaining(["VSCodeProvider", "FinderProvider", "TerminalProvider"]),
+      expect.arrayContaining([
+        "VSCodeProvider",
+        "FinderProvider",
+        "TerminalProvider",
+        "FigmaProvider",
+      ]),
     );
     expect(
       dashboard.providerCapabilities.some(
         (capability) =>
           capability.providerId === "provider.vscode" &&
           capability.capability === "focus_explorer",
+      ),
+    ).toBe(true);
+    expect(
+      dashboard.providerCapabilities.some(
+        (capability) =>
+          capability.providerId === "provider.figma" &&
+          capability.capability === "launch",
       ),
     ).toBe(true);
   });

@@ -3,6 +3,11 @@ import { contextBridge, ipcRenderer } from "electron";
 import {
   AgentConnectionResultSchema,
   AgentDiagnosticsSchema,
+  MacAgentProductStatusSchema,
+  MacAgentUpdateStatusSchema,
+  SetLaunchAtLoginInputSchema,
+  OpenPermissionSettingsInputSchema,
+  ExportDiagnosticsResultSchema,
   AgentPairingStatusSchema,
   BeginPairingInputSchema,
   CapabilityStatusSchema,
@@ -44,6 +49,41 @@ const api: AlexaAgentApi = {
   getAgentDiagnostics: async () =>
     AgentDiagnosticsSchema.parse(
       await ipcRenderer.invoke(IPC_CHANNELS.getAgentDiagnostics),
+    ),
+  getProductStatus: async () =>
+    MacAgentProductStatusSchema.parse(
+      await ipcRenderer.invoke(IPC_CHANNELS.getProductStatus),
+    ),
+  checkForUpdates: async () =>
+    MacAgentUpdateStatusSchema.parse(
+      await ipcRenderer.invoke(IPC_CHANNELS.checkForUpdates),
+    ),
+  downloadUpdate: async () =>
+    MacAgentUpdateStatusSchema.parse(
+      await ipcRenderer.invoke(IPC_CHANNELS.downloadUpdate),
+    ),
+  restartToUpdate: async () =>
+    MacAgentUpdateStatusSchema.parse(
+      await ipcRenderer.invoke(IPC_CHANNELS.restartToUpdate),
+    ),
+  setLaunchAtLogin: async (input) =>
+    MacAgentProductStatusSchema.parse(
+      await ipcRenderer.invoke(
+        IPC_CHANNELS.setLaunchAtLogin,
+        SetLaunchAtLoginInputSchema.parse(input),
+      ),
+    ),
+  reconnect: async () =>
+    MacAgentProductStatusSchema.parse(await ipcRenderer.invoke(IPC_CHANNELS.reconnect)),
+  openPermissionSettings: async (input) => {
+    await ipcRenderer.invoke(
+      IPC_CHANNELS.openPermissionSettings,
+      OpenPermissionSettingsInputSchema.parse(input),
+    );
+  },
+  exportDiagnostics: async () =>
+    ExportDiagnosticsResultSchema.parse(
+      await ipcRenderer.invoke(IPC_CHANNELS.exportDiagnostics),
     ),
   disableLocalExecution: async () =>
     LocalExecutionResultSchema.parse(

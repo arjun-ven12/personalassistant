@@ -25,11 +25,14 @@ export class NativeActiveContextSession {
   constructor(
     private readonly onObservation: (observation: ActiveContextObservation) => void,
     private readonly onUnavailable: () => void = () => undefined,
+    private readonly appBundle = path.join(
+      __dirname,
+      "../dist-native/AlexaActiveContext.app",
+    ),
   ) {}
 
   async start() {
     if (this.#process || process.platform !== "darwin") return;
-    const appBundle = path.join(__dirname, "../dist-native/AlexaActiveContext.app");
     const temporaryDirectory = await mkdtemp(path.join(tmpdir(), "alexa-active-context-"));
     const outputPipe = path.join(temporaryDirectory, "events.fifo");
     await new Promise<void>((resolve, reject) => {
@@ -54,7 +57,7 @@ export class NativeActiveContextSession {
       outputPipe,
       "--stderr",
       "/dev/null",
-      appBundle,
+      this.appBundle,
       "--args",
       "--parent-pid",
       String(process.pid),

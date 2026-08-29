@@ -1,18 +1,29 @@
-import { parseMacAgentEnvironment } from "@alexa-control/config";
 import {
   app,
   BrowserWindow,
+  dialog,
   globalShortcut,
   ipcMain,
+  Menu,
+  nativeImage,
+  powerMonitor,
   safeStorage,
   shell,
   systemPreferences,
+  Tray,
 } from "electron";
+import { existsSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 
 import {
   AgentConnectionResultSchema,
   AgentDiagnosticsSchema,
+  MacAgentProductStatusSchema,
+  SetLaunchAtLoginInputSchema,
+  OpenPermissionSettingsInputSchema,
+  ExportDiagnosticsResultSchema,
   AgentPairingStatusSchema,
   BeginPairingInputSchema,
   CapabilityStatusSchema,
@@ -62,14 +73,48 @@ import {
   type WhisperCppConfig,
 } from "./native-whisper.js";
 import { NativeActiveContextSession } from "./native-active-context.js";
+import { NativeSemanticInteractionBridge } from "./native-semantic-interaction.js";
+import { loadMacAgentConfiguration } from "./configuration.js";
+import { BoundedOperationalLog } from "./operational-log.js";
+import { createElectronUpdateAdapter } from "./electron-update-adapter.js";
+import { isDeveloperIdSigned } from "./code-signing.js";
+import {
+  MacAgentUpdateRuntime,
+  productionUpdateEnabled,
+  type MacAgentUpdateAdapter,
+} from "./update-runtime.js";
+import {
+  connectionStateFor,
+  maskDeviceId,
+  resolveAgentResource,
+  type MacAgentConnectionState,
+} from "./product-runtime.js";
 
-try {
-  process.loadEnvFile?.(".env");
-} catch (error) {
-  if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-}
+app.setName("Alexa Mac Agent");
+const environment = loadMacAgentConfiguration({
+  isPackaged: app.isPackaged,
+  packagedConfigPath: path.join(process.resourcesPath, "mac-agent.config.json"),
+  environment: process.env,
+  loadDevelopmentEnv: () => {
+    try {
+      process.loadEnvFile?.(".env");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  },
+});
 
-const environment = parseMacAgentEnvironment(process.env);
+const resourcePath = (relativePath: string) =>
+  resolveAgentResource({
+    isPackaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    moduleDirectory: __dirname,
+    relativePath: app.isPackaged
+      ? relativePath
+      : relativePath.startsWith("native/")
+        ? `dist-native/${relativePath.slice("native/".length)}`
+        : `build-resources/${relativePath.slice("assets/".length)}`,
+  });
 
 const whisperCppConfig = (): WhisperCppConfig => {
   const appPath = app.getAppPath();
@@ -83,6 +128,7 @@ const whisperCppConfig = (): WhisperCppConfig => {
     modelVersion: environment.DESKTOP_STT_WHISPER_MODEL_VERSION,
     threads: environment.DESKTOP_STT_WHISPER_THREADS,
     noSpeechThreshold: environment.DESKTOP_STT_WHISPER_NO_SPEECH_THRESHOLD,
+    captureAppBundlePath: resourcePath("native/AlexaWhisperCapture.app"),
   };
 };
 let localExecutionEnabled = true;
@@ -95,6 +141,12 @@ let persistedMetadata: LocalDeviceMetadata | null = null;
 let executionClient: ReadOnlyExecutionClient | null = null;
 let mainWindow: BrowserWindow | null = null;
 let voiceOverlayWindow: BrowserWindow | null = null;
+let tray: Tray | null = null;
+let sleeping = false;
+let revokedLocally = false;
+let lastLoggedConnectionState: MacAgentConnectionState | null = null;
+let operationalLog: BoundedOperationalLog;
+let updateRuntime: MacAgentUpdateRuntime | null = null;
 type NativeVoiceRecognition = Pick<NativeSpeechRecognitionSession, "start" | "stop">;
 let nativeVoiceRecognition: NativeVoiceRecognition | null = null;
 let nativeActiveContext: NativeActiveContextSession | null = null;
@@ -158,6 +210,35 @@ const startExecutionClientIfReady = () => {
           execute: (input) => nativeProviderHost!.execute(input),
         }
       : undefined,
+    fetch,
+    (status) => {
+      const state = connectionStateFor(status);
+      if (state !== lastLoggedConnectionState) {
+        lastLoggedConnectionState = state;
+        void operationalLog?.record({
+          category: "connection",
+          event: `CONNECTION_${state}`,
+          detail:
+            state === "ONLINE"
+              ? "Canonical backend connection is healthy."
+              : `Transport state changed to ${state}.`,
+        });
+      }
+      if (state === "DEVICE_REVOKED" && !revokedLocally) {
+        revokedLocally = true;
+        if (persistedMetadata) {
+          persistedMetadata = { ...persistedMetadata, trustStatus: "REVOKED" };
+          void deviceMetadataStore.save(persistedMetadata).catch(() => undefined);
+        }
+        executionClient?.stop();
+        void operationalLog?.record({
+          category: "device",
+          event: "DEVICE_REVOKED",
+          detail: "Execution stopped; explicit re-pairing is required.",
+        });
+      }
+      rebuildTrayMenu();
+    },
   );
   executionClient.start();
 };
@@ -202,6 +283,178 @@ const currentCapabilityStatus = () =>
       : "not_requested",
   });
 
+const currentConnectionState = (): MacAgentConnectionState => {
+  if (persistedMetadata?.trustStatus === "REVOKED" || revokedLocally)
+    return "DEVICE_REVOKED";
+  if (
+    !persistedIdentity ||
+    !persistedMetadata ||
+    persistedMetadata.trustStatus !== "TRUSTED"
+  )
+    return "AUTH_REQUIRED";
+  if (!executionClient) return sleeping ? "OFFLINE" : "OFFLINE";
+  return connectionStateFor(executionClient.status);
+};
+
+const mediaPermission = (mediaType: "camera" | "microphone" | "screen") => {
+  if (process.platform !== "darwin") return "UNKNOWN" as const;
+  const status = systemPreferences.getMediaAccessStatus(mediaType);
+  if (status === "granted") return "GRANTED" as const;
+  if (["denied", "restricted", "not-determined"].includes(status))
+    return "NOT_GRANTED" as const;
+  return "UNKNOWN" as const;
+};
+
+const nativeHelperPaths = () => [
+  resourcePath("native/AlexaActiveContext.app"),
+  resourcePath("native/AlexaInteraction.app"),
+  resourcePath("native/AlexaVoiceSTT.app"),
+  resourcePath("native/AlexaWhisperCapture.app"),
+];
+
+const productStatus = () => {
+  const helperCount = nativeHelperPaths().filter(existsSync).length;
+  const state = currentConnectionState();
+  const capabilityCount = nativeProviderHost
+    ? nativeProviderHost
+        .status(isAccessibilityTrusted())
+        .providerImplementations.reduce(
+          (total, provider) => total + provider.implementedCapabilities.length,
+          0,
+        )
+    : 0;
+  return MacAgentProductStatusSchema.parse({
+    appName: "Alexa Mac Agent",
+    appVersion: app.getVersion(),
+    buildVersion: process.env.ALEXA_MAC_AGENT_BUILD_NUMBER ?? app.getVersion(),
+    environment: environment.ALEXA_AGENT_ENVIRONMENT,
+    connectionState: state,
+    backend: environment.ALEXA_API_BASE_URL,
+    deviceName: persistedMetadata?.deviceName ?? os.hostname(),
+    maskedDeviceId: maskDeviceId(persistedMetadata?.deviceId),
+    launchAtLogin: app.getLoginItemSettings().openAtLogin,
+    lastSuccessfulConnectionAt:
+      executionClient?.status.lastSuccessfulConnectionAt ?? null,
+    lastHeartbeatAt: executionClient?.status.lastHeartbeatAt ?? null,
+    capabilityCount,
+    nativeHelperStatus:
+      helperCount === nativeHelperPaths().length
+        ? "READY"
+        : helperCount > 0
+          ? "PARTIAL"
+          : "UNAVAILABLE",
+    realtimeStatus: sleeping
+      ? "SUSPENDED"
+      : state === "ONLINE"
+        ? "ACTIVE"
+        : state === "RECONNECTING" || state === "CONNECTING"
+          ? "RECONNECTING"
+          : "INACTIVE",
+    permissions: {
+      accessibility: isAccessibilityTrusted() ? "GRANTED" : "NOT_GRANTED",
+      automation: "NOT_REQUIRED",
+      screenRecording: "NOT_REQUIRED",
+      microphone: mediaPermission("microphone"),
+      camera: mediaPermission("camera"),
+      notifications: "NOT_REQUIRED",
+    },
+    update: updateRuntime?.status ?? {
+      enabled: false,
+      phase: "IDLE",
+      channel: environment.ALEXA_UPDATE_CHANNEL,
+      currentVersion: app.getVersion(),
+      availableVersion: null,
+      downloadPercent: null,
+      lastCheckedAt: null,
+      restartDeferred: false,
+      message: "Production auto-update is disabled for this build.",
+    },
+  });
+};
+
+const connectionLabel: Record<MacAgentConnectionState, string> = {
+  ONLINE: "Online",
+  CONNECTING: "Connecting…",
+  RECONNECTING: "Reconnecting…",
+  OFFLINE: "Offline",
+  AUTH_REQUIRED: "Authentication required",
+  DEVICE_REVOKED: "Device revoked",
+  ERROR: "Error",
+};
+
+const showMainWindow = async () => {
+  if (!mainWindow || mainWindow.isDestroyed()) await createWindow();
+  void app.dock?.show();
+  mainWindow?.show();
+  mainWindow?.focus();
+};
+
+const rebuildTrayMenu = () => {
+  if (!tray) return;
+  const status = productStatus();
+  tray.setToolTip(`Alexa Mac Agent — ${connectionLabel[status.connectionState]}`);
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: "Alexa Mac Agent", enabled: false },
+      { label: `Status: ${connectionLabel[status.connectionState]}`, enabled: false },
+      {
+        label: `Connected to: ${status.environment === "production" ? "Alexa Production" : "Alexa Development"}`,
+        enabled: false,
+      },
+      { label: `Device: ${status.deviceName}`, enabled: false },
+      { type: "separator" },
+      {
+        label: "Open Alexa",
+        click: () => void shell.openExternal(environment.ALEXA_WEB_BASE_URL),
+      },
+      { label: "Diagnostics", click: () => void showMainWindow() },
+      { label: "Permissions", click: () => void showMainWindow() },
+      {
+        label: "Launch at Login",
+        type: "checkbox",
+        checked: status.launchAtLogin,
+        click: (item) => {
+          app.setLoginItemSettings({ openAtLogin: item.checked, openAsHidden: true });
+          rebuildTrayMenu();
+        },
+      },
+      {
+        label: "Reconnect",
+        enabled: status.connectionState !== "DEVICE_REVOKED",
+        click: () => executionClient?.reconnectNow(),
+      },
+      {
+        label: "Check for Updates…",
+        enabled: status.update.enabled && status.update.phase !== "CHECKING",
+        click: () => void updateRuntime?.check(),
+      },
+      {
+        label: "Download Update",
+        visible: status.update.phase === "AVAILABLE",
+        click: () => void updateRuntime?.download(),
+      },
+      {
+        label: status.update.restartDeferred
+          ? "Restart After Current Execution"
+          : "Restart to Update",
+        visible: ["DOWNLOADED", "RESTART_REQUIRED"].includes(status.update.phase),
+        click: () => void updateRuntime?.restartAndInstall(),
+      },
+      { type: "separator" },
+      { label: "Quit Alexa Mac Agent", click: () => app.quit() },
+    ]),
+  );
+};
+
+const createTray = () => {
+  const pathname = resourcePath("assets/trayTemplate.png");
+  const image = nativeImage.createFromPath(pathname);
+  image.setTemplateImage(true);
+  tray = new Tray(image.resize({ width: 18, height: 18 }));
+  tray.on("click", () => void showMainWindow());
+  rebuildTrayMenu();
+};
+
 const startActiveContextIfReady = () => {
   if (
     !persistedIdentity ||
@@ -214,27 +467,32 @@ const startActiveContextIfReady = () => {
     return;
   }
   if (nativeActiveContext) return;
-  nativeActiveContext = new NativeActiveContextSession((observation) => {
-    if (activeContextUpdatePending || !persistedIdentity || !persistedMetadata) return;
-    activeContextUpdatePending = true;
-    void submitDeviceActiveContext(
-      environment.ALEXA_API_BASE_URL,
-      persistedMetadata.deviceId,
-      persistedIdentity,
-      observation,
-    )
-      .then((response) => {
-        latestActiveContext = ActiveContextResponseSchema.parse(response);
-        voiceOverlayWindow?.webContents.send(
-          IPC_CHANNELS.activeContextChanged,
-          latestActiveContext,
-        );
-      })
-      .catch(() => undefined)
-      .finally(() => {
-        activeContextUpdatePending = false;
-      });
-  });
+  nativeActiveContext = new NativeActiveContextSession(
+    (observation) => {
+      if (activeContextUpdatePending || !persistedIdentity || !persistedMetadata)
+        return;
+      activeContextUpdatePending = true;
+      void submitDeviceActiveContext(
+        environment.ALEXA_API_BASE_URL,
+        persistedMetadata.deviceId,
+        persistedIdentity,
+        observation,
+      )
+        .then((response) => {
+          latestActiveContext = ActiveContextResponseSchema.parse(response);
+          voiceOverlayWindow?.webContents.send(
+            IPC_CHANNELS.activeContextChanged,
+            latestActiveContext,
+          );
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          activeContextUpdatePending = false;
+        });
+    },
+    () => undefined,
+    resourcePath("native/AlexaActiveContext.app"),
+  );
   void nativeActiveContext.start().catch(() => {
     nativeActiveContext?.stop();
     nativeActiveContext = null;
@@ -291,10 +549,12 @@ const registerIpc = () => {
     EmptyIpcPayloadSchema.parse(payload);
     return AgentDiagnosticsSchema.parse({
       agentName: "Alexa Control Mac Agent",
-      version: "0.1.0",
+      version: app.getVersion(),
       apiEndpoint: environment.ALEXA_API_BASE_URL,
       deviceIdentityStatus:
-        pendingPairing?.trustStatus.toLowerCase() ?? "not_configured",
+        pendingPairing?.trustStatus.toLowerCase() ??
+        persistedMetadata?.trustStatus.toLowerCase() ??
+        "not_configured",
       privateNetworkStatus: "unknown",
       executionEnabled:
         localExecutionEnabled && executionClient?.status.polling === true,
@@ -313,6 +573,98 @@ const registerIpc = () => {
       currentExecutionRequestId:
         executionClient?.status.currentExecutionRequestId ?? null,
       platform: "macOS",
+    });
+  });
+
+  ipcMain.handle(IPC_CHANNELS.getProductStatus, (_event, payload) => {
+    EmptyIpcPayloadSchema.parse(payload);
+    return productStatus();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.checkForUpdates, async (_event, payload) => {
+    EmptyIpcPayloadSchema.parse(payload);
+    if (!updateRuntime) throw new Error("Update runtime is unavailable.");
+    return updateRuntime.check();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.downloadUpdate, async (_event, payload) => {
+    EmptyIpcPayloadSchema.parse(payload);
+    if (!updateRuntime) throw new Error("Update runtime is unavailable.");
+    return updateRuntime.download();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.restartToUpdate, async (_event, payload) => {
+    EmptyIpcPayloadSchema.parse(payload);
+    if (!updateRuntime) throw new Error("Update runtime is unavailable.");
+    return updateRuntime.restartAndInstall();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.setLaunchAtLogin, (_event, payload) => {
+    const input = SetLaunchAtLoginInputSchema.parse(payload);
+    app.setLoginItemSettings({ openAtLogin: input.enabled, openAsHidden: true });
+    rebuildTrayMenu();
+    return productStatus();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.reconnect, (_event, payload) => {
+    EmptyIpcPayloadSchema.parse(payload);
+    if (currentConnectionState() !== "DEVICE_REVOKED") {
+      startExecutionClientIfReady();
+      executionClient?.reconnectNow();
+    }
+    return productStatus();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.openPermissionSettings, async (_event, payload) => {
+    const input = OpenPermissionSettingsInputSchema.parse(payload);
+    const settingsUrls = {
+      accessibility:
+        "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
+      automation:
+        "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation",
+      screenRecording:
+        "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture",
+      microphone:
+        "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone",
+      camera: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera",
+      notifications:
+        "x-apple.systempreferences:com.apple.Notifications-Settings.extension",
+    } as const;
+    await shell.openExternal(settingsUrls[input.permission]);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.exportDiagnostics, async (_event, payload) => {
+    EmptyIpcPayloadSchema.parse(payload);
+    const options = {
+      title: "Export Alexa Mac Agent Diagnostics",
+      defaultPath: `Alexa-Mac-Agent-Diagnostics-${new Date().toISOString().slice(0, 10)}.json`,
+      filters: [{ name: "JSON", extensions: ["json"] }],
+    };
+    const result = mainWindow
+      ? await dialog.showSaveDialog(mainWindow, options)
+      : await dialog.showSaveDialog(options);
+    if (result.canceled || !result.filePath)
+      return ExportDiagnosticsResultSchema.parse({ exported: false, pathname: null });
+    const diagnostics = {
+      generatedAt: new Date().toISOString(),
+      product: productStatus(),
+      capabilities: currentCapabilityStatus(),
+      nativeProviderHost: nativeProviderHost?.status(isAccessibilityTrusted()) ?? null,
+      events: await operationalLog.recent(100),
+      security: {
+        rendererSandboxed: true,
+        nodeIntegration: false,
+        contextIsolation: true,
+        privilegedExecutionAvailable: false,
+      },
+    };
+    await writeFile(result.filePath, JSON.stringify(diagnostics, null, 2), {
+      mode: 0o600,
+      flag: "wx",
+    });
+    return ExportDiagnosticsResultSchema.parse({
+      exported: true,
+      pathname: result.filePath,
     });
   });
 
@@ -348,6 +700,7 @@ const registerIpc = () => {
       keyStorageStatus = "AVAILABLE";
       persistedMetadata = {
         deviceId: pendingPairing.deviceId,
+        deviceName: input.deviceName,
         fingerprint: pendingPairing.identity.fingerprint,
         trustStatus: pendingPairing.trustStatus,
         ...(pendingPairing.serverExecutionPublicKey
@@ -401,6 +754,9 @@ const registerIpc = () => {
       );
       persistedMetadata = {
         deviceId: result.deviceId!,
+        ...(persistedMetadata?.deviceName
+          ? { deviceName: persistedMetadata.deviceName }
+          : {}),
         fingerprint: result.fingerprint!,
         trustStatus: result.trustStatus!,
         ...(pendingPairing.serverExecutionPublicKey
@@ -761,10 +1117,10 @@ const registerIpc = () => {
       (microphoneStatus === "not-determined" &&
         (await systemPreferences.askForMediaAccess("microphone")));
     if (!microphoneGranted) {
-      voiceOverlayWindow?.webContents.send(
-        IPC_CHANNELS.nativeVoiceRecognitionEvent,
-        { type: "error", code: "MIC_PERMISSION_DENIED" },
-      );
+      voiceOverlayWindow?.webContents.send(IPC_CHANNELS.nativeVoiceRecognitionEvent, {
+        type: "error",
+        code: "MIC_PERMISSION_DENIED",
+      });
       return;
     }
     nativeVoiceRecognition?.stop();
@@ -776,18 +1132,29 @@ const registerIpc = () => {
       );
     };
     const startAppleFallback = async (reason: string) => {
-      if (fallbackStarted || environment.DESKTOP_STT_FALLBACK_PROVIDER !== "apple_speech") {
+      if (
+        fallbackStarted ||
+        environment.DESKTOP_STT_FALLBACK_PROVIDER !== "apple_speech"
+      ) {
         forward({ type: "error", code: "STT_PROVIDER_UNAVAILABLE" });
         return;
       }
       fallbackStarted = true;
-      console.warn(`[desktop-stt] whisper.cpp unavailable; using Apple Speech fallback (${reason}).`);
+      console.warn(
+        `[desktop-stt] whisper.cpp unavailable; using Apple Speech fallback (${reason}).`,
+      );
       nativeVoiceRecognition?.stop();
-      nativeVoiceRecognition = new NativeSpeechRecognitionSession((event) => forward(event));
+      nativeVoiceRecognition = new NativeSpeechRecognitionSession(
+        (event) => forward(event),
+        resourcePath("native/AlexaVoiceSTT.app"),
+      );
       await nativeVoiceRecognition.start();
     };
     if (environment.DESKTOP_STT_PROVIDER === "apple_speech") {
-      nativeVoiceRecognition = new NativeSpeechRecognitionSession((event) => forward(event));
+      nativeVoiceRecognition = new NativeSpeechRecognitionSession(
+        (event) => forward(event),
+        resourcePath("native/AlexaVoiceSTT.app"),
+      );
       await nativeVoiceRecognition.start();
       return;
     }
@@ -802,7 +1169,8 @@ const registerIpc = () => {
       (event) => {
         if (
           event.type === "error" &&
-          (event.code === "STT_PROVIDER_UNAVAILABLE" || event.code === "STT_TRANSCRIPTION_FAILED")
+          (event.code === "STT_PROVIDER_UNAVAILABLE" ||
+            event.code === "STT_TRANSCRIPTION_FAILED")
         ) {
           void startAppleFallback(event.code);
           return;
@@ -872,7 +1240,7 @@ const showVoiceOverlay = async (source: "shortcut" | "renderer") => {
   window.webContents.send(IPC_CHANNELS.voiceOverlayActivated, { source });
 };
 
-const createWindow = async () => {
+const createWindow = async (showOnReady = true) => {
   const window = new BrowserWindow({
     width: 1120,
     height: 760,
@@ -898,7 +1266,10 @@ const createWindow = async () => {
     window.show();
   });
   window.webContents.on("did-finish-load", () => {
-    if (!window.isVisible()) window.show();
+    if (showOnReady && !window.isVisible()) window.show();
+  });
+  window.on("close", () => {
+    app.dock?.hide();
   });
   window.on("closed", () => {
     if (mainWindow === window) mainWindow = null;
@@ -911,8 +1282,13 @@ const createWindow = async () => {
   }
 
   window.once("ready-to-show", () => {
-    window.show();
-    window.focus();
+    if (showOnReady) {
+      void app.dock?.show();
+      window.show();
+      window.focus();
+    } else {
+      app.dock?.hide();
+    }
   });
 };
 
@@ -925,10 +1301,52 @@ const startAgent = async () => {
   deviceMetadataStore = new DeviceMetadataStore(
     path.join(app.getPath("userData"), "device-identity.json"),
   );
-  nativeProviderHost = new MacNativeProviderHost(undefined, undefined, {
-    downloads: () => app.getPath("downloads"),
-    desktop: () => app.getPath("desktop"),
+  operationalLog = new BoundedOperationalLog(
+    path.join(app.getPath("logs"), "alexa-mac-agent.jsonl"),
+  );
+  const updateEnabled = productionUpdateEnabled({
+    isPackaged: app.isPackaged,
+    developerIdSigned: isDeveloperIdSigned(app.getAppPath()),
+    environment: environment.ALEXA_AGENT_ENVIRONMENT,
+    provider: environment.ALEXA_UPDATE_PROVIDER,
+    ...(environment.ALEXA_UPDATE_FEED_URL
+      ? { feedUrl: environment.ALEXA_UPDATE_FEED_URL }
+      : {}),
   });
+  const disabledAdapter: MacAgentUpdateAdapter = {
+    subscribe: () => () => undefined,
+    checkForUpdates: () => Promise.resolve(),
+    downloadUpdate: () => Promise.resolve(),
+    quitAndInstall: () => undefined,
+  };
+  updateRuntime = new MacAgentUpdateRuntime({
+    enabled: updateEnabled,
+    channel: environment.ALEXA_UPDATE_CHANNEL,
+    currentVersion: app.getVersion(),
+    adapter: updateEnabled
+      ? createElectronUpdateAdapter({
+          feedUrl: environment.ALEXA_UPDATE_FEED_URL!,
+          channel: environment.ALEXA_UPDATE_CHANNEL,
+        })
+      : disabledAdapter,
+    isExecutionActive: () => Boolean(executionClient?.status.currentExecutionRequestId),
+    onChanged: () => rebuildTrayMenu(),
+    record: (event, detail) =>
+      operationalLog.record({
+        category: "update",
+        event,
+        ...(detail ? { detail } : {}),
+      }),
+  });
+  nativeProviderHost = new MacNativeProviderHost(
+    undefined,
+    undefined,
+    {
+      downloads: () => app.getPath("downloads"),
+      desktop: () => app.getPath("desktop"),
+    },
+    new NativeSemanticInteractionBridge(resourcePath("native/AlexaInteraction.app")),
+  );
   try {
     [persistedIdentity, persistedMetadata] = await Promise.all([
       deviceKeyStore.loadKeyPair(),
@@ -951,32 +1369,75 @@ const startAgent = async () => {
     void syncApplicationDiscovery("mac_agent_startup").catch(() => undefined);
   }
   registerIpc();
-  await createWindow();
+  createTray();
+  if (updateEnabled && environment.ALEXA_UPDATE_AUTO_CHECK) {
+    updateRuntime.scheduleAutomaticChecks(
+      60_000,
+      environment.ALEXA_UPDATE_CHECK_INTERVAL_HOURS * 60 * 60 * 1_000,
+    );
+  }
+  const requiresOnboarding =
+    !persistedIdentity ||
+    !persistedMetadata ||
+    persistedMetadata.trustStatus !== "TRUSTED";
+  if (requiresOnboarding) await createWindow(true);
+  else app.dock?.hide();
+  await operationalLog.record({
+    category: "device",
+    event: "AGENT_STARTED",
+    detail: `${app.isPackaged ? "Packaged" : "Development"} ${app.getVersion()}`,
+  });
   globalShortcut.register("Alt+Space", () => {
     void showVoiceOverlay("shortcut");
   });
 
   app.on("window-all-closed", () => {
-    app.quit();
+    app.dock?.hide();
   });
 
   app.on("will-quit", () => {
     nativeVoiceRecognition?.stop();
     nativeActiveContext?.stop();
+    executionClient?.stop();
+    updateRuntime?.dispose();
+    tray?.destroy();
+    tray = null;
     globalShortcut.unregisterAll();
+  });
+
+  powerMonitor.on("suspend", () => {
+    sleeping = true;
+    executionClient?.suspend();
+    nativeActiveContext?.stop();
+    nativeActiveContext = null;
+    rebuildTrayMenu();
+  });
+
+  powerMonitor.on("resume", () => {
+    sleeping = false;
+    executionClient?.resume();
+    startActiveContextIfReady();
+    if (persistedMetadata?.trustStatus === "TRUSTED")
+      void syncApplicationDiscovery("mac_agent_startup").catch(() => undefined);
+    rebuildTrayMenu();
   });
 
   app.on("activate", () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.show();
-      mainWindow.focus();
+      void showMainWindow();
     } else if (BrowserWindow.getAllWindows().length === 0) {
       void createWindow();
     }
   });
 };
 
-void startAgent().catch((error: unknown) => {
-  console.error("Mac agent failed to start.", error);
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+if (!hasSingleInstanceLock) {
   app.quit();
-});
+} else {
+  app.on("second-instance", () => void showMainWindow());
+  void startAgent().catch((error: unknown) => {
+    console.error("Mac agent failed to start.", error);
+    app.quit();
+  });
+}

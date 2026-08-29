@@ -55,6 +55,25 @@ describe("MacNativeProviderHost", () => {
     expect(runner).toHaveBeenNthCalledWith(2, "/usr/bin/pgrep", ["-x", "Code"]);
   });
 
+  it("launches Figma through its fixed reviewed bundle identity", async () => {
+    const runner = vi.fn(() => Promise.resolve());
+    const host = new MacNativeProviderHost(runner);
+
+    const result = await host.execute({
+      providerId: "provider.figma",
+      applicationId: "figma",
+      capability: "launch",
+      arguments: {},
+    });
+
+    expect(result).toMatchObject({ status: "verified", verified: true });
+    expect(runner).toHaveBeenNthCalledWith(1, "/usr/bin/open", [
+      "-b",
+      "com.figma.Desktop",
+    ]);
+    expect(runner).toHaveBeenNthCalledWith(2, "/usr/bin/pgrep", ["-x", "Figma"]);
+  });
+
   it("verifies the registered Codex bundle against its actual ChatGPT host process", async () => {
     const runner = vi.fn(() => Promise.resolve());
     const host = new MacNativeProviderHost(runner);

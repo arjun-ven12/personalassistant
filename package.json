@@ -13,6 +13,7 @@
     "dev:web": "pnpm --filter @alexa-control/web dev",
     "dev:api": "pnpm --filter @alexa-control/api dev",
     "dev:mac-agent": "pnpm --filter @alexa-control/mac-agent dev",
+    "mac-agent:install": "pnpm --filter @alexa-control/mac-agent install:local",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint packages && eslint apps/api/src apps/api/*.ts && eslint apps/mac-agent/electron apps/mac-agent/src apps/mac-agent/scripts apps/mac-agent/*.ts && eslint apps/web/src apps/web/*.ts && eslint eslint.config.js vitest.config.js prettier.config.js",
     "test": "vitest run",

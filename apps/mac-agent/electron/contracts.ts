@@ -18,6 +18,7 @@ import type {
   VoiceTranscriptResponseSchema,
   VoiceTurnCancellationResponseSchema,
 } from "@alexa-control/shared";
+import { MacAgentUpdateStatusSchema } from "./update-runtime.js";
 
 export const EmptyIpcPayloadSchema = z.undefined();
 
@@ -80,7 +81,7 @@ export const AgentConnectionResultSchema = z
 export const AgentDiagnosticsSchema = z
   .object({
     agentName: z.literal("Alexa Control Mac Agent"),
-    version: z.literal("0.1.0"),
+    version: z.string().regex(/^\d+\.\d+\.\d+(?:[-+][A-Za-z0-9.-]+)?$/),
     apiEndpoint: z.string().url(),
     deviceIdentityStatus: z.enum([
       "not_configured",
@@ -101,6 +102,68 @@ export const AgentDiagnosticsSchema = z
     currentExecutionRequestId: z.string().uuid().nullable(),
     platform: z.literal("macOS"),
   })
+  .strict();
+
+export const MacPermissionStatusSchema = z.enum([
+  "GRANTED",
+  "NOT_GRANTED",
+  "NOT_REQUIRED",
+  "UNKNOWN",
+]);
+
+export const MacAgentProductStatusSchema = z
+  .object({
+    appName: z.literal("Alexa Mac Agent"),
+    appVersion: z.string().min(1).max(40),
+    buildVersion: z.string().min(1).max(40),
+    environment: z.enum(["development", "production"]),
+    connectionState: z.enum([
+      "ONLINE",
+      "CONNECTING",
+      "RECONNECTING",
+      "OFFLINE",
+      "AUTH_REQUIRED",
+      "DEVICE_REVOKED",
+      "ERROR",
+    ]),
+    backend: z.string().url(),
+    deviceName: z.string().min(1).max(160),
+    maskedDeviceId: z.string().min(1).max(80),
+    launchAtLogin: z.boolean(),
+    lastSuccessfulConnectionAt: z.iso.datetime().nullable(),
+    lastHeartbeatAt: z.iso.datetime().nullable(),
+    capabilityCount: z.number().int().nonnegative(),
+    nativeHelperStatus: z.enum(["READY", "PARTIAL", "UNAVAILABLE"]),
+    realtimeStatus: z.enum(["ACTIVE", "RECONNECTING", "SUSPENDED", "INACTIVE"]),
+    permissions: z
+      .object({
+        accessibility: MacPermissionStatusSchema,
+        automation: MacPermissionStatusSchema,
+        screenRecording: MacPermissionStatusSchema,
+        microphone: MacPermissionStatusSchema,
+        camera: MacPermissionStatusSchema,
+        notifications: MacPermissionStatusSchema,
+      })
+      .strict(),
+    update: MacAgentUpdateStatusSchema,
+  })
+  .strict();
+
+export const SetLaunchAtLoginInputSchema = z.object({ enabled: z.boolean() }).strict();
+export const OpenPermissionSettingsInputSchema = z
+  .object({
+    permission: z.enum([
+      "accessibility",
+      "automation",
+      "screenRecording",
+      "microphone",
+      "camera",
+      "notifications",
+    ]),
+  })
+  .strict();
+export const ExportDiagnosticsResultSchema = z
+  .object({ exported: z.boolean(), pathname: z.string().max(1_024).nullable() })
   .strict();
 
 export const LocalExecutionResultSchema = z
@@ -258,6 +321,8 @@ export const VoiceOverlayActivationSchema = z
 
 export type AgentConnectionResult = z.infer<typeof AgentConnectionResultSchema>;
 export type AgentDiagnostics = z.infer<typeof AgentDiagnosticsSchema>;
+export type MacAgentProductStatus = z.infer<typeof MacAgentProductStatusSchema>;
+export type MacAgentUpdateStatus = z.infer<typeof MacAgentUpdateStatusSchema>;
 export type LocalExecutionResult = z.infer<typeof LocalExecutionResultSchema>;
 export type CapabilityStatus = z.infer<typeof CapabilityStatusSchema>;
 export type BeginPairingInput = z.infer<typeof BeginPairingInputSchema>;
@@ -289,6 +354,18 @@ export interface AlexaAgentApi {
   testApiConnection: () => Promise<AgentConnectionResult>;
   testSecureApiConnection: () => Promise<AgentConnectionResult>;
   getAgentDiagnostics: () => Promise<AgentDiagnostics>;
+  getProductStatus: () => Promise<MacAgentProductStatus>;
+  checkForUpdates: () => Promise<MacAgentUpdateStatus>;
+  downloadUpdate: () => Promise<MacAgentUpdateStatus>;
+  restartToUpdate: () => Promise<MacAgentUpdateStatus>;
+  setLaunchAtLogin: (
+    input: z.infer<typeof SetLaunchAtLoginInputSchema>,
+  ) => Promise<MacAgentProductStatus>;
+  reconnect: () => Promise<MacAgentProductStatus>;
+  openPermissionSettings: (
+    input: z.infer<typeof OpenPermissionSettingsInputSchema>,
+  ) => Promise<void>;
+  exportDiagnostics: () => Promise<z.infer<typeof ExportDiagnosticsResultSchema>>;
   disableLocalExecution: () => Promise<LocalExecutionResult>;
   getCapabilityStatus: () => Promise<CapabilityStatus>;
   beginPairing: (input: BeginPairingInput) => Promise<AgentPairingStatus>;
@@ -351,6 +428,14 @@ export const IPC_CHANNELS = {
   testApiConnection: "agent:test-api-connection",
   testSecureApiConnection: "agent:test-secure-api-connection",
   getAgentDiagnostics: "agent:get-diagnostics",
+  getProductStatus: "agent:get-product-status",
+  checkForUpdates: "agent:check-for-updates",
+  downloadUpdate: "agent:download-update",
+  restartToUpdate: "agent:restart-to-update",
+  setLaunchAtLogin: "agent:set-launch-at-login",
+  reconnect: "agent:reconnect",
+  openPermissionSettings: "agent:open-permission-settings",
+  exportDiagnostics: "agent:export-diagnostics",
   disableLocalExecution: "agent:disable-local-execution",
   getCapabilityStatus: "agent:get-capability-status",
   beginPairing: "agent:begin-pairing",
@@ -380,4 +465,8 @@ export const IPC_CHANNELS = {
   activeContextChanged: "agent:active-context-changed",
 } as const;
 
-export { NativeCapabilityDispatchRequestSchema, NativeProviderHostStatusSchema };
+export {
+  MacAgentUpdateStatusSchema,
+  NativeCapabilityDispatchRequestSchema,
+  NativeProviderHostStatusSchema,
+};

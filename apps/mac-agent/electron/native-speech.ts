@@ -54,11 +54,16 @@ export class NativeSpeechRecognitionSession {
   #temporaryDirectory: string | null = null;
   #buffer = "";
 
-  constructor(private readonly onEvent: (event: NativeSpeechEvent) => void) {}
+  constructor(
+    private readonly onEvent: (event: NativeSpeechEvent) => void,
+    private readonly appBundle = path.join(
+      __dirname,
+      "../dist-native/AlexaVoiceSTT.app",
+    ),
+  ) {}
 
   async start() {
     if (this.#launcher) return;
-    const appBundle = path.join(__dirname, "../dist-native/AlexaVoiceSTT.app");
     const temporaryDirectory = await mkdtemp(path.join(tmpdir(), "alexa-voice-stt-"));
     const outputPipe = path.join(temporaryDirectory, "events.fifo");
     await new Promise<void>((resolve, reject) => {
@@ -88,7 +93,7 @@ export class NativeSpeechRecognitionSession {
         outputPipe,
         "--stderr",
         "/dev/null",
-        appBundle,
+        this.appBundle,
         "--args",
         "--parent-pid",
         String(process.pid),

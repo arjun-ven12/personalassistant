@@ -31074,6 +31074,30 @@ var UpdateWorkspaceRequestSchema = external_exports.object({
 var WorkspaceListResponseSchema = external_exports.array(AllowedWorkspaceSchema);
 var WorkspaceIdParametersSchema = external_exports.object({ workspaceId: RegistryIdSchema }).strict();
 
+// electron/update-runtime.ts
+var MacAgentUpdatePhaseSchema = external_exports.enum([
+  "IDLE",
+  "CHECKING",
+  "AVAILABLE",
+  "DOWNLOADING",
+  "DOWNLOADED",
+  "INSTALLING",
+  "RESTART_REQUIRED",
+  "UP_TO_DATE",
+  "FAILED"
+]);
+var MacAgentUpdateStatusSchema = external_exports.object({
+  enabled: external_exports.boolean(),
+  phase: MacAgentUpdatePhaseSchema,
+  channel: external_exports.enum(["stable", "development"]),
+  currentVersion: external_exports.string().min(1).max(40),
+  availableVersion: external_exports.string().min(1).max(40).nullable(),
+  downloadPercent: external_exports.number().min(0).max(100).nullable(),
+  lastCheckedAt: external_exports.iso.datetime().nullable(),
+  restartDeferred: external_exports.boolean(),
+  message: external_exports.string().min(1).max(240)
+}).strict();
+
 // electron/contracts.ts
 var EmptyIpcPayloadSchema = external_exports.undefined();
 var DesktopSttProviderIdSchema = external_exports.enum(["whisper_cpp", "apple_speech"]);
@@ -31120,7 +31144,7 @@ var AgentConnectionResultSchema = external_exports.object({
 }).strict();
 var AgentDiagnosticsSchema = external_exports.object({
   agentName: external_exports.literal("Alexa Control Mac Agent"),
-  version: external_exports.literal("0.1.0"),
+  version: external_exports.string().regex(/^\d+\.\d+\.\d+(?:[-+][A-Za-z0-9.-]+)?$/),
   apiEndpoint: external_exports.string().url(),
   deviceIdentityStatus: external_exports.enum([
     "not_configured",
@@ -31141,6 +31165,57 @@ var AgentDiagnosticsSchema = external_exports.object({
   currentExecutionRequestId: external_exports.string().uuid().nullable(),
   platform: external_exports.literal("macOS")
 }).strict();
+var MacPermissionStatusSchema = external_exports.enum([
+  "GRANTED",
+  "NOT_GRANTED",
+  "NOT_REQUIRED",
+  "UNKNOWN"
+]);
+var MacAgentProductStatusSchema = external_exports.object({
+  appName: external_exports.literal("Alexa Mac Agent"),
+  appVersion: external_exports.string().min(1).max(40),
+  buildVersion: external_exports.string().min(1).max(40),
+  environment: external_exports.enum(["development", "production"]),
+  connectionState: external_exports.enum([
+    "ONLINE",
+    "CONNECTING",
+    "RECONNECTING",
+    "OFFLINE",
+    "AUTH_REQUIRED",
+    "DEVICE_REVOKED",
+    "ERROR"
+  ]),
+  backend: external_exports.string().url(),
+  deviceName: external_exports.string().min(1).max(160),
+  maskedDeviceId: external_exports.string().min(1).max(80),
+  launchAtLogin: external_exports.boolean(),
+  lastSuccessfulConnectionAt: external_exports.iso.datetime().nullable(),
+  lastHeartbeatAt: external_exports.iso.datetime().nullable(),
+  capabilityCount: external_exports.number().int().nonnegative(),
+  nativeHelperStatus: external_exports.enum(["READY", "PARTIAL", "UNAVAILABLE"]),
+  realtimeStatus: external_exports.enum(["ACTIVE", "RECONNECTING", "SUSPENDED", "INACTIVE"]),
+  permissions: external_exports.object({
+    accessibility: MacPermissionStatusSchema,
+    automation: MacPermissionStatusSchema,
+    screenRecording: MacPermissionStatusSchema,
+    microphone: MacPermissionStatusSchema,
+    camera: MacPermissionStatusSchema,
+    notifications: MacPermissionStatusSchema
+  }).strict(),
+  update: MacAgentUpdateStatusSchema
+}).strict();
+var SetLaunchAtLoginInputSchema = external_exports.object({ enabled: external_exports.boolean() }).strict();
+var OpenPermissionSettingsInputSchema = external_exports.object({
+  permission: external_exports.enum([
+    "accessibility",
+    "automation",
+    "screenRecording",
+    "microphone",
+    "camera",
+    "notifications"
+  ])
+}).strict();
+var ExportDiagnosticsResultSchema = external_exports.object({ exported: external_exports.boolean(), pathname: external_exports.string().max(1024).nullable() }).strict();
 var LocalExecutionResultSchema = external_exports.object({
   success: external_exports.literal(true),
   executionEnabled: external_exports.literal(false),
@@ -31248,6 +31323,14 @@ var IPC_CHANNELS = {
   testApiConnection: "agent:test-api-connection",
   testSecureApiConnection: "agent:test-secure-api-connection",
   getAgentDiagnostics: "agent:get-diagnostics",
+  getProductStatus: "agent:get-product-status",
+  checkForUpdates: "agent:check-for-updates",
+  downloadUpdate: "agent:download-update",
+  restartToUpdate: "agent:restart-to-update",
+  setLaunchAtLogin: "agent:set-launch-at-login",
+  reconnect: "agent:reconnect",
+  openPermissionSettings: "agent:open-permission-settings",
+  exportDiagnostics: "agent:export-diagnostics",
   disableLocalExecution: "agent:disable-local-execution",
   getCapabilityStatus: "agent:get-capability-status",
   beginPairing: "agent:begin-pairing",
@@ -31287,6 +31370,34 @@ var api = {
   ),
   getAgentDiagnostics: async () => AgentDiagnosticsSchema.parse(
     await import_electron.ipcRenderer.invoke(IPC_CHANNELS.getAgentDiagnostics)
+  ),
+  getProductStatus: async () => MacAgentProductStatusSchema.parse(
+    await import_electron.ipcRenderer.invoke(IPC_CHANNELS.getProductStatus)
+  ),
+  checkForUpdates: async () => MacAgentUpdateStatusSchema.parse(
+    await import_electron.ipcRenderer.invoke(IPC_CHANNELS.checkForUpdates)
+  ),
+  downloadUpdate: async () => MacAgentUpdateStatusSchema.parse(
+    await import_electron.ipcRenderer.invoke(IPC_CHANNELS.downloadUpdate)
+  ),
+  restartToUpdate: async () => MacAgentUpdateStatusSchema.parse(
+    await import_electron.ipcRenderer.invoke(IPC_CHANNELS.restartToUpdate)
+  ),
+  setLaunchAtLogin: async (input) => MacAgentProductStatusSchema.parse(
+    await import_electron.ipcRenderer.invoke(
+      IPC_CHANNELS.setLaunchAtLogin,
+      SetLaunchAtLoginInputSchema.parse(input)
+    )
+  ),
+  reconnect: async () => MacAgentProductStatusSchema.parse(await import_electron.ipcRenderer.invoke(IPC_CHANNELS.reconnect)),
+  openPermissionSettings: async (input) => {
+    await import_electron.ipcRenderer.invoke(
+      IPC_CHANNELS.openPermissionSettings,
+      OpenPermissionSettingsInputSchema.parse(input)
+    );
+  },
+  exportDiagnostics: async () => ExportDiagnosticsResultSchema.parse(
+    await import_electron.ipcRenderer.invoke(IPC_CHANNELS.exportDiagnostics)
   ),
   disableLocalExecution: async () => LocalExecutionResultSchema.parse(
     await import_electron.ipcRenderer.invoke(IPC_CHANNELS.disableLocalExecution)

@@ -1,11 +1,17 @@
 {
   "name": "@alexa-control/mac-agent",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "productName": "Alexa Mac Agent",
+  "description": "Trusted governed macOS execution endpoint for Alexa Control.",
+  "author": "Alexa Control",
   "private": true,
   "type": "module",
   "main": "dist-electron/main.cjs",
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit && vite build && tsup --config tsup.config.ts && pnpm run build:native",
+    "build:icons": "node scripts/build-icons.mjs",
+    "package:mac": "pnpm run build:icons && pnpm run build && electron-builder --config electron-builder.config.cjs --mac dir dmg zip --arm64 --publish never",
+    "install:local": "pnpm run package:mac && node scripts/install-local.mjs",
     "build:native": "pnpm run build:native-voice && pnpm run build:native-whisper-capture && pnpm run build:native-context && pnpm run build:native-interaction",
     "dev:prepare-native": "test -x dist-native/AlexaVoiceSTT.app/Contents/MacOS/alexa-voice-stt && test -x dist-native/AlexaWhisperCapture.app/Contents/MacOS/alexa-whisper-capture && test -x dist-native/AlexaActiveContext.app/Contents/MacOS/alexa-active-context && test -x dist-native/AlexaInteraction.app/Contents/MacOS/alexa-interaction || pnpm run build:native",
     "build:native-voice": "rm -rf dist-native/AlexaVoiceSTT.app && mkdir -p dist-native/AlexaVoiceSTT.app/Contents/MacOS && swiftc native/VoiceRecognition.swift -framework Speech -framework AVFoundation -o dist-native/AlexaVoiceSTT.app/Contents/MacOS/alexa-voice-stt && cp native/AlexaVoiceSTT-Info.plist dist-native/AlexaVoiceSTT.app/Contents/Info.plist && node scripts/sign-native-app.mjs dist-native/AlexaVoiceSTT.app",
@@ -21,7 +27,7 @@
     "@alexa-control/config": "workspace:*",
     "@alexa-control/shared": "workspace:*",
     "@mediapipe/tasks-vision": "^1.0.0",
-    "electron": "^39.8.5",
+    "electron-updater": "^6.8.9",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "typescript": "^5.9.2",
@@ -33,8 +39,72 @@
     "@vitejs/plugin-react": "^4.7.0",
     "concurrently": "^9.2.0",
     "cross-env": "^10.0.0",
+    "electron": "^39.8.5",
+    "electron-builder": "^26.15.3",
     "tsup": "^8.5.0",
     "vite": "^7.0.6",
     "wait-on": "^8.0.4"
+  },
+  "build": {
+    "appId": "com.alexacontrol.macagent",
+    "productName": "Alexa Mac Agent",
+    "buildVersion": "2456",
+    "asar": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "build-resources"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "dist-native",
+        "to": "native"
+      },
+      {
+        "from": "build-resources/mac-agent.config.json",
+        "to": "mac-agent.config.json"
+      },
+      {
+        "from": "build-resources/trayTemplate.png",
+        "to": "assets/trayTemplate.png"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.utilities",
+      "icon": "build-resources/icon.icns",
+      "identity": null,
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build-resources/entitlements.mac.plist",
+      "entitlementsInherit": "build-resources/entitlements.mac.plist",
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "extendInfo": {
+        "LSUIElement": true,
+        "NSCameraUsageDescription": "Alexa Mac Agent uses the camera only when you start the local governed gesture runtime.",
+        "NSMicrophoneUsageDescription": "Alexa Mac Agent uses the microphone only when you start local voice input.",
+        "NSSpeechRecognitionUsageDescription": "Alexa Mac Agent uses on-device speech recognition only when explicitly enabled."
+      }
+    },
+    "dmg": {
+      "title": "Alexa Mac Agent ${version}",
+      "artifactName": "Alexa-Mac-Agent-${version}-${arch}.${ext}"
+    }
   }
 }

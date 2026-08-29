@@ -1,0 +1,124 @@
+name: mac-agent-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Semver matching apps/mac-agent/package.json
+        required: true
+        type: string
+      channel:
+        description: Signed update channel
+        required: true
+        default: stable
+        type: choice
+        options:
+          - stable
+          - development
+  push:
+    tags:
+      - "mac-agent-v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mac-agent-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-14
+    env:
+      CSC_LINK: ${{ secrets.MACOS_DEVELOPER_ID_CERTIFICATE }}
+      CSC_KEY_PASSWORD: ${{ secrets.MACOS_DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      ALEXA_API_BASE_URL: ${{ secrets.ALEXA_PRODUCTION_API_BASE_URL }}
+      ALEXA_WEB_BASE_URL: ${{ secrets.ALEXA_PRODUCTION_WEB_BASE_URL }}
+      ALEXA_UPDATE_FEED_URL: ${{ secrets.ALEXA_MAC_AGENT_UPDATE_FEED_URL }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.17.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Validate release inputs and owner configuration
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+          REQUESTED_CHANNEL: ${{ inputs.channel }}
+        run: |
+          set -euo pipefail
+          PACKAGE_VERSION="$(node -p "require('./apps/mac-agent/package.json').version")"
+          TAG_VERSION="${GITHUB_REF_NAME#mac-agent-v}"
+          VERSION="${REQUESTED_VERSION:-$TAG_VERSION}"
+          CHANNEL="${REQUESTED_CHANNEL:-stable}"
+          test "$VERSION" = "$PACKAGE_VERSION"
+          test "$CHANNEL" = stable -o "$CHANNEL" = development
+          test -n "$CSC_LINK"
+          test -n "$CSC_KEY_PASSWORD"
+          test -n "$APPLE_ID"
+          test -n "$APPLE_APP_SPECIFIC_PASSWORD"
+          test -n "$APPLE_TEAM_ID"
+          test -n "$ALEXA_API_BASE_URL"
+          test -n "$ALEXA_WEB_BASE_URL"
+          test -n "$ALEXA_UPDATE_FEED_URL"
+          case "$ALEXA_UPDATE_FEED_URL" in https://*) ;; *) exit 1 ;; esac
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "CHANNEL=$CHANNEL" >> "$GITHUB_ENV"
+          echo "ALEXA_MAC_AGENT_BUILD_NUMBER=$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - name: Create non-secret production app configuration
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const config = {
+            ALEXA_AGENT_ENVIRONMENT: 'production',
+            ALEXA_API_BASE_URL: process.env.ALEXA_API_BASE_URL,
+            ALEXA_WEB_BASE_URL: process.env.ALEXA_WEB_BASE_URL,
+            ALEXA_AGENT_LOG_LEVEL: 'info',
+            ALEXA_REQUIRE_PRIVATE_NETWORK: true,
+            ALEXA_READ_ONLY_EXECUTION_ENABLED: true,
+            ALEXA_EXECUTION_POLL_INTERVAL_MS: 5000,
+            ALEXA_UPDATE_PROVIDER: 'generic',
+            ALEXA_UPDATE_FEED_URL: process.env.ALEXA_UPDATE_FEED_URL,
+            ALEXA_UPDATE_CHANNEL: process.env.CHANNEL,
+            ALEXA_UPDATE_AUTO_CHECK: true,
+            ALEXA_UPDATE_CHECK_INTERVAL_HOURS: 6
+          };
+          fs.writeFileSync('apps/mac-agent/build-resources/mac-agent.release.config.json', JSON.stringify(config, null, 2));
+          NODE
+          echo "ALEXA_MAC_AGENT_CONFIG_PATH=$PWD/apps/mac-agent/build-resources/mac-agent.release.config.json" >> "$GITHUB_ENV"
+      - name: Build signed and notarized Mac Agent artifacts
+        run: pnpm --filter @alexa-control/mac-agent package:mac
+      - name: Verify signatures and notarization
+        run: |
+          set -euo pipefail
+          APP="apps/mac-agent/release/mac-arm64/Alexa Mac Agent.app"
+          DMG="apps/mac-agent/release/Alexa-Mac-Agent-${VERSION}-arm64.dmg"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          spctl --assess --type execute --verbose=2 "$APP"
+          xcrun stapler validate "$DMG"
+          shasum -a 256 apps/mac-agent/release/*.dmg apps/mac-agent/release/*.zip apps/mac-agent/release/*-mac.yml > apps/mac-agent/release/SHA256SUMS.txt
+      - name: Publish immutable release artifacts
+        run: |
+          set -euo pipefail
+          TAG="mac-agent-v${VERSION}"
+          PRERELEASE_ARGS=()
+          if test "$CHANNEL" = development; then PRERELEASE_ARGS+=(--prerelease); fi
+          gh release create "$TAG" \
+            apps/mac-agent/release/*.dmg \
+            apps/mac-agent/release/*.zip \
+            apps/mac-agent/release/*-mac.yml \
+            apps/mac-agent/release/SHA256SUMS.txt \
+            --title "Alexa Mac Agent ${VERSION}" \
+            --generate-notes \
+            "${PRERELEASE_ARGS[@]}"

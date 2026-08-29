@@ -166,6 +166,14 @@ const descriptors: ProviderDescriptor[] = [
       "submit_composer",
     ],
   },
+  {
+    id: "provider.figma",
+    applicationId: "figma",
+    name: "FigmaProvider",
+    providerType: "figma",
+    bundleIdentifier: "com.figma.Desktop",
+    capabilities: ["launch", "focus"],
+  },
 ];
 
 const NativeProviderIntentDispatchSchema = z

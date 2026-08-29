@@ -8,6 +8,7 @@ coverage/
 .env.*.local
 !.env.example
 apps/mac-agent/release/
+apps/mac-agent/build-resources/mac-agent.release.config.json
 .local/
 apps/api/.local/
 apps/android/.gradle/

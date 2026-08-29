@@ -191,6 +191,14 @@ const descriptors: NativeProviderDescriptor[] = [
     ],
     unsupportedCapabilities: [],
   },
+  {
+    providerId: "provider.figma",
+    applicationId: "figma",
+    bundleIdentifier: "com.figma.Desktop",
+    processName: "Figma",
+    implementedCapabilities: ["launch", "focus"],
+    unsupportedCapabilities: [],
+  },
 ];
 
 const safeHttpUrl = z

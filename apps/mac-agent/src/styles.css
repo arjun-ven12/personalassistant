@@ -395,6 +395,106 @@ h2 {
   line-height: 1.6;
 }
 
+.product-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.product-summary,
+.permission-summary {
+  padding: 18px;
+  border: 1px solid #222c37;
+  border-radius: 8px;
+  background: #0f141b;
+}
+
+.product-summary > div:first-child {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.product-summary h2,
+.permission-summary h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+.product-summary > div:first-child > p:last-child {
+  margin: 0;
+  color: #83909e;
+  font-size: 0.76rem;
+}
+.product-summary dl {
+  grid-template-columns: 1fr 1fr;
+  margin-top: 16px;
+}
+.product-summary dd {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.product-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+.update-summary {
+  border-top: 1px solid #222a33;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 14px;
+}
+.update-summary p {
+  color: #83909e;
+  font-size: 0.72rem;
+  margin: 4px 0 0;
+}
+.update-summary .product-actions {
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+.login-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  color: #aeb9c5;
+  font-size: 0.72rem;
+}
+.login-toggle input {
+  width: auto;
+}
+.permission-summary {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+.permission-row {
+  display: flex;
+  justify-content: space-between;
+  min-height: 34px;
+  padding: 7px 9px;
+  border: 1px solid #222c37;
+  color: #aeb9c5;
+  background: #111821;
+  font-size: 0.7rem;
+  text-align: left;
+}
+.permission-row strong {
+  color: #7c8b9b;
+  font-size: 0.62rem;
+}
+.permission-row:not(:disabled) strong {
+  color: #e3b878;
+}
+
 .agent-state {
   display: flex;
   flex: none;
@@ -749,6 +849,10 @@ dd {
   }
 
   .pairing-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .product-overview {
     grid-template-columns: 1fr;
   }
 

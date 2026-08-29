@@ -450,6 +450,9 @@ export const WebEnvironmentSchema = z
 
 export const MacAgentEnvironmentSchema = z
   .object({
+    ALEXA_AGENT_ENVIRONMENT: z
+      .enum(["development", "production"])
+      .default("development"),
     ALEXA_API_BASE_URL: z.string().url().default("http://localhost:3001"),
     ALEXA_WEB_BASE_URL: z.string().url().default("http://localhost:5173"),
     ALEXA_AGENT_LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),
@@ -481,6 +484,16 @@ export const MacAgentEnvironmentSchema = z
       .min(1_000)
       .max(60_000)
       .default(5_000),
+    ALEXA_UPDATE_PROVIDER: z.enum(["disabled", "generic"]).default("disabled"),
+    ALEXA_UPDATE_FEED_URL: z.string().url().optional(),
+    ALEXA_UPDATE_CHANNEL: z.enum(["stable", "development"]).default("development"),
+    ALEXA_UPDATE_AUTO_CHECK: booleanValue.default(false),
+    ALEXA_UPDATE_CHECK_INTERVAL_HOURS: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(168)
+      .default(6),
     ALEXA_MAX_FILE_READ_BYTES: z.coerce
       .number()
       .int()
@@ -511,6 +524,41 @@ export const MacAgentEnvironmentSchema = z
         code: "custom",
         path: ["ALEXA_WEB_BASE_URL"],
         message: "Remote owner approval URLs require HTTPS.",
+      });
+    }
+    if (
+      environment.ALEXA_AGENT_ENVIRONMENT === "production" &&
+      (localHosts.has(api.hostname) || localHosts.has(web.hostname))
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["ALEXA_AGENT_ENVIRONMENT"],
+        message: "Production Mac Agent builds cannot target localhost.",
+      });
+    }
+    if (environment.ALEXA_UPDATE_PROVIDER === "generic") {
+      if (!environment.ALEXA_UPDATE_FEED_URL) {
+        context.addIssue({
+          code: "custom",
+          path: ["ALEXA_UPDATE_FEED_URL"],
+          message: "The generic update provider requires a feed URL.",
+        });
+      } else if (new URL(environment.ALEXA_UPDATE_FEED_URL).protocol !== "https:") {
+        context.addIssue({
+          code: "custom",
+          path: ["ALEXA_UPDATE_FEED_URL"],
+          message: "Mac Agent update feeds require HTTPS.",
+        });
+      }
+    }
+    if (
+      environment.ALEXA_UPDATE_AUTO_CHECK &&
+      environment.ALEXA_UPDATE_PROVIDER === "disabled"
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["ALEXA_UPDATE_AUTO_CHECK"],
+        message: "Automatic update checks require a configured update provider.",
       });
     }
   });

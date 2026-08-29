@@ -12,6 +12,7 @@ export type WhisperCppConfig = {
   modelVersion: string;
   threads: number;
   noSpeechThreshold: number;
+  captureAppBundlePath?: string;
 };
 
 export type DesktopSttEvent =
@@ -187,7 +188,9 @@ export class NativeWhisperRecognitionSession {
       if (this.#launcher) this.onEvent({ type: "error", code: "STT_PROVIDER_UNAVAILABLE" });
     });
     this.#output = output;
-    const appBundle = path.join(__dirname, "../dist-native/AlexaWhisperCapture.app");
+    const appBundle =
+      this.config.captureAppBundlePath ??
+      path.join(__dirname, "../dist-native/AlexaWhisperCapture.app");
     const launcher = spawn(
       "/usr/bin/open",
       [
