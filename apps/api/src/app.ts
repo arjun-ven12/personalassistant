@@ -766,6 +766,7 @@ export const buildApi = async ({
     new RiskEngine(),
     approvals,
     governanceAudit,
+    privateNetworkRequired,
   );
   const governance = new GovernanceService(
     governanceStore,

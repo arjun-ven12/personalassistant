@@ -234,7 +234,7 @@ describe("RiskEngine", () => {
 });
 
 describe("ApprovalService and PolicyEngine", () => {
-  const setup = (ttlSeconds = 900) => {
+  const setup = (ttlSeconds = 900, privateNetworkRequired = true) => {
     const store = new InMemoryGovernanceStore(BUILT_IN_TOOLS, false);
     const events: GovernanceAuditInput[] = [];
     const approvals = new ApprovalService(
@@ -244,9 +244,15 @@ describe("ApprovalService and PolicyEngine", () => {
       },
       ttlSeconds,
     );
-    const policy = new PolicyEngine(store, new RiskEngine(), approvals, (event) => {
-      events.push(event);
-    });
+    const policy = new PolicyEngine(
+      store,
+      new RiskEngine(),
+      approvals,
+      (event) => {
+        events.push(event);
+      },
+      privateNetworkRequired,
+    );
     return { store, approvals, policy, events };
   };
 
@@ -467,6 +473,41 @@ describe("ApprovalService and PolicyEngine", () => {
     expect((await policy.evaluate(await trustedInput(unknown, store))).reasonCode).toBe(
       "UNKNOWN_TOOL",
     );
+  });
+
+  it("permits unknown cloud transport only for trusted signed devices", async () => {
+    const { store, policy } = setup(900, false);
+    const read = action("security.view");
+    const base = {
+      ...(await trustedInput(read, store)),
+      networkVerification: "UNKNOWN" as const,
+    };
+
+    expect(
+      await policy.evaluate({
+        ...base,
+        deviceTrusted: true,
+        signedEnvelopeVerified: true,
+      }),
+    ).toMatchObject({ decision: "allow" });
+    expect(
+      (
+        await policy.evaluate({
+          ...base,
+          deviceTrusted: false,
+          signedEnvelopeVerified: true,
+        })
+      ).reasonCode,
+    ).toBe("NETWORK_NOT_VERIFIED");
+    expect(
+      (
+        await policy.evaluate({
+          ...base,
+          deviceTrusted: true,
+          signedEnvelopeVerified: false,
+        })
+      ).reasonCode,
+    ).toBe("NETWORK_NOT_VERIFIED");
   });
 
   it("fails closed across application, workspace, device, and permission context", async () => {

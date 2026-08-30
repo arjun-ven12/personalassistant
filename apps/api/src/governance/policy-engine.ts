@@ -28,6 +28,7 @@ export class PolicyEngine {
     readonly riskEngine: RiskEngine,
     readonly approvals: ApprovalService,
     readonly audit: GovernanceAuditWriter,
+    readonly privateNetworkRequired = true,
   ) {}
 
   async evaluate(input: TrustedPolicyInput): Promise<PolicyEvaluation> {
@@ -128,7 +129,14 @@ export class PolicyEngine {
         approvalRequirement: risk.approvalRequirement,
       });
     }
-    if (input.networkVerification !== "PRIVATE_NETWORK") {
+    const trustedSignedCloudTransport =
+      !this.privateNetworkRequired &&
+      input.deviceTrusted &&
+      input.signedEnvelopeVerified;
+    if (
+      input.networkVerification !== "PRIVATE_NETWORK" &&
+      !trustedSignedCloudTransport
+    ) {
       return this.record(input, {
         decision: "deny",
         code: "NETWORK_NOT_VERIFIED",
