@@ -65,6 +65,7 @@ import { TabbedWorkspacePage, type WorkspaceTab } from "./TabbedWorkspacePage.js
 import { OperationalPage } from "./OperationalPage.js";
 import { legacyRoute } from "./appRouting.js";
 import { ApiClientError, type ApiClient } from "./api.js";
+import { CrossDeviceRuntime } from "./CrossDeviceRuntime.js";
 import {
   Spatial,
   SpatialFrameworkProvider,
@@ -394,7 +395,9 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
             />
           ) : null}
           {!spatialModeEnabled ? (
-            <div className={`app-shell ${pathname === "/" ? "home-shell" : "operational-shell"}`}>
+            <>
+              <CrossDeviceRuntime apiClient={apiClient} navigate={navigate} />
+              <div className={`app-shell ${pathname === "/" ? "home-shell" : "operational-shell"}`}>
               <div className="ambient-grid" aria-hidden="true" />
               <div className="ambient-orb ambient-orb-primary" aria-hidden="true" />
               <div className="ambient-orb ambient-orb-secondary" aria-hidden="true" />
@@ -411,6 +414,7 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
                 <div className="command-palette" role="search">
                   <Search size={16} />
                   <input
+                    id="global-command-search"
                     aria-label="Global command palette"
                     placeholder="Search repositories, agents, workflows, symbols…"
                     type="search"
@@ -633,7 +637,8 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
                   UI 60fps target
                 </span>
               </footer>
-            </div>
+              </div>
+            </>
           ) : null}
         </PersistentVoiceRuntimeProvider>
       </PersistentSpatialRuntimeProvider>

@@ -128,6 +128,7 @@ class MainActivity : FragmentActivity() {
         onNewConversation = model::newConversation,
         onSelectConversation = model::selectConversation,
         onLoadEarlierMessages = model::loadEarlierMessages,
+        onCrossDeviceCommandApplied = model::completeCrossDeviceCommand,
       )
     }
     processNotificationIntent(intent)

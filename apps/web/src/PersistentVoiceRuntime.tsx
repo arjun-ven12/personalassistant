@@ -36,6 +36,11 @@ import {
   runDeterministicVoiceNavigationTarget,
   type ApplicationVoiceCommand,
 } from "./voiceNavigation.js";
+import { CrossDeviceRouteSchema } from "@alexa-control/shared";
+import {
+  isCrossDeviceUtterance,
+  webClientInstanceId,
+} from "./crossDeviceClient.js";
 import {
   memoryTextFromVoiceCommand,
   ordinalVoiceSelectionIndex,
@@ -376,6 +381,65 @@ export const PersistentVoiceRuntimeProvider = ({
       if (!trimmed) return;
       const started = performance.now();
       setRuntimeError(null);
+      if (isCrossDeviceUtterance(trimmed)) {
+        try {
+          const currentRoute = CrossDeviceRouteSchema.safeParse(window.location.pathname);
+          const routed = await apiClient.routeCrossDeviceUtterance({
+            utterance: trimmed,
+            clientInstanceId: webClientInstanceId(),
+            clientType: "WEB",
+            conversationId: sessionIdRef.current,
+            currentRoute: currentRoute.success ? currentRoute.data : null,
+            idempotencyKey: crypto.randomUUID(),
+          });
+          if (routed.handled) {
+            const responseText = routed.responseText ?? "The cross-device request was recorded.";
+            setFrame((current) => ({
+              ...current,
+              state: "listening",
+              transcript: "",
+              finalTranscript: trimmed,
+              confidence,
+              latencyMs: Math.round(performance.now() - started),
+              message: responseText,
+            }));
+            speak(responseText);
+            const command = routed.command;
+            if (
+              command &&
+              !["SUCCEEDED", "FAILED", "REJECTED", "EXPIRED", "CANCELLED", "TARGET_OFFLINE"].includes(command.status)
+            ) {
+              void (async () => {
+                for (let attempt = 0; attempt < 30; attempt += 1) {
+                  await new Promise((resolve) => window.setTimeout(resolve, 2_000));
+                  const current = await apiClient.getCrossDeviceCommand(command.id).catch(() => null);
+                  if (!current) continue;
+                  if (["SUCCEEDED", "FAILED", "REJECTED", "EXPIRED", "CANCELLED", "TARGET_OFFLINE"].includes(current.status)) {
+                    setFrame((frame) => ({ ...frame, message: current.safeMessage }));
+                    speak(current.safeMessage);
+                    break;
+                  }
+                }
+              })();
+            }
+            return;
+          }
+        } catch (error) {
+          const responseText =
+            error instanceof Error ? error.message : "Cross-device routing is unavailable.";
+          setFrame((current) => ({
+            ...current,
+            state: "listening",
+            transcript: "",
+            finalTranscript: trimmed,
+            confidence,
+            latencyMs: Math.round(performance.now() - started),
+            message: responseText,
+          }));
+          speak(responseText);
+          return;
+        }
+      }
       const pendingSelectionIndex = ordinalVoiceSelectionIndex(trimmed);
       if (
         pendingSelectionIndex !== null &&

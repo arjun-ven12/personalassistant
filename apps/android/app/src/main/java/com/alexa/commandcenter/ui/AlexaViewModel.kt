@@ -7,6 +7,7 @@ import com.alexa.commandcenter.model.*
 import com.alexa.commandcenter.network.AlexaApiException
 import com.alexa.commandcenter.network.ConnectivityMonitor
 import com.alexa.commandcenter.realtime.ForegroundSyncController
+import com.alexa.commandcenter.realtime.CrossDeviceRouting
 import com.alexa.commandcenter.repository.AlexaRepository
 import com.alexa.commandcenter.voice.AndroidVoiceController
 import com.alexa.commandcenter.voice.VoiceCaptureEvent
@@ -16,6 +17,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import java.util.UUID
 
 sealed interface AlexaScreenState {
@@ -52,6 +55,8 @@ data class AlexaUiState(
   val ttsEnabled: Boolean = true,
   val pendingTurn: PendingConversationTurn? = null,
   val voiceError: String? = null,
+  val crossDeviceCommand: CrossDeviceCommand? = null,
+  val crossDeviceResponse: String? = null,
   val lastUpdatedAt: Long? = null,
   val device: DeviceRegistration? = null,
   val error: String? = null,
@@ -69,6 +74,7 @@ class AlexaViewModel(
   private val biometricRequests = MutableSharedFlow<BiometricRequest>()
   val requestsBiometric = biometricRequests.asSharedFlow()
   private var pendingApprovalStepUp: PendingApprovalStepUp? = null
+  private var foregroundCrossDeviceSync: Job? = null
 
   init {
     connectivity.start()
@@ -145,6 +151,7 @@ class AlexaViewModel(
     }
     mutableState.value = mutableState.value.copy(screen = AlexaScreenState.Shell, error = null)
     refresh()
+    startCrossDeviceSync()
   }
   fun onBiometricCancelled() {
     val wasStepUp = pendingApprovalStepUp != null
@@ -160,11 +167,13 @@ class AlexaViewModel(
       val commandCenter = repository.commandCenter().getOrNull()
       val conversations = repository.conversations().getOrNull()
       val notificationPreferences = repository.notificationPreferences().getOrNull()
+      val crossDevice = repository.syncCrossDeviceClient().getOrNull()
       mutableState.value = mutableState.value.withConversations(conversations).copy(
         health = health,
         summary = summary,
         commandCenter = commandCenter,
         notificationPreferences = notificationPreferences,
+        crossDeviceCommand = crossDevice?.commands?.firstOrNull() ?: mutableState.value.crossDeviceCommand,
         connection = ConnectionState.ONLINE,
         lastUpdatedAt = System.currentTimeMillis(),
         error = null,
@@ -174,8 +183,15 @@ class AlexaViewModel(
     if (!healthy) cachedOfflineState()
   }
 
-  fun onBackground() = lockController.onBackground(System.currentTimeMillis())
-  fun onForeground() { if (lockController.requiresBiometricOnForeground(System.currentTimeMillis()) && repository.hasSession()) requireBiometric() }
+  fun onBackground() {
+    foregroundCrossDeviceSync?.cancel()
+    foregroundCrossDeviceSync = null
+    lockController.onBackground(System.currentTimeMillis())
+  }
+  fun onForeground() {
+    if (lockController.requiresBiometricOnForeground(System.currentTimeMillis()) && repository.hasSession()) requireBiometric()
+    else if (mutableState.value.screen is AlexaScreenState.Shell) startCrossDeviceSync()
+  }
   fun lockNow() = requireBiometric()
   fun signOutAndForgetDevice() = viewModelScope.launch {
     if (mutableState.value.connection == ConnectionState.ONLINE) repository.unregisterPushToken()
@@ -483,6 +499,34 @@ class AlexaViewModel(
       return
     }
     viewModelScope.launch {
+      if (CrossDeviceRouting.isTargetedUtterance(transcript)) {
+        repository.routeCrossDeviceUtterance(transcript, mutableState.value.selectedConversationId).fold(
+          onSuccess = { response ->
+            val message = response.responseText ?: "The cross-device request was recorded."
+            mutableState.value = mutableState.value.copy(
+              crossDeviceResponse = message,
+              voiceState = MobileVoiceState.IDLE,
+              voiceError = null,
+            )
+            if (mutableState.value.ttsEnabled) speak(message)
+            response.command?.takeUnless { it.status in setOf("SUCCEEDED", "FAILED", "REJECTED", "EXPIRED", "CANCELLED", "TARGET_OFFLINE") }?.let { command ->
+              viewModelScope.launch {
+                repeat(30) {
+                  delay(2_000)
+                  val current = repository.crossDeviceCommandStatus(command.id).getOrNull() ?: return@repeat
+                  if (current.status in setOf("SUCCEEDED", "FAILED", "REJECTED", "EXPIRED", "CANCELLED", "TARGET_OFFLINE")) {
+                    mutableState.value = mutableState.value.copy(crossDeviceResponse = current.safeMessage)
+                    if (mutableState.value.ttsEnabled) speak(current.safeMessage)
+                    return@launch
+                  }
+                }
+              }
+            }
+          },
+          onFailure = ::showFailure,
+        )
+        return@launch
+      }
       var voiceSessionId = mutableState.value.activeVoiceSessionId
       if (voiceSessionId == null) {
         val dashboard = repository.startConversation().getOrElse {
@@ -493,6 +537,45 @@ class AlexaViewModel(
       }
       val sessionId = voiceSessionId ?: return@launch showVoiceError("Alexa could not create a conversation session.")
       submitPendingTurn(PendingConversationTurn(UUID.randomUUID().toString(), sessionId, transcript, confidence, language))
+    }
+  }
+
+  fun completeCrossDeviceCommand(commandId: String, succeeded: Boolean, message: String) = viewModelScope.launch {
+    val current = mutableState.value.crossDeviceCommand
+    if (current?.id != commandId) return@launch
+    val acknowledge = if (current.status == "DISPATCHED")
+      repository.acknowledgeCrossDeviceCommand(commandId)
+    else Result.success(current)
+    acknowledge.fold(
+      onSuccess = {
+        repository.completeCrossDeviceCommand(commandId, succeeded, message).fold(
+          onSuccess = { completed ->
+            mutableState.value = mutableState.value.copy(
+              crossDeviceCommand = null,
+              crossDeviceResponse = completed.safeMessage,
+            )
+          },
+          onFailure = ::showFailure,
+        )
+      },
+      onFailure = ::showFailure,
+    )
+  }
+
+  private fun startCrossDeviceSync() {
+    if (foregroundCrossDeviceSync?.isActive == true) return
+    foregroundCrossDeviceSync = viewModelScope.launch {
+      while (mutableState.value.screen is AlexaScreenState.Shell) {
+        if (mutableState.value.connection == ConnectionState.ONLINE) {
+          repository.syncCrossDeviceClient().onSuccess { response ->
+            response.commands.firstOrNull()?.let { command ->
+              if (mutableState.value.crossDeviceCommand?.id != command.id)
+                mutableState.value = mutableState.value.copy(crossDeviceCommand = command)
+            }
+          }
+        }
+        delay(10_000)
+      }
     }
   }
 

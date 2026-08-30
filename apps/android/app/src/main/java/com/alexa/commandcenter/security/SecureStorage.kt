@@ -5,6 +5,7 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.alexa.commandcenter.model.DeviceRegistration
 import com.alexa.commandcenter.model.DeviceTrustStatus
+import java.util.UUID
 
 interface SecureValues {
   fun read(key: String): String?
@@ -55,8 +56,11 @@ class DeviceRegistrationStore(private val secureValues: SecureValues) {
     return DeviceRegistration(id, fingerprint, trust, secureValues.read("pairing_token"))
   }
 
+  fun clientInstanceId(): String = secureValues.read("cross_device_client_id")
+    ?: UUID.randomUUID().toString().also { secureValues.write("cross_device_client_id", it) }
+
   fun clear() {
-    listOf("device_id", "device_fingerprint", "device_trust", "pairing_token")
+    listOf("device_id", "device_fingerprint", "device_trust", "pairing_token", "cross_device_client_id")
       .forEach(secureValues::remove)
   }
 }

@@ -1,4 +1,12 @@
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  readlink,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -22,9 +30,11 @@ describe("local Mac Agent installer", () => {
     await mkdir(source);
     await mkdir(destination);
     await writeFile(path.join(source, "version"), "new");
+    await symlink("version", path.join(source, "current"));
     await writeFile(path.join(destination, "version"), "old");
     const replacement = await atomicReplaceApp({ source, destination });
     expect(await readFile(path.join(destination, "version"), "utf8")).toBe("new");
+    expect(await readlink(path.join(destination, "current"))).toBe("version");
     await replacement.rollback();
     expect(await readFile(path.join(destination, "version"), "utf8")).toBe("old");
   });

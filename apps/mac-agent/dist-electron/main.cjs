@@ -233001,6 +233001,177 @@ var CrossApplicationWorkflowDashboardResponseSchema = external_exports.object({
   deterministicComposition: external_exports.literal(true)
 }).strict();
 
+// ../../packages/shared/src/cross-device.ts
+var CrossDeviceClientTypeSchema = external_exports.enum(["WEB", "ANDROID"]);
+var CrossDeviceTargetTypeSchema = external_exports.enum(["WEB", "ANDROID", "MAC"]);
+var CrossDevicePresenceSchema = external_exports.enum(["ONLINE", "OFFLINE", "DEGRADED"]);
+var CrossDeviceCapabilitySchema = external_exports.enum([
+  "NAVIGATE_TO_ROUTE",
+  "OPEN_OBJECTIVE",
+  "OPEN_AGENT",
+  "OPEN_WORKFLOW",
+  "OPEN_APPROVAL",
+  "OPEN_CONVERSATION",
+  "FOCUS_SEARCH",
+  "REFRESH_VIEW",
+  "SHOW_SCREEN",
+  "OPEN_APPLICATION",
+  "FOCUS_APPLICATION",
+  "OPEN_URL"
+]);
+var CrossDeviceRouteSchema = external_exports.enum([
+  "/",
+  "/conversation",
+  "/automation",
+  "/agents",
+  "/workflows",
+  "/objectives",
+  "/skills",
+  "/applications",
+  "/workspace",
+  "/devices",
+  "/spatial",
+  "/ai",
+  "/security",
+  "/approvals",
+  "/engineering"
+]);
+var CrossDeviceApplicationSchema = external_exports.enum([
+  "chrome",
+  "safari",
+  "figma",
+  "chatgpt",
+  "codex",
+  "vscode",
+  "finder"
+]);
+var CrossDeviceArgumentsSchema = external_exports.object({
+  route: CrossDeviceRouteSchema.optional(),
+  objectId: external_exports.string().trim().min(1).max(160).regex(/^[A-Za-z0-9:_-]+$/).optional(),
+  applicationId: CrossDeviceApplicationSchema.optional(),
+  url: external_exports.string().url().max(2048).refine((value) => value.startsWith("https://"), {
+    message: "Only HTTPS URLs may be routed between clients."
+  }).optional()
+}).strict();
+var CrossDeviceCommandStatusSchema = external_exports.enum([
+  "CREATED",
+  "RESOLVING_TARGET",
+  "WAITING_APPROVAL",
+  "AUTHORIZED",
+  "DISPATCHED",
+  "ACKNOWLEDGED",
+  "EXECUTING",
+  "SUCCEEDED",
+  "FAILED",
+  "REJECTED",
+  "EXPIRED",
+  "CANCELLED",
+  "TARGET_OFFLINE"
+]);
+var CrossDeviceFailureCodeSchema = external_exports.enum([
+  "TARGET_REQUIRED",
+  "TARGET_AMBIGUOUS",
+  "TARGET_NOT_FOUND",
+  "TARGET_OFFLINE",
+  "CAPABILITY_UNAVAILABLE",
+  "SOURCE_DEVICE_REVOKED",
+  "OWNER_SCOPE_MISMATCH",
+  "APPROVAL_REQUIRED",
+  "POLICY_DENIED",
+  "DELIVERY_EXPIRED",
+  "TARGET_REVOKED",
+  "EXECUTION_FAILED",
+  "INVALID_RESULT"
+]);
+var CrossDeviceClientInstanceSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  sessionId: external_exports.string().min(1).max(200),
+  trustedDeviceId: external_exports.string().uuid().nullable(),
+  clientType: CrossDeviceClientTypeSchema,
+  displayName: external_exports.string().trim().min(1).max(120),
+  platform: external_exports.string().trim().min(1).max(80),
+  capabilities: external_exports.array(CrossDeviceCapabilitySchema).max(30),
+  currentRoute: CrossDeviceRouteSchema.nullable(),
+  presence: CrossDevicePresenceSchema,
+  connectedAt: external_exports.iso.datetime(),
+  lastSeenAt: external_exports.iso.datetime(),
+  leaseExpiresAt: external_exports.iso.datetime()
+}).strict();
+var RegisterCrossDeviceClientRequestSchema = external_exports.object({
+  clientInstanceId: external_exports.string().uuid(),
+  clientType: CrossDeviceClientTypeSchema,
+  displayName: external_exports.string().trim().min(1).max(120),
+  platform: external_exports.string().trim().min(1).max(80),
+  capabilities: external_exports.array(CrossDeviceCapabilitySchema).min(1).max(30),
+  currentRoute: CrossDeviceRouteSchema.nullable().default(null)
+}).strict();
+var CrossDeviceHeartbeatRequestSchema = external_exports.object({
+  clientInstanceId: external_exports.string().uuid(),
+  currentRoute: CrossDeviceRouteSchema.nullable().optional(),
+  capabilities: external_exports.array(CrossDeviceCapabilitySchema).min(1).max(30).optional()
+}).strict();
+var CrossDeviceUtteranceRequestSchema = external_exports.object({
+  utterance: external_exports.string().trim().min(1).max(1e3),
+  clientInstanceId: external_exports.string().uuid(),
+  clientType: CrossDeviceClientTypeSchema,
+  conversationId: external_exports.string().uuid().nullable().default(null),
+  currentRoute: CrossDeviceRouteSchema.nullable().default(null),
+  idempotencyKey: external_exports.string().uuid()
+}).strict();
+var CrossDeviceCommandSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  sourceClientInstanceId: external_exports.string().uuid(),
+  sourceDeviceId: external_exports.string().uuid().nullable(),
+  sourceClientType: CrossDeviceClientTypeSchema,
+  targetType: CrossDeviceTargetTypeSchema.nullable(),
+  targetId: external_exports.string().uuid().nullable(),
+  targetDisplayName: external_exports.string().min(1).max(120).nullable(),
+  capability: CrossDeviceCapabilitySchema.nullable(),
+  arguments: CrossDeviceArgumentsSchema,
+  status: CrossDeviceCommandStatusSchema,
+  failureCode: CrossDeviceFailureCodeSchema.nullable(),
+  safeMessage: external_exports.string().min(1).max(500),
+  idempotencyKey: external_exports.string().uuid(),
+  conversationId: external_exports.string().uuid().nullable(),
+  executionRequestId: external_exports.string().uuid().nullable(),
+  approvalRequestId: external_exports.string().uuid().nullable(),
+  acknowledgedAt: external_exports.iso.datetime().nullable(),
+  startedAt: external_exports.iso.datetime().nullable(),
+  completedAt: external_exports.iso.datetime().nullable(),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime(),
+  expiresAt: external_exports.iso.datetime()
+}).strict();
+var CrossDeviceUtteranceResponseSchema = external_exports.object({
+  handled: external_exports.boolean(),
+  command: CrossDeviceCommandSchema.nullable(),
+  responseText: external_exports.string().min(1).max(500).nullable(),
+  clarificationTargets: external_exports.array(external_exports.string().min(1).max(120)).max(10)
+}).strict();
+var CrossDevicePollRequestSchema = external_exports.object({
+  clientInstanceId: external_exports.string().uuid(),
+  currentRoute: CrossDeviceRouteSchema.nullable().optional(),
+  limit: external_exports.number().int().min(1).max(20).default(5)
+}).strict();
+var CrossDevicePollResponseSchema = external_exports.object({
+  client: CrossDeviceClientInstanceSchema,
+  commands: external_exports.array(CrossDeviceCommandSchema).max(20),
+  polledAt: external_exports.iso.datetime()
+}).strict();
+var CrossDeviceCommandReceiptRequestSchema = external_exports.object({
+  clientInstanceId: external_exports.string().uuid(),
+  commandId: external_exports.string().uuid(),
+  status: external_exports.enum(["ACKNOWLEDGED", "EXECUTING", "SUCCEEDED", "FAILED", "REJECTED"]),
+  failureCode: CrossDeviceFailureCodeSchema.nullable().default(null),
+  safeMessage: external_exports.string().trim().min(1).max(500)
+}).strict();
+var CrossDeviceClientListResponseSchema = external_exports.object({
+  clients: external_exports.array(CrossDeviceClientInstanceSchema).max(100),
+  serverTime: external_exports.iso.datetime()
+}).strict();
+
 // ../../packages/shared/src/audit.ts
 var AuditEventTypeSchema = external_exports.enum([
   "OWNER_REGISTERED",
@@ -233097,6 +233268,14 @@ var AuditEventTypeSchema = external_exports.enum([
   "EXECUTION_AGENT_HEARTBEAT",
   "EXECUTION_RETENTION_CLEANED",
   "EXECUTION_RESULT_EXPORTED",
+  "CROSS_DEVICE_CLIENT_REGISTERED",
+  "CROSS_DEVICE_PRESENCE_UPDATED",
+  "CROSS_DEVICE_COMMAND_CREATED",
+  "CROSS_DEVICE_TARGET_RESOLVED",
+  "CROSS_DEVICE_COMMAND_DISPATCHED",
+  "CROSS_DEVICE_COMMAND_ACKNOWLEDGED",
+  "CROSS_DEVICE_COMMAND_COMPLETED",
+  "CROSS_DEVICE_COMMAND_REJECTED",
   "WORKSPACE_MAPPING_CONFIRMED",
   "REPOSITORY_INDEX_REQUESTED",
   "REPOSITORY_INDEXED",

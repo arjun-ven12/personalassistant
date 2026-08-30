@@ -82,6 +82,14 @@ import {
   DatabaseDiscoveryResponseSchema,
   DependencyGraphResponseSchema,
   type CreateExecutionRequest,
+  RegisterCrossDeviceClientRequestSchema,
+  CrossDeviceClientInstanceSchema,
+  CrossDeviceUtteranceRequestSchema,
+  CrossDeviceUtteranceResponseSchema,
+  CrossDevicePollRequestSchema,
+  CrossDevicePollResponseSchema,
+  CrossDeviceCommandReceiptRequestSchema,
+  CrossDeviceCommandSchema,
   type ExecutionRequestView,
   RepositoryDetailResponseSchema,
   RepositoryFilesResponseSchema,
@@ -2277,6 +2285,40 @@ export const createApiClient = (baseUrl: string) => {
         "/api/native-providers/dispatch",
         NativeProviderDashboardResponseSchema,
         jsonBody(NativeCapabilityDispatchRequestSchema.parse(input)),
+      ),
+    registerCrossDeviceClient: (input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/cross-device/clients",
+        CrossDeviceClientInstanceSchema,
+        jsonBody(RegisterCrossDeviceClientRequestSchema.parse(input)),
+      ),
+    routeCrossDeviceUtterance: (input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/cross-device/commands",
+        CrossDeviceUtteranceResponseSchema,
+        jsonBody(CrossDeviceUtteranceRequestSchema.parse(input)),
+      ),
+    pollCrossDeviceCommands: (input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/cross-device/poll",
+        CrossDevicePollResponseSchema,
+        jsonBody(CrossDevicePollRequestSchema.parse(input)),
+      ),
+    recordCrossDeviceReceipt: (input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/cross-device/receipts",
+        CrossDeviceCommandSchema,
+        jsonBody(CrossDeviceCommandReceiptRequestSchema.parse(input)),
+      ),
+    getCrossDeviceCommand: (commandId: string) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/cross-device/commands/${encodeURIComponent(commandId)}`,
+        CrossDeviceCommandSchema,
       ),
     refreshDesktopContext: () =>
       requestAndValidate(

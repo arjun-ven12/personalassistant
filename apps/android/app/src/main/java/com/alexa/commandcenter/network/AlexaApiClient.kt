@@ -65,6 +65,11 @@ interface AlexaApiService {
   @POST("api/v1/device/objectives/{objectiveId}/action") suspend fun mobileObjectiveAction(@Path("objectiveId") objectiveId: String, @Header("X-Device-Id") deviceId: String, @Body envelope: SignedEnvelope): Response<ObjectiveDashboard>
   @POST("api/v1/device/objectives") suspend fun mobileObjectiveCreate(@Header("X-Device-Id") deviceId: String, @Body envelope: SignedEnvelope): Response<Any>
   @POST("api/v1/device/objectives/{objectiveId}/modify") suspend fun mobileObjectiveModify(@Path("objectiveId") objectiveId: String, @Header("X-Device-Id") deviceId: String, @Body envelope: SignedEnvelope): Response<Any>
+  @POST("api/v1/device/cross-device") suspend fun crossDeviceClient(@Header("X-Device-Id") deviceId: String, @Body envelope: SignedEnvelope): Response<CrossDeviceClient>
+  @POST("api/v1/device/cross-device") suspend fun crossDeviceUtterance(@Header("X-Device-Id") deviceId: String, @Body envelope: SignedEnvelope): Response<CrossDeviceUtteranceResponse>
+  @POST("api/v1/device/cross-device") suspend fun crossDevicePoll(@Header("X-Device-Id") deviceId: String, @Body envelope: SignedEnvelope): Response<CrossDevicePollResponse>
+  @POST("api/v1/device/cross-device") suspend fun crossDeviceReceipt(@Header("X-Device-Id") deviceId: String, @Body envelope: SignedEnvelope): Response<CrossDeviceCommand>
+  @POST("api/v1/device/cross-device") suspend fun crossDeviceStatus(@Header("X-Device-Id") deviceId: String, @Body envelope: SignedEnvelope): Response<CrossDeviceCommand>
 }
 
 class AlexaApiClient private constructor(
@@ -106,6 +111,11 @@ class AlexaApiClient private constructor(
   suspend fun mobileObjectiveAction(objectiveId: String, deviceId: String, envelope: SignedEnvelope) = call { service.mobileObjectiveAction(objectiveId, deviceId, envelope) }
   suspend fun mobileObjectiveCreate(deviceId: String, envelope: SignedEnvelope) = call { service.mobileObjectiveCreate(deviceId, envelope) }
   suspend fun mobileObjectiveModify(objectiveId: String, deviceId: String, envelope: SignedEnvelope) = call { service.mobileObjectiveModify(objectiveId, deviceId, envelope) }
+  suspend fun crossDeviceClient(deviceId: String, envelope: SignedEnvelope) = call { service.crossDeviceClient(deviceId, envelope) }
+  suspend fun crossDeviceUtterance(deviceId: String, envelope: SignedEnvelope) = call { service.crossDeviceUtterance(deviceId, envelope) }
+  suspend fun crossDevicePoll(deviceId: String, envelope: SignedEnvelope) = call { service.crossDevicePoll(deviceId, envelope) }
+  suspend fun crossDeviceReceipt(deviceId: String, envelope: SignedEnvelope) = call { service.crossDeviceReceipt(deviceId, envelope) }
+  suspend fun crossDeviceStatus(deviceId: String, envelope: SignedEnvelope) = call { service.crossDeviceStatus(deviceId, envelope) }
 
   private suspend fun <T> call(block: suspend () -> Response<T>): Result<T> = withContext(Dispatchers.IO) {
     try {

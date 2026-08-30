@@ -116,6 +116,8 @@ import type { CapabilityStudioService } from "../capability-studio/service.js";
 import type { CapabilityStudioStore } from "../capability-studio/store.js";
 import type { BusinessOSService } from "../business-os/service.js";
 import type { ExecutiveNotificationService } from "../notifications/service.js";
+import type { CrossDeviceService } from "../cross-device/service.js";
+import type { CrossDeviceStore } from "../cross-device/store.js";
 
 export interface ApiRouteContext {
   deploymentMode: "private" | "cloud";
@@ -241,6 +243,8 @@ export interface ApiRouteContext {
   experiments: ExperimentService;
   businessOS: BusinessOSService;
   notifications: ExecutiveNotificationService;
+  crossDevice: CrossDeviceService;
+  crossDeviceStore: CrossDeviceStore;
   reflection: ReflectionEngineService;
   reflectionStore: ReflectionStore;
   skillEvolution: SkillEvolutionService;

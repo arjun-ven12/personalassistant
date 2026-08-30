@@ -49,6 +49,13 @@ import { ExecutionService, type ExecutionLimits } from "./execution/service.js";
 import { InMemoryExecutionStore, type ExecutionStore } from "./execution/store.js";
 import type { ServerExecutionSigner } from "./execution/server-key-store.js";
 import { registerExecutionRoutes } from "./routes/executions.js";
+import { registerCrossDeviceRoutes } from "./routes/cross-device.js";
+import { CrossDeviceService } from "./cross-device/service.js";
+import {
+  InMemoryCrossDeviceStore,
+  PostgresCrossDeviceStore,
+  type CrossDeviceStore,
+} from "./cross-device/store.js";
 import { InMemoryRepositoryStore, type RepositoryStore } from "./repositories/store.js";
 import { RepositoryService } from "./repositories/service.js";
 import { registerRepositoryRoutes } from "./routes/repositories.js";
@@ -411,6 +418,7 @@ export interface BuildApiOptions {
   serverExecutionSigner?: ServerExecutionSigner;
   readOnlyExecutionEnabled?: boolean;
   notificationStore?: NotificationStore;
+  crossDeviceStore?: CrossDeviceStore;
   pushProvider?: PushProvider;
   localAI?: LocalAIService;
   aiRuntime?: AIRuntimeService;
@@ -529,6 +537,7 @@ export const buildApi = async ({
   serverExecutionSigner,
   readOnlyExecutionEnabled = false,
   notificationStore,
+  crossDeviceStore,
   pushProvider = new DisabledPushProvider(),
   localAI = new LocalAIService(
     new OllamaLocalRuntime("http://127.0.0.1:11434"),
@@ -1045,6 +1054,19 @@ export const buildApi = async ({
       await intentRecording.recordReviewedCapability(input);
     },
   );
+  const resolvedCrossDeviceStore =
+    crossDeviceStore ??
+    (persistenceMode === "postgresql" && database
+      ? new PostgresCrossDeviceStore(database.pool)
+      : new InMemoryCrossDeviceStore());
+  const crossDevice = new CrossDeviceService(
+    resolvedCrossDeviceStore,
+    identityStore,
+    nativeProviders,
+    executionStore,
+    governanceAudit,
+    now,
+  );
   const applicationInteractions = new ApplicationInteractionService(
     applicationAdapterStore,
     nativeProviderStore,
@@ -1496,6 +1518,8 @@ export const buildApi = async ({
     experiments,
     businessOS,
     notifications,
+    crossDevice,
+    crossDeviceStore: resolvedCrossDeviceStore,
     reflection,
     reflectionStore,
     skillEvolution,
@@ -1655,6 +1679,7 @@ export const buildApi = async ({
   registerApprovalRoutes(app, context);
   registerSecurityRoutes(app, context);
   registerExecutionRoutes(app, context);
+  registerCrossDeviceRoutes(app, context);
   registerRepositoryRoutes(app, context);
   registerPatchRoutes(app, context);
   registerValidationRoutes(app, context);

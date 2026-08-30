@@ -77,6 +77,10 @@ const waitForLaunch = async () => {
   throw new Error("Updated Mac Agent did not relaunch within ten seconds.");
 };
 
+const verifyInstalledBundle = async () => {
+  await exec("/usr/bin/codesign", ["--verify", "--deep", "--strict", installPath]);
+};
+
 const waitForBackend = async (apiBaseUrl) => {
   for (let attempt = 0; attempt < 30; attempt += 1) {
     try {
@@ -148,6 +152,7 @@ const replacement = await atomicReplaceApp({ source, destination: installPath })
 
 try {
   const launchedAt = new Date().toISOString();
+  await verifyInstalledBundle();
   spawn("/usr/bin/open", [installPath], { detached: true, stdio: "ignore" }).unref();
   await waitForLaunch();
   const packagedConfig = JSON.parse(
@@ -158,6 +163,12 @@ try {
   );
   await waitForBackend(packagedConfig.ALEXA_API_BASE_URL);
   if (beforeDeviceId) await waitForAgentConnection(launchedAt);
+  await sleep(3_000);
+  if (!(await isRunning())) {
+    throw new Error(
+      "Updated Mac Agent exited during post-launch stability verification.",
+    );
+  }
   const afterDeviceId = await readDeviceId(metadataPath);
   if (beforeDeviceId && afterDeviceId !== beforeDeviceId) {
     throw new Error("Trusted device identity changed during app replacement.");

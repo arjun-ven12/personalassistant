@@ -60,6 +60,7 @@ fun AlexaApp(
   onNotificationTargetConsumed: () -> Unit = {},
   onNotificationPreferences: (NotificationPreferences) -> Unit = {},
   onApprovalDecisionWithReason: (String, Boolean, String?) -> Unit = { _, _, _ -> },
+  onCrossDeviceCommandApplied: (String, Boolean, String) -> Unit = { _, _, _ -> },
 ) {
   MaterialTheme(colorScheme = darkColorScheme(primary = AlexaBlue, surface = AlexaSurface)) {
     Surface(color = AlexaBackground, modifier = Modifier.fillMaxSize()) {
@@ -85,6 +86,7 @@ fun AlexaApp(
           onNotificationTargetConsumed = onNotificationTargetConsumed,
           onNotificationPreferences = onNotificationPreferences,
           onApprovalDecisionWithReason = onApprovalDecisionWithReason,
+          onCrossDeviceCommandApplied = onCrossDeviceCommandApplied,
           onRequestMicrophonePermission = onRequestMicrophonePermission,
           onStartRecording = onStartRecording,
           onReleaseRecording = onReleaseRecording,

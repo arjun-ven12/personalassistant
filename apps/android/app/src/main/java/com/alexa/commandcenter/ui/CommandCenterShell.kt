@@ -75,10 +75,53 @@ fun CommandCenterShell(
   onNotificationTargetConsumed: () -> Unit,
   onNotificationPreferences: (NotificationPreferences) -> Unit,
   onApprovalDecisionWithReason: (String, Boolean, String?) -> Unit,
+  onCrossDeviceCommandApplied: (String, Boolean, String) -> Unit,
 ) {
   var destination by rememberSaveable { mutableStateOf("Home") }
   var secondaryDestination by rememberSaveable { mutableStateOf<String?>(null) }
   var selectedApprovalId by rememberSaveable { mutableStateOf<String?>(null) }
+  LaunchedEffect(state.crossDeviceCommand) {
+    val command = state.crossDeviceCommand ?: return@LaunchedEffect
+    var supported = true
+    when (command.capability) {
+      "OPEN_APPROVAL" -> {
+        destination = "Approvals"
+        selectedApprovalId = command.arguments.objectId
+        command.arguments.objectId?.let(onApprovalSelected)
+      }
+      "OPEN_OBJECTIVE" -> destination = "Objectives"
+      "OPEN_AGENT" -> {
+        destination = "Workforce"
+        command.arguments.objectId?.let(onAgentSelected)
+      }
+      "OPEN_WORKFLOW" -> {
+        destination = "Alexa"
+        secondaryDestination = "Workflows"
+        command.arguments.objectId?.let(onWorkflowSelected)
+      }
+      "OPEN_CONVERSATION" -> {
+        destination = "Alexa"
+        secondaryDestination = null
+        command.arguments.objectId?.let(onSelectConversation)
+      }
+      "SHOW_SCREEN" -> when (command.arguments.route) {
+        "/", null -> destination = "Home"
+        "/objectives" -> destination = "Objectives"
+        "/agents" -> destination = "Workforce"
+        "/approvals" -> destination = "Approvals"
+        "/conversation" -> { destination = "Alexa"; secondaryDestination = null }
+        "/workflows" -> { destination = "Alexa"; secondaryDestination = "Workflows" }
+        else -> supported = false
+      }
+      else -> supported = false
+    }
+    onCrossDeviceCommandApplied(
+      command.id,
+      supported,
+      if (supported) "Alexa Android opened the requested registered screen."
+      else "This Alexa Android build does not expose the requested registered screen.",
+    )
+  }
   LaunchedEffect(state.notificationTarget, state.connection) {
     val target = state.notificationTarget ?: return@LaunchedEffect
     when (target.kind) {

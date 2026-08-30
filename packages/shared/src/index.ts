@@ -17,6 +17,7 @@ export * from "./active-context.js";
 export * from "./core-adapters.js";
 export * from "./conversation.js";
 export * from "./cross-application-workflows.js";
+export * from "./cross-device.js";
 export * from "./audit.js";
 export * from "./auth.js";
 export * from "./capabilities.js";

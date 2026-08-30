@@ -58,7 +58,11 @@ export const atomicReplaceApp = async ({ source, destination }) => {
   const backup = path.join(parent, `.${APP_NAME}.backup-${suffix}`);
   let hadExisting = false;
   try {
-    await cp(source, stage, { recursive: true, preserveTimestamps: true });
+    await cp(source, stage, {
+      recursive: true,
+      preserveTimestamps: true,
+      verbatimSymlinks: true,
+    });
     try {
       await rename(destination, backup);
       hadExisting = true;

@@ -22,6 +22,7 @@ class AlexaRepository(
   private val cache: SecureCache,
   private val gson: Gson = Gson(),
 ) {
+  private var crossDeviceRegistered = false
   suspend fun login(email: String, password: String): Result<Owner> = api.login(email, password).map { it.user }
 
   suspend fun session(): Result<Owner> = api.session().mapCatching { session ->
@@ -115,6 +116,103 @@ class AlexaRepository(
   suspend fun conversations(): Result<ConversationCenter> = api.conversations()
     .onSuccess { cache.save(CONVERSATION_CACHE_KEY, gson.toJson(it), System.currentTimeMillis()) }
     .onFailure(::clearOnRevocation)
+
+  suspend fun syncCrossDeviceClient(): Result<CrossDevicePollResponse> {
+    val clientInstanceId = registrationStore.clientInstanceId()
+    if (!crossDeviceRegistered) {
+      val register = signedDeviceRequest(
+        payload = mapOf(
+          "operation" to JsonPrimitive("register"),
+          "request" to gson.toJsonTree(
+            mapOf(
+              "clientInstanceId" to clientInstanceId,
+              "clientType" to "ANDROID",
+              "displayName" to "Alexa Android",
+              "platform" to "Android",
+              "capabilities" to listOf("SHOW_SCREEN", "OPEN_OBJECTIVE", "OPEN_AGENT", "OPEN_WORKFLOW", "OPEN_APPROVAL", "OPEN_CONVERSATION"),
+              "currentRoute" to null,
+            ),
+          ),
+        ),
+        request = api::crossDeviceClient,
+      )
+      if (register.isFailure) return Result.failure(register.exceptionOrNull()!!)
+      crossDeviceRegistered = true
+    }
+    return signedDeviceRequest(
+      payload = mapOf(
+        "operation" to JsonPrimitive("poll"),
+        "request" to gson.toJsonTree(mapOf("clientInstanceId" to clientInstanceId, "limit" to 5)),
+      ),
+      request = api::crossDevicePoll,
+    )
+  }
+
+  suspend fun routeCrossDeviceUtterance(utterance: String, conversationId: String?): Result<CrossDeviceUtteranceResponse> {
+    if (!crossDeviceRegistered) {
+      val synced = syncCrossDeviceClient()
+      if (synced.isFailure) return Result.failure(synced.exceptionOrNull()!!)
+    }
+    return signedDeviceRequest(
+      payload = mapOf(
+        "operation" to JsonPrimitive("utterance"),
+        "request" to gson.toJsonTree(
+          mapOf(
+            "utterance" to utterance,
+            "clientInstanceId" to registrationStore.clientInstanceId(),
+            "clientType" to "ANDROID",
+            "conversationId" to conversationId,
+            "currentRoute" to null,
+            "idempotencyKey" to UUID.randomUUID().toString(),
+          ),
+        ),
+      ),
+      request = api::crossDeviceUtterance,
+    )
+  }
+
+  suspend fun completeCrossDeviceCommand(commandId: String, succeeded: Boolean, message: String): Result<CrossDeviceCommand> =
+    signedDeviceRequest(
+      payload = mapOf(
+        "operation" to JsonPrimitive("receipt"),
+        "request" to gson.toJsonTree(
+          mapOf(
+            "clientInstanceId" to registrationStore.clientInstanceId(),
+            "commandId" to commandId,
+            "status" to if (succeeded) "SUCCEEDED" else "FAILED",
+            "failureCode" to if (succeeded) null else "CAPABILITY_UNAVAILABLE",
+            "safeMessage" to message,
+          ),
+        ),
+      ),
+      request = api::crossDeviceReceipt,
+    )
+
+  suspend fun acknowledgeCrossDeviceCommand(commandId: String): Result<CrossDeviceCommand> =
+    signedDeviceRequest(
+      payload = mapOf(
+        "operation" to JsonPrimitive("receipt"),
+        "request" to gson.toJsonTree(
+          mapOf(
+            "clientInstanceId" to registrationStore.clientInstanceId(),
+            "commandId" to commandId,
+            "status" to "ACKNOWLEDGED",
+            "failureCode" to null,
+            "safeMessage" to "Alexa Android acknowledged the command.",
+          ),
+        ),
+      ),
+      request = api::crossDeviceReceipt,
+    )
+
+  suspend fun crossDeviceCommandStatus(commandId: String): Result<CrossDeviceCommand> =
+    signedDeviceRequest(
+      payload = mapOf(
+        "operation" to JsonPrimitive("status"),
+        "commandId" to JsonPrimitive(commandId),
+      ),
+      request = api::crossDeviceStatus,
+    )
 
   suspend fun startConversation(): Result<VoiceDashboard> = signedVoiceRequest(
     payload = mapOf(
@@ -310,6 +408,7 @@ class AlexaRepository(
   fun clearSession() = sessionStore.clear()
 
   fun clearAuthority() {
+    crossDeviceRegistered = false
     sessionStore.clear()
     registrationStore.clear()
     deviceIdentity.delete()

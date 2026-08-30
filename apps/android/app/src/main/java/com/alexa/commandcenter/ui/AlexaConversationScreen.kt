@@ -197,6 +197,9 @@ fun AlexaConversationScreen(
       }
     }
 
+    state.crossDeviceResponse?.let { response ->
+      Text(response, color = Color(0xFF8EABFF), style = MaterialTheme.typography.bodySmall)
+    }
     state.voiceError?.let { error ->
       Row(
         Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.error.copy(alpha = .1f)).padding(horizontal = 14.dp, vertical = 7.dp),
