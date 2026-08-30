@@ -494,6 +494,7 @@ export class CrossDeviceService {
     if (!applicationId)
       throw new ExecutionError(400, "CAPABILITY_UNAVAILABLE", "Mac application target is required.");
     const capability = command.capability === "FOCUS_APPLICATION" ? "focus" : command.capability === "OPEN_URL" ? "open_url" : "launch";
+    let dispatchError: unknown = null;
     try {
       await this.nativeProviders.dispatch({
         ownerId: command.ownerId,
@@ -509,9 +510,14 @@ export class CrossDeviceService {
           arguments: command.arguments.url ? { url: command.arguments.url } : {},
         },
       });
-      const execution = (await this.executionStore.list(command.ownerId, 100)).find((item) => item.actionId === command.id);
-      if (!execution)
-        throw new ExecutionError(503, "CAPABILITY_UNAVAILABLE", "The reviewed Mac provider did not queue an execution.");
+    } catch (error) {
+      dispatchError = error;
+    }
+    const execution = await this.executionStore.findByActionId(
+      command.ownerId,
+      command.id,
+    );
+    if (execution) {
       const updated = await this.update(command, {
         status: "DISPATCHED",
         executionRequestId: execution.id,
@@ -519,22 +525,21 @@ export class CrossDeviceService {
       });
       await this.auditCommand("CROSS_DEVICE_COMMAND_DISPATCHED", updated, request, "Command queued through the existing signed Mac execution transport.");
       return { handled: true, command: updated, responseText: updated.safeMessage, clarificationTargets: [] };
-    } catch (error) {
-      const details = error instanceof ExecutionError ? error : null;
-      const approvalRequestId = details?.details && typeof details.details === "object" && "approvalRequestId" in details.details
-        ? String(details.details.approvalRequestId)
-        : null;
-      const approval = approvalRequestId !== null;
-      const updated = await this.update(command, {
-        status: approval ? "WAITING_APPROVAL" : "REJECTED",
-        failureCode: approval ? "APPROVAL_REQUIRED" : details?.code === "PROVIDER_NOT_HEALTHY" ? "CAPABILITY_UNAVAILABLE" : "POLICY_DENIED",
-        approvalRequestId,
-        safeMessage: approval ? "Approval is required before this Mac command can be dispatched." : "The governed Mac provider rejected the command; no macOS action occurred.",
-        completedAt: approval ? null : this.now().toISOString(),
-      });
-      await this.auditCommand("CROSS_DEVICE_COMMAND_REJECTED", updated, request, updated.safeMessage, "DENIED");
-      return { handled: true, command: updated, responseText: updated.safeMessage, clarificationTargets: [] };
     }
+    const details = dispatchError instanceof ExecutionError ? dispatchError : null;
+    const approvalRequestId = details?.details && typeof details.details === "object" && "approvalRequestId" in details.details
+      ? String(details.details.approvalRequestId)
+      : null;
+    const approval = approvalRequestId !== null;
+    const updated = await this.update(command, {
+      status: approval ? "WAITING_APPROVAL" : "REJECTED",
+      failureCode: approval ? "APPROVAL_REQUIRED" : details?.code === "PROVIDER_NOT_HEALTHY" ? "CAPABILITY_UNAVAILABLE" : "POLICY_DENIED",
+      approvalRequestId,
+      safeMessage: approval ? "Approval is required before this Mac command can be dispatched." : "The governed Mac provider rejected the command; no macOS action occurred.",
+      completedAt: approval ? null : this.now().toISOString(),
+    });
+    await this.auditCommand("CROSS_DEVICE_COMMAND_REJECTED", updated, request, updated.safeMessage, "DENIED");
+    return { handled: true, command: updated, responseText: updated.safeMessage, clarificationTargets: [] };
   }
 
   private async resolveTarget(ownerId: string, source: CrossDeviceClientInstance, parsed: ParsedAction, conversationId: string | null) {

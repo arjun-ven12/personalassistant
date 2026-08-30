@@ -10,6 +10,10 @@ import type { Awaitable } from "../identity/store.js";
 export interface ExecutionStore {
   create(request: ReadOnlyExecutionRequest): Awaitable<void>;
   find(id: string): Awaitable<ReadOnlyExecutionRequest | undefined>;
+  findByActionId(
+    ownerId: string,
+    actionId: string,
+  ): Awaitable<ReadOnlyExecutionRequest | undefined>;
   list(ownerId: string, limit: number): Awaitable<ReadOnlyExecutionRequest[]>;
   poll(deviceId: string, now: string): Awaitable<ReadOnlyExecutionRequest | undefined>;
   transition(
@@ -61,6 +65,13 @@ export class InMemoryExecutionStore implements ExecutionStore {
 
   find(id: string) {
     const value = this.#requests.get(id);
+    return value ? structuredClone(value) : undefined;
+  }
+
+  findByActionId(ownerId: string, actionId: string) {
+    const value = [...this.#requests.values()].find(
+      (item) => item.ownerId === ownerId && item.actionId === actionId,
+    );
     return value ? structuredClone(value) : undefined;
   }
 

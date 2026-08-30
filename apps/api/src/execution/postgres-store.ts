@@ -48,6 +48,16 @@ export class PostgresExecutionStore implements ExecutionStore {
     return result.rows[0] ? parseRequest(result.rows[0]) : undefined;
   }
 
+  async findByActionId(ownerId: string, actionId: string) {
+    const result = await this.pool.query<{ record: unknown }>(
+      `SELECT record FROM execution_requests
+       WHERE owner_id=$1 AND record->>'actionId'=$2
+       ORDER BY created_at DESC LIMIT 1`,
+      [ownerId, actionId],
+    );
+    return result.rows[0] ? parseRequest(result.rows[0]) : undefined;
+  }
+
   async list(ownerId: string, limit: number) {
     const result = await this.pool.query<{ record: unknown }>(
       "SELECT record FROM execution_requests WHERE owner_id=$1 ORDER BY created_at DESC LIMIT $2",

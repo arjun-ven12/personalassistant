@@ -37,6 +37,13 @@ describe("InMemoryExecutionStore", () => {
     await store.create(item);
     item.status = "FAILED";
     expect((await store.find(item.id))?.status).toBe("PENDING");
+    expect(await store.findByActionId(item.ownerId, item.actionId)).toMatchObject({
+      id: item.id,
+      status: "PENDING",
+    });
+    expect(
+      await store.findByActionId(crypto.randomUUID(), item.actionId),
+    ).toBeUndefined();
     expect(await store.list(crypto.randomUUID(), 10)).toEqual([]);
     expect(
       await store.transition(

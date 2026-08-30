@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { InMemoryExecutionStore } from "../execution/store.js";
+import { InMemoryExecutionStore, type ExecutionStore } from "../execution/store.js";
 import { InMemoryIdentityStore } from "../identity/store.js";
 import type { NativeProviderRuntime } from "../native-providers/service.js";
 import { CrossDeviceService, parseCrossDeviceUtterance } from "./service.js";
@@ -231,6 +231,83 @@ describe("CrossDeviceService", () => {
         ipAddress: "127.0.0.1",
       }),
     ).rejects.toMatchObject({ statusCode: 404 });
+  });
+
+  it("keeps a Mac command dispatched when execution was queued before a provider response error", async () => {
+    const identity = new InMemoryIdentityStore();
+    const macDeviceId = "77777777-7777-4777-8777-777777777777";
+    const executionRequestId = "88888888-8888-4888-8888-888888888888";
+    const now = new Date("2026-08-30T00:00:00.000Z");
+    identity.createDevice({
+      id: macDeviceId,
+      ownerId,
+      deviceName: "Owner Mac",
+      deviceType: "MAC_AGENT",
+      trustStatus: "TRUSTED",
+      publicKey: {
+        kty: "OKP",
+        crv: "Ed25519",
+        x: "a".repeat(43),
+        ext: true,
+        key_ops: ["verify"],
+      },
+      fingerprint: "SHA256:test",
+      pairingRequestTokenHash: "a".repeat(64),
+      pairedAt: now.toISOString(),
+      createdAt: now.toISOString(),
+      lastSeen: now.toISOString(),
+      revokedAt: null,
+      capabilities: [],
+      metadata: {},
+    });
+    const nativeProviders = {
+      dashboard: vi.fn().mockResolvedValue({
+        nativeProviders: [{ id: "provider.chrome", status: "healthy" }],
+        providerCapabilities: [
+          { providerId: "provider.chrome", capability: "launch", enabled: true },
+        ],
+      }),
+      dispatch: vi.fn().mockRejectedValue(new Error("Dashboard response failed")),
+    } as unknown as NativeProviderRuntime;
+    const executionStore = {
+      findByActionId: vi.fn().mockImplementation((_ownerId: string, actionId: string) => ({
+        id: executionRequestId,
+        actionId,
+      })),
+    } as unknown as ExecutionStore;
+    const service = new CrossDeviceService(
+      new InMemoryCrossDeviceStore(),
+      identity,
+      nativeProviders,
+      executionStore,
+      vi.fn(),
+      () => now,
+    );
+    await registerAndroid(service);
+
+    const result = await service.routeUtterance({
+      ownerId,
+      sessionId: androidDeviceId,
+      sourceDeviceId: androidDeviceId,
+      requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1",
+      networkState: "UNKNOWN",
+      body: {
+        utterance: "Open Chrome on my Mac",
+        clientInstanceId: androidClientId,
+        clientType: "ANDROID",
+        conversationId: null,
+        currentRoute: null,
+        idempotencyKey: crypto.randomUUID(),
+      },
+    });
+
+    expect(result.command).toMatchObject({
+      status: "DISPATCHED",
+      executionRequestId,
+      targetId: macDeviceId,
+    });
+    expect(result.responseText).toContain("waiting for the trusted Mac Agent");
   });
 });
 
