@@ -565,6 +565,9 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                           ? specialistStatus
                           : null
                         : null;
+                      const requiredSkills = task?.requirement?.requiredSkills ?? project.requiredSkills;
+                      const requiredCapabilities = task?.requirement?.requiredCapabilities ?? project.requiredCapabilities;
+                      const missingCapabilities = task?.workforceGap?.missingCapabilities ?? [];
                       const needsFunding = selected?.rejectionReasons.includes(
                         "insufficient economic budget",
                       ) ?? false;
@@ -582,6 +585,17 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                                 {selected.rejectionReasons.join(" · ")}
                               </small>
                             ) : null}
+                            <small className="workforce-requirements">
+                              Skills: {requiredSkills.length ? requiredSkills.join(", ") : "general bounded work"}
+                            </small>
+                            <small className="workforce-requirements">
+                              Capabilities: {requiredCapabilities.length ? requiredCapabilities.join(", ") : "no external capability required"}
+                            </small>
+                            {missingCapabilities.length ? (
+                              <small className="workforce-rejection-reason">
+                                Missing capability: {missingCapabilities.join(", ")}
+                              </small>
+                            ) : null}
                           </div>
                           {proposal ? (
                             <div>
@@ -591,7 +605,7 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                                 {proposal.recommendation.toLowerCase()} ·{" "}
                                 {proposal.capabilities.length -
                                   proposal.missingCapabilities.length}
-                                /{proposal.capabilities.length} capabilities available
+                                /{proposal.capabilities.length} specialist-profile capabilities available
                               </small>
                             </div>
                           ) : (
@@ -733,7 +747,12 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                         <p>{project.outcome}</p>
                         <small>
                           {project.departmentId ?? "Automatic assignment"} ·{" "}
-                          {project.budgetCredits} credits
+                          {project.budgetCredits} credits · AI estimate {project.estimatedAiCostCredits} credits
+                        </small>
+                        <small className="strategy-capability-map">
+                          Capabilities: {project.capabilityReadiness.length
+                            ? project.capabilityReadiness.map((item) => `${item.capabilityId} (${item.status === "AVAILABLE" ? "available" : "grant/request needed"})`).join(" · ")
+                            : "No external capability required"}
                         </small>
                         {project.workflowSelection[0] ? (
                           <small>

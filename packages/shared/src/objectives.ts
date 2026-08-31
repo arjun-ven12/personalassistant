@@ -53,6 +53,11 @@ export const ObjectiveProjectSchema = z.object({
   departmentId: z.string().max(160).nullable(),
   requiredSkills: z.array(z.string().max(160)).max(20),
   requiredCapabilities: z.array(z.string().max(160)).max(20),
+  capabilityReadiness: z.array(z.object({
+    capabilityId: z.string().min(1).max(160),
+    status: z.enum(["AVAILABLE", "REQUEST_REQUIRED"]),
+  }).strict()).max(20).default([]),
+  estimatedAiCostCredits: z.number().int().nonnegative().max(1_000_000).default(0),
   memoryScopeRefs: z.array(z.string().max(160)).max(20),
   budgetCredits: z.number().int().nonnegative().max(1_000_000),
   workforceTaskId: z.string().uuid().nullable(),

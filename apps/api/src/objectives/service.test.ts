@@ -60,10 +60,17 @@ describe("ObjectiveEngineService",()=>{
     expect(result.projects[0]?.workflowSelection[0]).toMatchObject({reuseType:"EXISTING_PROVEN",historicalSuccess:.9,workforceFit:1});expect(store.listPlans(ownerId)[0]?.version).toBe(1);
   });
 
+  it("maps required capabilities and bounded AI estimates into an outreach strategy before activation",async()=>{
+    const {service}=harness();
+    const result=await service.create({...request,body:objectiveBody("Research leads and draft outreach")});
+    expect(result.projects[0]).toMatchObject({requiredCapabilities:["crm.search_leads","crm.read_lead"],estimatedAiCostCredits:12,capabilityReadiness:[{capabilityId:"crm.search_leads",status:"REQUEST_REQUIRED"},{capabilityId:"crm.read_lead",status:"REQUEST_REQUIRED"}]});
+    expect(result.projects[1]).toMatchObject({requiredCapabilities:["email.create_draft"],estimatedAiCostCredits:9,capabilityReadiness:[{capabilityId:"email.create_draft",status:"REQUEST_REQUIRED"}]});
+  });
+
   it("activates idempotently through reusable workflows and the workforce scheduler without authority expansion",async()=>{
     const {service,createTask,schedule,library}=harness({withWorkflows:true});const draft=await service.create({...request,body:objectiveBody("Publish verified report")});const id=draft.objective!.id;
     await service.activate({...request,objectiveId:id,idempotencyKey:"activate-objective-1"});await service.activate({...request,objectiveId:id,idempotencyKey:"activate-objective-1"});
-    expect(library?.compose).toHaveBeenCalledTimes(3);expect(createTask).toHaveBeenCalledTimes(3);expect(schedule).toHaveBeenCalledTimes(3);
+    expect(library?.compose).toHaveBeenCalledTimes(3);expect(createTask).toHaveBeenCalledTimes(3);expect(schedule).toHaveBeenCalledTimes(1);
     for(const call of createTask.mock.calls){const body=call[0].body as {requiredCapabilities:string[];memoryScopeRefs:string[];economicBudget:number};expect(body.requiredCapabilities).toEqual([]);expect(body.memoryScopeRefs).toEqual([]);expect(body.economicBudget).toBe(30);}
   });
 
@@ -82,7 +89,7 @@ describe("ObjectiveEngineService",()=>{
 
   it("links a real capability request to only the affected branch while other projects continue",async()=>{
     const {service,store,createRequest,createTask}=harness({withWorkflows:true,capabilityGap:true});const draft=await service.create({...request,body:objectiveBody("Launch outreach")});const result=await service.activate({...request,objectiveId:draft.objective!.id,idempotencyKey:"activate-capability"});
-    expect(createRequest).toHaveBeenCalledTimes(1);expect(createTask).toHaveBeenCalledTimes(2);const projects=result.projects.filter((item)=>item.objectiveExecutionId===draft.objective!.id);expect(projects.filter((item)=>item.status==="BLOCKED")).toHaveLength(1);expect(projects.filter((item)=>item.status==="RUNNING")).toHaveLength(2);
+    expect(createRequest).toHaveBeenCalledTimes(1);expect(createTask).toHaveBeenCalledTimes(2);const projects=result.projects.filter((item)=>item.objectiveExecutionId===draft.objective!.id);expect(projects.filter((item)=>item.status==="BLOCKED")).toHaveLength(1);expect(projects.filter((item)=>item.status==="QUEUED")).toHaveLength(2);
     expect(result.capabilityRequests[0]).toMatchObject({objectiveExecutionId:draft.objective!.id,requiredCapability:"email.send",status:"OPEN"});expect(store.listPlans(ownerId).map((item)=>item.version).sort()).toEqual([1,2]);
   });
 

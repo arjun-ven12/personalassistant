@@ -54,8 +54,8 @@ const setup = (options: { withObjectiveSpecialistFactory?: boolean } = {}) => {
   const externalHarvest = { executeDelegation: vi.fn(() => { sandboxCalls++; return Promise.resolve({ status: "COMPLETE", summary: "Generated and ran one bounded test.", confidence: .92, artifacts: [{ name: "generated.test.cjs", kind: "PROPOSED_TEST", content: "" }], tests: { status: "PASSED" }, ai: { requestId: "61000000-0000-4000-8000-000000000001", providerId: "local", modelId: "shared" } }); }) } as unknown as ExternalHarvestService;
   const agentFactory = options.withObjectiveSpecialistFactory ? {
     capabilities: vi.fn(() => Promise.resolve([])),
-    createObjectiveSpecialist: vi.fn(async () => {
-      const generated = { ...agent("generated_lead"), displayName: "Lead Research Specialist", supportedTasks: ["lead_generation", "research"], workforce: { ...agent("generated_lead").workforce!, specialization: "Lead research", skills: ["lead_generation", "fitness", "research"] } };
+    createObjectiveSpecialist: vi.fn(() => {
+      const generated = { ...agent("generated_lead"), displayName: "Lead Research Specialist", supportedTasks: ["lead_generation", "research"], workforce: { ...agent("generated_lead").workforce, specialization: "Lead research", skills: ["lead_generation", "fitness", "research"] } };
       agents.upsertAgent(generated);
       return { agent: generated, dynamicAgent: null };
     }),

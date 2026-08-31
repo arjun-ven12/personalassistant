@@ -8388,6 +8388,7 @@ pre {
 .objective-workforce-prep h3,.objective-workforce-prep strong { margin:0; font-size:13px; font-weight:600; color:#f4f6fb; }
 .objective-workforce-prep small,.objective-workforce-prep p,.objective-workforce-prep span { margin:0; color:#8790a1; font-size:11px; }
 .objective-workforce-prep .workforce-rejection-reason { display:block; margin-top:4px; color:#ffb0b8; }
+.objective-workforce-prep .workforce-requirements { display:block; margin-top:4px; color:#aebeff; }
 .specialist-creation-status { grid-column:1 / -1; padding:8px 10px; border-left:3px solid #7596ff; background:#151a29; color:#b9c6ff !important; }
 .specialist-creation-status.success { border-color:#65d5a1; background:#102018; color:#9be8bf !important; }
 .specialist-creation-status.error { border-color:#e77a86; background:#251419; color:#ffb0b8 !important; }
@@ -8402,6 +8403,7 @@ pre {
 .project-sequence { width: 24px; height: 24px; display:grid; place-items:center; border:1px solid #353946; color:#89919f; border-radius:50%; font-size:11px; }
 .objective-projects p { margin: 3px 0; color: #9299a7; }
 .objective-projects small { color: #666e7d; }
+.objective-projects .strategy-capability-map { display:block; margin-top:4px; color:#aebeff; }
 .objective-bottom { display:grid; grid-template-columns: 1fr 1fr; gap:24px; margin-top:22px; padding-top:18px; border-top:1px solid #242731; }
 .objective-bottom h3 { display:flex; align-items:center; gap:7px; }
 .objective-bottom p { display:grid; gap:3px; padding:9px 0; margin:0; border-top:1px solid #20232b; }

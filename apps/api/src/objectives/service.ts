@@ -89,11 +89,13 @@ export class ObjectiveEngineService {
     });
     const projectSpecs = this.decompose(body.title, body.outcome, body.budgetCredits);
     const workflowSelections = await this.selectWorkflows(input.ownerId, projectSpecs);
+    const capabilityReadiness = await this.capabilityReadiness(input.ownerId, projectSpecs.map((spec)=>spec.requiredCapabilities));
     const projects = projectSpecs.map((spec,index)=>ObjectiveProjectSchema.parse({
       id: crypto.randomUUID(), ownerId: input.ownerId, objectiveExecutionId: objective.id,
       title: spec.title, outcome: spec.outcome, status: "PLANNED", sequence: index,
       departmentId: spec.departmentId, requiredSkills: spec.requiredSkills,
-      requiredCapabilities: [], memoryScopeRefs: [], budgetCredits: spec.budgetCredits,
+      requiredCapabilities: spec.requiredCapabilities, capabilityReadiness: capabilityReadiness[index] ?? [],
+      estimatedAiCostCredits: this.estimateAiCost(spec), memoryScopeRefs: [], budgetCredits: spec.budgetCredits,
       workforceTaskId: null, workflowId: null,
       selectedWorkflowTemplateId: workflowSelections[index]?.find((item)=>item.reuseType!=="NEW_CANDIDATE")?.templateId ?? null,
       workflowSelection: workflowSelections[index] ?? [], createdAt: at, updatedAt: at,
@@ -131,8 +133,10 @@ export class ObjectiveEngineService {
     const taskIds:string[]=[];
     let blocked=false;
     const goal=(await this.store.listGoals(input.ownerId)).find((item)=>item.id===objective.executiveGoalId);
-    for (const originalProject of projects) {
+    for (const [projectIndex, originalProject] of projects.entries()) {
       let project=originalProject;
+      const predecessor=projects[projectIndex-1];
+      const readyForScheduling=!predecessor||predecessor.status==="COMPLETED";
       if(!project.workflowId&&project.selectedWorkflowTemplateId&&this.workflows) {
         const prepared=await this.prepareWorkflow(input,objective,project);
         project=prepared.project;
@@ -140,7 +144,7 @@ export class ObjectiveEngineService {
       }
       if (project.workforceTaskId) {
         taskIds.push(project.workforceTaskId);
-        if(project.status==="WAITING"||project.status==="QUEUED") {
+        if(readyForScheduling&&(project.status==="WAITING"||project.status==="QUEUED")) {
           try { await this.workforce.schedule(input.ownerId,project.workforceTaskId,input.requestId,input.ipAddress); await this.store.saveObjectiveProject(ObjectiveProjectSchema.parse({...project,status:"RUNNING",updatedAt:at})); }
           catch { blocked=true; }
         }
@@ -157,8 +161,10 @@ export class ObjectiveEngineService {
       }});
       taskIds.push(created.task.id);
       let status:ObjectiveProject["status"]="QUEUED";
-      try { await this.workforce.schedule(input.ownerId,created.task.id,input.requestId,input.ipAddress); status="RUNNING"; }
-      catch { status="WAITING"; blocked=true; }
+      if(readyForScheduling) {
+        try { await this.workforce.schedule(input.ownerId,created.task.id,input.requestId,input.ipAddress); status="RUNNING"; }
+        catch { status="WAITING"; blocked=true; }
+      }
       await this.store.saveObjectiveProject(ObjectiveProjectSchema.parse({...project,workforceTaskId:created.task.id,status,updatedAt:at}));
     }
     objective=await this.requireObjective(input.ownerId,input.objectiveId);
@@ -255,7 +261,9 @@ export class ObjectiveEngineService {
 
   async handleWorkforceTaskChanged(task:WorkforceRuntimeTask) {
     const project=(await this.store.listObjectiveProjects(task.ownerId)).find((item)=>item.workforceTaskId===task.id||item.id===task.inputs.projectId);
-    if(project) await this.refreshObjective(task.ownerId,project.objectiveExecutionId);
+    if(!project) return;
+    await this.refreshObjective(task.ownerId,project.objectiveExecutionId);
+    if(task.status==="COMPLETED") await this.scheduleNextProject(task.ownerId,project.objectiveExecutionId,task.id);
   }
 
   async handleWorkflowChanged(ownerId:string,graphId:string,eventType:string) {
@@ -275,6 +283,20 @@ export class ObjectiveEngineService {
   private async refresh(ownerId:string) {
     const objectives=await this.store.listObjectiveExecutions(ownerId);
     for(const objective of objectives.filter((item)=>["ACTIVE","AT_RISK","BLOCKED"].includes(item.status))) await this.refreshObjective(ownerId,objective.id);
+  }
+
+  private async scheduleNextProject(ownerId:string,objectiveId:string,completedTaskId:string) {
+    const projects=(await this.store.listObjectiveProjects(ownerId)).filter((item)=>item.objectiveExecutionId===objectiveId).sort((left,right)=>left.sequence-right.sequence);
+    const completedIndex=projects.findIndex((item)=>item.workforceTaskId===completedTaskId);
+    const next=completedIndex>=0?projects[completedIndex+1]:undefined;
+    if(!next?.workforceTaskId||!["QUEUED","WAITING"].includes(next.status)) return;
+    try {
+      await this.workforce.schedule(ownerId,next.workforceTaskId,`objective-next:${objectiveId}:${next.id}`,"internal");
+      await this.store.saveObjectiveProject(ObjectiveProjectSchema.parse({...next,status:"RUNNING",updatedAt:this.now().toISOString()}));
+    } catch {
+      await this.store.saveObjectiveProject(ObjectiveProjectSchema.parse({...next,status:"WAITING",updatedAt:this.now().toISOString()}));
+    }
+    await this.refreshObjective(ownerId,objectiveId);
   }
 
   private async refreshObjective(ownerId:string,objectiveId:string,forcedTrigger?:ObjectiveReplanTrigger) {
@@ -415,11 +437,26 @@ export class ObjectiveEngineService {
   }
   private decompose(title:string,outcome:string,budget:number) {
     const count=Math.min(3,budget); const base=Math.floor(budget/count); const remainder=budget-base*count;
+    const lower=`${title} ${outcome}`.toLowerCase();
+    const outreach=lower.includes("lead")||lower.includes("prospect")||lower.includes("outreach")||lower.includes("campaign");
     return [
-      {title:`Define ${title}`,outcome:`Establish bounded requirements, evidence, and constraints for: ${outcome}`,departmentId:"research",requiredSkills:["analysis"]},
-      {title:`Deliver ${title}`,outcome:`Produce the reviewed deliverable needed to achieve: ${outcome}`,departmentId:"development",requiredSkills:["planning"]},
-      {title:`Verify ${title}`,outcome:`Verify the deliverable against the declared success metric and constraints.`,departmentId:"quality-review",requiredSkills:["review"]},
+      {title:`Define ${title}`,outcome:`Establish bounded requirements, evidence, and constraints for: ${outcome}`,departmentId:"research",requiredSkills:["analysis"],requiredCapabilities:outreach?["crm.search_leads","crm.read_lead"]:[]},
+      {title:`Deliver ${title}`,outcome:`Produce the reviewed deliverable needed to achieve: ${outcome}`,departmentId:"development",requiredSkills:["planning"],requiredCapabilities:outreach?["email.create_draft"]:[]},
+      {title:`Verify ${title}`,outcome:`Verify the deliverable against the declared success metric and constraints.`,departmentId:"quality-review",requiredSkills:["review"],requiredCapabilities:[]},
     ].slice(0,count).map((item,index)=>({...item,budgetCredits:base+(index===count-1?remainder:0)}));
+  }
+  private async capabilityReadiness(ownerId:string, requirements:string[][]) {
+    const agentStore=this.workforce.agentStore;
+    const agentFactory=this.workforce.agentFactory;
+    const [agents, factoryCapabilities]=await Promise.all([
+      agentStore?.listAgents(ownerId)??Promise.resolve([]),
+      agentFactory?.capabilities(ownerId)??Promise.resolve([]),
+    ]);
+    const available=new Set([...agents.flatMap((agent)=>agent.capabilities),...factoryCapabilities.map((capability)=>capability.id)]);
+    return requirements.map((capabilities)=>capabilities.map((capability)=>({capabilityId:capability,status:available.has(capability)?"AVAILABLE" as const:"REQUEST_REQUIRED" as const})));
+  }
+  private estimateAiCost(spec:{requiredSkills:string[];requiredCapabilities:string[];budgetCredits:number}) {
+    return Math.max(1,Math.min(spec.budgetCredits,4+spec.requiredSkills.length*2+spec.requiredCapabilities.length*3));
   }
   private async requireObjective(ownerId:string,id:string) { const value=await this.store.findObjectiveExecution(ownerId,id); if(!value) throw new ExecutionError(404,"OBJECTIVE_NOT_FOUND","Objective was not found."); return value; }
   private async event(ownerId:string,objectiveExecutionId:string,type:"DRAFTED"|"PLAN_CREATED"|"ACTIVATED"|"PAUSED"|"RESUMED"|"PROGRESS_UPDATED"|"MONITORED"|"MODIFIED"|"REPLAN_PROPOSED"|"REPLANNED"|"BLOCKED"|"COMPLETED"|"CANCELLED",summary:string,idempotencyKey:string|null,metadata:Record<string,unknown>) { const event=ObjectiveEventSchema.parse({id:crypto.randomUUID(),ownerId,objectiveExecutionId,type,summary,idempotencyKey,metadata,createdAt:this.now().toISOString()}); await this.store.saveObjectiveEvent(event); const status=typeof metadata.status==="string"?metadata.status:type; const budgetStatus=typeof metadata.budgetStatus==="string"?metadata.budgetStatus:null; if(status==="AT_RISK"||status==="BLOCKED"||status==="COMPLETED"||budgetStatus==="BUDGET_AT_RISK") await this.#notificationSink?.dispatch({ownerId,eventId:event.id,category:budgetStatus==="BUDGET_AT_RISK"?"BUDGET_WARNING":status==="BLOCKED"?"OBJECTIVE_BLOCKED":status==="COMPLETED"?"IMPORTANT_OBJECTIVE_COMPLETED":"OBJECTIVE_AT_RISK",severity:status==="BLOCKED"?"CRITICAL":status==="COMPLETED"?"NORMAL":"HIGH",objectKind:"OBJECTIVE",objectId:objectiveExecutionId,stateVersion:`${status}:${budgetStatus??""}`,title:budgetStatus==="BUDGET_AT_RISK"?"Objective budget needs attention":status==="BLOCKED"?"Objective blocked":status==="COMPLETED"?"Objective completed":"Objective at risk"}).catch(()=>undefined); }
