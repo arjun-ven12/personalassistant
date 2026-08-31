@@ -8,13 +8,16 @@ import {
   WorkforceRuntimeReviewSchema,
   WorkforceRuntimeTaskSchema,
   type AgentRecord,
+  type SpecialistRequirement,
   type WorkforceMatchScore,
+  type WorkforceGapResolution,
   type WorkforceRuntimeTask,
 } from "@alexa-control/shared";
 import { z } from "zod";
 
 import type { AgentEconomyService } from "../agent-economy/service.js";
 import type { AgentWorkforceService } from "../agent-workforce/service.js";
+import type { AgentFactoryService } from "../agents/factory.js";
 import type { AgentOsService } from "../agents/os-service.js";
 import type { AgentStore } from "../agents/store.js";
 import type { AIRouterService } from "../ai/router/service.js";
@@ -28,6 +31,7 @@ const MAX_CONCURRENT = 6;
 const PRIORITY_RANK = { low: 0, normal: 1, high: 2, urgent: 3 } as const;
 const MAX_CHILDREN = 8;
 const MAX_MESSAGES_PER_TASK = 40;
+const MATCH_THRESHOLDS = { strong: 0.82, adaptable: 0.62, duplicate: 0.78 } as const;
 const RuntimeResultSchema = z.object({
   summary: z.string().min(1).max(4_000), confidence: z.number().min(0).max(1),
   evidence: z.array(z.string().min(1).max(160)).max(20).default([]),
@@ -55,6 +59,7 @@ export class WorkforceRuntimeService {
     readonly externalHarvest: ExternalHarvestService,
     readonly aiRouter: AIRouterService,
     readonly capabilityStudio: CapabilityStudioService,
+    readonly agentFactory: AgentFactoryService | undefined,
     readonly audit: GovernanceAuditWriter,
     readonly now: () => Date = () => new Date(),
   ) {}
@@ -113,7 +118,7 @@ export class WorkforceRuntimeService {
       preferredDepartmentId: body.preferredDepartmentId ?? creator?.workforce?.departmentId ?? null,
       priority: body.priority, riskLevel: body.riskLevel, economicBudget: body.economicBudget,
       reservedCredits: 0, actualCost: 0, reservationId: null, status: "QUEUED", retryCount: 0,
-      maxRetries: body.maxRetries, selection: [], resultSummary: null, resultConfidence: null,
+      maxRetries: body.maxRetries, selection: [], requirement: null, workforceGap: null, resultSummary: null, resultConfidence: null,
       aiRequestId: null, providerId: null, modelId: null, createdAt: at, updatedAt: at,
       sandboxStatus: null, artifactCount: 0,
       startedAt: null, completedAt: null, expiresAt: body.expiresAt,
@@ -140,22 +145,37 @@ export class WorkforceRuntimeService {
       throw new ExecutionError(409, "WORKFORCE_CONCURRENCY_LIMIT", "The bounded active-workforce limit is reached.");
     task = await this.update(task, { status: "MATCHING" });
     const [agents, economy] = await Promise.all([this.agentStore.listAgents(ownerId), this.economy.dashboard(ownerId)]);
+    const requirement = this.requirementFor(task);
     const accountByAgent = new Map(economy.accounts.map((account) => [account.agentId, account]));
     const performanceByAgent = new Map(economy.performance.map((item) => [item.agentId, item]));
     const activeByAgent = new Map<string, number>();
     for (const active of allTasks.filter((item) => ["ASSIGNED","RESERVED","RUNNING"].includes(item.status) && item.assignedAgentId))
       activeByAgent.set(active.assignedAgentId!, (activeByAgent.get(active.assignedAgentId!) ?? 0) + 1);
-    const scores = agents.map((agent) => this.score(task, agent, accountByAgent.get(agent.id), performanceByAgent.get(agent.id), activeByAgent.get(agent.id) ?? 0))
+    const scores = agents.map((agent) => this.score(task, requirement, agent, accountByAgent.get(agent.id), performanceByAgent.get(agent.id), activeByAgent.get(agent.id) ?? 0))
       .sort((a,b) => b.finalScore - a.finalScore || a.agentId.localeCompare(b.agentId)).slice(0, 20);
-    const chosen = task.assignedAgentId ? scores.find((score) => score.agentId === task.assignedAgentId && score.eligible) : scores.find((score) => score.eligible);
+    let chosen = task.assignedAgentId ? scores.find((score) => score.agentId === task.assignedAgentId && score.eligible) : scores.find((score) => score.eligible && score.category !== "WEAK_MATCH");
     if (!chosen) {
-      await this.createCapabilityRequestIfPossible(ownerId, task, requestId, ipAddress);
-      await this.update(task, { status: "WAITING", selection: scores });
-      throw new ExecutionError(409, "NO_ELIGIBLE_WORKFORCE_AGENT", "No funded agent has the required bounded skills and capabilities.");
+      const resolved = await this.resolveWorkforceGap(ownerId, task, requirement, scores, requestId, ipAddress);
+      if (resolved.selectedAgentId) {
+        const refreshedAgents = await this.agentStore.listAgents(ownerId);
+        const refreshedEconomy = await this.economy.dashboard(ownerId);
+        const refreshedAccounts = new Map(refreshedEconomy.accounts.map((account) => [account.agentId, account]));
+        const refreshedPerformance = new Map(refreshedEconomy.performance.map((item) => [item.agentId, item]));
+        const selected = refreshedAgents.find((agent) => agent.id === resolved.selectedAgentId);
+        if (selected) {
+          const selectedScore = this.score(task, requirement, selected, refreshedAccounts.get(selected.id), refreshedPerformance.get(selected.id), activeByAgent.get(selected.id) ?? 0);
+          chosen = selectedScore.eligible ? selectedScore : undefined;
+          scores.unshift(selectedScore);
+        }
+      }
+      if (!chosen) {
+        await this.update(task, { status: "WAITING", selection: scores, requirement, workforceGap: resolved });
+        throw new ExecutionError(409, resolved.blockerCode ?? "NO_ELIGIBLE_AGENT", resolved.reasons[0] ?? "No eligible workforce agent is available.");
+      }
     }
     const agent = await this.requireAgent(ownerId, chosen.agentId);
     if (task.createdByAgentId) this.assertDelegationAuthority(await this.requireAgent(ownerId, task.createdByAgentId), agent, task.type === "CAPABILITY_REQUEST" ? "QUESTION" : task.type);
-    task = await this.update(task, { status: "ASSIGNED", assignedAgentId: agent.id, selection: scores });
+    task = await this.update(task, { status: "ASSIGNED", assignedAgentId: agent.id, selection: scores, requirement, workforceGap: null });
     await this.workforce.setActivation(ownerId, agent.id, "ACTIVE", requestId, ipAddress);
     try {
       const reserveAmount = Math.max(1, Math.min(task.economicBudget, 10));
@@ -245,6 +265,24 @@ export class WorkforceRuntimeService {
     }
   }
 
+  async approveSpecialistCreation(ownerId: string, taskId: string, body: unknown, requestId: string, ipAddress: string) {
+    const parsed = z.object({ approved: z.boolean(), proposalId: z.string().uuid().optional() }).strict().parse(body);
+    const task = await this.requireTask(ownerId, taskId);
+    const gap = task.workforceGap;
+    if (!gap?.proposal || gap.decision !== "SPECIALIST_APPROVAL_PENDING")
+      throw new ExecutionError(409, "NO_SPECIALIST_APPROVAL_PENDING", "This task is not waiting on a specialist creation decision.");
+    if (parsed.proposalId && parsed.proposalId !== gap.proposal.proposalId)
+      throw new ExecutionError(409, "SPECIALIST_PROPOSAL_MISMATCH", "The approval does not match the current specialist proposal.");
+    if (!parsed.approved) {
+      const declined = { ...gap, decision: "BLOCKED" as const, blockerCode: "SPECIALIST_CREATION_REQUIRED" as const, reasons: ["Owner declined the proposed specialist; no agent was created."] };
+      await this.update(task, { workforceGap: declined });
+      throw new ExecutionError(409, "SPECIALIST_CREATION_REQUIRED", "Owner declined specialist creation.");
+    }
+    const updated = await this.update(task, { status: "QUEUED", inputs: { ...task.inputs, workforceGapApproval: { approved: true, proposalId: gap.proposal.proposalId } } });
+    await this.audit({ eventType: "WORKFORCE_TASK_SCHEDULED", ownerId, outcome: "SUCCESS", reason: "Owner approved bounded specialist creation for one workforce requirement.", requestId, ipAddress, metadata: { taskId, proposalId: gap.proposal.proposalId, specialistApproval: true } });
+    return this.schedule(ownerId, updated.id, requestId, ipAddress);
+  }
+
   async sendMessage(ownerId: string, body: unknown) {
     const parsed = CreateWorkforceMessageRequestSchema.parse(body);
     const task = await this.requireTask(ownerId, parsed.taskId);
@@ -311,9 +349,36 @@ export class WorkforceRuntimeService {
     return this.dashboard(ownerId);
   }
 
-  private score(task: WorkforceRuntimeTask, agent: AgentRecord, account: Awaited<ReturnType<AgentEconomyService["dashboard"]>>["accounts"][number] | undefined, performance: Awaited<ReturnType<AgentEconomyService["dashboard"]>>["performance"][number] | undefined, activeCount: number): WorkforceMatchScore {
-    const skillFit = fit(task.requiredSkills, [...agent.workforce?.skills ?? [], ...agent.supportedTasks]);
-    const capabilityFit = fit(task.requiredCapabilities, agent.capabilities);
+  private requirementFor(task: WorkforceRuntimeTask): SpecialistRequirement {
+    const text = normalized(`${task.title} ${task.objective}`);
+    const domain = typeof task.inputs.domain === "string" ? task.inputs.domain : this.domainFromText(text);
+    const taskType = typeof task.inputs.taskType === "string" ? task.inputs.taskType : this.taskTypeFromText(text);
+    return {
+      requirementId: crypto.randomUUID(),
+      objectiveId: typeof task.inputs.objectiveExecutionId === "string" ? task.inputs.objectiveExecutionId : null,
+      projectId: typeof task.inputs.projectId === "string" ? task.inputs.projectId : null,
+      taskId: task.id,
+      companyId: task.organizationId,
+      departmentAffinity: task.preferredDepartmentId,
+      taskType,
+      domain,
+      requiredSkills: task.requiredSkills,
+      preferredSkills: typeof task.inputs.preferredSkills === "object" && Array.isArray(task.inputs.preferredSkills) ? task.inputs.preferredSkills.filter((item): item is string => typeof item === "string").slice(0, 30) : [],
+      requiredCapabilities: task.requiredCapabilities,
+      preferredCapabilities: typeof task.inputs.preferredCapabilities === "object" && Array.isArray(task.inputs.preferredCapabilities) ? task.inputs.preferredCapabilities.filter((item): item is string => typeof item === "string").slice(0, 30) : [],
+      memoryRequirements: task.memoryScopeRefs,
+      authorityRequirements: [],
+      riskLevel: task.riskLevel,
+      expectedDurationMs: 60_000,
+      estimatedCost: Math.max(1, Math.min(task.economicBudget, 10)),
+    };
+  }
+
+  private score(task: WorkforceRuntimeTask, requirement: SpecialistRequirement, agent: AgentRecord, account: Awaited<ReturnType<AgentEconomyService["dashboard"]>>["accounts"][number] | undefined, performance: Awaited<ReturnType<AgentEconomyService["dashboard"]>>["performance"][number] | undefined, activeCount: number): WorkforceMatchScore {
+    const skillFit = fit(requirement.requiredSkills, [...agent.workforce?.skills ?? [], ...agent.supportedTasks, agent.workforce?.specialization ?? "", agent.displayName]);
+    const capabilityFit = fit(requirement.requiredCapabilities, agent.capabilities);
+    const domainExperience = fit([requirement.domain], [...agent.workforce?.skills ?? [], agent.workforce?.specialization ?? "", agent.workforce?.description ?? "", ...agent.supportedTasks]);
+    const historicalTaskSimilarity = fit([requirement.taskType], [...agent.supportedTasks, ...agent.workforce?.skills ?? [], agent.role]);
     const reputation = (account?.reputation ?? 0) / 100; const calibration = performance?.calibration ?? 0.5;
     const costEfficiency = performance ? Math.min(1, performance.costEfficiency / 2) : 0.5;
     const availability = activeCount === 0 && ["available","busy"].includes(agent.status) ? 1 : 0;
@@ -321,9 +386,35 @@ export class WorkforceRuntimeService {
     const capacityPenalty = Math.min(1, activeCount * 0.35);
     const funded = Boolean(account && account.economyStatus !== "SUSPENDED" && account.availableCredits >= Math.max(1, Math.min(task.economicBudget, 10)));
     const lifecycle = !["disabled","unhealthy","paused"].includes(agent.status);
-    const eligible = lifecycle && funded && availability > 0 && skillFit >= (task.requiredSkills.length ? 0.5 : 1) && capabilityFit === 1;
-    const finalScore = round(skillFit*0.25 + capabilityFit*0.25 + reputation*0.13 + calibration*0.1 + costEfficiency*0.08 + availability*0.1 + departmentFit*0.09 - capacityPenalty*0.2);
-    return { agentId: agent.id, skillFit: round(skillFit), capabilityFit: round(capabilityFit), reputation: round(reputation), calibration: round(calibration), costEfficiency: round(costEfficiency), availability, departmentFit, capacityPenalty, finalScore, predictedSuccess: round(reputation * 0.45 + calibration * 0.35 + skillFit * 0.2), estimatedCost: Math.max(1, Math.min(task.economicBudget, 10)), estimatedDurationMs: 60_000, eligible, reasons: [funded ? "economic budget available" : "insufficient economic budget", lifecycle ? "lifecycle available" : "lifecycle blocked", capabilityFit === 1 ? "capabilities matched" : "missing required capability"] };
+    const hardRejections = [...(!funded ? ["insufficient economic budget"] : []), ...(!lifecycle ? ["lifecycle blocked"] : []), ...(availability <= 0 ? ["agent unavailable"] : []), ...(capabilityFit < 1 ? ["missing required capability"] : [])];
+    const finalScore = round(skillFit*0.2 + capabilityFit*0.22 + domainExperience*0.12 + historicalTaskSimilarity*0.1 + reputation*0.12 + calibration*0.09 + costEfficiency*0.06 + availability*0.05 + departmentFit*0.04 - capacityPenalty*0.2);
+    const category = hardRejections.length ? "INELIGIBLE" : finalScore >= 0.92 && skillFit >= 0.9 ? "EXACT_MATCH" : finalScore >= MATCH_THRESHOLDS.strong ? "STRONG_MATCH" : finalScore >= MATCH_THRESHOLDS.adaptable ? "ADAPTABLE_MATCH" : "WEAK_MATCH";
+    const eligible = hardRejections.length === 0 && ["EXACT_MATCH","STRONG_MATCH","ADAPTABLE_MATCH"].includes(category);
+    return { agentId: agent.id, category, skillFit: round(skillFit), capabilityFit: round(capabilityFit), domainExperience: round(domainExperience), historicalTaskSimilarity: round(historicalTaskSimilarity), reputation: round(reputation), calibration: round(calibration), costEfficiency: round(costEfficiency), availability, departmentFit, capacityPenalty, finalScore, predictedSuccess: round(reputation * 0.35 + calibration * 0.25 + skillFit * 0.2 + domainExperience * 0.2), estimatedCost: Math.max(1, Math.min(task.economicBudget, 10)), estimatedDurationMs: 60_000, eligible, reasons: [funded ? "economic budget available" : "insufficient economic budget", lifecycle ? "lifecycle available" : "lifecycle blocked", capabilityFit === 1 ? "capabilities matched" : "missing required capability", `${category.toLowerCase().replaceAll("_", " ")} candidate`], rejectionReasons: hardRejections };
+  }
+
+  private async resolveWorkforceGap(ownerId: string, task: WorkforceRuntimeTask, requirement: SpecialistRequirement, scores: WorkforceMatchScore[], requestId: string, ipAddress: string): Promise<WorkforceGapResolution> {
+    const adaptable = scores.find((score) => score.eligible && score.category === "ADAPTABLE_MATCH");
+    if (adaptable) return { requirement, decision: "ADAPT_EXISTING", selectedAgentId: adaptable.agentId, selectedCategory: adaptable.category, proposal: null, missingCapabilities: [], blockerCode: null, reasons: ["An existing compatible generalist can safely expand into this domain."] };
+    const missingCapabilities = await this.missingGovernedCapabilities(ownerId, requirement.requiredCapabilities);
+    if (missingCapabilities.length) {
+      await this.createCapabilityRequestIfPossible(ownerId, task, requestId, ipAddress);
+      return { requirement, decision: "CAPABILITY_REQUESTED", selectedAgentId: null, selectedCategory: null, proposal: null, missingCapabilities, blockerCode: "CAPABILITY_MISSING", reasons: [`Missing governed capabilities: ${missingCapabilities.join(", ")}.`] };
+    }
+    const duplicate = scores.find((score) => score.finalScore >= MATCH_THRESHOLDS.duplicate && score.capabilityFit === 1);
+    const proposal = await this.proposalFor(ownerId, task, requirement, duplicate?.agentId ?? null);
+    const approval = z.object({ approved: z.boolean(), proposalId: z.string().uuid().optional() }).passthrough().safeParse(task.inputs.workforceGapApproval);
+    if (!approval.success || !approval.data.approved || (approval.data.proposalId && approval.data.proposalId !== proposal.proposalId)) {
+      await this.message(ownerId, task, task.createdByAgentId ?? "engineering_manager", null, "PROPOSAL", { workforceGap: { proposal, duplicateAgentId: duplicate?.agentId ?? null, scores: scores.slice(0, 5) } }, task.evidenceRefs);
+      return { requirement, decision: "SPECIALIST_APPROVAL_PENDING", selectedAgentId: null, selectedCategory: null, proposal, missingCapabilities: [], blockerCode: "SPECIALIST_APPROVAL_PENDING", reasons: [duplicate ? `Near match ${duplicate.agentId} exists but is below automatic assignment threshold.` : "No sufficiently strong specialist exists; owner approval is required before creating one."] };
+    }
+    if (!this.agentFactory) return { requirement, decision: "BLOCKED", selectedAgentId: null, selectedCategory: null, proposal, missingCapabilities: [], blockerCode: "SPECIALIST_CREATION_REQUIRED", reasons: ["Dynamic Agent Generation service is unavailable."] };
+    const organizationId = requirement.companyId ?? (await this.workforce.society.dashboard(ownerId)).organizations[0]?.id;
+    if (!organizationId || !proposal.departmentId) return { requirement, decision: "BLOCKED", selectedAgentId: null, selectedCategory: null, proposal, missingCapabilities: [], blockerCode: "SPECIALIST_CREATION_REQUIRED", reasons: ["Specialist creation requires an existing company and department scope."] };
+    const created = await this.agentFactory.createObjectiveSpecialist({ ownerId, workflowId: null, objective: task.objective, capability: requirement.domain, name: proposal.name, description: proposal.description, skills: proposal.skills, capabilities: proposal.capabilities, organizationId, departmentId: proposal.departmentId, departmentMemoryScopeId: `department:${proposal.departmentId}`, organizationMemoryScopeId: `organization:${organizationId}`, managerAgentId: proposal.reportsToAgentId, recommendation: proposal.recommendation, requestId, ipAddress });
+    await this.workforce.enrollGeneratedSpecialist(created.agent);
+    await this.message(ownerId, task, created.agent.id, task.createdByAgentId, "STATUS_UPDATE", { createdSpecialist: created.agent.id, proposalId: proposal.proposalId, authorityExpanded: false }, task.evidenceRefs);
+    return { requirement, decision: "SPECIALIST_CREATED", selectedAgentId: created.agent.id, selectedCategory: "STRONG_MATCH", proposal, missingCapabilities: [], blockerCode: null, reasons: ["Owner-approved specialist created through Dynamic Agent Generation and enrolled for scheduler assignment."] };
   }
 
   private assertDelegationAuthority(from: AgentRecord, to: AgentRecord, type: "WORK"|"QUESTION"|"REVIEW") {
@@ -334,10 +425,105 @@ export class WorkforceRuntimeService {
   }
 
   private async createCapabilityRequestIfPossible(ownerId: string, task: WorkforceRuntimeTask, requestId: string, ipAddress: string) {
-    if (!task.requiredCapabilities.length || !task.createdByAgentId) return;
-    await this.message(ownerId, task, task.createdByAgentId, null, "CAPABILITY_REQUEST", { missingCapabilities: task.requiredCapabilities }, task.evidenceRefs);
+    if (!task.requiredCapabilities.length) return;
+    await this.message(ownerId, task, task.createdByAgentId ?? "engineering_manager", null, "CAPABILITY_REQUEST", { missingCapabilities: task.requiredCapabilities }, task.evidenceRefs);
     const applicationId = typeof task.inputs.applicationId === "string" ? task.inputs.applicationId : null;
-    if (applicationId) await this.capabilityStudio.createRequest({ ownerId, requestId, ipAddress, body: { applicationId, requestedIntent: `Provide ${task.requiredCapabilities.join(", ")}`, desiredOutcome: task.objective, contextSummary: task.title, requestedBy: "AGENT", requestingAgentId: task.createdByAgentId } });
+    if (applicationId) await this.capabilityStudio.createRequest({ ownerId, requestId, ipAddress, body: { applicationId, requestedIntent: `Provide ${task.requiredCapabilities.join(", ")}`, desiredOutcome: task.objective, contextSummary: task.title, requestedBy: task.createdByAgentId ? "AGENT" : "OWNER", requestingAgentId: task.createdByAgentId } });
+  }
+
+  private async missingGovernedCapabilities(ownerId: string, required: string[]) {
+    if (!required.length) return [];
+    const [agents, factoryCapabilities] = await Promise.all([
+      this.agentStore.listAgents(ownerId),
+      this.agentFactory?.capabilities(ownerId) ?? Promise.resolve([]),
+    ]);
+    const available = new Set([...agents.flatMap((agent) => agent.capabilities), ...factoryCapabilities.map((capability) => capability.id)].map(normalized));
+    return required.filter((capability) => !available.has(normalized(capability)));
+  }
+
+  private async proposalFor(ownerId: string, task: WorkforceRuntimeTask, requirement: SpecialistRequirement, duplicateAgentId: string | null) {
+    const society = await this.workforce.society.dashboard(ownerId);
+    const organizationId = requirement.companyId ?? society.organizations[0]?.id ?? null;
+    const preferred = requirement.departmentAffinity ? society.departments.find((department) => department.id === requirement.departmentAffinity) : null;
+    const department = preferred ?? this.departmentFor(society.departments, requirement);
+    if (!organizationId || !department)
+      throw new ExecutionError(409, "SPECIALIST_CREATION_REQUIRED", "A company and department are required before proposing a generated specialist.");
+    const name = this.specialistName(requirement);
+    const reusable = this.reusableSpecialization(requirement, task.objective);
+    return {
+      proposalId: crypto.randomUUID(),
+      requirementId: requirement.requirementId,
+      name,
+      role: name,
+      departmentId: department.id,
+      departmentName: department.name,
+      description: `${name} for ${requirement.domain.replaceAll("_", " ")} ${requirement.taskType.replaceAll("_", " ")} work.`,
+      skills: [...new Set([...requirement.requiredSkills, requirement.domain, requirement.taskType])].slice(0, 30),
+      capabilities: requirement.requiredCapabilities.length ? requirement.requiredCapabilities : ["planning", "documentation", "review"],
+      missingCapabilities: [],
+      memoryScope: `agent:pending:${requirement.requirementId}`,
+      authority: [],
+      modelPolicyId: requirement.riskLevel === "HIGH" ? "STRONG_REASONING" : "BALANCED",
+      economyPolicy: "lazy_owner_or_task_activation_v1",
+      reportsToAgentId: department.leadAgentId ?? duplicateAgentId,
+      delegationPermissions: ["bounded_task_assignment"],
+      approvalBoundaries: [
+        "Cannot approve work, spend, or high-risk actions.",
+        "Cannot receive capabilities that are not already governed and available.",
+        "Execution still requires scheduler selection and economy reservation.",
+      ],
+      recommendation: reusable ? "REUSABLE" as const : "TEMPORARY" as const,
+      rationale: duplicateAgentId
+        ? `Near-duplicate ${duplicateAgentId} exists; extending that worker is preferred unless owner approves this distinct specialist.`
+        : `No sufficiently strong existing worker matched ${requirement.domain.replaceAll("_", " ")} requirements.`,
+    };
+  }
+
+  private departmentFor(departments: Array<{ id: string; name: string; leadAgentId?: string | null }>, requirement: SpecialistRequirement) {
+    const text = normalized(`${requirement.domain} ${requirement.taskType} ${requirement.requiredSkills.join(" ")}`);
+    const wanted = text.includes("lead") || text.includes("sales") || text.includes("outreach") || text.includes("crm") ? "Sales"
+      : text.includes("market") || text.includes("copy") || text.includes("seo") ? "Marketing"
+        : text.includes("qa") || text.includes("test") || text.includes("review") ? "Quality & Review"
+          : text.includes("research") || text.includes("analysis") ? "Research"
+            : text.includes("finance") ? "Finance"
+              : "Development";
+    return departments.find((department) => department.name === wanted) ?? departments[0] ?? null;
+  }
+
+  private specialistName(requirement: SpecialistRequirement) {
+    const domain = requirement.domain.split(/[_\s]+/).filter(Boolean).slice(0, 3).map((part) => part[0]?.toUpperCase() + part.slice(1)).join(" ");
+    const type = requirement.taskType.includes("lead") || requirement.taskType.includes("prospect") ? "Lead Generation"
+      : requirement.taskType.includes("qa") || requirement.taskType.includes("test") ? "QA"
+        : requirement.taskType.includes("research") ? "Research"
+          : requirement.taskType.includes("outreach") ? "Outbound Campaign"
+            : "Operations";
+    return `${domain || "Domain"} ${type} Specialist`.slice(0, 120);
+  }
+
+  private reusableSpecialization(requirement: SpecialistRequirement, objective: string) {
+    const text = normalized(`${objective} ${requirement.domain} ${requirement.taskType}`);
+    return ["lead", "prospect", "financial", "finance", "qa", "seo", "copy", "frontend", "sales", "research", "outreach"].some((needle) => text.includes(needle));
+  }
+
+  private domainFromText(text: string) {
+    const pairs: Array<[string[], string]> = [
+      [["hotel", "hospitality"], "hospitality"],
+      [["gym", "fitness", "studio"], "fitness"],
+      [["finance", "financial", "market"], "financial_research"],
+      [["seo", "search engine"], "seo"],
+      [["frontend", "react", "ui"], "frontend_engineering"],
+      [["lead", "prospect", "outreach", "crm"], "b2b_growth"],
+    ];
+    return pairs.find(([needles]) => needles.some((needle) => text.includes(needle)))?.[1] ?? "general_operations";
+  }
+
+  private taskTypeFromText(text: string) {
+    if (text.includes("lead") || text.includes("prospect")) return "lead_generation";
+    if (text.includes("outreach") || text.includes("campaign")) return "outreach_campaign";
+    if (text.includes("qa") || text.includes("test") || text.includes("verify")) return "quality_review";
+    if (text.includes("research") || text.includes("find") || text.includes("analyze")) return "research";
+    if (text.includes("write") || text.includes("copy")) return "copywriting";
+    return "bounded_work";
   }
   private async message(ownerId: string, task: WorkforceRuntimeTask, fromAgentId: string, toAgentId: string|null, type: "TASK"|"RESULT"|"QUESTION"|"ANSWER"|"DELEGATION"|"REVIEW_REQUEST"|"REVIEW_RESULT"|"CAPABILITY_REQUEST"|"ESCALATION"|"PROPOSAL"|"EVIDENCE"|"STATUS_UPDATE", payload: Record<string, unknown>, evidenceRefs: string[]) {
     const message = WorkforceRuntimeMessageSchema.parse({ id: crypto.randomUUID(), ownerId, organizationId: task.organizationId, fromAgentId, toAgentId, taskId: task.id, type, payload, evidenceRefs, createdAt: this.now().toISOString() }); await this.store.saveMessage(message); return message;

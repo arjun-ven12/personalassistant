@@ -34,13 +34,17 @@ const setup = () => {
     reserve: vi.fn(({ agentId }: {agentId:string}) => { reservations.push(agentId); return Promise.resolve({ reservation: { id: "40000000-0000-4000-8000-000000000001" } }); }),
     settle: vi.fn(() => Promise.resolve({})), release: vi.fn(() => Promise.resolve({})), rewardVerified: vi.fn(() => { rewardCalls++; return Promise.resolve({}); }),
   } as unknown as AgentEconomyService;
-  const workforce = { setActivation: vi.fn((_owner:string,id:string,state:string) => { activations.push(`${id}:${state}`); return Promise.resolve({}); }) } as unknown as AgentWorkforceService;
+  const workforce = {
+    setActivation: vi.fn((_owner:string,id:string,state:string) => { activations.push(`${id}:${state}`); return Promise.resolve({}); }),
+    society: { dashboard: vi.fn(() => Promise.resolve({ organizations: [{ id: organizationId }], departments: [{ id: departmentId, name: "Sales", leadAgentId: "engineering_manager" }] })) },
+    enrollGeneratedSpecialist: vi.fn(() => Promise.resolve()),
+  } as unknown as AgentWorkforceService;
   const agentOs = { startIsolatedDelegation: vi.fn(() => { osCalls++; return Promise.resolve({ session: { id: "50000000-0000-4000-8000-000000000001" } }); }), completeIsolatedDelegation: vi.fn(() => Promise.resolve({})) } as unknown as AgentOsService;
   const aiRouter = { executeStructured: vi.fn(() => { routerCalls++; return Promise.resolve({ outcome: "SUCCESS", structuredOutput: { summary: "Implemented bounded change.", confidence: 0.9, evidence: ["test:passed"] }, requestId: "60000000-0000-4000-8000-000000000001", providerId: "local", modelId: "shared", usage: { totalTokens: 800 } }); }) } as unknown as AIRouterService;
   const capabilityStudio = { createRequest: vi.fn(() => Promise.resolve({})) } as unknown as CapabilityStudioService;
   const externalHarvest = { executeDelegation: vi.fn(() => { sandboxCalls++; return Promise.resolve({ status: "COMPLETE", summary: "Generated and ran one bounded test.", confidence: .92, artifacts: [{ name: "generated.test.cjs", kind: "PROPOSED_TEST", content: "" }], tests: { status: "PASSED" }, ai: { requestId: "61000000-0000-4000-8000-000000000001", providerId: "local", modelId: "shared" } }); }) } as unknown as ExternalHarvestService;
   const audit = vi.fn(() => Promise.resolve()) as GovernanceAuditWriter;
-  const service = new WorkforceRuntimeService(new InMemoryWorkforceRuntimeStore(),agents,workforce,economy,agentOs,externalHarvest,aiRouter,capabilityStudio,audit,() => new Date(at));
+  const service = new WorkforceRuntimeService(new InMemoryWorkforceRuntimeStore(),agents,workforce,economy,agentOs,externalHarvest,aiRouter,capabilityStudio,undefined,audit,() => new Date(at));
   return { service, agents, activations, reservations, counts: () => ({ routerCalls, osCalls, rewardCalls, sandboxCalls }) };
 };
 
@@ -103,10 +107,22 @@ describe("WorkforceRuntimeService", () => {
   it("creates a structured capability request and waits instead of inventing authority", async () => {
     const { service } = setup();
     const task = (await create(service,{ createdByAgentId: "engineering_manager", requiredCapabilities: ["hubspot.assign_lead"] })).task;
-    await expect(service.schedule(ownerId,task.id,"request","127.0.0.1")).rejects.toMatchObject({ code: "NO_ELIGIBLE_WORKFORCE_AGENT" });
+    await expect(service.schedule(ownerId,task.id,"request","127.0.0.1")).rejects.toMatchObject({ code: "CAPABILITY_MISSING" });
     const dashboard = await service.dashboard(ownerId);
     expect(dashboard.tasks.find((item) => item.id === task.id)?.status).toBe("WAITING");
     expect(dashboard.messages.some((item) => item.taskId === task.id && item.type === "CAPABILITY_REQUEST")).toBe(true);
+  });
+
+  it("proposes a bounded specialist instead of blocking when capabilities exist but no worker is a strong match", async () => {
+    const { service } = setup();
+    const task = (await create(service,{ createdByAgentId: "engineering_manager", title: "Build fitness lead list", objective: "Find 100 Singapore fitness companies for outreach.", requiredSkills: ["lead_generation","fitness"], requiredCapabilities: ["workspace.read"] })).task;
+    await expect(service.schedule(ownerId,task.id,"request","127.0.0.1")).rejects.toMatchObject({ code: "SPECIALIST_APPROVAL_PENDING" });
+    const dashboard = await service.dashboard(ownerId);
+    const waiting = dashboard.tasks.find((item) => item.id === task.id);
+    expect(waiting?.status).toBe("WAITING");
+    expect(waiting?.workforceGap?.decision).toBe("SPECIALIST_APPROVAL_PENDING");
+    expect(waiting?.workforceGap?.proposal?.recommendation).toBe("REUSABLE");
+    expect(dashboard.messages.some((item) => item.taskId === task.id && item.type === "PROPOSAL")).toBe(true);
   });
 
   it("terminates message loops and enforces global active-task capacity", async () => {

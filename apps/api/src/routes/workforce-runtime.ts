@@ -31,6 +31,10 @@ export const registerWorkforceRuntimeRoutes = (app: FastifyInstance, context: Ap
     const ownerId = context.security.getIdentity(request).user.id; const { taskId } = Params.parse(request.params);
     return taskResponse.parse(await context.workforceRuntime.execute(ownerId,taskId,request.id,request.ip));
   });
+  app.post("/api/workforce-runtime/tasks/:taskId/specialist-approval", { preHandler: [context.security.requireAuthentication,context.security.requireTrustedOrigin,context.security.requireCsrf] }, async (request) => {
+    const ownerId = context.security.getIdentity(request).user.id; const { taskId } = Params.parse(request.params);
+    return taskResponse.parse(await context.workforceRuntime.approveSpecialistCreation(ownerId,taskId,request.body,request.id,request.ip));
+  });
   app.post("/api/workforce-runtime/tasks/:taskId/complete", { preHandler: [context.security.requireAuthentication,context.security.requireTrustedOrigin,context.security.requireCsrf] }, async (request) => {
     const ownerId = context.security.getIdentity(request).user.id; const { taskId } = Params.parse(request.params);
     return taskResponse.parse(await context.workforceRuntime.complete(ownerId,taskId,request.body,request.id,request.ip));

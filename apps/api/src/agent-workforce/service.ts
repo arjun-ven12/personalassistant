@@ -188,6 +188,11 @@ export class AgentWorkforceService {
     return this.detail(ownerId, agentId);
   }
 
+  async enrollGeneratedSpecialist(agent: AgentRecord) {
+    if (!agent.workforce) throw new ExecutionError(409, "WORKFORCE_METADATA_REQUIRED", "Generated specialists require bounded workforce metadata.");
+    await this.ensureEconomy(agent);
+  }
+
   validateHierarchy(agents: AgentRecord[]) {
     const byId = new Map(agents.map((agent) => [agent.id, agent]));
     for (const agent of agents) {

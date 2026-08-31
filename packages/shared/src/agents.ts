@@ -242,9 +242,11 @@ export const AgentMetricsRecordSchema = z
 export const AgentLifecycleStatusSchema = z.enum([
   "created",
   "initialising",
+  "dormant",
   "active",
   "collaborating",
   "completed",
+  "retired",
   "archived",
 ]);
 

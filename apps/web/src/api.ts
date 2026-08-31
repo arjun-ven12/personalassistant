@@ -1205,6 +1205,8 @@ export const createApiClient = (baseUrl: string) => {
       requestAndValidate(baseUrl, `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/schedule`, WorkforceRuntimeTaskResponseSchema, jsonBody({})),
     executeWorkforceRuntimeTask: (taskId: string) =>
       requestAndValidate(baseUrl, `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/execute`, WorkforceRuntimeTaskResponseSchema, jsonBody({})),
+    approveWorkforceSpecialist: (taskId: string, input: { approved: boolean; proposalId?: string }) =>
+      requestAndValidate(baseUrl, `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/specialist-approval`, WorkforceRuntimeTaskResponseSchema, jsonBody(input)),
     completeWorkforceRuntimeTask: (taskId: string, input: CompleteWorkforceTaskRequest) =>
       requestAndValidate(baseUrl, `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/complete`, WorkforceRuntimeTaskResponseSchema, jsonBody(input)),
     reviewWorkforceRuntimeTask: (taskId: string, input: SubmitWorkforceReviewRequest) =>

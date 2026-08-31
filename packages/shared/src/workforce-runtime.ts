@@ -15,10 +15,30 @@ export const WorkforceMessageTypeSchema = z.enum([
 
 export const WorkforceReviewVerdictSchema = z.enum(["PASS", "FAIL", "CONDITIONAL"]);
 
+export const WorkforceCandidateCategorySchema = z.enum([
+  "EXACT_MATCH",
+  "STRONG_MATCH",
+  "ADAPTABLE_MATCH",
+  "WEAK_MATCH",
+  "INELIGIBLE",
+]);
+
+export const WorkforceGapDecisionSchema = z.enum([
+  "ASSIGN_EXISTING",
+  "ADAPT_EXISTING",
+  "SPECIALIST_APPROVAL_PENDING",
+  "SPECIALIST_CREATED",
+  "CAPABILITY_REQUESTED",
+  "BLOCKED",
+]);
+
 export const WorkforceMatchScoreSchema = z.object({
   agentId: boundedRef,
+  category: WorkforceCandidateCategorySchema.default("WEAK_MATCH"),
   skillFit: z.number().min(0).max(1),
   capabilityFit: z.number().min(0).max(1),
+  domainExperience: z.number().min(0).max(1).default(0.5),
+  historicalTaskSimilarity: z.number().min(0).max(1).default(0.5),
   reputation: z.number().min(0).max(1),
   calibration: z.number().min(0).max(1),
   costEfficiency: z.number().min(0).max(1),
@@ -31,6 +51,67 @@ export const WorkforceMatchScoreSchema = z.object({
   estimatedDurationMs: z.number().int().nonnegative().max(86_400_000),
   eligible: z.boolean(),
   reasons: z.array(z.string().min(1).max(200)).max(20),
+  rejectionReasons: z.array(z.string().min(1).max(200)).max(20).default([]),
+}).strict();
+
+export const SpecialistRequirementSchema = z.object({
+  requirementId: z.string().uuid(),
+  objectiveId: boundedRef.nullable(),
+  projectId: boundedRef.nullable(),
+  taskId: z.string().uuid().nullable(),
+  companyId: boundedRef.nullable(),
+  departmentAffinity: boundedRef.nullable(),
+  taskType: boundedRef,
+  domain: boundedRef,
+  requiredSkills: z.array(boundedRef).max(30),
+  preferredSkills: z.array(boundedRef).max(30).default([]),
+  requiredCapabilities: z.array(boundedRef).max(30),
+  preferredCapabilities: z.array(boundedRef).max(30).default([]),
+  memoryRequirements: z.array(boundedRef).max(20),
+  authorityRequirements: z.array(boundedRef).max(20).default([]),
+  riskLevel: z.enum(["LOW", "MEDIUM", "HIGH"]),
+  expectedDurationMs: z.number().int().nonnegative().max(86_400_000).nullable(),
+  estimatedCost: z.number().int().nonnegative().max(1_000_000).nullable(),
+}).strict();
+
+export const WorkforceSpecialistProposalSchema = z.object({
+  proposalId: z.string().uuid(),
+  requirementId: z.string().uuid(),
+  name: z.string().min(1).max(120),
+  role: z.string().min(1).max(120),
+  departmentId: boundedRef.nullable(),
+  departmentName: z.string().min(1).max(120).nullable(),
+  description: z.string().min(1).max(500),
+  skills: z.array(boundedRef).min(1).max(30),
+  capabilities: z.array(boundedRef).min(1).max(30),
+  missingCapabilities: z.array(boundedRef).max(30),
+  memoryScope: boundedRef,
+  authority: z.array(boundedRef).max(20),
+  modelPolicyId: z.string().min(1).max(120),
+  economyPolicy: z.string().min(1).max(160),
+  reportsToAgentId: boundedRef.nullable(),
+  delegationPermissions: z.array(boundedRef).max(20),
+  approvalBoundaries: z.array(z.string().min(1).max(240)).max(20),
+  recommendation: z.enum(["TEMPORARY", "REUSABLE"]),
+  rationale: z.string().min(1).max(1_000),
+}).strict();
+
+export const WorkforceGapResolutionSchema = z.object({
+  requirement: SpecialistRequirementSchema,
+  decision: WorkforceGapDecisionSchema,
+  selectedAgentId: boundedRef.nullable(),
+  selectedCategory: WorkforceCandidateCategorySchema.nullable(),
+  proposal: WorkforceSpecialistProposalSchema.nullable(),
+  missingCapabilities: z.array(boundedRef).max(30),
+  blockerCode: z.enum([
+    "NO_ELIGIBLE_AGENT",
+    "SPECIALIST_CREATION_REQUIRED",
+    "SPECIALIST_APPROVAL_PENDING",
+    "CAPABILITY_MISSING",
+    "SKILL_GAP",
+    "ECONOMY_RESERVATION_FAILED",
+  ]).nullable(),
+  reasons: z.array(z.string().min(1).max(240)).max(20),
 }).strict();
 
 export const WorkforceRuntimeTaskSchema = z.object({
@@ -62,6 +143,8 @@ export const WorkforceRuntimeTaskSchema = z.object({
   retryCount: z.number().int().min(0).max(2),
   maxRetries: z.number().int().min(0).max(2),
   selection: z.array(WorkforceMatchScoreSchema).max(20),
+  requirement: SpecialistRequirementSchema.nullable().default(null),
+  workforceGap: WorkforceGapResolutionSchema.nullable().default(null),
   resultSummary: z.string().max(4_000).nullable(),
   resultConfidence: z.number().min(0).max(1).nullable(),
   aiRequestId: z.string().uuid().nullable(),
@@ -136,6 +219,9 @@ export type WorkforceRuntimeTask = z.infer<typeof WorkforceRuntimeTaskSchema>;
 export type WorkforceRuntimeMessage = z.infer<typeof WorkforceRuntimeMessageSchema>;
 export type WorkforceRuntimeReview = z.infer<typeof WorkforceRuntimeReviewSchema>;
 export type WorkforceMatchScore = z.infer<typeof WorkforceMatchScoreSchema>;
+export type SpecialistRequirement = z.infer<typeof SpecialistRequirementSchema>;
+export type WorkforceGapResolution = z.infer<typeof WorkforceGapResolutionSchema>;
+export type WorkforceSpecialistProposal = z.infer<typeof WorkforceSpecialistProposalSchema>;
 export type CreateWorkforceTaskRequest = z.input<typeof CreateWorkforceTaskRequestSchema>;
 export type CreateWorkforceMessageRequest = z.input<typeof CreateWorkforceMessageRequestSchema>;
 export type CompleteWorkforceTaskRequest = z.input<typeof CompleteWorkforceTaskRequestSchema>;

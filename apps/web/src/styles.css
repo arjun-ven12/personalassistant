@@ -7564,6 +7564,8 @@ pre {
 .workforce-runtime-list strong { overflow: hidden; color: var(--text); font-size: 12px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
 .workforce-runtime-list span,
 .workforce-runtime-list small { overflow: hidden; color: var(--text-3); font-family: var(--mono); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.runtime-task-gap { grid-column: 2 / 4; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: rgba(255,255,255,.03); }
+.runtime-task-gap strong { color: var(--warn); }
 .runtime-task-state { width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); box-shadow: 0 0 0 3px rgba(255,255,255,.03); }
 .runtime-task-state.state-running,
 .runtime-task-state.state-reserved { background: var(--accent); box-shadow: 0 0 10px rgba(125,153,255,.55); }
@@ -7680,6 +7682,7 @@ pre {
   .agent-task-panel { grid-template-columns: 1fr; }
   .workforce-runtime-create,
   .workforce-runtime-list > article { grid-template-columns: 1fr; }
+  .runtime-task-gap { grid-column: 1; }
   .agent-directory-row { grid-template-columns: minmax(130px, 1fr) minmax(100px, 1fr) 76px; }
   .agent-directory-row > :nth-child(4),
   .agent-directory-row > :nth-child(5) { display: none; }

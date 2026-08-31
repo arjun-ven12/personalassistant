@@ -1333,6 +1333,7 @@ export const buildApi = async ({
     externalHarvest,
     canonicalRouter,
     capabilityStudio,
+    agentFactory,
     governanceAudit,
     now,
   );

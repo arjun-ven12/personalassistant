@@ -16,6 +16,25 @@ import type { AgentStore } from "./store.js";
 
 type TemplateSeed = Omit<AgentTemplateRecord, "ownerId" | "createdAt" | "updatedAt">;
 
+export interface ObjectiveSpecialistInput {
+  ownerId: string;
+  workflowId: string | null;
+  objective: string;
+  capability: string;
+  name: string;
+  description: string;
+  skills: string[];
+  capabilities: string[];
+  organizationId: string;
+  departmentId: string;
+  departmentMemoryScopeId: string;
+  organizationMemoryScopeId: string;
+  managerAgentId: string | null;
+  recommendation: "TEMPORARY" | "REUSABLE";
+  requestId: string;
+  ipAddress: string;
+}
+
 const capabilityId = (value: string) =>
   value
     .toLowerCase()
@@ -562,6 +581,7 @@ export class AgentFactoryService {
     agent: DynamicAgentRecord,
     requestId: string,
     ipAddress: string,
+    workforce?: AgentRecord["workforce"],
   ) {
     await this.store.saveDynamicAgent(agent);
     await this.store.upsertAgent({
@@ -573,16 +593,20 @@ export class AgentFactoryService {
       version: "dynamic-1.0.0",
       status: "available",
       capabilities: agent.capabilities,
-      supportedTasks: ["planning", "review", "risk_analysis", "documentation"],
+      supportedTasks: workforce?.skills ?? ["planning", "review", "risk_analysis", "documentation"],
       configuration: {
         dynamic: true,
         templateId: agent.templateId,
         inheritedPermissionProfile: agent.inheritedPermissionProfile,
+        reusableSpecialist: workforce ? agent.lifecycleStatus === "dormant" : false,
       },
       createdAt: agent.createdAt,
       updatedAt: agent.updatedAt,
       healthSummary:
-        "Temporary dynamic specialist. It inherits existing agent permissions and cannot execute independently.",
+        workforce
+          ? "Generated workforce specialist. It inherits no new authority and uses shared AIRouter only when assigned."
+          : "Temporary dynamic specialist. It inherits existing agent permissions and cannot execute independently.",
+      ...(workforce ? { workforce } : {}),
     });
     await this.store.saveHealth({
       ownerId: agent.ownerId,
@@ -604,7 +628,13 @@ export class AgentFactoryService {
       lastActivityAt: null,
     });
     await this.recordLifecycle(agent, "created", agent.creationReason);
-    await this.recordLifecycle(agent, "active", "Dynamic specialist activated.");
+    await this.recordLifecycle(
+      agent,
+      agent.lifecycleStatus,
+      agent.lifecycleStatus === "dormant"
+        ? "Reusable dynamic specialist retained dormant until assignment."
+        : "Dynamic specialist activated.",
+    );
     await this.audit({
       eventType: "DYNAMIC_AGENT_CREATED",
       ownerId: agent.ownerId,
@@ -618,6 +648,81 @@ export class AgentFactoryService {
         inheritedPermissionsOnly: true,
       },
     });
+  }
+
+  async createObjectiveSpecialist(input: ObjectiveSpecialistInput) {
+    await this.ensureTemplates(input.ownerId);
+    const existing = await this.store.findAgent(input.ownerId, capabilityId(input.name));
+    if (existing) return { agent: existing, dynamicAgent: await this.store.findDynamicAgent(input.ownerId, existing.id) ?? null };
+    const template = this.bestTemplate(await this.store.listTemplates(input.ownerId), capabilityId(input.capability));
+    const at = this.now().toISOString();
+    const id = `dynamic_${capabilityId(input.name)}_${crypto.randomUUID().slice(0, 8)}`;
+    const dynamicAgent: DynamicAgentRecord = {
+      id,
+      ownerId: input.ownerId,
+      workflowId: input.workflowId,
+      templateId: template?.id ?? null,
+      origin: template ? "template" : "synthesised",
+      displayName: input.name,
+      roleDescription: input.description,
+      responsibilities: [
+        `Handle ${input.capability.replaceAll("_", " ")} work for bounded objectives.`,
+        `Apply ${input.skills.slice(0, 5).join(", ")} expertise without expanding authority.`,
+      ],
+      capabilities: [...new Set(input.capabilities)],
+      prompt:
+        template?.prompt ??
+        `Act as a ${input.name}. Use registered evidence and remain advisory unless the scheduler delegates a bounded task.`,
+      constraints: [
+        "Cannot create capabilities.",
+        "Cannot approve work or spend.",
+        "Cannot execute outside Agent OS delegation.",
+        "Cannot access memory outside assigned owner and company scopes.",
+      ],
+      successCriteria: template?.evaluationCriteria ?? [
+        "Evidence-backed result",
+        "Clear limits and unsupported portions identified",
+        "Policy and approval boundaries preserved",
+      ],
+      knowledgeSources: template?.memorySources ?? [
+        "agent_memory",
+        "department_memory",
+        "objective_evidence",
+      ],
+      inheritedPermissionProfile: "existing_agent_permissions",
+      lifecycleStatus: input.recommendation === "REUSABLE" ? "dormant" : "active",
+      creationReason: `Owner-approved specialist for ${input.objective.slice(0, 220)}.`,
+      createdAt: at,
+      updatedAt: at,
+      archivedAt: null,
+    };
+    const workforce: AgentRecord["workforce"] = {
+      organizationId: input.organizationId,
+      departmentId: input.departmentId,
+      parentAgentId: input.managerAgentId,
+      managerAgentId: input.managerAgentId,
+      specialization: input.name,
+      description: input.description,
+      skills: [...new Set(input.skills.length ? input.skills : [input.capability])].slice(0, 30),
+      memoryScopeId: `agent:${id}`,
+      departmentMemoryScopeId: input.departmentMemoryScopeId,
+      organizationMemoryScopeId: input.organizationMemoryScopeId,
+      capabilityProfileId: `profile:dynamic:${capabilityId(input.name)}`,
+      missingCapabilities: [],
+      modelPolicyId: input.capabilities.some((capability) => capability.includes("security")) ? "SECURITY_REVIEW" : "BALANCED",
+      activationPolicyId: "lazy_owner_or_task_activation_v1",
+      executionPlacement: input.capabilities.some((capability) => capability.includes("security")) ? "LOCAL_ONLY" : "REMOTE_ALLOWED",
+      evaluationProfile: ["verified_outcome", "quality", "cost_efficiency", "policy_compliance"],
+      source: "ALEXA_NATIVE",
+      sourcePath: null,
+      sourceVersion: "dynamic-workforce-gap-resolver",
+      license: null,
+      importedAt: at,
+    };
+    await this.registerDynamicAgent(dynamicAgent, input.requestId, input.ipAddress, workforce);
+    const agent = await this.store.findAgent(input.ownerId, id);
+    if (!agent) throw new ExecutionError(500, "DYNAMIC_AGENT_REGISTRATION_FAILED", "Dynamic specialist registration did not produce a workforce agent.");
+    return { agent, dynamicAgent };
   }
 
   async recordLifecycle(

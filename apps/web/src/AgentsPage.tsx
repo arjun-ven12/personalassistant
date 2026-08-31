@@ -102,6 +102,14 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
     mutationFn: apiClient.executeWorkforceRuntimeTask,
     onSuccess: refresh,
   });
+  const approveSpecialist = useMutation({
+    mutationFn: (input: { taskId: string; proposalId: string }) =>
+      apiClient.approveWorkforceSpecialist(input.taskId, {
+        approved: true,
+        proposalId: input.proposalId,
+      }),
+    onSuccess: refresh,
+  });
   const cancelRuntimeTask = useMutation({
     mutationFn: apiClient.cancelWorkforceRuntimeTask,
     onSuccess: refresh,
@@ -359,12 +367,19 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
         <div className="workforce-runtime-list">
           {(runtime.data?.tasks ?? []).slice(0, 8).map((task) => {
             const selected = task.selection.find((score) => score.agentId === task.assignedAgentId) ?? task.selection[0];
+            const proposal = task.workforceGap?.proposal;
             return <article key={task.id}>
               <i className={`runtime-task-state state-${task.status.toLowerCase()}`} />
               <div><strong>{task.title}</strong><span>{task.assignedAgentId ?? "Awaiting deterministic match"} · depth {task.depth} · {task.actualCost || task.reservedCredits} credits</span></div>
-              {selected ? <small>match {Math.round(selected.finalScore * 100)}% · skills {Math.round(selected.skillFit * 100)}% · capabilities {Math.round(selected.capabilityFit * 100)}%</small> : <small>{task.status}</small>}
+              {selected ? <small>{selected.category.replaceAll("_", " ")} · match {Math.round(selected.finalScore * 100)}% · skills {Math.round(selected.skillFit * 100)}% · capabilities {Math.round(selected.capabilityFit * 100)}%</small> : <small>{task.status}</small>}
+              {proposal ? <div className="runtime-task-gap">
+                <strong>{proposal.name}</strong>
+                <span>{proposal.departmentName ?? "Workforce"} · {proposal.recommendation.toLowerCase()} · {proposal.capabilities.length - proposal.missingCapabilities.length}/{proposal.capabilities.length} capabilities available</span>
+                <small>{task.workforceGap?.reasons[0]}</small>
+              </div> : null}
               <div className="runtime-task-actions">
                 {task.status === "QUEUED" ? <button disabled={runRuntimeTask.isPending} onClick={() => runRuntimeTask.mutate(task.id)} type="button">Run</button> : null}
+                {proposal && task.workforceGap?.decision === "SPECIALIST_APPROVAL_PENDING" ? <button disabled={approveSpecialist.isPending} onClick={() => approveSpecialist.mutate({ taskId: task.id, proposalId: proposal.proposalId })} type="button">Create specialist</button> : null}
                 {! ["COMPLETED", "FAILED", "CANCELLED", "EXPIRED"].includes(task.status) ? <button disabled={cancelRuntimeTask.isPending} onClick={() => cancelRuntimeTask.mutate(task.id)} type="button">Cancel</button> : null}
               </div>
             </article>;

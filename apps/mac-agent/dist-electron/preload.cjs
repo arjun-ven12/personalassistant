@@ -14809,9 +14809,11 @@ var AgentMetricsRecordSchema = external_exports.object({
 var AgentLifecycleStatusSchema = external_exports.enum([
   "created",
   "initialising",
+  "dormant",
   "active",
   "collaborating",
   "completed",
+  "retired",
   "archived"
 ]);
 var DynamicAgentOriginSchema = external_exports.enum([
@@ -16702,10 +16704,28 @@ var WorkforceMessageTypeSchema = external_exports.enum([
   "STATUS_UPDATE"
 ]);
 var WorkforceReviewVerdictSchema = external_exports.enum(["PASS", "FAIL", "CONDITIONAL"]);
+var WorkforceCandidateCategorySchema = external_exports.enum([
+  "EXACT_MATCH",
+  "STRONG_MATCH",
+  "ADAPTABLE_MATCH",
+  "WEAK_MATCH",
+  "INELIGIBLE"
+]);
+var WorkforceGapDecisionSchema = external_exports.enum([
+  "ASSIGN_EXISTING",
+  "ADAPT_EXISTING",
+  "SPECIALIST_APPROVAL_PENDING",
+  "SPECIALIST_CREATED",
+  "CAPABILITY_REQUESTED",
+  "BLOCKED"
+]);
 var WorkforceMatchScoreSchema = external_exports.object({
   agentId: boundedRef,
+  category: WorkforceCandidateCategorySchema.default("WEAK_MATCH"),
   skillFit: external_exports.number().min(0).max(1),
   capabilityFit: external_exports.number().min(0).max(1),
+  domainExperience: external_exports.number().min(0).max(1).default(0.5),
+  historicalTaskSimilarity: external_exports.number().min(0).max(1).default(0.5),
   reputation: external_exports.number().min(0).max(1),
   calibration: external_exports.number().min(0).max(1),
   costEfficiency: external_exports.number().min(0).max(1),
@@ -16717,7 +16737,65 @@ var WorkforceMatchScoreSchema = external_exports.object({
   estimatedCost: external_exports.number().int().nonnegative().max(1e6),
   estimatedDurationMs: external_exports.number().int().nonnegative().max(864e5),
   eligible: external_exports.boolean(),
-  reasons: external_exports.array(external_exports.string().min(1).max(200)).max(20)
+  reasons: external_exports.array(external_exports.string().min(1).max(200)).max(20),
+  rejectionReasons: external_exports.array(external_exports.string().min(1).max(200)).max(20).default([])
+}).strict();
+var SpecialistRequirementSchema = external_exports.object({
+  requirementId: external_exports.string().uuid(),
+  objectiveId: boundedRef.nullable(),
+  projectId: boundedRef.nullable(),
+  taskId: external_exports.string().uuid().nullable(),
+  companyId: boundedRef.nullable(),
+  departmentAffinity: boundedRef.nullable(),
+  taskType: boundedRef,
+  domain: boundedRef,
+  requiredSkills: external_exports.array(boundedRef).max(30),
+  preferredSkills: external_exports.array(boundedRef).max(30).default([]),
+  requiredCapabilities: external_exports.array(boundedRef).max(30),
+  preferredCapabilities: external_exports.array(boundedRef).max(30).default([]),
+  memoryRequirements: external_exports.array(boundedRef).max(20),
+  authorityRequirements: external_exports.array(boundedRef).max(20).default([]),
+  riskLevel: external_exports.enum(["LOW", "MEDIUM", "HIGH"]),
+  expectedDurationMs: external_exports.number().int().nonnegative().max(864e5).nullable(),
+  estimatedCost: external_exports.number().int().nonnegative().max(1e6).nullable()
+}).strict();
+var WorkforceSpecialistProposalSchema = external_exports.object({
+  proposalId: external_exports.string().uuid(),
+  requirementId: external_exports.string().uuid(),
+  name: external_exports.string().min(1).max(120),
+  role: external_exports.string().min(1).max(120),
+  departmentId: boundedRef.nullable(),
+  departmentName: external_exports.string().min(1).max(120).nullable(),
+  description: external_exports.string().min(1).max(500),
+  skills: external_exports.array(boundedRef).min(1).max(30),
+  capabilities: external_exports.array(boundedRef).min(1).max(30),
+  missingCapabilities: external_exports.array(boundedRef).max(30),
+  memoryScope: boundedRef,
+  authority: external_exports.array(boundedRef).max(20),
+  modelPolicyId: external_exports.string().min(1).max(120),
+  economyPolicy: external_exports.string().min(1).max(160),
+  reportsToAgentId: boundedRef.nullable(),
+  delegationPermissions: external_exports.array(boundedRef).max(20),
+  approvalBoundaries: external_exports.array(external_exports.string().min(1).max(240)).max(20),
+  recommendation: external_exports.enum(["TEMPORARY", "REUSABLE"]),
+  rationale: external_exports.string().min(1).max(1e3)
+}).strict();
+var WorkforceGapResolutionSchema = external_exports.object({
+  requirement: SpecialistRequirementSchema,
+  decision: WorkforceGapDecisionSchema,
+  selectedAgentId: boundedRef.nullable(),
+  selectedCategory: WorkforceCandidateCategorySchema.nullable(),
+  proposal: WorkforceSpecialistProposalSchema.nullable(),
+  missingCapabilities: external_exports.array(boundedRef).max(30),
+  blockerCode: external_exports.enum([
+    "NO_ELIGIBLE_AGENT",
+    "SPECIALIST_CREATION_REQUIRED",
+    "SPECIALIST_APPROVAL_PENDING",
+    "CAPABILITY_MISSING",
+    "SKILL_GAP",
+    "ECONOMY_RESERVATION_FAILED"
+  ]).nullable(),
+  reasons: external_exports.array(external_exports.string().min(1).max(240)).max(20)
 }).strict();
 var WorkforceRuntimeTaskSchema = external_exports.object({
   id: external_exports.string().uuid(),
@@ -16748,6 +16826,8 @@ var WorkforceRuntimeTaskSchema = external_exports.object({
   retryCount: external_exports.number().int().min(0).max(2),
   maxRetries: external_exports.number().int().min(0).max(2),
   selection: external_exports.array(WorkforceMatchScoreSchema).max(20),
+  requirement: SpecialistRequirementSchema.nullable().default(null),
+  workforceGap: WorkforceGapResolutionSchema.nullable().default(null),
   resultSummary: external_exports.string().max(4e3).nullable(),
   resultConfidence: external_exports.number().min(0).max(1).nullable(),
   aiRequestId: external_exports.string().uuid().nullable(),
