@@ -22,29 +22,46 @@ const agent = (id: string, role: "engineering_manager"|"coding"|"review" = "codi
   workforce: { organizationId, departmentId: department, parentAgentId: parent, managerAgentId: parent, specialization: "TypeScript", description: "bounded specialist", skills: ["typescript","implementation"], memoryScopeId: `agent:${id}`, departmentMemoryScopeId: `department:${department}`, organizationMemoryScopeId: `organization:${organizationId}`, capabilityProfileId: `profile:${id}`, missingCapabilities: [], modelPolicyId: "BALANCED" as const, activationPolicyId: "lazy", executionPlacement: "REMOTE_ALLOWED" as const, evaluationProfile: ["verified_outcome"], source: "ALEXA_NATIVE" as const, sourcePath: null, sourceVersion: "test", license: null, importedAt: at },
 });
 
-const setup = () => {
+const setup = (options: { withObjectiveSpecialistFactory?: boolean } = {}) => {
   const agents = new InMemoryAgentStore();
   agents.upsertAgent(agent("engineering_manager","engineering_manager",departmentId,null));
   agents.upsertAgent(agent("backend_agent"));
   agents.upsertAgent(agent("review_agent","review"));
   const accounts = ["engineering_manager","backend_agent","review_agent"].map((agentId) => ({ ownerId, agentId, availableCredits: 100, reservedCredits: 0, lifetimeEarned: 100, lifetimeSpent: 0, reputation: agentId === "backend_agent" ? 90 : 70, economyStatus: "DORMANT" as const, organizationId, departmentId, parentAgentId: null, memoryScopeId: `agent:${agentId}`, capabilityProfileId: `profile:${agentId}`, modelPolicyId: "BALANCED", activationPolicyId: "lazy", createdAt: at, updatedAt: at }));
+  const enrollAccount = (agentId: string) => {
+    let account = accounts.find((item) => item.agentId === agentId);
+    if (!account) {
+      account = { ownerId, agentId, availableCredits: 0, reservedCredits: 0, lifetimeEarned: 0, lifetimeSpent: 0, reputation: 50, economyStatus: "DORMANT" as const, organizationId, departmentId, parentAgentId: null, memoryScopeId: `agent:${agentId}`, capabilityProfileId: `profile:${agentId}`, modelPolicyId: "BALANCED", activationPolicyId: "lazy", createdAt: at, updatedAt: at };
+      accounts.push(account);
+    }
+    return account;
+  };
   const activations: string[] = []; const reservations: string[] = []; let routerCalls = 0; let osCalls = 0; let rewardCalls = 0; let sandboxCalls = 0;
   const economy = {
     dashboard: vi.fn(() => Promise.resolve({ overview: { activeAgents: activations.filter((item) => item.endsWith(":ACTIVE")).length, dormantAgents: accounts.length, suspendedAgents: 0 }, accounts, performance: [], ledger: [] })),
     reserve: vi.fn(({ agentId }: {agentId:string}) => { reservations.push(agentId); return Promise.resolve({ reservation: { id: "40000000-0000-4000-8000-000000000001" } }); }),
     settle: vi.fn(() => Promise.resolve({})), release: vi.fn(() => Promise.resolve({})), rewardVerified: vi.fn(() => { rewardCalls++; return Promise.resolve({}); }),
+    allocate: vi.fn(({ agentId, amount }: {agentId:string;amount:number}) => { const account=enrollAccount(agentId); account.availableCredits+=amount; return Promise.resolve({account}); }),
   } as unknown as AgentEconomyService;
   const workforce = {
     setActivation: vi.fn((_owner:string,id:string,state:string) => { activations.push(`${id}:${state}`); return Promise.resolve({}); }),
     society: { dashboard: vi.fn(() => Promise.resolve({ organizations: [{ id: organizationId }], departments: [{ id: departmentId, name: "Sales", leadAgentId: "engineering_manager" }] })) },
-    enrollGeneratedSpecialist: vi.fn(() => Promise.resolve()),
+    enrollGeneratedSpecialist: vi.fn((generated: {id:string}) => { enrollAccount(generated.id); return Promise.resolve(); }),
   } as unknown as AgentWorkforceService;
   const agentOs = { startIsolatedDelegation: vi.fn(() => { osCalls++; return Promise.resolve({ session: { id: "50000000-0000-4000-8000-000000000001" } }); }), completeIsolatedDelegation: vi.fn(() => Promise.resolve({})) } as unknown as AgentOsService;
   const aiRouter = { executeStructured: vi.fn(() => { routerCalls++; return Promise.resolve({ outcome: "SUCCESS", structuredOutput: { summary: "Implemented bounded change.", confidence: 0.9, evidence: ["test:passed"] }, requestId: "60000000-0000-4000-8000-000000000001", providerId: "local", modelId: "shared", usage: { totalTokens: 800 } }); }) } as unknown as AIRouterService;
   const capabilityStudio = { createRequest: vi.fn(() => Promise.resolve({})) } as unknown as CapabilityStudioService;
   const externalHarvest = { executeDelegation: vi.fn(() => { sandboxCalls++; return Promise.resolve({ status: "COMPLETE", summary: "Generated and ran one bounded test.", confidence: .92, artifacts: [{ name: "generated.test.cjs", kind: "PROPOSED_TEST", content: "" }], tests: { status: "PASSED" }, ai: { requestId: "61000000-0000-4000-8000-000000000001", providerId: "local", modelId: "shared" } }); }) } as unknown as ExternalHarvestService;
+  const agentFactory = options.withObjectiveSpecialistFactory ? {
+    capabilities: vi.fn(() => Promise.resolve([])),
+    createObjectiveSpecialist: vi.fn(async () => {
+      const generated = { ...agent("generated_lead"), displayName: "Lead Research Specialist", supportedTasks: ["lead_generation", "research"], workforce: { ...agent("generated_lead").workforce!, specialization: "Lead research", skills: ["lead_generation", "fitness", "research"] } };
+      agents.upsertAgent(generated);
+      return { agent: generated, dynamicAgent: null };
+    }),
+  } : undefined;
   const audit = vi.fn(() => Promise.resolve()) as GovernanceAuditWriter;
-  const service = new WorkforceRuntimeService(new InMemoryWorkforceRuntimeStore(),agents,workforce,economy,agentOs,externalHarvest,aiRouter,capabilityStudio,undefined,audit,() => new Date(at));
+  const service = new WorkforceRuntimeService(new InMemoryWorkforceRuntimeStore(),agents,workforce,economy,agentOs,externalHarvest,aiRouter,capabilityStudio,agentFactory as never,audit,() => new Date(at));
   return { service, agents, activations, reservations, counts: () => ({ routerCalls, osCalls, rewardCalls, sandboxCalls }) };
 };
 
@@ -123,6 +140,16 @@ describe("WorkforceRuntimeService", () => {
     expect(waiting?.workforceGap?.decision).toBe("SPECIALIST_APPROVAL_PENDING");
     expect(waiting?.workforceGap?.proposal?.recommendation).toBe("REUSABLE");
     expect(dashboard.messages.some((item) => item.taskId === task.id && item.type === "PROPOSAL")).toBe(true);
+  });
+
+  it("funds and reserves the first bounded task for an owner-approved specialist", async () => {
+    const { service } = setup({ withObjectiveSpecialistFactory: true });
+    const task = (await create(service,{ createdByAgentId: "engineering_manager", title: "Build fitness lead list", objective: "Find 100 Singapore fitness companies for outreach.", requiredSkills: ["lead_generation","fitness"], requiredCapabilities: ["workspace.read"] })).task;
+    await expect(service.schedule(ownerId,task.id,"request","127.0.0.1")).rejects.toMatchObject({ code: "SPECIALIST_APPROVAL_PENDING" });
+    const proposal = (await service.dashboard(ownerId)).tasks.find((item) => item.id === task.id)?.workforceGap?.proposal;
+    if (!proposal) throw new Error("Expected specialist proposal");
+    const approved = await service.approveSpecialistCreation(ownerId,task.id,{ approved: true, proposalId: proposal.proposalId },"request","127.0.0.1");
+    expect(approved.task).toMatchObject({ status: "RESERVED", assignedAgentId: "generated_lead" });
   });
 
   it("terminates message loops and enforces global active-task capacity", async () => {

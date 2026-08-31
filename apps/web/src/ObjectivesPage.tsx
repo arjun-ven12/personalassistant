@@ -114,7 +114,7 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
     onSuccess: refresh,
   });
   const approveSpecialist = useMutation({
-    mutationFn: (input: { taskId: string; proposalId: string }) =>
+    mutationFn: (input: { taskId: string; proposalId: string; mode: "create" | "fund" }) =>
       apiClient.approveWorkforceSpecialist(input.taskId, {
         approved: true,
         proposalId: input.proposalId,
@@ -123,7 +123,9 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
       setSpecialistStatus({
         taskId: input.taskId,
         tone: "pending",
-        message: "Creating specialist and reserving its first assignment...",
+        message: input.mode === "fund"
+          ? "Funding the existing specialist and reserving this bounded task..."
+          : "Creating specialist and reserving its first assignment...",
       });
     },
     onSuccess: async (result, input) => {
@@ -208,6 +210,15 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
       task: project.workforceTaskId ? runtimeTasks.get(project.workforceTaskId) : undefined,
     }))
     .filter((item) => item.task?.workforceGap || item.task?.selection.length);
+  const scheduledProjects = projects.filter((project) => {
+    const status = project.workforceTaskId
+      ? runtimeTasks.get(project.workforceTaskId)?.status
+      : undefined;
+    return status !== undefined && ["ASSIGNED", "RESERVED", "RUNNING", "REVIEW_REQUIRED", "COMPLETED"].includes(status);
+  }).length;
+  const activationProgress = projects.length
+    ? Math.round((scheduledProjects / projects.length) * 100)
+    : 0;
   const events =
     data?.events.filter((item) => item.objectiveExecutionId === current?.id) ?? [];
   const externalExecutions =
@@ -512,6 +523,22 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                     {item}
                   </p>
                 ))}
+                {["ACTIVE", "AT_RISK", "BLOCKED"].includes(current.status) ? (
+                  <section className="objective-activation-progress" aria-label="Activation progress">
+                    <div>
+                      <span>Activation progress</span>
+                      <strong>{scheduledProjects} / {projects.length} projects scheduled</strong>
+                    </div>
+                    <div className="progress-track">
+                      <i style={{ width: `${activationProgress}%` }} />
+                    </div>
+                    <small>
+                      {scheduledProjects === projects.length
+                        ? "All projects are scheduled. Execution progress updates as verified work completes."
+                        : `${projects.length - scheduledProjects} project${projects.length - scheduledProjects === 1 ? "" : "s"} still need a specialist or reservation.`}
+                    </small>
+                  </section>
+                ) : null}
                 {workforcePreparation.length ? (
                   <section className="objective-workforce-prep">
                     <header>
@@ -538,6 +565,9 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                           ? specialistStatus
                           : null
                         : null;
+                      const needsFunding = selected?.rejectionReasons.includes(
+                        "insufficient economic budget",
+                      ) ?? false;
                       return (
                         <article key={project.id}>
                           <div>
@@ -578,12 +608,13 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                                 approveSpecialist.mutate({
                                   taskId: task.id,
                                   proposalId: proposal.proposalId,
+                                  mode: needsFunding ? "fund" : "create",
                                 })
                               }
                             >
                               {approveSpecialist.isPending && status?.tone === "pending"
-                                ? "Creating specialist..."
-                                : "Create specialist"}
+                                ? needsFunding ? "Funding specialist..." : "Creating specialist..."
+                                : needsFunding ? "Fund & reserve" : "Create specialist"}
                             </button>
                           ) : null}
                           {status ? (

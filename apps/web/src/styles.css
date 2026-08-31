@@ -8378,6 +8378,10 @@ pre {
 .progress-track.outcome i { background: #65d5a1; }
 .objective-blocker { display:flex; gap:8px; align-items:center; padding:10px; border-left:3px solid #e8ad52; background:#1d1912; color:#efc67c; }
 .objective-risk { display:flex; gap:8px; align-items:center; padding:9px 10px; margin:7px 0; border-left:3px solid #e77a86; background:#211317; color:#ef9aa4; }
+.objective-activation-progress { display:grid; grid-template-columns:minmax(170px,auto) minmax(120px,1fr) minmax(220px,1.5fr); align-items:center; gap:12px; margin:12px 0; padding:11px 12px; border-left:3px solid #7596ff; background:#151a29; }
+.objective-activation-progress div:first-child { display:grid; gap:3px; }
+.objective-activation-progress span,.objective-activation-progress small { color:#aebeff; font-size:11px; }
+.objective-activation-progress strong { color:#f4f6fb; font-size:13px; }
 .objective-workforce-prep { display:grid; gap:10px; margin:14px 0; padding:12px; border:1px solid #2d3140; border-radius:7px; background:#121620; }
 .objective-workforce-prep header,.objective-workforce-prep article { display:grid; grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) auto; gap:12px; align-items:center; }
 .objective-workforce-prep header { grid-template-columns:1fr auto; color:#a9b1c0; }
@@ -8462,6 +8466,7 @@ pre {
   .objectives-workspace { grid-template-columns: 1fr; }
   .objective-stats,.objective-progress-grid { grid-template-columns: repeat(2,1fr); }
   .objective-form-row,.objective-bottom { grid-template-columns:1fr; }
+  .objective-activation-progress { grid-template-columns:1fr; }
   .objective-workforce-prep header,.objective-workforce-prep article { grid-template-columns:1fr; }
   .experiment-meta { grid-template-columns:1fr 1fr; }
   .variant-comparison > div { grid-template-columns:1fr 1fr; }
