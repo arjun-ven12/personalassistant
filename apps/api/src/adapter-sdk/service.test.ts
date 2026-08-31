@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { NativeProviderRecordSchema } from "@alexa-control/shared";
+import {
+  ApplicationCapabilityRecordSchema,
+  NativeProviderRecordSchema,
+} from "@alexa-control/shared";
 import { InMemoryApplicationAdapterStore } from "../application-adapters/store.js";
 import { ApplicationRegistryService } from "../application-adapters/service.js";
 import { InMemoryDeepIndexerStore } from "../deep-indexers/store.js";
@@ -148,5 +151,40 @@ describe("AdapterRegistryService", () => {
       operation: "shutdown",
       outcome: "success",
     });
+  });
+
+  it("deduplicates legacy application capability records when composing SDK contracts", async () => {
+    const { ownerId, applicationAdapterStore, applicationAdapters, adapterSdk } = setup();
+    await applicationAdapters.trustApplication({
+      ownerId,
+      body: {
+        id: "chrome",
+        applicationName: "Chrome",
+        bundleIdentifier: "com.google.Chrome",
+        stableIdentifier: "chrome",
+        applicationVersion: "1.0.0",
+        codeSignature: "reviewed",
+        permissionsGranted: ["navigate"],
+        trustLevel: "semantic_read",
+        securityProfile: "strict",
+      },
+      requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1",
+    });
+    const original = (await applicationAdapterStore.listApplicationCapabilities(ownerId, 100))[0]!;
+    for (let index = 0; index < 100; index += 1) {
+      applicationAdapterStore.saveApplicationCapability(
+        ApplicationCapabilityRecordSchema.parse({ ...original, id: crypto.randomUUID() }),
+      );
+    }
+
+    const dashboard = await adapterSdk.dashboard(ownerId);
+
+    expect(dashboard.contracts[0]?.capabilities).toEqual(
+      expect.arrayContaining([original.capability]),
+    );
+    expect(dashboard.contracts[0]?.capabilities).toHaveLength(
+      new Set((await applicationAdapterStore.listApplicationCapabilities(ownerId, 200)).map((record) => record.capability)).size,
+    );
   });
 });

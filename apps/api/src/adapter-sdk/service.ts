@@ -255,9 +255,16 @@ export class AdapterRegistryService {
       if (!application || application.status !== "trusted") continue;
       const provider =
         nativeProviders.find((item) => item.applicationId === application.id) ?? null;
-      const appCapabilities = capabilities
-        .filter((capability) => capability.applicationId === application.id)
-        .map((capability) => capability.capability);
+      // Capability records are configuration state, not an event stream. Older
+      // registrations may contain duplicates, so compose the contract from the
+      // unique declared capability set before applying its bounded schema.
+      const appCapabilities = [
+        ...new Set(
+          capabilities
+            .filter((capability) => capability.applicationId === application.id)
+            .map((capability) => capability.capability),
+        ),
+      ];
       const domains = domainsFor(application);
       const at = this.now().toISOString();
       const previous = existingByInstance.get(instance.id);

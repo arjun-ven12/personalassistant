@@ -521,11 +521,18 @@ export class ApplicationRegistryService {
     application: TrustedApplicationRecord,
     at: string,
   ) {
+    const existing = await this.store.listApplicationCapabilities(ownerId, 2_000);
+    const existingByCapability = new Map(
+      existing
+        .filter((record) => record.applicationId === application.id)
+        .map((record) => [record.capability, record] as const),
+    );
     for (const capability of application.capabilities) {
       const permission = permissionForCapability[capability];
+      const previous = existingByCapability.get(capability);
       await this.store.saveApplicationCapability(
         ApplicationCapabilityRecordSchema.parse({
-          id: crypto.randomUUID(),
+          id: previous?.id ?? crypto.randomUUID(),
           ownerId,
           applicationId: application.id,
           capability,
@@ -542,7 +549,7 @@ export class ApplicationRegistryService {
               : capability === "editing" || capability === "saving"
                 ? "medium"
                 : "read_only",
-          discoveredAt: at,
+          discoveredAt: previous?.discoveredAt ?? at,
           updatedAt: at,
         }),
       );
