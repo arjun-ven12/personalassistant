@@ -108,4 +108,32 @@ describe("AgentFactoryService", () => {
     expect(dashboard.archivedAgents.map((item) => item.id)).toContain(agent.id);
     expect(dashboard.performance.some((item) => item.agentId === agent.id)).toBe(true);
   });
+
+  it("reuses one generated specialist for duplicate objective approvals in the same department", async () => {
+    const { factory, ownerId } = await setup();
+    const input = {
+      ownerId,
+      workflowId: null,
+      objective: "Research approved outreach leads.",
+      capability: "b2b_growth",
+      name: "Lead Research and Outreach Specialist",
+      description: "Researches approved leads and drafts bounded outreach.",
+      skills: ["lead_generation", "outreach"],
+      capabilities: ["planning", "documentation", "review"],
+      organizationId: "10000000-0000-4000-8000-000000000001",
+      departmentId: "20000000-0000-4000-8000-000000000001",
+      departmentMemoryScopeId: "department:20000000-0000-4000-8000-000000000001",
+      organizationMemoryScopeId: "organization:10000000-0000-4000-8000-000000000001",
+      managerAgentId: null,
+      recommendation: "REUSABLE" as const,
+      requestId: "request-duplicate-specialist",
+      ipAddress: "127.0.0.1",
+    };
+
+    const first = await factory.createObjectiveSpecialist(input);
+    const second = await factory.createObjectiveSpecialist({ ...input, requestId: "request-duplicate-specialist-2" });
+
+    expect(second.agent.id).toBe(first.agent.id);
+    expect((await factory.dynamicAgents(ownerId)).filter((agent) => agent.displayName === input.name)).toHaveLength(1);
+  });
 });

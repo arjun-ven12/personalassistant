@@ -8,6 +8,7 @@ import {
   type DynamicAgentRecord,
   type TeamCompositionRecord,
 } from "@alexa-control/shared";
+import { createHash } from "node:crypto";
 
 import { ExecutionError } from "../execution/errors.js";
 import type { GovernanceAuditWriter } from "../governance/approval-service.js";
@@ -652,11 +653,22 @@ export class AgentFactoryService {
 
   async createObjectiveSpecialist(input: ObjectiveSpecialistInput) {
     await this.ensureTemplates(input.ownerId);
-    const existing = await this.store.findAgent(input.ownerId, capabilityId(input.name));
-    if (existing) return { agent: existing, dynamicAgent: await this.store.findDynamicAgent(input.ownerId, existing.id) ?? null };
+    const specialization = capabilityId(input.name);
+    const existing = (await this.store.listAgents(input.ownerId)).find((agent) =>
+      agent.configuration.dynamic === true &&
+      agent.displayName === input.name &&
+      agent.workforce?.organizationId === input.organizationId &&
+      agent.workforce.departmentId === input.departmentId,
+    );
+    if (existing)
+      return { agent: existing, dynamicAgent: await this.store.findDynamicAgent(input.ownerId, existing.id) ?? null };
     const template = this.bestTemplate(await this.store.listTemplates(input.ownerId), capabilityId(input.capability));
     const at = this.now().toISOString();
-    const id = `dynamic_${capabilityId(input.name)}_${crypto.randomUUID().slice(0, 8)}`;
+    const scopeHash = createHash("sha256")
+      .update(`${input.ownerId}:${input.organizationId}:${input.departmentId}:${specialization}`)
+      .digest("hex")
+      .slice(0, 12);
+    const id = `dynamic_${specialization.slice(0, 90)}_${scopeHash}`;
     const dynamicAgent: DynamicAgentRecord = {
       id,
       ownerId: input.ownerId,
@@ -707,7 +719,7 @@ export class AgentFactoryService {
       memoryScopeId: `agent:${id}`,
       departmentMemoryScopeId: input.departmentMemoryScopeId,
       organizationMemoryScopeId: input.organizationMemoryScopeId,
-      capabilityProfileId: `profile:dynamic:${capabilityId(input.name)}`,
+      capabilityProfileId: `profile:dynamic:${specialization}`,
       missingCapabilities: [],
       modelPolicyId: input.capabilities.some((capability) => capability.includes("security")) ? "SECURITY_REVIEW" : "BALANCED",
       activationPolicyId: "lazy_owner_or_task_activation_v1",

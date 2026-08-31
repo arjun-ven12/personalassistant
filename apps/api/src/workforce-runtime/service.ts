@@ -133,8 +133,14 @@ export class WorkforceRuntimeService {
   async schedule(ownerId: string, taskId: string, requestId: string, ipAddress: string) {
     const matchingStartedAt = performance.now();
     let task = await this.requireTask(ownerId, taskId);
-    if (!["QUEUED","MATCHING"].includes(task.status)) throw new ExecutionError(409, "TASK_NOT_QUEUEABLE", "Only queued tasks can be scheduled.");
+    const previouslyCreatedSpecialist = task.workforceGap?.decision === "SPECIALIST_CREATED"
+      ? task.workforceGap.selectedAgentId
+      : null;
+    if (!["QUEUED","MATCHING","WAITING"].includes(task.status) || (task.status === "WAITING" && !previouslyCreatedSpecialist))
+      throw new ExecutionError(409, "TASK_NOT_QUEUEABLE", "Only queued tasks or tasks with an approved specialist can be scheduled.");
     if (task.expiresAt && task.expiresAt <= this.now().toISOString()) return { task: await this.update(task, { status: "EXPIRED" }) };
+    if (previouslyCreatedSpecialist)
+      await this.seedApprovedSpecialistBudget(ownerId, task, previouslyCreatedSpecialist, requestId, ipAddress);
     const allTasks = await this.store.listTasks(ownerId, 500);
     const higherPriorityQueued = allTasks.some((item) =>
       item.id !== task.id && item.status === "QUEUED" && PRIORITY_RANK[item.priority] > PRIORITY_RANK[task.priority],
@@ -153,10 +159,21 @@ export class WorkforceRuntimeService {
       activeByAgent.set(active.assignedAgentId!, (activeByAgent.get(active.assignedAgentId!) ?? 0) + 1);
     let scores = agents.map((agent) => this.score(task, requirement, agent, accountByAgent.get(agent.id), performanceByAgent.get(agent.id), activeByAgent.get(agent.id) ?? 0))
       .sort((a,b) => b.finalScore - a.finalScore || a.agentId.localeCompare(b.agentId)).slice(0, 20);
-    let chosen = task.assignedAgentId ? scores.find((score) => score.agentId === task.assignedAgentId && score.eligible) : scores.find((score) => score.eligible && score.category !== "WEAK_MATCH");
+    let chosen = task.assignedAgentId
+      ? scores.find((score) => score.agentId === task.assignedAgentId && score.eligible)
+      : previouslyCreatedSpecialist
+        ? scores.find((score) => score.agentId === previouslyCreatedSpecialist && score.eligible)
+        : scores.find((score) => score.eligible && score.category !== "WEAK_MATCH");
     if (!chosen) {
+      if (previouslyCreatedSpecialist) {
+        const reason = "The approved specialist could not receive its bounded task reservation yet.";
+        const unresolved = { ...task.workforceGap!, reasons: [reason] };
+        await this.update(task, { status: "WAITING", selection: scores, requirement, workforceGap: unresolved });
+        throw new ExecutionError(409, "NO_ELIGIBLE_AGENT", reason);
+      }
       const resolved = await this.resolveWorkforceGap(ownerId, task, requirement, scores, requestId, ipAddress);
       if (resolved.selectedAgentId) {
+        await this.seedApprovedSpecialistBudget(ownerId, task, resolved.selectedAgentId, requestId, ipAddress);
         const refreshedAgents = await this.agentStore.listAgents(ownerId);
         const refreshedEconomy = await this.economy.dashboard(ownerId);
         const refreshedAccounts = new Map(refreshedEconomy.accounts.map((account) => [account.agentId, account]));
@@ -439,6 +456,19 @@ export class WorkforceRuntimeService {
     ]);
     const available = new Set([...agents.flatMap((agent) => agent.capabilities), ...factoryCapabilities.map((capability) => capability.id)].map(normalized));
     return required.filter((capability) => !available.has(normalized(capability)));
+  }
+
+  private async seedApprovedSpecialistBudget(ownerId: string, task: WorkforceRuntimeTask, agentId: string, requestId: string, ipAddress: string) {
+    const amount = Math.max(1, Math.min(task.economicBudget, 10));
+    await this.economy.allocate({
+      ownerId,
+      agentId,
+      amount,
+      reasonCode: "OWNER_APPROVED_SPECIALIST_TASK_RESERVE",
+      idempotencyKey: `workforce-specialist-budget:${task.id}:${agentId}`,
+      requestId,
+      ipAddress,
+    });
   }
 
   private async proposalFor(ownerId: string, task: WorkforceRuntimeTask, requirement: SpecialistRequirement, duplicateAgentId: string | null) {
