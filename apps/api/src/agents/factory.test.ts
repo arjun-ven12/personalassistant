@@ -136,4 +136,31 @@ describe("AgentFactoryService", () => {
     expect(second.agent.id).toBe(first.agent.id);
     expect((await factory.dynamicAgents(ownerId)).filter((agent) => agent.displayName === input.name)).toHaveLength(1);
   });
+
+  it("bounds generated specialist capability profiles before persistence", async () => {
+    const { factory, ownerId } = await setup();
+    const capabilities = Array.from({ length: 85 }, (_, index) => `capability_${index}`);
+
+    const response = await factory.createObjectiveSpecialist({
+      ownerId,
+      workflowId: null,
+      objective: "Create a bounded specialist profile.",
+      capability: "profile_management",
+      name: "Profile Management Specialist",
+      description: "Manages a governed, bounded capability profile.",
+      skills: ["planning"],
+      capabilities,
+      organizationId: "10000000-0000-4000-8000-000000000001",
+      departmentId: "20000000-0000-4000-8000-000000000001",
+      departmentMemoryScopeId: "department:20000000-0000-4000-8000-000000000001",
+      organizationMemoryScopeId: "organization:10000000-0000-4000-8000-000000000001",
+      managerAgentId: null,
+      recommendation: "REUSABLE",
+      requestId: "request-bounded-specialist",
+      ipAddress: "127.0.0.1",
+    });
+
+    expect(response.agent.capabilities).toEqual(capabilities.slice(0, 50));
+    expect((await factory.dynamicAgents(ownerId))[0]?.capabilities).toHaveLength(50);
+  });
 });

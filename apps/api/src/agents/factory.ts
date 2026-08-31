@@ -681,7 +681,10 @@ export class AgentFactoryService {
         `Handle ${input.capability.replaceAll("_", " ")} work for bounded objectives.`,
         `Apply ${input.skills.slice(0, 5).join(", ")} expertise without expanding authority.`,
       ],
-      capabilities: [...new Set(input.capabilities)],
+      // Dynamic profiles are bounded by the runnable agent schema. Keep the earliest
+      // declared capabilities deterministically rather than creating an
+      // invalid specialist record that makes later dashboard reads fail.
+      capabilities: [...new Set(input.capabilities)].slice(0, 50),
       prompt:
         template?.prompt ??
         `Act as a ${input.name}. Use registered evidence and remain advisory unless the scheduler delegates a bounded task.`,
