@@ -151,7 +151,7 @@ export class WorkforceRuntimeService {
     const activeByAgent = new Map<string, number>();
     for (const active of allTasks.filter((item) => ["ASSIGNED","RESERVED","RUNNING"].includes(item.status) && item.assignedAgentId))
       activeByAgent.set(active.assignedAgentId!, (activeByAgent.get(active.assignedAgentId!) ?? 0) + 1);
-    const scores = agents.map((agent) => this.score(task, requirement, agent, accountByAgent.get(agent.id), performanceByAgent.get(agent.id), activeByAgent.get(agent.id) ?? 0))
+    let scores = agents.map((agent) => this.score(task, requirement, agent, accountByAgent.get(agent.id), performanceByAgent.get(agent.id), activeByAgent.get(agent.id) ?? 0))
       .sort((a,b) => b.finalScore - a.finalScore || a.agentId.localeCompare(b.agentId)).slice(0, 20);
     let chosen = task.assignedAgentId ? scores.find((score) => score.agentId === task.assignedAgentId && score.eligible) : scores.find((score) => score.eligible && score.category !== "WEAK_MATCH");
     if (!chosen) {
@@ -165,7 +165,7 @@ export class WorkforceRuntimeService {
         if (selected) {
           const selectedScore = this.score(task, requirement, selected, refreshedAccounts.get(selected.id), refreshedPerformance.get(selected.id), activeByAgent.get(selected.id) ?? 0);
           chosen = selectedScore.eligible ? selectedScore : undefined;
-          scores.unshift(selectedScore);
+          scores = [selectedScore, ...scores.filter((score) => score.agentId !== selectedScore.agentId)].slice(0, 20);
         }
       }
       if (!chosen) {
