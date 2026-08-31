@@ -18,6 +18,25 @@ export interface CompanyStore {
 
 const clone = <T>(value: T): T => structuredClone(value);
 
+const canonicalTimestamp = (value: unknown) => {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value !== "string") return value;
+  const timestamp = new Date(value);
+  return Number.isNaN(timestamp.getTime()) ? value : timestamp.toISOString();
+};
+
+const canonicalizeTimestamps = (record: unknown) => {
+  if (!record || typeof record !== "object" || Array.isArray(record)) return record;
+  const parsed = { ...(record as Record<string, unknown>) };
+  for (const field of ["createdAt", "updatedAt"]) {
+    parsed[field] = canonicalTimestamp(parsed[field]);
+  }
+  return parsed;
+};
+
+export const parseCompanyRecord = (record: unknown) => CompanySchema.parse(canonicalizeTimestamps(record));
+export const parseCompanyMembershipRecord = (record: unknown) => CompanyMembershipSchema.parse(canonicalizeTimestamps(record));
+
 export class InMemoryCompanyStore implements CompanyStore {
   readonly #companies = new Map<string, Company>();
   readonly #memberships = new Map<string, CompanyMembership>();
@@ -89,7 +108,7 @@ export class PostgresCompanyStore implements CompanyStore {
       "SELECT c.record FROM companies c JOIN company_memberships m ON m.company_id=c.id WHERE c.id=$1 AND c.owner_id=$2 AND m.principal_id=$2 AND m.status='ACTIVE'",
       [companyId, ownerId],
     );
-    return result.rows[0] ? CompanySchema.parse(result.rows[0].record) : undefined;
+    return result.rows[0] ? parseCompanyRecord(result.rows[0].record) : undefined;
   }
 
   async listCompanies(ownerId: string) {
@@ -97,7 +116,7 @@ export class PostgresCompanyStore implements CompanyStore {
       "SELECT c.record FROM companies c JOIN company_memberships m ON m.company_id=c.id WHERE c.owner_id=$1 AND m.principal_id=$1 AND m.status='ACTIVE' ORDER BY c.created_at,c.id",
       [ownerId],
     );
-    return result.rows.map((row) => CompanySchema.parse(row.record));
+    return result.rows.map((row) => parseCompanyRecord(row.record));
   }
 
   async findMembership(principalId: string, companyId: string) {
@@ -105,7 +124,7 @@ export class PostgresCompanyStore implements CompanyStore {
       "SELECT record FROM company_memberships WHERE principal_id=$1 AND company_id=$2 AND status='ACTIVE'",
       [principalId, companyId],
     );
-    return result.rows[0] ? CompanyMembershipSchema.parse(result.rows[0].record) : undefined;
+    return result.rows[0] ? parseCompanyMembershipRecord(result.rows[0].record) : undefined;
   }
 
   async updateCompany(company: Company) {

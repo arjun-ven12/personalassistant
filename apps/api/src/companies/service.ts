@@ -14,7 +14,8 @@ import type { AuthenticatedIdentity } from "../identity/types.js";
 import type { CompanyStore } from "./store.js";
 
 const defaultCompanyId = (ownerId: string) => {
-  const digest = createHash("sha256")
+  // This must match the stable IDs seeded by migration 0078 for existing owners.
+  const digest = createHash("md5")
     .update(`${ownerId}:alexa-default-company`)
     .digest("hex")
     .slice(0, 32);
