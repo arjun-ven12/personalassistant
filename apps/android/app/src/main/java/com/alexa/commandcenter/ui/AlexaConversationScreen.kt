@@ -30,12 +30,12 @@ import androidx.compose.ui.unit.dp
 import com.alexa.commandcenter.config.AlexaEnvironmentConfig
 import com.alexa.commandcenter.model.*
 
-private val ConversationSurface = Color(0xFF12141D)
-private val ConversationElevated = Color(0xFF171A25)
-private val ConversationBorder = Color(0xFF2B2F3B)
-private val ConversationBlue = Color(0xFF8EABFF)
-private val ConversationGreen = Color(0xFF53D99B)
-private val ConversationRed = Color(0xFFFF6C7B)
+private val ConversationSurface = AlexaSurface
+private val ConversationElevated = AlexaElevatedSurface
+private val ConversationBorder = AlexaBorder
+private val ConversationBlue = AlexaPrimary
+private val ConversationGreen = AlexaGreen
+private val ConversationRed = AlexaRed
 
 @Composable
 fun AlexaConversationScreen(
@@ -88,7 +88,7 @@ fun AlexaConversationScreen(
               maxLines = 1,
               overflow = TextOverflow.Ellipsis,
               fontWeight = FontWeight.SemiBold,
-              color = Color.White,
+              color = AlexaContent,
             )
             Text(
               if (state.connection == ConnectionState.ONLINE) "Shared Alexa conversation" else "Offline · cached history",
@@ -96,7 +96,7 @@ fun AlexaConversationScreen(
               color = if (state.connection == ConnectionState.ONLINE) ConversationGreen else ConversationBlue,
             )
           }
-          Icon(Icons.Outlined.ExpandMore, "Choose conversation", tint = Color.LightGray)
+          Icon(Icons.Outlined.ExpandMore, "Choose conversation", tint = AlexaMutedContent)
         }
         DropdownMenu(expanded = conversationMenu, onDismissRequest = { conversationMenu = false }) {
           DropdownMenuItem(
@@ -109,7 +109,7 @@ fun AlexaConversationScreen(
               text = {
                 Column {
                   Text(session.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                  Text(session.updatedAt, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                  Text(session.updatedAt, style = MaterialTheme.typography.labelSmall, color = AlexaMutedContent)
                 }
               },
               onClick = { conversationMenu = false; onSelectConversation(session.id) },
@@ -174,7 +174,7 @@ fun AlexaConversationScreen(
             Icon(Icons.Outlined.AutoAwesome, null, tint = ConversationBlue, modifier = Modifier.size(30.dp))
             Spacer(Modifier.height(10.dp))
             Text("Talk to the same Alexa", fontWeight = FontWeight.SemiBold)
-            Text("Text or hold the microphone. Context stays in the canonical conversation.", color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
+            Text("Text or hold the microphone. Context stays in the canonical conversation.", color = AlexaMutedContent, style = MaterialTheme.typography.bodySmall)
           }
         }
       }
@@ -263,7 +263,7 @@ private fun ConversationBubble(message: ConversationMessage, onOpenApprovals: ()
           TextButton(onClick = onOpenApprovals, contentPadding = PaddingValues(0.dp)) { Text("Review approval") }
         }
         message.confidence?.takeIf { owner && it < .75 }?.let {
-          Text("Transcript confidence ${(it * 100).toInt()}%", style = MaterialTheme.typography.labelSmall, color = Color.LightGray)
+          Text("Transcript confidence ${(it * 100).toInt()}%", style = MaterialTheme.typography.labelSmall, color = AlexaMutedContent)
         }
       }
     }
@@ -275,7 +275,7 @@ private fun RuntimeStateRow(label: String, showStop: Boolean, onStop: () -> Unit
   Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
     CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = ConversationBlue)
     Spacer(Modifier.width(9.dp))
-    Text(label, Modifier.weight(1f), color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
+    Text(label, Modifier.weight(1f), color = AlexaMutedContent, style = MaterialTheme.typography.bodySmall)
     if (showStop) TextButton(onClick = onStop) { Text("Stop") }
   }
 }

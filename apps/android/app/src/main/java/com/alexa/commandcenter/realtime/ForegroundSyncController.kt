@@ -6,6 +6,10 @@ import kotlinx.coroutines.delay
 class ForegroundSyncController {
   private var attempts = 0
 
+  val pollIntervalMs: Long = 10_000L
+
+  fun shouldRefreshExecutive(cycle: Int): Boolean = cycle >= 0 && cycle % 2 == 0
+
   fun nextState(networkAvailable: Boolean): ConnectionState = when {
     !networkAvailable -> ConnectionState.OFFLINE
     attempts == 0 -> ConnectionState.ONLINE

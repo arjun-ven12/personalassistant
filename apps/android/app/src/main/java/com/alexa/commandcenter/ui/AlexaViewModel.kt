@@ -6,6 +6,7 @@ import com.alexa.commandcenter.lifecycle.AppLockController
 import com.alexa.commandcenter.model.*
 import com.alexa.commandcenter.network.AlexaApiException
 import com.alexa.commandcenter.network.ConnectivityMonitor
+import com.alexa.commandcenter.notifications.ExecutiveRefreshEvents
 import com.alexa.commandcenter.realtime.ForegroundSyncController
 import com.alexa.commandcenter.realtime.CrossDeviceRouting
 import com.alexa.commandcenter.repository.AlexaRepository
@@ -74,7 +75,8 @@ class AlexaViewModel(
   private val biometricRequests = MutableSharedFlow<BiometricRequest>()
   val requestsBiometric = biometricRequests.asSharedFlow()
   private var pendingApprovalStepUp: PendingApprovalStepUp? = null
-  private var foregroundCrossDeviceSync: Job? = null
+  private var foregroundStateSync: Job? = null
+  private var executiveRefresh: Job? = null
 
   init {
     connectivity.start()
@@ -82,6 +84,18 @@ class AlexaViewModel(
       connectivity.state.collectLatest { connection ->
         mutableState.value = mutableState.value.copy(connection = connection)
         if (connection == ConnectionState.ONLINE && mutableState.value.screen is AlexaScreenState.Shell) refresh()
+      }
+    }
+    viewModelScope.launch {
+      ExecutiveRefreshEvents.events.collectLatest { target ->
+        if (foregroundStateSync?.isActive != true || mutableState.value.connection != ConnectionState.ONLINE) return@collectLatest
+        refreshExecutiveSnapshot()
+        when (target.kind) {
+          "APPROVAL" -> loadApprovalDetail(target.objectId, force = true)
+          "WORKFLOW" -> loadWorkflowDetail(target.objectId, force = true)
+          "AGENT" -> loadAgentDetail(target.objectId, force = true)
+          "EXPERIMENT" -> loadExperiments("__all__", force = true)
+        }
       }
     }
     restore()
@@ -151,7 +165,7 @@ class AlexaViewModel(
     }
     mutableState.value = mutableState.value.copy(screen = AlexaScreenState.Shell, error = null)
     refresh()
-    startCrossDeviceSync()
+    startForegroundSync()
   }
   fun onBiometricCancelled() {
     val wasStepUp = pendingApprovalStepUp != null
@@ -184,13 +198,18 @@ class AlexaViewModel(
   }
 
   fun onBackground() {
-    foregroundCrossDeviceSync?.cancel()
-    foregroundCrossDeviceSync = null
+    foregroundStateSync?.cancel()
+    foregroundStateSync = null
+    executiveRefresh?.cancel()
+    executiveRefresh = null
     lockController.onBackground(System.currentTimeMillis())
   }
   fun onForeground() {
     if (lockController.requiresBiometricOnForeground(System.currentTimeMillis()) && repository.hasSession()) requireBiometric()
-    else if (mutableState.value.screen is AlexaScreenState.Shell) startCrossDeviceSync()
+    else if (mutableState.value.screen is AlexaScreenState.Shell) {
+      refresh()
+      startForegroundSync()
+    }
   }
   fun lockNow() = requireBiometric()
   fun signOutAndForgetDevice() = viewModelScope.launch {
@@ -270,6 +289,7 @@ class AlexaViewModel(
   fun openNotification(target: NotificationTarget) {
     if (!target.isValid()) return
     mutableState.value = mutableState.value.copy(notificationTarget = target)
+    if (mutableState.value.connection == ConnectionState.ONLINE) refreshExecutiveSnapshot()
     when (target.kind) {
       "APPROVAL" -> loadApprovalDetail(target.objectId, force = true)
       "WORKFLOW" -> loadWorkflowDetail(target.objectId)
@@ -281,22 +301,28 @@ class AlexaViewModel(
     mutableState.value = mutableState.value.copy(notificationTarget = null)
   }
 
-  fun loadAgentDetail(agentId: String) = viewModelScope.launch {
-    if (mutableState.value.agentDetails.containsKey(agentId)) return@launch
+  fun loadAgentDetail(agentId: String) = loadAgentDetail(agentId, force = false)
+
+  private fun loadAgentDetail(agentId: String, force: Boolean) = viewModelScope.launch {
+    if (!force && mutableState.value.agentDetails.containsKey(agentId)) return@launch
     repository.workforceAgent(agentId).onSuccess { detail ->
       mutableState.value = mutableState.value.copy(agentDetails = mutableState.value.agentDetails + (agentId to detail))
     }.onFailure(::showFailure)
   }
 
-  fun loadWorkflowDetail(workflowId: String) = viewModelScope.launch {
-    if (mutableState.value.workflowDetails.containsKey(workflowId)) return@launch
+  fun loadWorkflowDetail(workflowId: String) = loadWorkflowDetail(workflowId, force = false)
+
+  private fun loadWorkflowDetail(workflowId: String, force: Boolean) = viewModelScope.launch {
+    if (!force && mutableState.value.workflowDetails.containsKey(workflowId)) return@launch
     repository.workflow(workflowId).onSuccess { detail ->
       mutableState.value = mutableState.value.copy(workflowDetails = mutableState.value.workflowDetails + (workflowId to detail))
     }.onFailure(::showFailure)
   }
 
-  fun loadExperiments(objectiveId: String) = viewModelScope.launch {
-    if (mutableState.value.experimentDashboards.containsKey(objectiveId)) return@launch
+  fun loadExperiments(objectiveId: String) = loadExperiments(objectiveId, force = false)
+
+  private fun loadExperiments(objectiveId: String, force: Boolean) = viewModelScope.launch {
+    if (!force && mutableState.value.experimentDashboards.containsKey(objectiveId)) return@launch
     repository.experiments(objectiveId).onSuccess { dashboard ->
       mutableState.value = mutableState.value.copy(experimentDashboards = mutableState.value.experimentDashboards + (objectiveId to dashboard))
     }.onFailure(::showFailure)
@@ -562,10 +588,12 @@ class AlexaViewModel(
     )
   }
 
-  private fun startCrossDeviceSync() {
-    if (foregroundCrossDeviceSync?.isActive == true) return
-    foregroundCrossDeviceSync = viewModelScope.launch {
+  private fun startForegroundSync() {
+    if (foregroundStateSync?.isActive == true) return
+    foregroundStateSync = viewModelScope.launch {
+      var cycle = 0
       while (mutableState.value.screen is AlexaScreenState.Shell) {
+        delay(foregroundSync.pollIntervalMs)
         if (mutableState.value.connection == ConnectionState.ONLINE) {
           repository.syncCrossDeviceClient().onSuccess { response ->
             response.commands.firstOrNull()?.let { command ->
@@ -573,8 +601,25 @@ class AlexaViewModel(
                 mutableState.value = mutableState.value.copy(crossDeviceCommand = command)
             }
           }
+          if (foregroundSync.shouldRefreshExecutive(cycle)) refreshExecutiveSnapshot()
+          cycle += 1
         }
-        delay(10_000)
+      }
+    }
+  }
+
+  private fun refreshExecutiveSnapshot() {
+    if (executiveRefresh?.isActive == true) return
+    executiveRefresh = viewModelScope.launch {
+      repository.commandCenter().onSuccess { snapshot ->
+        mutableState.value = mutableState.value.copy(
+          commandCenter = snapshot,
+          lastUpdatedAt = System.currentTimeMillis(),
+          error = null,
+        )
+      }.onFailure { error ->
+        val failure = (error as? AlexaApiException)?.failure
+        if (failure == AlexaFailure.DeviceRevoked || failure == AlexaFailure.Unauthorized) showFailure(error)
       }
     }
   }

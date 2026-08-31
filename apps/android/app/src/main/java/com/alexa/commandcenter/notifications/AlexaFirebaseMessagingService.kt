@@ -21,6 +21,7 @@ class AlexaFirebaseMessagingService : FirebaseMessagingService() {
   override fun onMessageReceived(message: RemoteMessage) {
     val validated = ExecutiveNotificationPolicy.parse(message.data) ?: return
     val target = validated.target
+    ExecutiveRefreshEvents.publish(target)
     if (
       android.os.Build.VERSION.SDK_INT >= 33 &&
       ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED

@@ -36,14 +36,14 @@ import com.alexa.commandcenter.config.AlexaEnvironmentConfig
 import com.alexa.commandcenter.model.*
 import kotlin.math.roundToInt
 
-private val CcBg = Color(0xFF090A0E)
-private val CcSurface = Color(0xFF12141D)
-private val CcElevated = Color(0xFF171A25)
-private val CcBorder = Color(0xFF2B2F3B)
-private val CcBlue = Color(0xFF8EABFF)
-private val CcGreen = Color(0xFF53D99B)
-private val CcAmber = Color(0xFFF2B64D)
-private val CcRed = Color(0xFFFF6C7B)
+private val CcBg = AlexaBackground
+private val CcSurface = AlexaSurface
+private val CcElevated = AlexaElevatedSurface
+private val CcBorder = AlexaBorder
+private val CcBlue = AlexaPrimary
+private val CcGreen = AlexaGreen
+private val CcAmber = AlexaAmber
+private val CcRed = AlexaRed
 
 @Composable
 fun CommandCenterShell(
@@ -142,8 +142,7 @@ fun CommandCenterShell(
     "Approvals" to Icons.Outlined.TaskAlt,
     "Alexa" to Icons.Outlined.AutoAwesome,
   )
-  MaterialTheme(colorScheme = darkColorScheme(primary = CcBlue, surface = CcSurface)) {
-    Scaffold(
+  Scaffold(
       containerColor = CcBg,
       bottomBar = {
         NavigationBar(containerColor = CcSurface) {
@@ -157,7 +156,7 @@ fun CommandCenterShell(
           }
         }
       },
-    ) { padding ->
+  ) { padding ->
       Box(Modifier.padding(padding)) {
         when (destination) {
           "Home" -> ExecutiveHome(state, onRefresh, onObjectiveAction, onApprovalDecision)
@@ -194,7 +193,6 @@ fun CommandCenterShell(
           }
         }
       }
-    }
   }
 }
 
