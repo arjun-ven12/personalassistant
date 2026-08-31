@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState, type FormEvent } from "react";
 
 import type { WorkflowApprovalStrategy } from "@alexa-control/shared";
-import type { ApiClient } from "./api.js";
+import { ApiClientError, type ApiClient } from "./api.js";
 import {
   isWorkflowTerminal,
   workflowProgress,
@@ -55,6 +55,10 @@ export const WorkflowsPage = ({ apiClient }: { apiClient: ApiClient }) => {
   const [repositoryIds, setRepositoryIds] = useState<string[]>([]);
   const [approvalStrategy, setApprovalStrategy] =
     useState<WorkflowApprovalStrategy>("approve_every_patch");
+  const [composeStatus, setComposeStatus] = useState<{
+    tone: "pending" | "success" | "error";
+    message: string;
+  } | null>(null);
 
   const repositories = useQuery({
     queryKey: ["repositories"],
@@ -95,12 +99,37 @@ export const WorkflowsPage = ({ apiClient }: { apiClient: ApiClient }) => {
         origin: "dashboard",
         ...(selectedTemplateId ? { templateId: selectedTemplateId } : {}),
       }),
+    onMutate: () => {
+      setComposeStatus({
+        tone: "pending",
+        message: "Creating the governed workflow and checking its declared capabilities...",
+      });
+    },
     onSuccess: async (response) => {
       const newest =
         response.graphs.find((graph) => graph.goal === workflowGoal) ??
         response.graphs[0];
-      if (newest) selectRun({ kind: "graph", id: newest.id }, "active");
+      if (newest) {
+        selectRun({ kind: "graph", id: newest.id }, "active");
+        setComposeStatus({
+          tone: "success",
+          message: "Workflow created. Review its steps and select Start when you are ready to run it.",
+        });
+      } else {
+        setComposeStatus({
+          tone: "error",
+          message: "Alexa did not return a workflow graph. No workflow was started.",
+        });
+      }
       await refresh();
+    },
+    onError: (error) => {
+      setComposeStatus({
+        tone: "error",
+        message: error instanceof ApiClientError
+          ? `${error.code}: ${error.message}`
+          : "Workflow creation could not be confirmed. No workflow was started.",
+      });
     },
   });
   const createEngineeringWorkflow = useMutation({
@@ -594,8 +623,13 @@ export const WorkflowsPage = ({ apiClient }: { apiClient: ApiClient }) => {
               onClick={() => compose.mutate()}
               type="button"
             >
-              Create workflow
+              {compose.isPending ? "Creating workflow..." : "Create workflow"}
             </button>
+            {composeStatus ? (
+              <p className={`workflow-compose-status ${composeStatus.tone}`} role="status">
+                {composeStatus.message}
+              </p>
+            ) : null}
             <details className="workflow-advanced">
               <summary>Advanced engineering workflow</summary>
               <p>
