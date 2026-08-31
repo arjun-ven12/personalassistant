@@ -8378,6 +8378,11 @@ pre {
 .progress-track.outcome i { background: #65d5a1; }
 .objective-blocker { display:flex; gap:8px; align-items:center; padding:10px; border-left:3px solid #e8ad52; background:#1d1912; color:#efc67c; }
 .objective-risk { display:flex; gap:8px; align-items:center; padding:9px 10px; margin:7px 0; border-left:3px solid #e77a86; background:#211317; color:#ef9aa4; }
+.objective-workforce-prep { display:grid; gap:10px; margin:14px 0; padding:12px; border:1px solid #2d3140; border-radius:7px; background:#121620; }
+.objective-workforce-prep header,.objective-workforce-prep article { display:grid; grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) auto; gap:12px; align-items:center; }
+.objective-workforce-prep header { grid-template-columns:1fr auto; color:#a9b1c0; }
+.objective-workforce-prep h3,.objective-workforce-prep strong { margin:0; font-size:13px; font-weight:600; color:#f4f6fb; }
+.objective-workforce-prep small,.objective-workforce-prep p,.objective-workforce-prep span { margin:0; color:#8790a1; font-size:11px; }
 .objective-modification-result { padding:9px 10px; border-left:3px solid #7596ff; background:#151a29; color:#aebeff; }
 .objective-edit-toggle { display:flex; justify-content:flex-end; margin:12px 0; }
 .objective-modifier { display:grid; grid-template-columns:repeat(5,minmax(100px,1fr)); gap:10px; padding:14px; margin-bottom:16px; border:1px solid #2b2f3a; background:#13151c; }
@@ -8453,6 +8458,7 @@ pre {
   .objectives-workspace { grid-template-columns: 1fr; }
   .objective-stats,.objective-progress-grid { grid-template-columns: repeat(2,1fr); }
   .objective-form-row,.objective-bottom { grid-template-columns:1fr; }
+  .objective-workforce-prep header,.objective-workforce-prep article { grid-template-columns:1fr; }
   .experiment-meta { grid-template-columns:1fr 1fr; }
   .variant-comparison > div { grid-template-columns:1fr 1fr; }
   .business-integration-grid { grid-template-columns:1fr 1fr; }

@@ -39,6 +39,11 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
     queryFn: apiClient.getBusinessOSSummary,
     refetchInterval: 15_000,
   });
+  const workforceRuntime = useQuery({
+    queryKey: ["workforce-runtime", "objectives"],
+    queryFn: apiClient.getWorkforceRuntime,
+    refetchInterval: 5_000,
+  });
   const [tab, setTab] = useState<Tab>("overview");
   const [selected, setSelected] = useState<string | null>(() => new URLSearchParams(window.location.search).get("selected"));
   const [creating, setCreating] = useState(false);
@@ -60,7 +65,10 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
   const [editTarget, setEditTarget] = useState(1);
   const [modificationStatus, setModificationStatus] = useState("");
   const [sort, setSort] = useState<"attention" | "priority" | "deadline" | "budget" | "outcome">("attention");
-  const refresh = () => client.invalidateQueries({ queryKey: ["objectives"] });
+  const refresh = async () => {
+    await client.invalidateQueries({ queryKey: ["objectives"] });
+    await client.invalidateQueries({ queryKey: ["workforce-runtime"] });
+  };
   const create = useMutation({
     mutationFn: () =>
       apiClient.createObjective({
@@ -98,6 +106,14 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
         return apiClient.replanObjective(input.id, idempotencyKey);
       return apiClient.cancelObjective(input.id, idempotencyKey);
     },
+    onSuccess: refresh,
+  });
+  const approveSpecialist = useMutation({
+    mutationFn: (input: { taskId: string; proposalId: string }) =>
+      apiClient.approveWorkforceSpecialist(input.taskId, {
+        approved: true,
+        proposalId: input.proposalId,
+      }),
     onSuccess: refresh,
   });
   const modify = useMutation({
@@ -156,6 +172,15 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
     data?.projects
       .filter((item) => item.objectiveExecutionId === current?.id)
       .sort((a, b) => a.sequence - b.sequence) ?? [];
+  const runtimeTasks = new Map(
+    workforceRuntime.data?.tasks.map((item) => [item.id, item]) ?? [],
+  );
+  const workforcePreparation = projects
+    .map((project) => ({
+      project,
+      task: project.workforceTaskId ? runtimeTasks.get(project.workforceTaskId) : undefined,
+    }))
+    .filter((item) => item.task?.workforceGap || item.task?.selection.length);
   const events =
     data?.events.filter((item) => item.objectiveExecutionId === current?.id) ?? [];
   const externalExecutions =
@@ -460,6 +485,73 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                     {item}
                   </p>
                 ))}
+                {workforcePreparation.length ? (
+                  <section className="objective-workforce-prep">
+                    <header>
+                      <div>
+                        <h3>Workforce preparation</h3>
+                      </div>
+                      <span>
+                        {
+                          workforcePreparation.filter(
+                            (item) => item.task?.assignedAgentId,
+                          ).length
+                        }{" "}
+                        / {workforcePreparation.length} assigned
+                      </span>
+                    </header>
+                    {workforcePreparation.map(({ project, task }) => {
+                      const proposal = task?.workforceGap?.proposal;
+                      const selected =
+                        task?.selection.find(
+                          (score) => score.agentId === task.assignedAgentId,
+                        ) ?? task?.selection[0];
+                      return (
+                        <article key={project.id}>
+                          <div>
+                            <strong>{project.title}</strong>
+                            <small>
+                              {selected
+                                ? `${selected.category.replaceAll("_", " ")} · ${Math.round(selected.finalScore * 100)}% match`
+                                : task?.workforceGap?.blockerCode ?? project.status}
+                            </small>
+                          </div>
+                          {proposal ? (
+                            <div>
+                              <strong>{proposal.name}</strong>
+                              <small>
+                                {proposal.departmentName ?? "Workforce"} ·{" "}
+                                {proposal.recommendation.toLowerCase()} ·{" "}
+                                {proposal.capabilities.length -
+                                  proposal.missingCapabilities.length}
+                                /{proposal.capabilities.length} capabilities available
+                              </small>
+                            </div>
+                          ) : (
+                            <p>{task?.workforceGap?.reasons[0] ?? task?.status}</p>
+                          )}
+                          {proposal &&
+                          task?.workforceGap?.decision ===
+                            "SPECIALIST_APPROVAL_PENDING" ? (
+                            <button
+                              className="primary-action"
+                              disabled={approveSpecialist.isPending}
+                              type="button"
+                              onClick={() =>
+                                approveSpecialist.mutate({
+                                  taskId: task.id,
+                                  proposalId: proposal.proposalId,
+                                })
+                              }
+                            >
+                              Create specialist
+                            </button>
+                          ) : null}
+                        </article>
+                      );
+                    })}
+                  </section>
+                ) : null}
                 <StructuredExplanation explanation={explanation} />
                 <ExecutionChainStrip chain={executionChain} />
                 {modificationStatus ? (
