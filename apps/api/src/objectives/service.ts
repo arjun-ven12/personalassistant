@@ -354,7 +354,9 @@ export class ObjectiveEngineService {
   }
 
   private waitingTaskRequiresIntervention(task:WorkforceRuntimeTask) {
-    const rejectionReasons=task.selection.flatMap((score)=>score.rejectionReasons);
+    if(task.workforceGap?.decision==="CAPABILITY_REQUESTED"||task.workforceGap?.missingCapabilities.length) return true;
+    const candidate=task.selection.find((score)=>score.agentId===task.assignedAgentId)??task.selection[0];
+    const rejectionReasons=candidate?.rejectionReasons??[];
     return rejectionReasons.length===0||rejectionReasons.some((reason)=>reason!=="agent unavailable");
   }
 

@@ -87,7 +87,7 @@ describe("ObjectiveEngineService",()=>{
     await service.activate({...request,objectiveId:draft.objective!.id,idempotencyKey:"activate-sequential"});
     const queued=tasks[2]!;
     queued.status="WAITING";
-    queued.selection=[{agentId:"agent-1",estimatedCost:10,estimatedDurationMs:60_000,rejectionReasons:["agent unavailable"]}] as unknown as typeof queued.selection;
+    queued.selection=[{agentId:"agent-1",estimatedCost:10,estimatedDurationMs:60_000,rejectionReasons:["agent unavailable"]},{agentId:"agent-2",estimatedCost:10,estimatedDurationMs:60_000,rejectionReasons:["insufficient economic budget"]}] as unknown as typeof queued.selection;
     await service.handleWorkforceTaskChanged(queued as unknown as WorkforceRuntimeTask);
     expect(store.findObjectiveExecution(ownerId,draft.objective!.id)).toMatchObject({status:"ACTIVE",blockers:[]});
   });
