@@ -11,6 +11,7 @@ import {
 } from "@alexa-control/shared";
 
 import type { Awaitable } from "../identity/store.js";
+import { companyScope } from "../companies/scope.js";
 
 export type EconomyMutationResult = {
   account: AgentEconomyAccount;
@@ -64,7 +65,11 @@ export interface AgentEconomyStore {
   listPerformance(ownerId: string): Awaitable<AgentEconomyPerformance[]>;
 }
 
-const keyFor = (ownerId: string, agentId: string) => `${ownerId}:${agentId}`;
+const companyKey = (ownerId: string) => companyScope.companyId(ownerId) ?? "owner-default";
+const keyFor = (ownerId: string, agentId: string) =>
+  `${ownerId}:${companyKey(ownerId)}:${agentId}`;
+const recordKey = (ownerId: string, id: string) =>
+  `${ownerId}:${companyKey(ownerId)}:${id}`;
 
 export class InMemoryAgentEconomyStore implements AgentEconomyStore {
   readonly #accounts = new Map<string, AgentEconomyAccount>();
@@ -97,8 +102,10 @@ export class InMemoryAgentEconomyStore implements AgentEconomyStore {
   }
 
   listAccounts(ownerId: string) {
-    return [...this.#accounts.values()]
-      .filter((account) => account.ownerId === ownerId)
+    const prefix = `${ownerId}:${companyKey(ownerId)}:`;
+    return [...this.#accounts.entries()]
+      .filter(([key, account]) => key.startsWith(prefix) && account.ownerId === ownerId)
+      .map(([, account]) => account)
       .sort((left, right) => left.agentId.localeCompare(right.agentId))
       .map((account) => structuredClone(account));
   }
@@ -144,9 +151,9 @@ export class InMemoryAgentEconomyStore implements AgentEconomyStore {
   }
 
   reserveAtomic(input: { account: AgentEconomyAccount; reservation: AgentEconomyReservation; entry: AgentEconomyLedgerEntry }) {
-    const existingReservationId = this.#reservationKeys.get(`${input.reservation.ownerId}:${input.reservation.idempotencyKey}`);
+    const existingReservationId = this.#reservationKeys.get(`${input.reservation.ownerId}:${companyKey(input.reservation.ownerId)}:${input.reservation.idempotencyKey}`);
     if (existingReservationId) {
-      const reservation = this.#reservations.get(existingReservationId)!;
+      const reservation = this.#reservations.get(recordKey(input.reservation.ownerId, existingReservationId))!;
       return { account: this.requireAccount(reservation.ownerId, reservation.agentId), reservation: structuredClone(reservation), duplicate: true };
     }
     const account = this.requireAccount(input.account.ownerId, input.account.agentId);
@@ -160,8 +167,8 @@ export class InMemoryAgentEconomyStore implements AgentEconomyStore {
     });
     this.commit(updated, input.entry);
     const reservation = AgentEconomyReservationSchema.parse(input.reservation);
-    this.#reservations.set(reservation.id, structuredClone(reservation));
-    this.#reservationKeys.set(`${reservation.ownerId}:${reservation.idempotencyKey}`, reservation.id);
+    this.#reservations.set(recordKey(reservation.ownerId, reservation.id), structuredClone(reservation));
+    this.#reservationKeys.set(`${reservation.ownerId}:${companyKey(reservation.ownerId)}:${reservation.idempotencyKey}`, reservation.id);
     return { account: structuredClone(updated), reservation: structuredClone(reservation), duplicate: false };
   }
 
@@ -184,7 +191,7 @@ export class InMemoryAgentEconomyStore implements AgentEconomyStore {
     });
     const settled = AgentEconomyReservationSchema.parse({ ...reservation, amountSettled: input.amount, status: "SETTLED", updatedAt: input.updatedAt });
     this.commit(updated, input.entry);
-    this.#reservations.set(settled.id, structuredClone(settled));
+    this.#reservations.set(recordKey(settled.ownerId, settled.id), structuredClone(settled));
     return { account: structuredClone(updated), reservation: structuredClone(settled), duplicate: false };
   }
 
@@ -202,21 +209,25 @@ export class InMemoryAgentEconomyStore implements AgentEconomyStore {
     });
     const released = AgentEconomyReservationSchema.parse({ ...reservation, status: "RELEASED", updatedAt: input.updatedAt });
     this.commit(updated, input.entry);
-    this.#reservations.set(released.id, structuredClone(released));
+    this.#reservations.set(recordKey(released.ownerId, released.id), structuredClone(released));
     return { account: structuredClone(updated), reservation: structuredClone(released), duplicate: false };
   }
 
   listLedger(ownerId: string, limit: number) {
-    return [...this.#ledger.values()]
-      .filter((entry) => entry.ownerId === ownerId)
+    const prefix = `${ownerId}:${companyKey(ownerId)}:`;
+    return [...this.#ledger.entries()]
+      .filter(([key, entry]) => key.startsWith(prefix) && entry.ownerId === ownerId)
+      .map(([, entry]) => entry)
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
       .slice(0, limit)
       .map((entry) => structuredClone(entry));
   }
 
   listReservations(ownerId: string, agentId?: string) {
-    return [...this.#reservations.values()]
-      .filter((reservation) => reservation.ownerId === ownerId && (!agentId || reservation.agentId === agentId))
+    const prefix = `${ownerId}:${companyKey(ownerId)}:`;
+    return [...this.#reservations.entries()]
+      .filter(([key, reservation]) => key.startsWith(prefix) && reservation.ownerId === ownerId && (!agentId || reservation.agentId === agentId))
+      .map(([, reservation]) => reservation)
       .map((reservation) => structuredClone(reservation));
   }
 
@@ -231,7 +242,10 @@ export class InMemoryAgentEconomyStore implements AgentEconomyStore {
   }
 
   listPerformance(ownerId: string) {
-    return [...this.#performance.values()].filter((record) => record.ownerId === ownerId).map((record) => structuredClone(record));
+    const prefix = `${ownerId}:${companyKey(ownerId)}:`;
+    return [...this.#performance.entries()]
+      .filter(([key, record]) => key.startsWith(prefix) && record.ownerId === ownerId)
+      .map(([, record]) => structuredClone(record));
   }
 
   private requireAccount(ownerId: string, agentId: string) {
@@ -241,22 +255,22 @@ export class InMemoryAgentEconomyStore implements AgentEconomyStore {
   }
 
   private requireReservation(ownerId: string, agentId: string, reservationId: string) {
-    const reservation = this.#reservations.get(reservationId);
+    const reservation = this.#reservations.get(recordKey(ownerId, reservationId));
     if (!reservation || reservation.ownerId !== ownerId || reservation.agentId !== agentId)
       throw Object.assign(new Error("Economy reservation not found."), { code: "ECONOMY_RESERVATION_NOT_FOUND" });
     return structuredClone(reservation);
   }
 
   private findIdempotent(ownerId: string, idempotencyKey: string) {
-    const id = this.#idempotency.get(`${ownerId}:${idempotencyKey}`);
-    const entry = id ? this.#ledger.get(id) : undefined;
+    const id = this.#idempotency.get(`${ownerId}:${companyKey(ownerId)}:${idempotencyKey}`);
+    const entry = id ? this.#ledger.get(recordKey(ownerId, id)) : undefined;
     return entry ? structuredClone(entry) : undefined;
   }
 
   private commit(account: AgentEconomyAccount, entry: AgentEconomyLedgerEntry) {
     const parsedEntry = AgentEconomyLedgerEntrySchema.parse(entry);
     this.#accounts.set(keyFor(account.ownerId, account.agentId), structuredClone(account));
-    this.#ledger.set(parsedEntry.id, structuredClone(parsedEntry));
-    this.#idempotency.set(`${parsedEntry.ownerId}:${parsedEntry.idempotencyKey}`, parsedEntry.id);
+    this.#ledger.set(recordKey(parsedEntry.ownerId, parsedEntry.id), structuredClone(parsedEntry));
+    this.#idempotency.set(`${parsedEntry.ownerId}:${companyKey(parsedEntry.ownerId)}:${parsedEntry.idempotencyKey}`, parsedEntry.id);
   }
 }

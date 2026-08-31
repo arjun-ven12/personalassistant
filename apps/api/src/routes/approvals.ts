@@ -20,7 +20,7 @@ export const registerApprovalRoutes = (
 ) => {
   app.get(
     "/api/approvals",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany] },
     async (request) => {
       const identity = context.security.getIdentity(request);
       const { status } = ApprovalQuerySchema.parse(request.query);
@@ -32,7 +32,7 @@ export const registerApprovalRoutes = (
 
   app.get(
     "/api/approvals/:approvalId",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany] },
     async (request) => {
       const identity = context.security.getIdentity(request);
       const { approvalId } = ApprovalIdParametersSchema.parse(request.params);
@@ -47,6 +47,7 @@ export const registerApprovalRoutes = (
     {
       preHandler: [
         context.security.requireAuthentication,
+        context.companyContext.requireCompany,
         context.security.requireTrustedOrigin,
         context.security.requireCsrf,
       ],
@@ -81,6 +82,7 @@ export const registerApprovalRoutes = (
     {
       preHandler: [
         context.security.requireAuthentication,
+        context.companyContext.requireCompany,
         context.security.requireTrustedOrigin,
         context.security.requireCsrf,
       ],
@@ -106,6 +108,7 @@ export const registerApprovalRoutes = (
     {
       preHandler: [
         context.security.requireAuthentication,
+        context.companyContext.requireCompany,
         context.security.requireTrustedOrigin,
         context.security.requireCsrf,
       ],

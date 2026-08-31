@@ -31,6 +31,7 @@ import {
 } from "@alexa-control/shared";
 
 import type { Awaitable } from "../identity/store.js";
+import { companyScope } from "../companies/scope.js";
 
 export interface RepositoryStore {
   upsertRepository(repository: Repository): Awaitable<Repository>;
@@ -130,6 +131,7 @@ export type RepositorySemanticStoreRecords = {
 
 export class InMemoryRepositoryStore implements RepositoryStore {
   readonly #repositories = new Map<string, Repository>();
+  readonly #repositoryCompanies = new Map<string, string | null>();
   readonly #jobs = new Map<string, RepositoryIndexJob>();
   readonly #generations = new Map<string, RepositoryGeneration>();
   readonly #files = new Map<string, FileInventoryRecord[]>();
@@ -146,31 +148,37 @@ export class InMemoryRepositoryStore implements RepositoryStore {
   upsertRepository(repository: Repository) {
     const parsed = RepositorySchema.parse(repository);
     this.#repositories.set(parsed.id, structuredClone(parsed));
+    this.#repositoryCompanies.set(parsed.id, companyScope.companyId(parsed.ownerId) ?? null);
     return structuredClone(parsed);
   }
 
   findRepository(id: string) {
-    return this.clone(this.#repositories.get(id));
+    const repository = this.#repositories.get(id);
+    const companyId = repository ? companyScope.companyId(repository.ownerId) : undefined;
+    return this.clone(repository && (!companyId || this.#repositoryCompanies.get(id) === companyId) ? repository : undefined);
   }
 
   findRepositoryByWorkspace(ownerId: string, workspaceId: string) {
     return this.clone(
       [...this.#repositories.values()].find(
         (repository) =>
-          repository.ownerId === ownerId && repository.workspaceId === workspaceId,
+          repository.ownerId === ownerId &&
+          repository.workspaceId === workspaceId &&
+          (!companyScope.companyId(ownerId) ||
+            this.#repositoryCompanies.get(repository.id) === companyScope.companyId(ownerId)),
       ),
     );
   }
 
   listRepositories(ownerId: string) {
     return [...this.#repositories.values()]
-      .filter((repository) => repository.ownerId === ownerId)
+      .filter((repository) => repository.ownerId === ownerId && (!companyScope.companyId(ownerId) || this.#repositoryCompanies.get(repository.id) === companyScope.companyId(ownerId)))
       .sort((left, right) => left.workspaceId.localeCompare(right.workspaceId))
       .map((repository) => structuredClone(repository));
   }
 
   updateRepository(repository: Repository) {
-    if (!this.#repositories.has(repository.id)) throw new Error("Repository missing.");
+    if (!this.findRepository(repository.id)) throw new Error("Repository missing.");
     this.#repositories.set(
       repository.id,
       structuredClone(RepositorySchema.parse(repository)),

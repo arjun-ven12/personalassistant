@@ -9,6 +9,7 @@ import type {
 } from "@alexa-control/shared";
 
 export interface StoredApprovalRequest extends ApprovalRequest {
+  companyId: string | null;
   action: ProposedAction;
 }
 

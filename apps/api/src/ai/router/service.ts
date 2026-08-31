@@ -7,6 +7,7 @@ import {
   type AIRouterRequest,
   type AIRouterResponse,
 } from "@alexa-control/shared";
+import { companyScope } from "../../companies/scope.js";
 import { AIProviderError } from "../errors.js";
 import { AIEconomicError } from "../economics/errors.js";
 import type { AIRuntimeService } from "../runtime-service.js";
@@ -159,7 +160,25 @@ export class AIRouterService {
     void _schema;
     void _schemaName;
     void _jsonSchema;
-    const request = AIRouterRequestSchema.parse(routerFields);
+    const parsedRequest = AIRouterRequestSchema.parse(routerFields);
+    const activeCompanyId = parsedRequest.economicContext
+      ? companyScope.companyId(parsedRequest.economicContext.ownerId)
+      : undefined;
+    if (
+      activeCompanyId &&
+      parsedRequest.economicContext?.companyId &&
+      parsedRequest.economicContext.companyId !== activeCompanyId
+    ) {
+      throw Object.assign(new Error("AI request company scope does not match the authenticated context."), {
+        code: "COMPANY_SCOPE_MISMATCH",
+      });
+    }
+    const request = activeCompanyId && parsedRequest.economicContext
+      ? AIRouterRequestSchema.parse({
+          ...parsedRequest,
+          economicContext: { ...parsedRequest.economicContext, companyId: activeCompanyId },
+        })
+      : parsedRequest;
     const canonicalRequestId = request.requestId ?? crypto.randomUUID();
     const routeId = crypto.randomUUID();
     let active;

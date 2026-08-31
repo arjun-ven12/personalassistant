@@ -24,6 +24,10 @@ import {
 } from "@alexa-control/shared";
 
 import type { Awaitable } from "../identity/store.js";
+import { companyScope } from "../companies/scope.js";
+
+const scopeKey = (ownerId: string, id: string) => `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:${id}`;
+const scopePrefix = (ownerId: string) => `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:`;
 
 export interface IntegrationStore {
   upsertIntegration(integration: IntegrationRecord): Awaitable<void>;
@@ -39,7 +43,7 @@ export interface IntegrationStore {
     integrationId: string,
     capabilityId: string,
   ): Awaitable<IntegrationPermission | undefined>;
-  saveHealth(health: IntegrationHealth): Awaitable<void>;
+  saveHealth(ownerId: string, health: IntegrationHealth): Awaitable<void>;
   listHealth(ownerId: string): Awaitable<IntegrationHealth[]>;
   saveOperation(operation: IntegrationOperationRecord): Awaitable<void>;
   listOperations(
@@ -85,17 +89,18 @@ export class InMemoryIntegrationStore implements IntegrationStore {
 
   upsertIntegration(integration: IntegrationRecord) {
     const parsed = IntegrationRecordSchema.parse(integration);
-    this.#integrations.set(`${parsed.ownerId}:${parsed.id}`, structuredClone(parsed));
+    this.#integrations.set(scopeKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   findIntegration(ownerId: string, integrationId: string) {
-    const integration = this.#integrations.get(`${ownerId}:${integrationId}`);
+    const integration = this.#integrations.get(scopeKey(ownerId, integrationId));
     return integration ? structuredClone(integration) : undefined;
   }
 
   listIntegrations(ownerId: string) {
-    return [...this.#integrations.values()]
-      .filter((integration) => integration.ownerId === ownerId)
+    return [...this.#integrations.entries()]
+      .filter(([key,integration]) => key.startsWith(scopePrefix(ownerId)) && integration.ownerId === ownerId)
+      .map(([,integration])=>integration)
       .sort((left, right) => left.displayName.localeCompare(right.displayName))
       .map((integration) => structuredClone(integration));
   }
@@ -103,48 +108,52 @@ export class InMemoryIntegrationStore implements IntegrationStore {
   savePermission(permission: IntegrationPermission) {
     const parsed = IntegrationPermissionSchema.parse(permission);
     this.#permissions.set(
-      `${parsed.ownerId}:${parsed.integrationId}:${parsed.capabilityId}`,
+      scopeKey(parsed.ownerId, `${parsed.integrationId}:${parsed.capabilityId}`),
       structuredClone(parsed),
     );
   }
 
   listPermissions(ownerId: string) {
-    return [...this.#permissions.values()]
-      .filter((permission) => permission.ownerId === ownerId)
+    return [...this.#permissions.entries()]
+      .filter(([key,permission]) => key.startsWith(scopePrefix(ownerId)) && permission.ownerId === ownerId)
+      .map(([,permission])=>permission)
       .map((permission) => structuredClone(permission));
   }
 
   findPermission(ownerId: string, integrationId: string, capabilityId: string) {
     const permission = this.#permissions.get(
-      `${ownerId}:${integrationId}:${capabilityId}`,
+      scopeKey(ownerId, `${integrationId}:${capabilityId}`),
     );
     return permission ? structuredClone(permission) : undefined;
   }
 
-  saveHealth(health: IntegrationHealth) {
+  saveHealth(ownerId: string, health: IntegrationHealth) {
     const parsed = IntegrationHealthSchema.parse(health);
-    this.#health.set(parsed.integrationId, structuredClone(parsed));
+    this.#health.set(scopeKey(ownerId, parsed.integrationId), structuredClone(parsed));
   }
 
   listHealth(ownerId: string) {
     const integrationIds = new Set(
-      [...this.#integrations.values()]
-        .filter((integration) => integration.ownerId === ownerId)
+      [...this.#integrations.entries()]
+        .filter(([key,integration]) => key.startsWith(scopePrefix(ownerId)) && integration.ownerId === ownerId)
+        .map(([,integration])=>integration)
         .map((integration) => integration.id),
     );
-    return [...this.#health.values()]
-      .filter((health) => integrationIds.has(health.integrationId))
+    return [...this.#health.entries()]
+      .filter(([key, health]) => key.startsWith(scopePrefix(ownerId)) && integrationIds.has(health.integrationId))
+      .map(([, health]) => health)
       .map((health) => structuredClone(health));
   }
 
   saveOperation(operation: IntegrationOperationRecord) {
     const parsed = IntegrationOperationRecordSchema.parse(operation);
-    this.#operations.set(parsed.id, structuredClone(parsed));
+    this.#operations.set(scopeKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   listOperations(ownerId: string, limit: number) {
-    return [...this.#operations.values()]
-      .filter((operation) => operation.ownerId === ownerId)
+    return [...this.#operations.entries()]
+      .filter(([key, operation]) => key.startsWith(scopePrefix(ownerId)) && operation.ownerId === ownerId)
+      .map(([, operation]) => operation)
       .sort((left, right) => right.requestedAt.localeCompare(left.requestedAt))
       .slice(0, limit)
       .map((operation) => structuredClone(operation));
@@ -157,7 +166,7 @@ export class InMemoryIntegrationStore implements IntegrationStore {
     failed?: boolean;
     at: string;
   }) {
-    const key = `${input.ownerId}:${input.integrationId}`;
+    const key = scopeKey(input.ownerId, input.integrationId);
     const current =
       this.#usage.get(key) ??
       IntegrationUsageSchema.parse({
@@ -178,8 +187,9 @@ export class InMemoryIntegrationStore implements IntegrationStore {
   }
 
   listUsage(ownerId: string) {
-    return [...this.#usage.values()]
-      .filter((usage) => usage.ownerId === ownerId)
+    return [...this.#usage.entries()]
+      .filter(([key, usage]) => key.startsWith(scopePrefix(ownerId)) && usage.ownerId === ownerId)
+      .map(([, usage]) => usage)
       .map((usage) =>
         IntegrationUsageSchema.parse({
           integrationId: usage.integrationId,
@@ -193,27 +203,27 @@ export class InMemoryIntegrationStore implements IntegrationStore {
 
   saveBusinessExecution(record: BusinessExecutionRecord) {
     const parsed = BusinessExecutionRecordSchema.parse(record);
-    this.#businessExecutions.set(`${parsed.ownerId}:${parsed.integrationId}:${parsed.idempotencyKey}`, structuredClone(parsed));
+    this.#businessExecutions.set(scopeKey(parsed.ownerId, `${parsed.integrationId}:${parsed.idempotencyKey}`), structuredClone(parsed));
   }
   findBusinessExecution(ownerId: string, integrationId: string, idempotencyKey: string) {
-    const value = this.#businessExecutions.get(`${ownerId}:${integrationId}:${idempotencyKey}`);
+    const value = this.#businessExecutions.get(scopeKey(ownerId, `${integrationId}:${idempotencyKey}`));
     return value ? structuredClone(value) : undefined;
   }
   listBusinessExecutions(ownerId: string, limit: number) {
-    return [...this.#businessExecutions.values()].filter((item) => item.ownerId === ownerId).sort((a,b) => b.requestedAt.localeCompare(a.requestedAt)).slice(0,limit).map((item) => structuredClone(item));
+    return [...this.#businessExecutions.entries()].filter(([key,item]) => key.startsWith(scopePrefix(ownerId))&&item.ownerId===ownerId).map(([,item])=>item).sort((a,b) => b.requestedAt.localeCompare(a.requestedAt)).slice(0,limit).map((item) => structuredClone(item));
   }
   saveExternalEvent(event: BusinessExternalEvent) {
-    const parsed = BusinessExternalEventSchema.parse(event); const key=`${parsed.ownerId}:${parsed.integrationId}:${parsed.externalEventId}`;
+    const parsed = BusinessExternalEventSchema.parse(event); const key=scopeKey(parsed.ownerId, `${parsed.integrationId}:${parsed.externalEventId}`);
     if(this.#externalEvents.has(key)) return false; this.#externalEvents.set(key,structuredClone(parsed)); return true;
   }
-  updateExternalEvent(event:BusinessExternalEvent){const parsed=BusinessExternalEventSchema.parse(event);this.#externalEvents.set(`${parsed.ownerId}:${parsed.integrationId}:${parsed.externalEventId}`,structuredClone(parsed));}
-  listExternalEvents(ownerId: string, limit: number) { return [...this.#externalEvents.values()].filter((item)=>item.ownerId===ownerId).sort((a,b)=>b.occurredAt.localeCompare(a.occurredAt)).slice(0,limit).map((item)=>structuredClone(item)); }
-  saveExternalMetric(value: ExternalMetricObservation) { const parsed=ExternalMetricObservationSchema.parse(value);this.#externalMetrics.set(parsed.id,structuredClone(parsed)); }
-  listExternalMetrics(ownerId:string,limit:number){return [...this.#externalMetrics.values()].filter((item)=>item.ownerId===ownerId).sort((a,b)=>b.observedAt.localeCompare(a.observedAt)).slice(0,limit).map((item)=>structuredClone(item));}
-  saveAttribution(value:OutcomeAttribution){const parsed=OutcomeAttributionSchema.parse(value);this.#attributions.set(parsed.id,structuredClone(parsed));}
-  listAttributions(ownerId:string,limit:number){return [...this.#attributions.values()].filter((item)=>item.ownerId===ownerId).sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,limit).map((item)=>structuredClone(item));}
-  saveEntityMapping(value:BusinessEntityMapping){const parsed=BusinessEntityMappingSchema.parse(value);this.#mappings.set(`${parsed.ownerId}:${parsed.integrationId}:${parsed.entityType}:${parsed.externalId}`,structuredClone(parsed));}
-  listEntityMappings(ownerId:string){return [...this.#mappings.values()].filter((item)=>item.ownerId===ownerId).map((item)=>structuredClone(item));}
-  saveSyncCheckpoint(value:IntegrationSyncCheckpoint){const parsed=IntegrationSyncCheckpointSchema.parse(value);this.#checkpoints.set(`${parsed.ownerId}:${parsed.integrationId}:${parsed.stream}`,structuredClone(parsed));}
-  listSyncCheckpoints(ownerId:string){return [...this.#checkpoints.values()].filter((item)=>item.ownerId===ownerId).map((item)=>structuredClone(item));}
+  updateExternalEvent(event:BusinessExternalEvent){const parsed=BusinessExternalEventSchema.parse(event);this.#externalEvents.set(scopeKey(parsed.ownerId, `${parsed.integrationId}:${parsed.externalEventId}`),structuredClone(parsed));}
+  listExternalEvents(ownerId: string, limit: number) { return [...this.#externalEvents.entries()].filter(([key,item])=>key.startsWith(scopePrefix(ownerId))&&item.ownerId===ownerId).map(([,item])=>item).sort((a,b)=>b.occurredAt.localeCompare(a.occurredAt)).slice(0,limit).map((item)=>structuredClone(item)); }
+  saveExternalMetric(value: ExternalMetricObservation) { const parsed=ExternalMetricObservationSchema.parse(value);this.#externalMetrics.set(scopeKey(parsed.ownerId, parsed.id),structuredClone(parsed)); }
+  listExternalMetrics(ownerId:string,limit:number){return [...this.#externalMetrics.entries()].filter(([key,item])=>key.startsWith(scopePrefix(ownerId))&&item.ownerId===ownerId).map(([,item])=>item).sort((a,b)=>b.observedAt.localeCompare(a.observedAt)).slice(0,limit).map((item)=>structuredClone(item));}
+  saveAttribution(value:OutcomeAttribution){const parsed=OutcomeAttributionSchema.parse(value);this.#attributions.set(scopeKey(parsed.ownerId, parsed.id),structuredClone(parsed));}
+  listAttributions(ownerId:string,limit:number){return [...this.#attributions.entries()].filter(([key,item])=>key.startsWith(scopePrefix(ownerId))&&item.ownerId===ownerId).map(([,item])=>item).sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,limit).map((item)=>structuredClone(item));}
+  saveEntityMapping(value:BusinessEntityMapping){const parsed=BusinessEntityMappingSchema.parse(value);this.#mappings.set(scopeKey(parsed.ownerId, `${parsed.integrationId}:${parsed.entityType}:${parsed.externalId}`),structuredClone(parsed));}
+  listEntityMappings(ownerId:string){return [...this.#mappings.entries()].filter(([key,item])=>key.startsWith(scopePrefix(ownerId))&&item.ownerId===ownerId).map(([,item])=>structuredClone(item));}
+  saveSyncCheckpoint(value:IntegrationSyncCheckpoint){const parsed=IntegrationSyncCheckpointSchema.parse(value);this.#checkpoints.set(scopeKey(parsed.ownerId, `${parsed.integrationId}:${parsed.stream}`),structuredClone(parsed));}
+  listSyncCheckpoints(ownerId:string){return [...this.#checkpoints.entries()].filter(([key,item])=>key.startsWith(scopePrefix(ownerId))&&item.ownerId===ownerId).map(([,item])=>structuredClone(item));}
 }

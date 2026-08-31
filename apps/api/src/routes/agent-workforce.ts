@@ -13,6 +13,7 @@ const AgentParametersSchema = z.object({ agentId: z.string().min(3).max(120) }).
 
 const mutationGuards = (context: ApiRouteContext) => [
   context.security.requireAuthentication,
+  context.companyContext.requireCompany,
   context.security.requireTrustedOrigin,
   context.security.requireCsrf,
 ];
@@ -23,7 +24,7 @@ export const registerAgentWorkforceRoutes = (
 ) => {
   app.get(
     "/api/agent-workforce/preview",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany] },
     async (request) => {
       const identity = context.security.getIdentity(request);
       return WorkforceImportReportSchema.parse(
@@ -34,7 +35,7 @@ export const registerAgentWorkforceRoutes = (
 
   app.get(
     "/api/agent-workforce/graph",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany] },
     async (request) => {
       const identity = context.security.getIdentity(request);
       return WorkforceGraphResponseSchema.parse(
@@ -45,7 +46,7 @@ export const registerAgentWorkforceRoutes = (
 
   app.get(
     "/api/agent-workforce/agents/:agentId",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany] },
     async (request) => {
       const identity = context.security.getIdentity(request);
       const { agentId } = AgentParametersSchema.parse(request.params);

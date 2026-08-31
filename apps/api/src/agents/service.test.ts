@@ -17,6 +17,7 @@ const setup = () => {
 describe("AgentRegistryService", () => {
   it("registers the built-in specialist agent team", async () => {
     const { ownerId, service } = setup();
+    await service.ensureBuiltIns(ownerId);
     const dashboard = await service.dashboard(ownerId);
     expect(dashboard.agents.map((agent) => agent.id)).toEqual(
       expect.arrayContaining([
@@ -35,6 +36,7 @@ describe("AgentRegistryService", () => {
 
   it("assigns a specialist task and records an immutable assignment message", async () => {
     const { ownerId, service } = setup();
+    await service.ensureBuiltIns(ownerId);
     const response = await service.assignTask({
       ownerId,
       requestId: crypto.randomUUID(),
@@ -57,6 +59,7 @@ describe("AgentRegistryService", () => {
 
   it("creates structured agent messages and consensus records without execution", async () => {
     const { ownerId, service } = setup();
+    await service.ensureBuiltIns(ownerId);
     const message = await service.sendMessage({
       ownerId,
       requestId: crypto.randomUUID(),

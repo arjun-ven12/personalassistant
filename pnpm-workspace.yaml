@@ -2,8 +2,14 @@ packages:
   - apps/*
   - packages/*
 
+overrides:
+  fast-uri@^3.0.0: 3.1.5
+  fast-uri@^4.0.0: 4.1.2
+  js-yaml: 4.3.1
+
 allowBuilds:
   argon2: true
   electron: true
   electron-winstaller: true
   esbuild: true
+  protobufjs: false

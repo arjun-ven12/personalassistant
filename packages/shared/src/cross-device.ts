@@ -94,6 +94,7 @@ export const CrossDeviceClientInstanceSchema = z
   .object({
     id: z.string().uuid(),
     ownerId: z.string().uuid(),
+    activeCompanyId: z.string().uuid().nullable().default(null),
     sessionId: z.string().min(1).max(200),
     trustedDeviceId: z.string().uuid().nullable(),
     clientType: CrossDeviceClientTypeSchema,
@@ -142,6 +143,7 @@ export const CrossDeviceCommandSchema = z
   .object({
     id: z.string().uuid(),
     ownerId: z.string().uuid(),
+    companyId: z.string().uuid().nullable().default(null),
     sourceClientInstanceId: z.string().uuid(),
     sourceDeviceId: z.string().uuid().nullable(),
     sourceClientType: CrossDeviceClientTypeSchema,

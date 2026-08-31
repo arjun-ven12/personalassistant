@@ -14,6 +14,7 @@ import {
 import type { Pool } from "pg";
 
 import type { IntegrationStore } from "./store.js";
+import { companyScope } from "../companies/scope.js";
 
 export class PostgresIntegrationStore implements IntegrationStore {
   constructor(readonly pool: Pool) {}
@@ -21,9 +22,9 @@ export class PostgresIntegrationStore implements IntegrationStore {
   async upsertIntegration(integration: IntegrationRecord) {
     const parsed = IntegrationRecordSchema.parse(integration);
     await this.pool.query(
-      `INSERT INTO integrations(id,owner_id,provider,category,status,installed_at,updated_at,record)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-       ON CONFLICT (owner_id,id) DO UPDATE
+      `INSERT INTO integrations(id,owner_id,provider,category,status,installed_at,updated_at,record,company_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       ON CONFLICT (owner_id,company_id,id) DO UPDATE
        SET status=$5,updated_at=$7,record=$8`,
       [
         parsed.id,
@@ -34,14 +35,15 @@ export class PostgresIntegrationStore implements IntegrationStore {
         parsed.installedAt,
         parsed.updatedAt,
         parsed,
+        companyScope.companyId(parsed.ownerId) ?? null,
       ],
     );
   }
 
   async findIntegration(ownerId: string, integrationId: string) {
     const result = await this.pool.query<{ record: unknown }>(
-      "SELECT record FROM integrations WHERE owner_id=$1 AND id=$2",
-      [ownerId, integrationId],
+      "SELECT record FROM integrations WHERE owner_id=$1 AND id=$2 AND ($3::uuid IS NULL OR company_id=$3)",
+      [ownerId, integrationId, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows[0]
       ? IntegrationRecordSchema.parse(result.rows[0].record)
@@ -50,8 +52,8 @@ export class PostgresIntegrationStore implements IntegrationStore {
 
   async listIntegrations(ownerId: string) {
     const result = await this.pool.query<{ record: unknown }>(
-      "SELECT record FROM integrations WHERE owner_id=$1 ORDER BY provider ASC",
-      [ownerId],
+      "SELECT record FROM integrations WHERE owner_id=$1 AND ($2::uuid IS NULL OR company_id=$2) ORDER BY provider ASC",
+      [ownerId, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows.map((row) => IntegrationRecordSchema.parse(row.record));
   }
@@ -60,9 +62,9 @@ export class PostgresIntegrationStore implements IntegrationStore {
     const parsed = IntegrationPermissionSchema.parse(permission);
     await this.pool.query(
       `INSERT INTO integration_permissions(
-        id,owner_id,integration_id,capability_id,state,updated_at,record
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7)
-       ON CONFLICT (owner_id,integration_id,capability_id) DO UPDATE
+        id,owner_id,integration_id,capability_id,state,updated_at,record,company_id
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+       ON CONFLICT (owner_id,company_id,integration_id,capability_id) DO UPDATE
        SET state=$5,updated_at=$6,record=$7`,
       [
         parsed.id,
@@ -72,14 +74,15 @@ export class PostgresIntegrationStore implements IntegrationStore {
         parsed.state,
         parsed.updatedAt,
         parsed,
+        companyScope.companyId(parsed.ownerId) ?? null,
       ],
     );
   }
 
   async listPermissions(ownerId: string) {
     const result = await this.pool.query<{ record: unknown }>(
-      "SELECT record FROM integration_permissions WHERE owner_id=$1 ORDER BY integration_id,capability_id",
-      [ownerId],
+      "SELECT record FROM integration_permissions WHERE owner_id=$1 AND ($2::uuid IS NULL OR company_id=$2) ORDER BY integration_id,capability_id",
+      [ownerId, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows.map((row) => IntegrationPermissionSchema.parse(row.record));
   }
@@ -87,22 +90,25 @@ export class PostgresIntegrationStore implements IntegrationStore {
   async findPermission(ownerId: string, integrationId: string, capabilityId: string) {
     const result = await this.pool.query<{ record: unknown }>(
       `SELECT record FROM integration_permissions
-       WHERE owner_id=$1 AND integration_id=$2 AND capability_id=$3`,
-      [ownerId, integrationId, capabilityId],
+       WHERE owner_id=$1 AND integration_id=$2 AND capability_id=$3
+       AND ($4::uuid IS NULL OR company_id=$4)`,
+      [ownerId, integrationId, capabilityId, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows[0]
       ? IntegrationPermissionSchema.parse(result.rows[0].record)
       : undefined;
   }
 
-  async saveHealth(health: IntegrationHealth) {
+  async saveHealth(ownerId: string, health: IntegrationHealth) {
     const parsed = IntegrationHealthSchema.parse(health);
+    const context = companyScope.current(ownerId);
+    if (!context) throw new Error("Company context is required for integration health.");
     await this.pool.query(
-      `INSERT INTO integration_health(integration_id,state,checked_at,record)
-       VALUES ($1,$2,$3,$4)
-       ON CONFLICT (integration_id) DO UPDATE
+      `INSERT INTO integration_health(integration_id,state,checked_at,record,owner_id,company_id)
+       VALUES ($1,$2,$3,$4,$5,$6)
+       ON CONFLICT (owner_id,company_id,integration_id) DO UPDATE
        SET state=$2,checked_at=$3,record=$4`,
-      [parsed.integrationId, parsed.state, parsed.checkedAt, parsed],
+      [parsed.integrationId, parsed.state, parsed.checkedAt, parsed, ownerId, context.companyId],
     );
   }
 
@@ -110,10 +116,10 @@ export class PostgresIntegrationStore implements IntegrationStore {
     const result = await this.pool.query<{ record: unknown }>(
       `SELECT h.record
        FROM integration_health h
-       JOIN integrations i ON i.id=h.integration_id
-       WHERE i.owner_id=$1
+       JOIN integrations i ON i.id=h.integration_id AND i.owner_id=h.owner_id AND i.company_id=h.company_id
+       WHERE h.owner_id=$1 AND ($2::uuid IS NULL OR h.company_id=$2)
        ORDER BY h.integration_id`,
-      [ownerId],
+      [ownerId, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows.map((row) => IntegrationHealthSchema.parse(row.record));
   }
@@ -122,8 +128,8 @@ export class PostgresIntegrationStore implements IntegrationStore {
     const parsed = IntegrationOperationRecordSchema.parse(operation);
     await this.pool.query(
       `INSERT INTO integration_events(
-        id,owner_id,integration_id,capability_id,operation,status,requested_at,updated_at,record
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        id,owner_id,integration_id,capability_id,operation,status,requested_at,updated_at,record,company_id
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
        ON CONFLICT (id) DO UPDATE
        SET status=$6,updated_at=$8,record=$9`,
       [
@@ -136,14 +142,15 @@ export class PostgresIntegrationStore implements IntegrationStore {
         parsed.requestedAt,
         parsed.updatedAt,
         parsed,
+        companyScope.companyId(parsed.ownerId) ?? null,
       ],
     );
   }
 
   async listOperations(ownerId: string, limit: number) {
     const result = await this.pool.query<{ record: unknown }>(
-      "SELECT record FROM integration_events WHERE owner_id=$1 ORDER BY requested_at DESC LIMIT $2",
-      [ownerId, limit],
+      "SELECT record FROM integration_events WHERE owner_id=$1 AND ($3::uuid IS NULL OR company_id=$3) ORDER BY requested_at DESC LIMIT $2",
+      [ownerId, limit, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows.map((row) => IntegrationOperationRecordSchema.parse(row.record));
   }
@@ -157,9 +164,9 @@ export class PostgresIntegrationStore implements IntegrationStore {
   }) {
     await this.pool.query(
       `INSERT INTO integration_usage(
-        owner_id,integration_id,operation_count,denied_count,failure_count,last_operation_at
-       ) VALUES ($1,$2,1,$3,$4,$5)
-       ON CONFLICT (owner_id,integration_id) DO UPDATE
+        owner_id,integration_id,operation_count,denied_count,failure_count,last_operation_at,company_id
+       ) VALUES ($1,$2,1,$3,$4,$5,$6)
+       ON CONFLICT (owner_id,company_id,integration_id) DO UPDATE
        SET operation_count=integration_usage.operation_count+1,
            denied_count=integration_usage.denied_count+$3,
            failure_count=integration_usage.failure_count+$4,
@@ -170,6 +177,7 @@ export class PostgresIntegrationStore implements IntegrationStore {
         input.denied ? 1 : 0,
         input.failed ? 1 : 0,
         input.at,
+        companyScope.companyId(input.ownerId) ?? null,
       ],
     );
   }
@@ -183,8 +191,8 @@ export class PostgresIntegrationStore implements IntegrationStore {
       last_operation_at: Date | null;
     }>(
       `SELECT integration_id,operation_count,denied_count,failure_count,last_operation_at
-       FROM integration_usage WHERE owner_id=$1 ORDER BY integration_id`,
-      [ownerId],
+       FROM integration_usage WHERE owner_id=$1 AND ($2::uuid IS NULL OR company_id=$2) ORDER BY integration_id`,
+      [ownerId, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows.map((row) =>
       IntegrationUsageSchema.parse({
@@ -197,18 +205,18 @@ export class PostgresIntegrationStore implements IntegrationStore {
     );
   }
 
-  async saveBusinessExecution(value:BusinessExecutionRecord){const parsed=BusinessExecutionRecordSchema.parse(value);await this.pool.query(`INSERT INTO business_execution_records(id,owner_id,integration_id,idempotency_key,status,requested_at,updated_at,record) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(owner_id,integration_id,idempotency_key) DO UPDATE SET status=$5,updated_at=$7,record=$8`,[parsed.id,parsed.ownerId,parsed.integrationId,parsed.idempotencyKey,parsed.status,parsed.requestedAt,parsed.updatedAt,parsed]);}
-  async findBusinessExecution(ownerId:string,integrationId:string,idempotencyKey:string){const result=await this.pool.query<{record:unknown}>("SELECT record FROM business_execution_records WHERE owner_id=$1 AND integration_id=$2 AND idempotency_key=$3",[ownerId,integrationId,idempotencyKey]);return result.rows[0]?BusinessExecutionRecordSchema.parse(result.rows[0].record):undefined;}
-  async listBusinessExecutions(ownerId:string,limit:number){const result=await this.pool.query<{record:unknown}>("SELECT record FROM business_execution_records WHERE owner_id=$1 ORDER BY requested_at DESC LIMIT $2",[ownerId,limit]);return result.rows.map((row)=>BusinessExecutionRecordSchema.parse(row.record));}
-  async saveExternalEvent(value:BusinessExternalEvent){const parsed=BusinessExternalEventSchema.parse(value);const result=await this.pool.query(`INSERT INTO business_external_events(id,owner_id,integration_id,external_event_id,occurred_at,received_at,record) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(owner_id,integration_id,external_event_id) DO NOTHING`,[parsed.id,parsed.ownerId,parsed.integrationId,parsed.externalEventId,parsed.occurredAt,parsed.receivedAt,parsed]);return (result.rowCount??0)>0;}
-  async updateExternalEvent(value:BusinessExternalEvent){const parsed=BusinessExternalEventSchema.parse(value);await this.pool.query("UPDATE business_external_events SET record=$4 WHERE owner_id=$1 AND integration_id=$2 AND external_event_id=$3",[parsed.ownerId,parsed.integrationId,parsed.externalEventId,parsed]);}
-  async listExternalEvents(ownerId:string,limit:number){const result=await this.pool.query<{record:unknown}>("SELECT record FROM business_external_events WHERE owner_id=$1 ORDER BY occurred_at DESC LIMIT $2",[ownerId,limit]);return result.rows.map((row)=>BusinessExternalEventSchema.parse(row.record));}
-  async saveExternalMetric(value:ExternalMetricObservation){const parsed=ExternalMetricObservationSchema.parse(value);await this.pool.query("INSERT INTO external_metric_observations(id,owner_id,objective_id,experiment_id,metric_id,observed_at,record) VALUES($1,$2,$3,$4,$5,$6,$7)",[parsed.id,parsed.ownerId,parsed.objectiveId,parsed.experimentId,parsed.metricId,parsed.observedAt,parsed]);}
-  async listExternalMetrics(ownerId:string,limit:number){const result=await this.pool.query<{record:unknown}>("SELECT record FROM external_metric_observations WHERE owner_id=$1 ORDER BY observed_at DESC LIMIT $2",[ownerId,limit]);return result.rows.map((row)=>ExternalMetricObservationSchema.parse(row.record));}
-  async saveAttribution(value:OutcomeAttribution){const parsed=OutcomeAttributionSchema.parse(value);await this.pool.query("INSERT INTO outcome_attributions(id,owner_id,objective_id,experiment_id,created_at,record) VALUES($1,$2,$3,$4,$5,$6)",[parsed.id,parsed.ownerId,parsed.objectiveId,parsed.experimentId,parsed.createdAt,parsed]);}
-  async listAttributions(ownerId:string,limit:number){const result=await this.pool.query<{record:unknown}>("SELECT record FROM outcome_attributions WHERE owner_id=$1 ORDER BY created_at DESC LIMIT $2",[ownerId,limit]);return result.rows.map((row)=>OutcomeAttributionSchema.parse(row.record));}
-  async saveEntityMapping(value:BusinessEntityMapping){const parsed=BusinessEntityMappingSchema.parse(value);await this.pool.query(`INSERT INTO business_entity_mappings(id,owner_id,integration_id,entity_type,external_id,internal_entity_id,last_synced_at,record) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(owner_id,integration_id,entity_type,external_id) DO UPDATE SET internal_entity_id=$6,last_synced_at=$7,record=$8`,[parsed.id,parsed.ownerId,parsed.integrationId,parsed.entityType,parsed.externalId,parsed.internalEntityId,parsed.lastSyncedAt,parsed]);}
-  async listEntityMappings(ownerId:string){const result=await this.pool.query<{record:unknown}>("SELECT record FROM business_entity_mappings WHERE owner_id=$1 ORDER BY last_synced_at DESC",[ownerId]);return result.rows.map((row)=>BusinessEntityMappingSchema.parse(row.record));}
-  async saveSyncCheckpoint(value:IntegrationSyncCheckpoint){const parsed=IntegrationSyncCheckpointSchema.parse(value);await this.pool.query(`INSERT INTO integration_sync_checkpoints(owner_id,integration_id,stream,updated_at,record) VALUES($1,$2,$3,$4,$5) ON CONFLICT(owner_id,integration_id,stream) DO UPDATE SET updated_at=$4,record=$5`,[parsed.ownerId,parsed.integrationId,parsed.stream,parsed.updatedAt,parsed]);}
-  async listSyncCheckpoints(ownerId:string){const result=await this.pool.query<{record:unknown}>("SELECT record FROM integration_sync_checkpoints WHERE owner_id=$1 ORDER BY integration_id,stream",[ownerId]);return result.rows.map((row)=>IntegrationSyncCheckpointSchema.parse(row.record));}
+  async saveBusinessExecution(value:BusinessExecutionRecord){const parsed=BusinessExecutionRecordSchema.parse(value);await this.pool.query(`INSERT INTO business_execution_records(id,owner_id,integration_id,idempotency_key,status,requested_at,updated_at,record,company_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(owner_id,company_id,integration_id,idempotency_key) DO UPDATE SET status=$5,updated_at=$7,record=$8`,[parsed.id,parsed.ownerId,parsed.integrationId,parsed.idempotencyKey,parsed.status,parsed.requestedAt,parsed.updatedAt,parsed,companyScope.companyId(parsed.ownerId)??null]);}
+  async findBusinessExecution(ownerId:string,integrationId:string,idempotencyKey:string){const result=await this.pool.query<{record:unknown}>("SELECT record FROM business_execution_records WHERE owner_id=$1 AND integration_id=$2 AND idempotency_key=$3 AND ($4::uuid IS NULL OR company_id=$4)",[ownerId,integrationId,idempotencyKey,companyScope.companyId(ownerId)??null]);return result.rows[0]?BusinessExecutionRecordSchema.parse(result.rows[0].record):undefined;}
+  async listBusinessExecutions(ownerId:string,limit:number){const result=await this.pool.query<{record:unknown}>("SELECT record FROM business_execution_records WHERE owner_id=$1 AND ($3::uuid IS NULL OR company_id=$3) ORDER BY requested_at DESC LIMIT $2",[ownerId,limit,companyScope.companyId(ownerId)??null]);return result.rows.map((row)=>BusinessExecutionRecordSchema.parse(row.record));}
+  async saveExternalEvent(value:BusinessExternalEvent){const parsed=BusinessExternalEventSchema.parse(value);const result=await this.pool.query(`INSERT INTO business_external_events(id,owner_id,integration_id,external_event_id,occurred_at,received_at,record,company_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(owner_id,company_id,integration_id,external_event_id) DO NOTHING`,[parsed.id,parsed.ownerId,parsed.integrationId,parsed.externalEventId,parsed.occurredAt,parsed.receivedAt,parsed,companyScope.companyId(parsed.ownerId)??null]);return (result.rowCount??0)>0;}
+  async updateExternalEvent(value:BusinessExternalEvent){const parsed=BusinessExternalEventSchema.parse(value);await this.pool.query("UPDATE business_external_events SET record=$4 WHERE owner_id=$1 AND integration_id=$2 AND external_event_id=$3 AND ($5::uuid IS NULL OR company_id=$5)",[parsed.ownerId,parsed.integrationId,parsed.externalEventId,parsed,companyScope.companyId(parsed.ownerId)??null]);}
+  async listExternalEvents(ownerId:string,limit:number){const result=await this.pool.query<{record:unknown}>("SELECT record FROM business_external_events WHERE owner_id=$1 AND ($3::uuid IS NULL OR company_id=$3) ORDER BY occurred_at DESC LIMIT $2",[ownerId,limit,companyScope.companyId(ownerId)??null]);return result.rows.map((row)=>BusinessExternalEventSchema.parse(row.record));}
+  async saveExternalMetric(value:ExternalMetricObservation){const parsed=ExternalMetricObservationSchema.parse(value);await this.pool.query("INSERT INTO external_metric_observations(id,owner_id,objective_id,experiment_id,metric_id,observed_at,record,company_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",[parsed.id,parsed.ownerId,parsed.objectiveId,parsed.experimentId,parsed.metricId,parsed.observedAt,parsed,companyScope.companyId(parsed.ownerId)??null]);}
+  async listExternalMetrics(ownerId:string,limit:number){const result=await this.pool.query<{record:unknown}>("SELECT record FROM external_metric_observations WHERE owner_id=$1 AND ($3::uuid IS NULL OR company_id=$3) ORDER BY observed_at DESC LIMIT $2",[ownerId,limit,companyScope.companyId(ownerId)??null]);return result.rows.map((row)=>ExternalMetricObservationSchema.parse(row.record));}
+  async saveAttribution(value:OutcomeAttribution){const parsed=OutcomeAttributionSchema.parse(value);await this.pool.query("INSERT INTO outcome_attributions(id,owner_id,objective_id,experiment_id,created_at,record,company_id) VALUES($1,$2,$3,$4,$5,$6,$7)",[parsed.id,parsed.ownerId,parsed.objectiveId,parsed.experimentId,parsed.createdAt,parsed,companyScope.companyId(parsed.ownerId)??null]);}
+  async listAttributions(ownerId:string,limit:number){const result=await this.pool.query<{record:unknown}>("SELECT record FROM outcome_attributions WHERE owner_id=$1 AND ($3::uuid IS NULL OR company_id=$3) ORDER BY created_at DESC LIMIT $2",[ownerId,limit,companyScope.companyId(ownerId)??null]);return result.rows.map((row)=>OutcomeAttributionSchema.parse(row.record));}
+  async saveEntityMapping(value:BusinessEntityMapping){const parsed=BusinessEntityMappingSchema.parse(value);await this.pool.query(`INSERT INTO business_entity_mappings(id,owner_id,integration_id,entity_type,external_id,internal_entity_id,last_synced_at,record,company_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(owner_id,company_id,integration_id,entity_type,external_id) DO UPDATE SET internal_entity_id=$6,last_synced_at=$7,record=$8`,[parsed.id,parsed.ownerId,parsed.integrationId,parsed.entityType,parsed.externalId,parsed.internalEntityId,parsed.lastSyncedAt,parsed,companyScope.companyId(parsed.ownerId)??null]);}
+  async listEntityMappings(ownerId:string){const result=await this.pool.query<{record:unknown}>("SELECT record FROM business_entity_mappings WHERE owner_id=$1 AND ($2::uuid IS NULL OR company_id=$2) ORDER BY last_synced_at DESC",[ownerId,companyScope.companyId(ownerId)??null]);return result.rows.map((row)=>BusinessEntityMappingSchema.parse(row.record));}
+  async saveSyncCheckpoint(value:IntegrationSyncCheckpoint){const parsed=IntegrationSyncCheckpointSchema.parse(value);await this.pool.query(`INSERT INTO integration_sync_checkpoints(owner_id,integration_id,stream,updated_at,record,company_id) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(owner_id,company_id,integration_id,stream) DO UPDATE SET updated_at=$4,record=$5`,[parsed.ownerId,parsed.integrationId,parsed.stream,parsed.updatedAt,parsed,companyScope.companyId(parsed.ownerId)??null]);}
+  async listSyncCheckpoints(ownerId:string){const result=await this.pool.query<{record:unknown}>("SELECT record FROM integration_sync_checkpoints WHERE owner_id=$1 AND ($2::uuid IS NULL OR company_id=$2) ORDER BY integration_id,stream",[ownerId,companyScope.companyId(ownerId)??null]);return result.rows.map((row)=>IntegrationSyncCheckpointSchema.parse(row.record));}
 }

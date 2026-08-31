@@ -16,6 +16,7 @@ import type {
   NotificationStore,
   PushSubscription,
 } from "./store.js";
+import { companyScope } from "../companies/scope.js";
 
 const DEFAULT_PREFERENCES: NotificationPreferenceValues = {
   approvals: true,
@@ -219,6 +220,7 @@ export class ExecutiveNotificationService {
           type: input.category,
           objectKind: input.objectKind,
           objectId: input.objectId,
+          ...(companyScope.companyId(input.ownerId) ? { companyId: companyScope.companyId(input.ownerId) } : {}),
           eventId: input.eventId,
           severity: input.severity,
           title: input.title,
@@ -260,6 +262,7 @@ export class ExecutiveNotificationService {
     const delivery: NotificationDelivery = {
       id: crypto.randomUUID(),
       ownerId: input.ownerId,
+      companyId: companyScope.companyId(input.ownerId) ?? null,
       deviceId,
       eventId: input.eventId,
       category: input.category,

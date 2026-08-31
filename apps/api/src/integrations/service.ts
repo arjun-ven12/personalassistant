@@ -60,7 +60,7 @@ export class IntegrationRegistryService {
           healthSummary: builtin.healthSummary,
         }),
       );
-      await this.store.saveHealth({
+      await this.store.saveHealth(ownerId, {
         integrationId: builtin.id,
         state: "unknown",
         checkedAt: at,

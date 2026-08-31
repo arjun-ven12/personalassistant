@@ -15,7 +15,7 @@ const AgentParametersSchema = z.object({ agentId: z.string().min(3).max(120) }).
 export const registerAgentEconomyRoutes = (app: FastifyInstance, context: ApiRouteContext) => {
   app.get(
     "/api/agent-economy/dashboard",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany] },
     async (request) => {
       const identity = context.security.getIdentity(request);
       return AgentEconomyDashboardSchema.parse(await context.agentEconomy.dashboard(identity.user.id));
@@ -24,7 +24,7 @@ export const registerAgentEconomyRoutes = (app: FastifyInstance, context: ApiRou
 
   app.post(
     "/api/agent-economy/agents/:agentId/enroll",
-    { preHandler: [context.security.requireAuthentication, context.security.requireTrustedOrigin, context.security.requireCsrf] },
+    { preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany, context.security.requireTrustedOrigin, context.security.requireCsrf] },
     async (request) => {
       const identity = context.security.getIdentity(request);
       const { agentId } = AgentParametersSchema.parse(request.params);
@@ -35,7 +35,7 @@ export const registerAgentEconomyRoutes = (app: FastifyInstance, context: ApiRou
 
   app.post(
     "/api/agent-economy/agents/:agentId/allocate",
-    { preHandler: [context.security.requireAuthentication, context.security.requireTrustedOrigin, context.security.requireCsrf] },
+    { preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany, context.security.requireTrustedOrigin, context.security.requireCsrf] },
     async (request) => {
       const identity = context.security.getIdentity(request);
       const { agentId } = AgentParametersSchema.parse(request.params);
@@ -47,7 +47,7 @@ export const registerAgentEconomyRoutes = (app: FastifyInstance, context: ApiRou
 
   app.post(
     "/api/agent-economy/agents/:agentId/status",
-    { preHandler: [context.security.requireAuthentication, context.security.requireTrustedOrigin, context.security.requireCsrf] },
+    { preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany, context.security.requireTrustedOrigin, context.security.requireCsrf] },
     async (request) => {
       const identity = context.security.getIdentity(request);
       const { agentId } = AgentParametersSchema.parse(request.params);

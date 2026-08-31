@@ -28,6 +28,7 @@ import {
 } from "@alexa-control/shared";
 
 import type { Awaitable } from "../identity/store.js";
+import { companyScope } from "../companies/scope.js";
 
 export interface TaskStore {
   saveTask(record: TaskRecord): Awaitable<void>;
@@ -63,6 +64,11 @@ export interface TaskStore {
 }
 
 const clone = <T>(value: T): T => structuredClone(value);
+const scopedKey = (ownerId: string, id: string) => `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:${id}`;
+const scopedItems = <T extends { ownerId: string }>(map: Map<string, T>, ownerId: string) => {
+  const prefix = `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:`;
+  return [...map.entries()].filter(([key, item]) => key.startsWith(prefix) && item.ownerId === ownerId).map(([, item]) => item);
+};
 const ordered = <T>(items: T[], field: keyof T, limit: number) =>
   items
     .sort((left, right) => String(right[field]).localeCompare(String(left[field])))
@@ -85,135 +91,135 @@ export class InMemoryTaskStore implements TaskStore {
   readonly #suggestions = new Map<string, TaskSuggestionRecord>();
 
   saveTask(record: TaskRecord) {
-    this.#tasks.set(record.id, clone(TaskRecordSchema.parse(record)));
+    this.#tasks.set(scopedKey(record.ownerId, record.id), clone(TaskRecordSchema.parse(record)));
   }
   listTasks(ownerId: string, limit: number) {
     return ordered(
-      [...this.#tasks.values()].filter((item) => item.ownerId === ownerId),
+      scopedItems(this.#tasks, ownerId),
       "createdAt",
       limit,
     );
   }
   getTask(ownerId: string, taskId: string) {
-    const task = this.#tasks.get(taskId);
+    const task = this.#tasks.get(scopedKey(ownerId, taskId));
     return task?.ownerId === ownerId ? clone(task) : null;
   }
   saveRun(record: TaskRun) {
-    this.#runs.set(record.id, clone(TaskRunSchema.parse(record)));
+    this.#runs.set(scopedKey(record.ownerId, record.id), clone(TaskRunSchema.parse(record)));
   }
   listRuns(ownerId: string, limit: number) {
     return ordered(
-      [...this.#runs.values()].filter((item) => item.ownerId === ownerId),
+      scopedItems(this.#runs, ownerId),
       "createdAt",
       limit,
     );
   }
   saveTrigger(record: TaskTriggerRecord) {
-    this.#triggers.set(record.id, clone(TaskTriggerSchema.parse(record)));
+    this.#triggers.set(scopedKey(record.ownerId, record.id), clone(TaskTriggerSchema.parse(record)));
   }
   listTriggers(ownerId: string, limit: number) {
     return ordered(
-      [...this.#triggers.values()].filter((item) => item.ownerId === ownerId),
+      scopedItems(this.#triggers, ownerId),
       "createdAt",
       limit,
     );
   }
   saveCondition(record: TaskConditionRecord) {
-    this.#conditions.set(record.id, clone(TaskConditionSchema.parse(record)));
+    this.#conditions.set(scopedKey(record.ownerId, record.id), clone(TaskConditionSchema.parse(record)));
   }
   listConditions(ownerId: string, limit: number) {
     return ordered(
-      [...this.#conditions.values()].filter((item) => item.ownerId === ownerId),
+      scopedItems(this.#conditions, ownerId),
       "createdAt",
       limit,
     );
   }
   saveDependency(record: TaskDependencyRecord) {
-    this.#dependencies.set(record.id, clone(TaskDependencySchema.parse(record)));
+    this.#dependencies.set(scopedKey(record.ownerId, record.id), clone(TaskDependencySchema.parse(record)));
   }
   listDependencies(ownerId: string, limit: number) {
     return ordered(
-      [...this.#dependencies.values()].filter((item) => item.ownerId === ownerId),
+      scopedItems(this.#dependencies, ownerId),
       "createdAt",
       limit,
     );
   }
   saveNotification(record: TaskNotificationRecord) {
-    this.#notifications.set(record.id, clone(TaskNotificationSchema.parse(record)));
+    this.#notifications.set(scopedKey(record.ownerId, record.id), clone(TaskNotificationSchema.parse(record)));
   }
   listNotifications(ownerId: string, limit: number) {
     return ordered(
-      [...this.#notifications.values()].filter((item) => item.ownerId === ownerId),
+      scopedItems(this.#notifications, ownerId),
       "createdAt",
       limit,
     );
   }
   saveGoal(record: GoalRecord) {
-    this.#goals.set(record.id, clone(GoalRecordSchema.parse(record)));
+    this.#goals.set(scopedKey(record.ownerId, record.id), clone(GoalRecordSchema.parse(record)));
   }
   listGoals(ownerId: string, limit: number) {
     return ordered(
-      [...this.#goals.values()].filter((item) => item.ownerId === ownerId),
+      scopedItems(this.#goals, ownerId),
       "createdAt",
       limit,
     );
   }
   saveChecklist(record: ChecklistRecord) {
-    this.#checklists.set(record.id, clone(ChecklistRecordSchema.parse(record)));
+    this.#checklists.set(scopedKey(record.ownerId, record.id), clone(ChecklistRecordSchema.parse(record)));
   }
   listChecklists(ownerId: string, limit: number) {
     return ordered(
-      [...this.#checklists.values()].filter((item) => item.ownerId === ownerId),
+      scopedItems(this.#checklists, ownerId),
       "createdAt",
       limit,
     );
   }
   saveChecklistItem(record: ChecklistItemRecord) {
-    this.#checklistItems.set(record.id, clone(ChecklistItemRecordSchema.parse(record)));
+    this.#checklistItems.set(scopedKey(record.ownerId, record.id), clone(ChecklistItemRecordSchema.parse(record)));
   }
   listChecklistItems(ownerId: string, limit: number) {
     return ordered(
-      [...this.#checklistItems.values()].filter((item) => item.ownerId === ownerId),
+      scopedItems(this.#checklistItems, ownerId),
       "sequence",
       limit,
     );
   }
   saveRoutine(record: RoutineRecord) {
-    this.#routines.set(record.id, clone(RoutineRecordSchema.parse(record)));
+    this.#routines.set(scopedKey(record.ownerId, record.id), clone(RoutineRecordSchema.parse(record)));
   }
   listRoutines(ownerId: string, limit: number) {
     return ordered(
-      [...this.#routines.values()].filter((item) => item.ownerId === ownerId),
+      scopedItems(this.#routines, ownerId),
       "createdAt",
       limit,
     );
   }
   saveMonitor(record: BackgroundMonitorRecord) {
-    this.#monitors.set(record.id, clone(BackgroundMonitorRecordSchema.parse(record)));
+    this.#monitors.set(scopedKey(record.ownerId, record.id), clone(BackgroundMonitorRecordSchema.parse(record)));
   }
   listMonitors(ownerId: string, limit: number) {
     return ordered(
-      [...this.#monitors.values()].filter((item) => item.ownerId === ownerId),
+      scopedItems(this.#monitors, ownerId),
       "createdAt",
       limit,
     );
   }
   saveMetric(record: TaskMetricRecord) {
-    this.#metrics.set(record.id, clone(TaskMetricRecordSchema.parse(record)));
+    this.#metrics.set(scopedKey(record.ownerId, record.id), clone(TaskMetricRecordSchema.parse(record)));
   }
   listMetrics(ownerId: string, limit: number) {
     return ordered(
-      [...this.#metrics.values()].filter((item) => item.ownerId === ownerId),
+      scopedItems(this.#metrics, ownerId),
       "measuredAt",
       limit,
     );
   }
   saveSuggestion(record: TaskSuggestionRecord) {
-    this.#suggestions.set(record.id, clone(TaskSuggestionRecordSchema.parse(record)));
+    this.#suggestions.set(scopedKey(record.ownerId, record.id), clone(TaskSuggestionRecordSchema.parse(record)));
   }
   listSuggestions(ownerId: string, limit: number) {
     return ordered(
-      [...this.#suggestions.values()].filter((item) => item.ownerId === ownerId),
+      scopedItems(this.#suggestions, ownerId),
       "createdAt",
       limit,
     );

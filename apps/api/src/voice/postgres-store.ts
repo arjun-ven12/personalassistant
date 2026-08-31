@@ -44,6 +44,14 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import type { Pool, PoolClient } from "pg";
 
 import type { VoiceStore } from "./store.js";
+import { companyScope } from "../companies/scope.js";
+
+const companyScopedTables = new Set([
+  "conversation_history", "conversation_sessions", "conversation_topics",
+  "conversation_goals", "conversation_summaries", "conversation_personas",
+  "clarification_history", "conversation_context", "conversation_analytics",
+  "conversation_bookmarks", "conversation_turn_feedback", "conversation_continuity",
+]);
 
 const list = async <T>(
   pool: Pool,
@@ -53,9 +61,11 @@ const list = async <T>(
   limit: number,
   schema: { parse: (value: unknown) => T },
 ) => {
+  const companyId = companyScope.companyId(ownerId) ?? null;
+  const scoped = companyScopedTables.has(table);
   const result = await pool.query<{ record: unknown }>(
-    `SELECT record FROM ${table} WHERE owner_id=$1 ORDER BY ${order} DESC LIMIT $2`,
-    [ownerId, limit],
+    `SELECT record FROM ${table} WHERE owner_id=$1 ${scoped ? "AND ($3::uuid IS NULL OR company_id=$3)" : ""} ORDER BY ${order} DESC LIMIT $2`,
+    scoped ? [ownerId, limit, companyId] : [ownerId, limit],
   );
   return result.rows.map((row) => schema.parse(row.record));
 };
@@ -66,8 +76,9 @@ const insertRecord = async (
   record: { id: string; ownerId: string },
   columns: Record<string, string | number | boolean | null>,
 ) => {
-  const names = ["id", "owner_id", ...Object.keys(columns), "record"];
-  const values = [record.id, record.ownerId, ...Object.values(columns), record];
+  const scoped = companyScopedTables.has(table);
+  const names = ["id", "owner_id", ...(scoped ? ["company_id"] : []), ...Object.keys(columns), "record"];
+  const values = [record.id, record.ownerId, ...(scoped ? [companyScope.companyId(record.ownerId) ?? null] : []), ...Object.values(columns), record];
   const placeholders = values.map((_, index) => `$${index + 1}`).join(",");
   await pool.query(
     `INSERT INTO ${table}(${names.join(",")}) VALUES (${placeholders})
@@ -382,19 +393,19 @@ export class PostgresVoiceStore implements VoiceStore {
     const parsed = ConversationContinuityRecordSchema.parse(record);
     const database = this.#continuityClient.getStore() ?? this.pool;
     await database.query(
-      `INSERT INTO conversation_continuity(id,owner_id,conversation_id,updated_at,record)
-       VALUES($1,$2,$3,$4,$5)
-       ON CONFLICT(owner_id,conversation_id) DO UPDATE SET
+      `INSERT INTO conversation_continuity(id,owner_id,company_id,conversation_id,updated_at,record)
+       VALUES($1,$2,$3,$4,$5,$6)
+       ON CONFLICT(owner_id,company_id,conversation_id) DO UPDATE SET
          updated_at=EXCLUDED.updated_at,
          record=EXCLUDED.record`,
-      [parsed.id, parsed.ownerId, parsed.conversationId, parsed.updatedAt, parsed],
+      [parsed.id, parsed.ownerId, companyScope.companyId(parsed.ownerId) ?? null, parsed.conversationId, parsed.updatedAt, parsed],
     );
   }
   async getConversationContinuity(ownerId: string, conversationId: string) {
     const database = this.#continuityClient.getStore() ?? this.pool;
     const result = await database.query<{ record: unknown }>(
-      "SELECT record FROM conversation_continuity WHERE owner_id=$1 AND conversation_id=$2",
-      [ownerId, conversationId],
+      "SELECT record FROM conversation_continuity WHERE owner_id=$1 AND conversation_id=$2 AND ($3::uuid IS NULL OR company_id=$3)",
+      [ownerId, conversationId, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows[0]
       ? ConversationContinuityRecordSchema.parse(result.rows[0].record)
@@ -418,10 +429,10 @@ export class PostgresVoiceStore implements VoiceStore {
   ) {
     const database = this.#continuityClient.getStore() ?? this.pool;
     const result = await database.query(
-      `INSERT INTO conversation_continuity_turn_claims(owner_id,conversation_id,turn_id,claimed_at)
-       VALUES($1,$2,$3,$4)
-       ON CONFLICT(owner_id,conversation_id,turn_id) DO NOTHING`,
-      [ownerId, conversationId, turnId, claimedAt],
+      `INSERT INTO conversation_continuity_turn_claims(owner_id,company_id,conversation_id,turn_id,claimed_at)
+       VALUES($1,$2,$3,$4,$5)
+       ON CONFLICT(owner_id,company_id,conversation_id,turn_id) DO NOTHING`,
+      [ownerId, companyScope.companyId(ownerId) ?? null, conversationId, turnId, claimedAt],
     );
     return (result.rowCount ?? 0) === 1;
   }
@@ -431,7 +442,7 @@ export class PostgresVoiceStore implements VoiceStore {
     run: () => T | Promise<T>,
   ) {
     const client = await this.pool.connect();
-    const lockKey = `${ownerId}:${conversationId}`;
+    const lockKey = `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:${conversationId}`;
     try {
       await client.query("BEGIN");
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [lockKey]);

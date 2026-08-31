@@ -32,6 +32,9 @@ import com.alexa.commandcenter.ui.AlexaScreenState
 import com.alexa.commandcenter.ui.BiometricPurpose
 import com.alexa.commandcenter.ui.BiometricRequest
 import com.alexa.commandcenter.voice.AndroidVoiceController
+import com.alexa.commandcenter.widget.MondayOsWidgetProvider
+import com.alexa.commandcenter.widget.MondayOsWidgetSnapshot
+import com.alexa.commandcenter.widget.MondayOsWidgetStore
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.flow.collectLatest
@@ -44,6 +47,8 @@ class MainActivity : FragmentActivity() {
   private var registeredPushToken: String? = null
   private var biometricKeyRegistered = false
   private var tokenFetchInProgress = false
+  private lateinit var widgetStore: MondayOsWidgetStore
+  private var lastWidgetSnapshot: MondayOsWidgetSnapshot? = null
   private val microphonePermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
     model.onMicrophonePermissionResult(
       granted = granted,
@@ -60,6 +65,8 @@ class MainActivity : FragmentActivity() {
     super.onCreate(savedInstanceState)
     val environment = AlexaEnvironments.current()
     val secureValues = AndroidSecureValues(this)
+    widgetStore = MondayOsWidgetStore(this)
+    lastWidgetSnapshot = widgetStore.read()
     pushTokenStore = PushTokenStore(secureValues)
     biometricIdentity = AndroidBiometricIdentity()
     val sessionStore = SessionStore(secureValues)
@@ -92,6 +99,18 @@ class MainActivity : FragmentActivity() {
             model.registerBiometricKey(key)
           }
         }
+        state.commandCenter?.let(MondayOsWidgetSnapshot::from)?.let { snapshot ->
+          if (snapshot != lastWidgetSnapshot) {
+            lastWidgetSnapshot = snapshot
+            widgetStore.save(snapshot)
+            MondayOsWidgetProvider.updateAll(this@MainActivity)
+          }
+        }
+        if (state.screen is AlexaScreenState.Login && lastWidgetSnapshot != null) {
+          lastWidgetSnapshot = null
+          widgetStore.clear()
+          MondayOsWidgetProvider.updateAll(this@MainActivity)
+        }
       }
     }
     setContent {
@@ -103,6 +122,7 @@ class MainActivity : FragmentActivity() {
         onRegister = model::registerDevice,
         onRefreshApproval = model::refreshApproval,
         onRefresh = model::refresh,
+        onCompanySelected = model::selectCompany,
         onLock = model::lockNow,
         onForgetDevice = model::signOutAndForgetDevice,
         onCreateObjective = model::createObjective,
@@ -112,6 +132,7 @@ class MainActivity : FragmentActivity() {
         onApprovalDecisionWithReason = model::decideApprovalWithReason,
         onApprovalSelected = model::loadApprovalDetail,
         onNotificationTargetConsumed = model::consumeNotificationTarget,
+        onExternalDestinationConsumed = model::consumeExternalDestination,
         onNotificationPreferences = model::updateNotificationPreferences,
         onAgentSelected = model::loadAgentDetail,
         onWorkflowSelected = model::loadWorkflowDetail,
@@ -132,6 +153,7 @@ class MainActivity : FragmentActivity() {
       )
     }
     processNotificationIntent(intent)
+    processWidgetIntent(intent)
     if (!notificationsGranted && android.os.Build.VERSION.SDK_INT >= 33 && !getPreferences(MODE_PRIVATE).getBoolean("notification_permission_requested", false)) {
       notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
@@ -144,6 +166,7 @@ class MainActivity : FragmentActivity() {
     super.onNewIntent(intent)
     setIntent(intent)
     processNotificationIntent(intent)
+    processWidgetIntent(intent)
   }
 
   private fun showBiometric(request: BiometricRequest) {
@@ -197,10 +220,30 @@ class MainActivity : FragmentActivity() {
   private fun processNotificationIntent(intent: Intent?) {
     val kind = intent?.getStringExtra(AlexaFirebaseMessagingService.EXTRA_OBJECT_KIND) ?: return
     val objectId = intent.getStringExtra(AlexaFirebaseMessagingService.EXTRA_OBJECT_ID) ?: return
-    val target = NotificationTarget(kind, objectId, intent.getStringExtra(AlexaFirebaseMessagingService.EXTRA_EVENT_ID))
+    val target = NotificationTarget(kind, objectId, intent.getStringExtra(AlexaFirebaseMessagingService.EXTRA_EVENT_ID), intent.getStringExtra(AlexaFirebaseMessagingService.EXTRA_COMPANY_ID))
     if (target.isValid()) model.openNotification(target)
     intent.removeExtra(AlexaFirebaseMessagingService.EXTRA_OBJECT_KIND)
     intent.removeExtra(AlexaFirebaseMessagingService.EXTRA_OBJECT_ID)
     intent.removeExtra(AlexaFirebaseMessagingService.EXTRA_EVENT_ID)
+    intent.removeExtra(AlexaFirebaseMessagingService.EXTRA_COMPANY_ID)
+  }
+
+  private fun processWidgetIntent(intent: Intent?) {
+    when (intent?.action) {
+      ACTION_OPEN_VOICE -> model.openExternalDestination("VOICE")
+      ACTION_OPEN_APPROVAL -> {
+        val approvalId = intent.getStringExtra(EXTRA_APPROVAL_ID) ?: return
+        model.openNotification(NotificationTarget("APPROVAL", approvalId, null))
+      }
+      else -> return
+    }
+    intent.action = null
+    intent.removeExtra(EXTRA_APPROVAL_ID)
+  }
+
+  companion object {
+    const val ACTION_OPEN_VOICE = "com.alexa.commandcenter.action.OPEN_VOICE"
+    const val ACTION_OPEN_APPROVAL = "com.alexa.commandcenter.action.OPEN_APPROVAL"
+    const val EXTRA_APPROVAL_ID = "com.alexa.commandcenter.extra.APPROVAL_ID"
   }
 }

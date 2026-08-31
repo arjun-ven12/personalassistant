@@ -7,6 +7,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
 import type { ApiRouteContext } from "./context.js";
+import { installCompanyRouteGuard } from "./company-guard.js";
 
 const HistoryQuerySchema = z
   .object({ limit: z.coerce.number().int().min(1).max(200).default(50) })
@@ -16,6 +17,8 @@ export const registerPolicyRoutes = (
   app: FastifyInstance,
   context: ApiRouteContext,
 ) => {
+  installCompanyRouteGuard(app, "/api/policies", context);
+
   app.post(
     "/api/policies/evaluate",
     {

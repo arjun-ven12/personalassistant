@@ -50,6 +50,16 @@ import { InMemoryExecutionStore, type ExecutionStore } from "./execution/store.j
 import type { ServerExecutionSigner } from "./execution/server-key-store.js";
 import { registerExecutionRoutes } from "./routes/executions.js";
 import { registerCrossDeviceRoutes } from "./routes/cross-device.js";
+import { registerCompanyRoutes } from "./routes/companies.js";
+import { CompanyService } from "./companies/service.js";
+import { CompanyContextResolver } from "./companies/context.js";
+import { companyScope } from "./companies/scope.js";
+import { NoopTelemetrySink, type TelemetrySink } from "./telemetry/service.js";
+import {
+  InMemoryCompanyStore,
+  PostgresCompanyStore,
+  type CompanyStore,
+} from "./companies/store.js";
 import { CrossDeviceService } from "./cross-device/service.js";
 import {
   InMemoryCrossDeviceStore,
@@ -352,6 +362,8 @@ export interface BuildApiOptions {
   pairingTtlSeconds?: number;
   signedRequestToleranceSeconds?: number;
   identityStore?: IdentityStore;
+  companyStore?: CompanyStore;
+  telemetry?: TelemetrySink;
   networkVerifier?: NetworkVerifier;
   governanceStore?: GovernanceStore;
   approvalTtlSeconds?: number;
@@ -448,6 +460,8 @@ export const buildApi = async ({
   pairingTtlSeconds = 300,
   signedRequestToleranceSeconds = 120,
   identityStore = new InMemoryIdentityStore(),
+  companyStore,
+  telemetry = new NoopTelemetrySink(),
   networkVerifier = new PlaceholderNetworkVerifier(),
   governanceStore = new InMemoryGovernanceStore(BUILT_IN_TOOLS),
   approvalTtlSeconds = 900,
@@ -648,6 +662,7 @@ export const buildApi = async ({
   });
   app.addHook("onClose", () => {
     canonicalRouter.shutdown();
+    void telemetry.shutdown();
   });
 
   await app.register(cookie);
@@ -728,12 +743,20 @@ export const buildApi = async ({
     privateNetworkRequired,
     securityState,
   });
+  const resolvedCompanyStore =
+    companyStore ??
+    (database
+      ? new PostgresCompanyStore(database.pool)
+      : new InMemoryCompanyStore());
+  const companies = new CompanyService(resolvedCompanyStore, identityStore, now);
+  const companyContext = new CompanyContextResolver(companies, security, telemetry);
   const governanceAudit = async (
     input: Parameters<ApiRouteContext["governanceAudit"]>[0],
   ) => {
     await identityStore.appendAudit({
       eventType: input.eventType,
       userId: input.ownerId,
+      companyId: input.companyId ?? companyScope.companyId(input.ownerId) ?? null,
       ...(input.deviceId ? { deviceId: input.deviceId } : {}),
       ipAddress: input.ipAddress,
       outcome: input.outcome,
@@ -1412,6 +1435,8 @@ export const buildApi = async ({
     deploymentMode,
     identity,
     security,
+    companies,
+    companyContext,
     securityState,
     networkVerifier,
     cookieName: sessionCookieName,
@@ -1669,6 +1694,7 @@ export const buildApi = async ({
   });
 
   registerAuthRoutes(app, context);
+  registerCompanyRoutes(app, context);
   registerDeviceRoutes(app, context);
   registerAuditRoutes(app, context);
   registerSystemRoutes(app, context);

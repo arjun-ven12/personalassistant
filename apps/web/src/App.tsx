@@ -151,6 +151,23 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
     retry: false,
   });
   const authenticated = Boolean(auth.data?.authenticated && auth.data.user);
+  const companies = useQuery({
+    queryKey: ["companies"],
+    queryFn: apiClient.getCompanies,
+    enabled: authenticated,
+    retry: false,
+  });
+  const selectCompany = useMutation({
+    mutationFn: apiClient.selectCompany,
+    onSuccess: async (data) => {
+      queryClient.removeQueries({
+        predicate: (query) => !["auth-session", "companies"].includes(String(query.queryKey[0])),
+      });
+      queryClient.setQueryData(["companies"], data);
+      navigate("/");
+      await queryClient.invalidateQueries();
+    },
+  });
   const commandSpace = useQuery({
     queryKey: ["spatial-command-space"],
     queryFn: apiClient.getSpatialCommandSpace,
@@ -422,6 +439,19 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
                   <kbd>⌘K</kbd>
                 </div>
                 <div className="owner-menu">
+                  <label className="company-switcher">
+                    <span>Company</span>
+                    <select
+                      aria-label="Active company"
+                      disabled={companies.isPending || selectCompany.isPending}
+                      onChange={(event) => selectCompany.mutate(event.target.value)}
+                      value={companies.data?.currentCompany.id ?? ""}
+                    >
+                      {companies.data?.companies.filter((company) => company.status === "ACTIVE").map((company) => (
+                        <option key={company.id} value={company.id}>{company.name}</option>
+                      ))}
+                    </select>
+                  </label>
                   <span className="system-pill">
                     <span className="live-dot" />
                     Online

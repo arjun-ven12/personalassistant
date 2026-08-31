@@ -7,6 +7,7 @@ import {
 import type { Pool } from "pg";
 
 import type { Awaitable } from "../identity/store.js";
+import { companyScope } from "../companies/scope.js";
 
 export interface CrossDeviceStore {
   saveClient(client: CrossDeviceClientInstance): Awaitable<void>;
@@ -56,6 +57,7 @@ export class InMemoryCrossDeviceStore implements CrossDeviceStore {
     const existing = [...this.#commands.values()].find(
       (item) =>
         item.ownerId === parsed.ownerId &&
+        item.companyId === parsed.companyId &&
         item.sourceClientInstanceId === parsed.sourceClientInstanceId &&
         item.idempotencyKey === parsed.idempotencyKey,
     );
@@ -66,13 +68,15 @@ export class InMemoryCrossDeviceStore implements CrossDeviceStore {
 
   getCommand(id: string) {
     const value = this.#commands.get(id);
-    return value ? clone(value) : undefined;
+    const activeCompanyId = value ? companyScope.companyId(value.ownerId) : undefined;
+    return value && (!activeCompanyId || value.companyId === activeCompanyId) ? clone(value) : undefined;
   }
 
   findIdempotentCommand(ownerId: string, sourceClientInstanceId: string, idempotencyKey: string) {
     const value = [...this.#commands.values()].find(
       (item) =>
         item.ownerId === ownerId &&
+        (!companyScope.companyId(ownerId) || item.companyId === companyScope.companyId(ownerId)) &&
         item.sourceClientInstanceId === sourceClientInstanceId &&
         item.idempotencyKey === idempotencyKey,
     );
@@ -81,7 +85,7 @@ export class InMemoryCrossDeviceStore implements CrossDeviceStore {
 
   listSourceCommands(ownerId: string, sourceClientInstanceId: string, limit: number) {
     return [...this.#commands.values()]
-      .filter((item) => item.ownerId === ownerId && item.sourceClientInstanceId === sourceClientInstanceId)
+      .filter((item) => item.ownerId === ownerId && item.sourceClientInstanceId === sourceClientInstanceId && (!companyScope.companyId(ownerId) || item.companyId === companyScope.companyId(ownerId)))
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
       .slice(0, limit)
       .map(clone);
@@ -89,7 +93,7 @@ export class InMemoryCrossDeviceStore implements CrossDeviceStore {
 
   listTargetCommands(ownerId: string, targetId: string, limit: number) {
     return [...this.#commands.values()]
-      .filter((item) => item.ownerId === ownerId && item.targetId === targetId)
+      .filter((item) => item.ownerId === ownerId && item.targetId === targetId && (!companyScope.companyId(ownerId) || item.companyId === companyScope.companyId(ownerId)))
       .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
       .slice(0, limit)
       .map(clone);
@@ -100,6 +104,7 @@ export class InMemoryCrossDeviceStore implements CrossDeviceStore {
       .filter(
         (item) =>
           item.ownerId === ownerId &&
+          (!companyScope.companyId(ownerId) || item.companyId === companyScope.companyId(ownerId)) &&
           item.conversationId === conversationId &&
           item.targetId !== null &&
           !["REJECTED", "TARGET_OFFLINE", "EXPIRED", "CANCELLED"].includes(item.status),
@@ -144,11 +149,11 @@ export class PostgresCrossDeviceStore implements CrossDeviceStore {
     const parsed = CrossDeviceCommandSchema.parse(command);
     await this.pool.query(
       `INSERT INTO cross_device_commands
-       (id,owner_id,source_client_instance_id,target_id,status,idempotency_key,record,created_at,updated_at,expires_at)
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+       (id,owner_id,company_id,source_client_instance_id,target_id,status,idempotency_key,record,created_at,updated_at,expires_at)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        ON CONFLICT(id) DO UPDATE SET target_id=EXCLUDED.target_id,status=EXCLUDED.status,
        record=EXCLUDED.record,updated_at=EXCLUDED.updated_at,expires_at=EXCLUDED.expires_at`,
-      [parsed.id, parsed.ownerId, parsed.sourceClientInstanceId, parsed.targetId, parsed.status, parsed.idempotencyKey, parsed, parsed.createdAt, parsed.updatedAt, parsed.expiresAt],
+      [parsed.id, parsed.ownerId, parsed.companyId, parsed.sourceClientInstanceId, parsed.targetId, parsed.status, parsed.idempotencyKey, parsed, parsed.createdAt, parsed.updatedAt, parsed.expiresAt],
     );
   }
 
@@ -156,11 +161,11 @@ export class PostgresCrossDeviceStore implements CrossDeviceStore {
     const parsed = CrossDeviceCommandSchema.parse(command);
     const inserted = await this.pool.query<{ record: unknown }>(
       `INSERT INTO cross_device_commands
-       (id,owner_id,source_client_instance_id,target_id,status,idempotency_key,record,created_at,updated_at,expires_at)
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+       (id,owner_id,company_id,source_client_instance_id,target_id,status,idempotency_key,record,created_at,updated_at,expires_at)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        ON CONFLICT(owner_id,source_client_instance_id,idempotency_key) DO NOTHING
        RETURNING record`,
-      [parsed.id, parsed.ownerId, parsed.sourceClientInstanceId, parsed.targetId, parsed.status, parsed.idempotencyKey, parsed, parsed.createdAt, parsed.updatedAt, parsed.expiresAt],
+      [parsed.id, parsed.ownerId, parsed.companyId, parsed.sourceClientInstanceId, parsed.targetId, parsed.status, parsed.idempotencyKey, parsed, parsed.createdAt, parsed.updatedAt, parsed.expiresAt],
     );
     if (inserted.rows[0]) return CrossDeviceCommandSchema.parse(inserted.rows[0].record);
     const existing = await this.findIdempotentCommand(
@@ -173,47 +178,57 @@ export class PostgresCrossDeviceStore implements CrossDeviceStore {
   }
 
   async getCommand(id: string) {
+    const activeCompanyId = companyScope.companyId();
     const result = await this.pool.query<{ record: unknown }>(
-      "SELECT record FROM cross_device_commands WHERE id=$1",
-      [id],
+      `SELECT record FROM cross_device_commands
+       WHERE id=$1 AND ($2::uuid IS NULL OR company_id=$2)`,
+      [id, activeCompanyId ?? null],
     );
     return result.rows[0] ? CrossDeviceCommandSchema.parse(result.rows[0].record) : undefined;
   }
 
   async findIdempotentCommand(ownerId: string, sourceClientInstanceId: string, idempotencyKey: string) {
+    const activeCompanyId = companyScope.companyId(ownerId);
     const result = await this.pool.query<{ record: unknown }>(
       `SELECT record FROM cross_device_commands
-       WHERE owner_id=$1 AND source_client_instance_id=$2 AND idempotency_key=$3 LIMIT 1`,
-      [ownerId, sourceClientInstanceId, idempotencyKey],
+       WHERE owner_id=$1 AND source_client_instance_id=$2 AND idempotency_key=$3
+       AND ($4::uuid IS NULL OR company_id=$4) LIMIT 1`,
+      [ownerId, sourceClientInstanceId, idempotencyKey, activeCompanyId ?? null],
     );
     return result.rows[0] ? CrossDeviceCommandSchema.parse(result.rows[0].record) : undefined;
   }
 
   async listSourceCommands(ownerId: string, sourceClientInstanceId: string, limit: number) {
+    const activeCompanyId = companyScope.companyId(ownerId);
     const result = await this.pool.query<{ record: unknown }>(
       `SELECT record FROM cross_device_commands
-       WHERE owner_id=$1 AND source_client_instance_id=$2 ORDER BY created_at DESC LIMIT $3`,
-      [ownerId, sourceClientInstanceId, limit],
+       WHERE owner_id=$1 AND source_client_instance_id=$2
+       AND ($4::uuid IS NULL OR company_id=$4) ORDER BY created_at DESC LIMIT $3`,
+      [ownerId, sourceClientInstanceId, limit, activeCompanyId ?? null],
     );
     return result.rows.map((row) => CrossDeviceCommandSchema.parse(row.record));
   }
 
   async listTargetCommands(ownerId: string, targetId: string, limit: number) {
+    const activeCompanyId = companyScope.companyId(ownerId);
     const result = await this.pool.query<{ record: unknown }>(
       `SELECT record FROM cross_device_commands
-       WHERE owner_id=$1 AND target_id=$2 ORDER BY created_at ASC LIMIT $3`,
-      [ownerId, targetId, limit],
+       WHERE owner_id=$1 AND target_id=$2
+       AND ($4::uuid IS NULL OR company_id=$4) ORDER BY created_at ASC LIMIT $3`,
+      [ownerId, targetId, limit, activeCompanyId ?? null],
     );
     return result.rows.map((row) => CrossDeviceCommandSchema.parse(row.record));
   }
 
   async findConversationTarget(ownerId: string, conversationId: string) {
+    const activeCompanyId = companyScope.companyId(ownerId);
     const result = await this.pool.query<{ record: unknown }>(
       `SELECT record FROM cross_device_commands
        WHERE owner_id=$1 AND record->>'conversationId'=$2 AND target_id IS NOT NULL
+       AND ($3::uuid IS NULL OR company_id=$3)
        AND status NOT IN ('REJECTED','TARGET_OFFLINE','EXPIRED','CANCELLED')
        ORDER BY updated_at DESC LIMIT 1`,
-      [ownerId, conversationId],
+      [ownerId, conversationId, activeCompanyId ?? null],
     );
     return result.rows[0] ? CrossDeviceCommandSchema.parse(result.rows[0].record) : undefined;
   }

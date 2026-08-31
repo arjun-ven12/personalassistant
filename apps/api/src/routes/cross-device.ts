@@ -21,16 +21,17 @@ import { ExecutionError } from "../execution/errors.js";
 const CommandParametersSchema = z.object({ commandId: z.string().uuid() }).strict();
 const ANDROID_DEVICE_TYPES = new Set<string>(["ANDROID"]);
 const AndroidCrossDevicePayloadSchema = z.discriminatedUnion("operation", [
-  z.object({ operation: z.literal("register"), request: RegisterCrossDeviceClientRequestSchema }).strict(),
-  z.object({ operation: z.literal("heartbeat"), request: CrossDeviceHeartbeatRequestSchema }).strict(),
-  z.object({ operation: z.literal("poll"), request: CrossDevicePollRequestSchema }).strict(),
-  z.object({ operation: z.literal("receipt"), request: CrossDeviceCommandReceiptRequestSchema }).strict(),
-  z.object({ operation: z.literal("utterance"), request: CrossDeviceUtteranceRequestSchema }).strict(),
-  z.object({ operation: z.literal("status"), commandId: z.string().uuid() }).strict(),
+  z.object({ operation: z.literal("register"), companyId: z.string().uuid(), request: RegisterCrossDeviceClientRequestSchema }).strict(),
+  z.object({ operation: z.literal("heartbeat"), companyId: z.string().uuid(), request: CrossDeviceHeartbeatRequestSchema }).strict(),
+  z.object({ operation: z.literal("poll"), companyId: z.string().uuid(), request: CrossDevicePollRequestSchema }).strict(),
+  z.object({ operation: z.literal("receipt"), companyId: z.string().uuid(), request: CrossDeviceCommandReceiptRequestSchema }).strict(),
+  z.object({ operation: z.literal("utterance"), companyId: z.string().uuid(), request: CrossDeviceUtteranceRequestSchema }).strict(),
+  z.object({ operation: z.literal("status"), companyId: z.string().uuid(), commandId: z.string().uuid() }).strict(),
 ]);
 
 const webMutationGuards = (context: ApiRouteContext) => [
   context.security.requireAuthentication,
+  context.companyContext.requireCompany,
   context.security.requireTrustedOrigin,
   context.security.requireCsrf,
   context.security.inspectNetwork,
@@ -118,7 +119,7 @@ export const registerCrossDeviceRoutes = (app: FastifyInstance, context: ApiRout
 
   app.get(
     "/api/cross-device/commands/:commandId",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany] },
     async (request) => {
       const identity = context.security.getIdentity(request);
       const { commandId } = CommandParametersSchema.parse(request.params);
@@ -131,7 +132,7 @@ export const registerCrossDeviceRoutes = (app: FastifyInstance, context: ApiRout
 
   app.get(
     "/api/cross-device/clients",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany] },
     async (request) => {
       const identity = context.security.getIdentity(request);
       return CrossDeviceClientListResponseSchema.parse({
@@ -143,13 +144,21 @@ export const registerCrossDeviceRoutes = (app: FastifyInstance, context: ApiRout
 
   app.post(
     "/api/v1/device/cross-device",
-    { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+    {
+      preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany],
+      config: { rateLimit: { max: 60, timeWindow: "1 minute" } },
+    },
     async (request) => {
       const { device, envelope, network } = await authenticateTrustedDeviceEnvelope(request, context, ANDROID_DEVICE_TYPES);
+      const identity = context.security.getIdentity(request);
+      if (identity.user.id !== device.ownerId)
+        throw new ExecutionError(403, "OWNER_SCOPE_MISMATCH", "The authenticated session does not own this device.");
       const payload = AndroidCrossDevicePayloadSchema.parse(SignedCommandEnvelopeSchema.parse(envelope).payload);
+      if (payload.companyId !== context.companyContext.get(request).companyId)
+        throw new ExecutionError(403, "COMPANY_SCOPE_MISMATCH", "The signed command company does not match the active company.");
       const common = {
         ownerId: device.ownerId,
-        sessionId: device.id,
+        sessionId: identity.session.id,
         trustedDeviceId: device.id,
         requestId: envelope.commandId,
         ipAddress: request.ip,

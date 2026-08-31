@@ -81,6 +81,29 @@ const route = (service: CrossDeviceService, idempotencyKey = crypto.randomUUID()
   });
 
 describe("CrossDeviceService", () => {
+  it("rebinds a legacy Android device lease to its authenticated session", async () => {
+    const { service } = createService();
+    await registerAndroid(service);
+
+    const rebound = await service.registerClient({
+      ownerId,
+      sessionId: "55555555-5555-4555-8555-555555555555",
+      trustedDeviceId: androidDeviceId,
+      requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1",
+      body: {
+        clientInstanceId: androidClientId,
+        clientType: "ANDROID",
+        displayName: "Owner phone",
+        platform: "Android",
+        capabilities: ["SHOW_SCREEN", "OPEN_APPROVAL"],
+        currentRoute: null,
+      },
+    });
+
+    expect(rebound.sessionId).toBe("55555555-5555-4555-8555-555555555555");
+  });
+
   it("routes Android to one online Web client and separates ACK from result", async () => {
     const { service } = createService();
     await registerAndroid(service);

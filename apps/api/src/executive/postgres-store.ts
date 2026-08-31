@@ -1,8 +1,18 @@
 import { ExecutiveAlertSchema, ExecutiveDecisionSchema, ExecutiveGoalSchema, ExecutiveHistorySchema, ExecutiveKpiSchema, ExecutiveObjectiveSchema, ExecutivePlanSchema, ExecutiveRiskSchema, ObjectiveCapabilityLinkSchema, ObjectiveEventSchema, ObjectiveExecutionSchema, ObjectiveMetricObservationSchema, ObjectiveProjectSchema, ExperimentSchema, ExperimentVariantSchema, ExperimentAssignmentSchema, ExperimentObservationSchema, ExperimentAllocationEventSchema, ExperimentResultSchema, ExperimentTimelineEventSchema, type ExecutiveAlert, type ExecutiveDecision, type ExecutiveGoal, type ExecutiveHistory, type ExecutiveKpi, type ExecutiveObjective, type ExecutivePlan, type ExecutiveRisk, type ObjectiveCapabilityLink, type ObjectiveEvent, type ObjectiveExecution, type ObjectiveMetricObservation, type ObjectiveProject, type Experiment, type ExperimentVariant, type ExperimentAssignment, type ExperimentObservation, type ExperimentAllocationEvent, type ExperimentResult, type ExperimentTimelineEvent } from "@alexa-control/shared";
 import type { Pool } from "pg";
 import type { ExecutiveStore } from "./store.js";
-const list = async <T>(pool: Pool, ownerId: string, kind: string, schema: { parse(value: unknown): T }) => (await pool.query<{ record: unknown }>("SELECT record FROM executive_records WHERE owner_id=$1 AND kind=$2 ORDER BY updated_at DESC", [ownerId, kind])).rows.map((row) => schema.parse(row.record));
-const save = async (pool: Pool, kind: string, record: { id: string; ownerId: string }, updatedAt: string) => { await pool.query("INSERT INTO executive_records(id, owner_id, kind, updated_at, record) VALUES($1,$2,$3,$4,$5) ON CONFLICT (id) DO UPDATE SET record=EXCLUDED.record, updated_at=EXCLUDED.updated_at", [record.id, record.ownerId, kind, updatedAt, record]); };
+import { companyScope } from "../companies/scope.js";
+const list = async <T>(pool: Pool, ownerId: string, kind: string, schema: { parse(value: unknown): T }) => {
+  const companyId=companyScope.companyId(ownerId);
+  const query=companyId
+    ? await pool.query<{record:unknown}>("SELECT record FROM executive_records WHERE owner_id=$1 AND company_id=$2 AND kind=$3 ORDER BY updated_at DESC",[ownerId,companyId,kind])
+    : await pool.query<{record:unknown}>("SELECT record FROM executive_records WHERE owner_id=$1 AND kind=$2 ORDER BY updated_at DESC",[ownerId,kind]);
+  return query.rows.map((row)=>schema.parse(row.record));
+};
+const save = async (pool: Pool, kind: string, record: { id: string; ownerId: string }, updatedAt: string) => {
+  const companyId=companyScope.companyId(record.ownerId);
+  await pool.query("INSERT INTO executive_records(id,owner_id,company_id,kind,updated_at,record) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT (id) DO UPDATE SET record=EXCLUDED.record,updated_at=EXCLUDED.updated_at WHERE executive_records.owner_id=EXCLUDED.owner_id AND executive_records.company_id=EXCLUDED.company_id",[record.id,record.ownerId,companyId ?? null,kind,updatedAt,record]);
+};
 export class PostgresExecutiveStore implements ExecutiveStore {
   constructor(readonly pool: Pool) {}
   async saveGoal(value: ExecutiveGoal) { const v=ExecutiveGoalSchema.parse(value); await save(this.pool,"GOAL",v,v.updatedAt); } listGoals(ownerId: string) { return list(this.pool, ownerId, "GOAL", ExecutiveGoalSchema); }

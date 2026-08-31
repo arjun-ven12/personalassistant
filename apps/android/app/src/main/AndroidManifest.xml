@@ -16,7 +16,9 @@
   <application
     android:name=".AlexaApplication"
     android:allowBackup="false"
-    android:label="Alexa"
+    android:icon="@mipmap/ic_launcher"
+    android:label="@string/app_name"
+    android:roundIcon="@mipmap/ic_launcher_round"
     android:supportsRtl="true"
     android:theme="@style/Theme.Alexa"
     android:usesCleartextTraffic="${usesCleartextTraffic}">
@@ -35,5 +37,15 @@
         <action android:name="com.google.firebase.MESSAGING_EVENT" />
       </intent-filter>
     </service>
+    <receiver
+      android:name=".widget.MondayOsWidgetProvider"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/monday_os_widget_info" />
+    </receiver>
   </application>
 </manifest>

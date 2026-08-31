@@ -349,6 +349,7 @@ export const AuditRecordSchema = z
     eventType: AuditEventTypeSchema,
     timestamp: z.iso.datetime(),
     userId: z.string().uuid().nullable(),
+    companyId: z.string().uuid().nullable().default(null),
     deviceId: z.string().uuid().nullable(),
     ipAddress: z.string().min(1),
     outcome: AuditOutcomeSchema,

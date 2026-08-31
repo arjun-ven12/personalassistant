@@ -7,6 +7,7 @@ import {
   type Experiment, type ExperimentVariant, type ExperimentAssignment, type ExperimentObservation, type ExperimentAllocationEvent, type ExperimentResult, type ExperimentTimelineEvent,
 } from "@alexa-control/shared";
 import type { Awaitable } from "../identity/store.js";
+import { companyScope } from "../companies/scope.js";
 
 export interface ExecutiveStore {
   saveGoal(value: ExecutiveGoal): Awaitable<void>; listGoals(ownerId: string): Awaitable<ExecutiveGoal[]>;
@@ -36,38 +37,29 @@ export class InMemoryExecutiveStore implements ExecutiveStore {
   #objectiveExecutions = new Map<string, ObjectiveExecution>(); #objectiveProjects = new Map<string, ObjectiveProject>(); #objectiveEvents = new Map<string, ObjectiveEvent>();
   #objectiveCapabilityLinks = new Map<string, ObjectiveCapabilityLink>(); #objectiveMetricObservations = new Map<string, ObjectiveMetricObservation>();
   #experiments=new Map<string,Experiment>(); #experimentVariants=new Map<string,ExperimentVariant>(); #experimentAssignments=new Map<string,ExperimentAssignment>(); #experimentObservations=new Map<string,ExperimentObservation>(); #experimentAllocations=new Map<string,ExperimentAllocationEvent>(); #experimentResults=new Map<string,ExperimentResult>(); #experimentTimeline=new Map<string,ExperimentTimelineEvent>();
-  saveGoal(value: ExecutiveGoal) { this.#goals.set(value.id, clone(ExecutiveGoalSchema.parse(value))); }
-  listGoals(ownerId: string) { return [...this.#goals.values()].filter((value) => value.ownerId === ownerId).map(clone); }
-  saveKpi(value: ExecutiveKpi) { this.#kpis.set(value.id, clone(ExecutiveKpiSchema.parse(value))); }
-  listKpis(ownerId: string) { return [...this.#kpis.values()].filter((value) => value.ownerId === ownerId).map(clone); }
-  saveObjective(value: ExecutiveObjective) { this.#objectives.set(value.id, clone(ExecutiveObjectiveSchema.parse(value))); }
-  listObjectives(ownerId: string) { return [...this.#objectives.values()].filter((value) => value.ownerId === ownerId).map(clone); }
-  saveRisk(value: ExecutiveRisk) { this.#risks.set(value.id, clone(ExecutiveRiskSchema.parse(value))); }
-  listRisks(ownerId: string) { return [...this.#risks.values()].filter((value) => value.ownerId === ownerId).map(clone); }
-  savePlan(value: ExecutivePlan) { this.#plans.set(value.id, clone(ExecutivePlanSchema.parse(value))); }
-  listPlans(ownerId: string) { return [...this.#plans.values()].filter((value) => value.ownerId === ownerId).map(clone); }
-  saveDecision(value: ExecutiveDecision) { this.#decisions.set(value.id, clone(ExecutiveDecisionSchema.parse(value))); }
-  listDecisions(ownerId: string) { return [...this.#decisions.values()].filter((value) => value.ownerId === ownerId).map(clone); }
-  saveHistory(value: ExecutiveHistory) { this.#history.set(value.id, clone(ExecutiveHistorySchema.parse(value))); }
-  listHistory(ownerId: string) { return [...this.#history.values()].filter((value) => value.ownerId === ownerId).map(clone); }
-  saveAlert(value: ExecutiveAlert) { this.#alerts.set(value.id, clone(ExecutiveAlertSchema.parse(value))); }
-  listAlerts(ownerId: string) { return [...this.#alerts.values()].filter((value) => value.ownerId === ownerId).map(clone); }
-  saveObjectiveExecution(value: ObjectiveExecution) { this.#objectiveExecutions.set(value.id, clone(ObjectiveExecutionSchema.parse(value))); }
-  findObjectiveExecution(ownerId: string, id: string) { const value=this.#objectiveExecutions.get(id); return value?.ownerId===ownerId ? clone(value) : undefined; }
-  listObjectiveExecutions(ownerId: string) { return [...this.#objectiveExecutions.values()].filter((value) => value.ownerId === ownerId).map(clone); }
-  saveObjectiveProject(value: ObjectiveProject) { this.#objectiveProjects.set(value.id, clone(ObjectiveProjectSchema.parse(value))); }
-  listObjectiveProjects(ownerId: string) { return [...this.#objectiveProjects.values()].filter((value) => value.ownerId === ownerId).map(clone); }
-  saveObjectiveEvent(value: ObjectiveEvent) { this.#objectiveEvents.set(value.id, clone(ObjectiveEventSchema.parse(value))); }
-  listObjectiveEvents(ownerId: string) { return [...this.#objectiveEvents.values()].filter((value) => value.ownerId === ownerId).map(clone); }
-  saveObjectiveCapabilityLink(value: ObjectiveCapabilityLink) { this.#objectiveCapabilityLinks.set(value.id, clone(ObjectiveCapabilityLinkSchema.parse(value))); }
-  listObjectiveCapabilityLinks(ownerId: string) { return [...this.#objectiveCapabilityLinks.values()].filter((value) => value.ownerId === ownerId).map(clone); }
-  saveObjectiveMetricObservation(value: ObjectiveMetricObservation) { this.#objectiveMetricObservations.set(value.id, clone(ObjectiveMetricObservationSchema.parse(value))); }
-  listObjectiveMetricObservations(ownerId: string) { return [...this.#objectiveMetricObservations.values()].filter((value) => value.ownerId === ownerId).map(clone); }
-  saveExperiment(value:Experiment){this.#experiments.set(value.id,clone(ExperimentSchema.parse(value)));} listExperiments(ownerId:string){return [...this.#experiments.values()].filter((value)=>value.ownerId===ownerId).map(clone);}
-  saveExperimentVariant(value:ExperimentVariant){this.#experimentVariants.set(value.id,clone(ExperimentVariantSchema.parse(value)));} listExperimentVariants(ownerId:string){return [...this.#experimentVariants.values()].filter((value)=>value.ownerId===ownerId).map(clone);}
-  saveExperimentAssignment(value:ExperimentAssignment){this.#experimentAssignments.set(value.id,clone(ExperimentAssignmentSchema.parse(value)));} listExperimentAssignments(ownerId:string){return [...this.#experimentAssignments.values()].filter((value)=>value.ownerId===ownerId).map(clone);}
-  saveExperimentObservation(value:ExperimentObservation){this.#experimentObservations.set(value.id,clone(ExperimentObservationSchema.parse(value)));} listExperimentObservations(ownerId:string){return [...this.#experimentObservations.values()].filter((value)=>value.ownerId===ownerId).map(clone);}
-  saveExperimentAllocation(value:ExperimentAllocationEvent){this.#experimentAllocations.set(value.id,clone(ExperimentAllocationEventSchema.parse(value)));} listExperimentAllocations(ownerId:string){return [...this.#experimentAllocations.values()].filter((value)=>value.ownerId===ownerId).map(clone);}
-  saveExperimentResult(value:ExperimentResult){this.#experimentResults.set(value.id,clone(ExperimentResultSchema.parse(value)));} listExperimentResults(ownerId:string){return [...this.#experimentResults.values()].filter((value)=>value.ownerId===ownerId).map(clone);}
-  saveExperimentTimeline(value:ExperimentTimelineEvent){this.#experimentTimeline.set(value.id,clone(ExperimentTimelineEventSchema.parse(value)));} listExperimentTimeline(ownerId:string){return [...this.#experimentTimeline.values()].filter((value)=>value.ownerId===ownerId).map(clone);}
+  private key(ownerId: string, id: string) { return `${companyScope.companyId(ownerId) ?? "legacy"}:${id}`; }
+  private save<T extends {id:string;ownerId:string}>(map:Map<string,T>,value:T,schema:{parse(input:unknown):T}) { map.set(this.key(value.ownerId,value.id),clone(schema.parse(value))); }
+  private list<T extends {ownerId:string}>(map:Map<string,T>,ownerId:string) { const companyId=companyScope.companyId(ownerId); return [...map.entries()].filter(([key,value])=>value.ownerId===ownerId&&(!companyId||key.startsWith(`${companyId}:`))).map(([,value])=>clone(value)); }
+  saveGoal(value: ExecutiveGoal) { this.save(this.#goals,value,ExecutiveGoalSchema); } listGoals(ownerId:string){return this.list(this.#goals,ownerId);}
+  saveKpi(value: ExecutiveKpi) { this.save(this.#kpis,value,ExecutiveKpiSchema); } listKpis(ownerId:string){return this.list(this.#kpis,ownerId);}
+  saveObjective(value: ExecutiveObjective) { this.save(this.#objectives,value,ExecutiveObjectiveSchema); } listObjectives(ownerId:string){return this.list(this.#objectives,ownerId);}
+  saveRisk(value: ExecutiveRisk) { this.save(this.#risks,value,ExecutiveRiskSchema); } listRisks(ownerId:string){return this.list(this.#risks,ownerId);}
+  savePlan(value: ExecutivePlan) { this.save(this.#plans,value,ExecutivePlanSchema); } listPlans(ownerId:string){return this.list(this.#plans,ownerId);}
+  saveDecision(value: ExecutiveDecision) { this.save(this.#decisions,value,ExecutiveDecisionSchema); } listDecisions(ownerId:string){return this.list(this.#decisions,ownerId);}
+  saveHistory(value: ExecutiveHistory) { this.save(this.#history,value,ExecutiveHistorySchema); } listHistory(ownerId:string){return this.list(this.#history,ownerId);}
+  saveAlert(value: ExecutiveAlert) { this.save(this.#alerts,value,ExecutiveAlertSchema); } listAlerts(ownerId:string){return this.list(this.#alerts,ownerId);}
+  saveObjectiveExecution(value: ObjectiveExecution) { this.save(this.#objectiveExecutions,value,ObjectiveExecutionSchema); }
+  findObjectiveExecution(ownerId:string,id:string){return this.list(this.#objectiveExecutions,ownerId).find((value)=>value.id===id);}
+  listObjectiveExecutions(ownerId:string){return this.list(this.#objectiveExecutions,ownerId);}
+  saveObjectiveProject(value:ObjectiveProject){this.save(this.#objectiveProjects,value,ObjectiveProjectSchema);} listObjectiveProjects(ownerId:string){return this.list(this.#objectiveProjects,ownerId);}
+  saveObjectiveEvent(value:ObjectiveEvent){this.save(this.#objectiveEvents,value,ObjectiveEventSchema);} listObjectiveEvents(ownerId:string){return this.list(this.#objectiveEvents,ownerId);}
+  saveObjectiveCapabilityLink(value:ObjectiveCapabilityLink){this.save(this.#objectiveCapabilityLinks,value,ObjectiveCapabilityLinkSchema);} listObjectiveCapabilityLinks(ownerId:string){return this.list(this.#objectiveCapabilityLinks,ownerId);}
+  saveObjectiveMetricObservation(value:ObjectiveMetricObservation){this.save(this.#objectiveMetricObservations,value,ObjectiveMetricObservationSchema);} listObjectiveMetricObservations(ownerId:string){return this.list(this.#objectiveMetricObservations,ownerId);}
+  saveExperiment(value:Experiment){this.save(this.#experiments,value,ExperimentSchema);} listExperiments(ownerId:string){return this.list(this.#experiments,ownerId);}
+  saveExperimentVariant(value:ExperimentVariant){this.save(this.#experimentVariants,value,ExperimentVariantSchema);} listExperimentVariants(ownerId:string){return this.list(this.#experimentVariants,ownerId);}
+  saveExperimentAssignment(value:ExperimentAssignment){this.save(this.#experimentAssignments,value,ExperimentAssignmentSchema);} listExperimentAssignments(ownerId:string){return this.list(this.#experimentAssignments,ownerId);}
+  saveExperimentObservation(value:ExperimentObservation){this.save(this.#experimentObservations,value,ExperimentObservationSchema);} listExperimentObservations(ownerId:string){return this.list(this.#experimentObservations,ownerId);}
+  saveExperimentAllocation(value:ExperimentAllocationEvent){this.save(this.#experimentAllocations,value,ExperimentAllocationEventSchema);} listExperimentAllocations(ownerId:string){return this.list(this.#experimentAllocations,ownerId);}
+  saveExperimentResult(value:ExperimentResult){this.save(this.#experimentResults,value,ExperimentResultSchema);} listExperimentResults(ownerId:string){return this.list(this.#experimentResults,ownerId);}
+  saveExperimentTimeline(value:ExperimentTimelineEvent){this.save(this.#experimentTimeline,value,ExperimentTimelineEventSchema);} listExperimentTimeline(ownerId:string){return this.list(this.#experimentTimeline,ownerId);}
 }

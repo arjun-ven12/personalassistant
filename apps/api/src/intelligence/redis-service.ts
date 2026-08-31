@@ -120,8 +120,19 @@ export class RedisService {
     try {
       return await work();
     } finally {
-      if (this.mode === "upstash") await this.upstash(["DEL", key]);
-      else await this.standard(["DEL", key]);
+      const release = [
+        "EVAL",
+        'if redis.call("GET", KEYS[1]) == ARGV[1] then return redis.call("DEL", KEYS[1]) else return 0 end',
+        "1",
+        key,
+        token,
+      ];
+      try {
+        if (this.mode === "upstash") await this.upstash(release);
+        else await this.standard(release);
+      } catch {
+        // The lease TTL remains the fail-safe if Redis is unavailable during release.
+      }
     }
   }
 

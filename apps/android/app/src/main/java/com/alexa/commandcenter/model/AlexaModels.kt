@@ -44,6 +44,9 @@ data class LoginRequest(val email: String, val password: String)
 data class AuthResponse(val success: Boolean, val user: Owner)
 data class SessionResponse(val authenticated: Boolean, val user: Owner?)
 data class Owner(val id: String, val email: String, val displayName: String)
+data class CompanySummary(val id: String, val slug: String, val name: String, val status: String)
+data class CompanyListResponse(val currentCompany: CompanySummary, val companies: List<CompanySummary>)
+data class SelectCompanyRequest(val companyId: String)
 data class CsrfResponse(val token: String, val expiresAt: String)
 data class PairingIntent(val pairingCode: String, val expiresAt: String)
 data class PairingRequest(
@@ -147,9 +150,10 @@ data class ExecutiveAttention(
   val criticalSecurityEvents: Int = 0,
 )
 
-data class NotificationTarget(val kind: String, val objectId: String, val eventId: String?) {
+data class NotificationTarget(val kind: String, val objectId: String, val eventId: String?, val companyId: String? = null) {
   fun isValid(): Boolean = kind in VALID_KINDS && objectId.length in 1..160 &&
-    objectId.all { it.isLetterOrDigit() || it == '-' || it == '_' || it == ':' }
+    objectId.all { it.isLetterOrDigit() || it == '-' || it == '_' || it == ':' } &&
+    (companyId == null || runCatching { java.util.UUID.fromString(companyId) }.isSuccess)
 
   companion object {
     private val VALID_KINDS = setOf("APPROVAL", "OBJECTIVE", "WORKFLOW", "AGENT", "ECONOMY", "EXPERIMENT", "SYSTEM", "DEVICE")

@@ -34,6 +34,7 @@ import {
 import type pg from "pg";
 
 import type { RepositorySemanticStoreRecords, RepositoryStore } from "./store.js";
+import { companyScope } from "../companies/scope.js";
 
 const one = <T>(row: { record: T } | undefined) =>
   row ? structuredClone(row.record) : undefined;
@@ -46,9 +47,9 @@ export class PostgresRepositoryStore implements RepositoryStore {
     const result = await this.pool.query<{ record: Repository }>(
       `INSERT INTO repositories(
         id,owner_id,workspace_id,index_status,active_generation,
-        active_fingerprint,created_at,updated_at,record
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-      ON CONFLICT(owner_id, workspace_id) DO UPDATE
+        active_fingerprint,created_at,updated_at,record,company_id
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+      ON CONFLICT(owner_id,company_id,workspace_id) DO UPDATE
       SET updated_at=excluded.updated_at
       RETURNING record`,
       [
@@ -61,6 +62,7 @@ export class PostgresRepositoryStore implements RepositoryStore {
         parsed.createdAt,
         parsed.updatedAt,
         parsed,
+        companyScope.companyId(parsed.ownerId) ?? null,
       ],
     );
     return structuredClone(result.rows[0]!.record);
@@ -68,24 +70,24 @@ export class PostgresRepositoryStore implements RepositoryStore {
 
   async findRepository(id: string) {
     const result = await this.pool.query<{ record: Repository }>(
-      "SELECT record FROM repositories WHERE id=$1",
-      [id],
+      "SELECT record FROM repositories WHERE id=$1 AND ($2::uuid IS NULL OR company_id=$2)",
+      [id, companyScope.companyId() ?? null],
     );
     return one(result.rows[0]);
   }
 
   async findRepositoryByWorkspace(ownerId: string, workspaceId: string) {
     const result = await this.pool.query<{ record: Repository }>(
-      "SELECT record FROM repositories WHERE owner_id=$1 AND workspace_id=$2",
-      [ownerId, workspaceId],
+      "SELECT record FROM repositories WHERE owner_id=$1 AND workspace_id=$2 AND ($3::uuid IS NULL OR company_id=$3)",
+      [ownerId, workspaceId, companyScope.companyId(ownerId) ?? null],
     );
     return one(result.rows[0]);
   }
 
   async listRepositories(ownerId: string) {
     const result = await this.pool.query<{ record: Repository }>(
-      "SELECT record FROM repositories WHERE owner_id=$1 ORDER BY workspace_id",
-      [ownerId],
+      "SELECT record FROM repositories WHERE owner_id=$1 AND ($2::uuid IS NULL OR company_id=$2) ORDER BY workspace_id",
+      [ownerId, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows.map((row) => structuredClone(row.record));
   }
@@ -95,7 +97,7 @@ export class PostgresRepositoryStore implements RepositoryStore {
     await this.pool.query(
       `UPDATE repositories SET index_status=$2,active_generation=$3,
        active_fingerprint=$4,updated_at=$5,record=$6
-       WHERE id=$1 AND owner_id=$7`,
+       WHERE id=$1 AND owner_id=$7 AND ($8::uuid IS NULL OR company_id=$8)`,
       [
         parsed.id,
         parsed.indexStatus,
@@ -104,6 +106,7 @@ export class PostgresRepositoryStore implements RepositoryStore {
         parsed.updatedAt,
         parsed,
         parsed.ownerId,
+        companyScope.companyId(parsed.ownerId) ?? null,
       ],
     );
   }

@@ -18,6 +18,7 @@ object ExecutiveNotificationPolicy {
       kind = data["objectKind"] ?: return null,
       objectId = data["objectId"] ?: return null,
       eventId = data["eventId"],
+      companyId = data["companyId"],
     )
     val type = data["type"] ?: return null
     val severity = data["severity"] ?: return null

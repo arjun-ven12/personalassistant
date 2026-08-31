@@ -23,6 +23,7 @@ import {
 } from "@alexa-control/shared";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { installCompanyRouteGuard } from "./company-guard.js";
 
 import type { ApiRouteContext } from "./context.js";
 
@@ -37,6 +38,7 @@ const CompleteTaskRequestSchema = z
   .strict();
 
 export const registerAgentRoutes = (app: FastifyInstance, context: ApiRouteContext) => {
+  installCompanyRouteGuard(app, "/api/agents", context);
   app.get(
     "/api/agents/dashboard",
     { preHandler: [context.security.requireAuthentication] },

@@ -170,6 +170,7 @@ export const ExecutivePushPayloadSchema = z
     type: ExecutiveNotificationCategorySchema,
     objectKind: ExecutiveNotificationObjectKindSchema,
     objectId: z.string().trim().min(1).max(160),
+    companyId: z.string().uuid().optional(),
     eventId: z.string().trim().min(1).max(200),
     severity: ExecutiveNotificationSeveritySchema,
     title: z.string().trim().min(1).max(100),

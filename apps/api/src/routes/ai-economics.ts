@@ -7,6 +7,7 @@ import {
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { ApiRouteContext } from "./context.js";
+import { installCompanyRouteGuard } from "./company-guard.js";
 
 const guards = (context: ApiRouteContext) => [
   context.security.requireAuthentication,
@@ -31,6 +32,8 @@ export const registerAIEconomicsRoutes = (
   app: FastifyInstance,
   context: ApiRouteContext,
 ) => {
+  installCompanyRouteGuard(app, "/api/ai/economics", context, ["/api/ai/economics/pricing"]);
+
   app.get(
     "/api/ai/economics/health",
     { preHandler: [context.security.requireAuthentication] },

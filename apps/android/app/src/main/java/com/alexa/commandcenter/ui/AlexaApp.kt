@@ -29,6 +29,7 @@ fun AlexaApp(
   onRegister: (String, String) -> Unit,
   onRefreshApproval: () -> Unit,
   onRefresh: () -> Unit,
+  onCompanySelected: (String) -> Unit,
   onLock: () -> Unit,
   onForgetDevice: () -> Unit,
   onCreateObjective: (CreateObjectiveRequest) -> Unit,
@@ -52,6 +53,7 @@ fun AlexaApp(
   onLoadEarlierMessages: () -> Unit = {},
   onApprovalSelected: (String) -> Unit = {},
   onNotificationTargetConsumed: () -> Unit = {},
+  onExternalDestinationConsumed: () -> Unit = {},
   onNotificationPreferences: (NotificationPreferences) -> Unit = {},
   onApprovalDecisionWithReason: (String, Boolean, String?) -> Unit = { _, _, _ -> },
   onCrossDeviceCommandApplied: (String, Boolean, String) -> Unit = { _, _, _ -> },
@@ -67,6 +69,7 @@ fun AlexaApp(
           state = state,
           environment = environment,
           onRefresh = onRefresh,
+          onCompanySelected = onCompanySelected,
           onLock = onLock,
           onForgetDevice = onForgetDevice,
           onCreateObjective = onCreateObjective,
@@ -78,6 +81,7 @@ fun AlexaApp(
           onExperimentsSelected = onExperimentsSelected,
           onApprovalSelected = onApprovalSelected,
           onNotificationTargetConsumed = onNotificationTargetConsumed,
+          onExternalDestinationConsumed = onExternalDestinationConsumed,
           onNotificationPreferences = onNotificationPreferences,
           onApprovalDecisionWithReason = onApprovalDecisionWithReason,
           onCrossDeviceCommandApplied = onCrossDeviceCommandApplied,
@@ -103,7 +107,7 @@ fun AlexaApp(
   var email by remember { mutableStateOf("") }
   var password by remember { mutableStateOf("") }
   Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center) {
-    Text("Alexa", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.SemiBold)
+    Text("Monday OS", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.SemiBold)
     Text("Command Center", color = AlexaPrimary, style = MaterialTheme.typography.labelLarge)
     Spacer(Modifier.height(28.dp))
     Text("Sign in", style = MaterialTheme.typography.headlineSmall)
@@ -118,7 +122,7 @@ fun AlexaApp(
 }
 
 @Composable private fun RegistrationScreen(screen: AlexaScreenState.Registration, error: String?, onCreatePairing: () -> Unit, onRegister: (String, String) -> Unit, onRefreshApproval: () -> Unit) {
-  var deviceName by remember { mutableStateOf("Alexa Android") }
+  var deviceName by remember { mutableStateOf("Monday OS") }
   var pairingCode by remember(screen.pairingCode) { mutableStateOf(screen.pairingCode.orEmpty()) }
   Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center) {
     Text("Trust this phone", style = MaterialTheme.typography.headlineSmall)

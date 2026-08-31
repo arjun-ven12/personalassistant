@@ -26,9 +26,19 @@ export const registerWorkflowRoutes = (
   app: FastifyInstance,
   context: ApiRouteContext,
 ) => {
+  const readPreHandlers = [
+    context.security.requireAuthentication,
+    context.companyContext.requireCompany,
+  ];
+  const mutationPreHandlers = [
+    context.security.requireAuthentication,
+    context.companyContext.requireCompany,
+    context.security.requireTrustedOrigin,
+    context.security.requireCsrf,
+  ];
   app.get(
     "/api/workflows",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: readPreHandlers },
     async (request) => {
       const identity = context.security.getIdentity(request);
       return WorkflowListResponseSchema.parse(
@@ -40,11 +50,7 @@ export const registerWorkflowRoutes = (
   app.post(
     "/api/workflows",
     {
-      preHandler: [
-        context.security.requireAuthentication,
-        context.security.requireTrustedOrigin,
-        context.security.requireCsrf,
-      ],
+      preHandler: mutationPreHandlers,
     },
     async (request) => {
       const identity = context.security.getIdentity(request);
@@ -61,7 +67,7 @@ export const registerWorkflowRoutes = (
 
   app.get(
     "/api/workflows/:workflowId",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: readPreHandlers },
     async (request) => {
       const identity = context.security.getIdentity(request);
       const { workflowId } = WorkflowParametersSchema.parse(request.params);
@@ -73,13 +79,7 @@ export const registerWorkflowRoutes = (
 
   app.post(
     "/api/workflows/:workflowId/approve",
-    {
-      preHandler: [
-        context.security.requireAuthentication,
-        context.security.requireTrustedOrigin,
-        context.security.requireCsrf,
-      ],
-    },
+    { preHandler: mutationPreHandlers },
     async (request) => {
       const identity = context.security.getIdentity(request);
       const { workflowId } = WorkflowParametersSchema.parse(request.params);
@@ -92,13 +92,7 @@ export const registerWorkflowRoutes = (
 
   app.post(
     "/api/workflows/:workflowId/advance",
-    {
-      preHandler: [
-        context.security.requireAuthentication,
-        context.security.requireTrustedOrigin,
-        context.security.requireCsrf,
-      ],
-    },
+    { preHandler: mutationPreHandlers },
     async (request) => {
       const identity = context.security.getIdentity(request);
       const { workflowId } = WorkflowParametersSchema.parse(request.params);
@@ -110,13 +104,7 @@ export const registerWorkflowRoutes = (
 
   app.post(
     "/api/workflows/:workflowId/pause",
-    {
-      preHandler: [
-        context.security.requireAuthentication,
-        context.security.requireTrustedOrigin,
-        context.security.requireCsrf,
-      ],
-    },
+    { preHandler: mutationPreHandlers },
     async (request) => {
       const identity = context.security.getIdentity(request);
       const { workflowId } = WorkflowParametersSchema.parse(request.params);
@@ -129,13 +117,7 @@ export const registerWorkflowRoutes = (
 
   app.post(
     "/api/workflows/:workflowId/cancel",
-    {
-      preHandler: [
-        context.security.requireAuthentication,
-        context.security.requireTrustedOrigin,
-        context.security.requireCsrf,
-      ],
-    },
+    { preHandler: mutationPreHandlers },
     async (request) => {
       const identity = context.security.getIdentity(request);
       const { workflowId } = WorkflowParametersSchema.parse(request.params);
@@ -148,13 +130,7 @@ export const registerWorkflowRoutes = (
 
   app.post(
     "/api/workflows/:workflowId/tasks/:taskId/complete",
-    {
-      preHandler: [
-        context.security.requireAuthentication,
-        context.security.requireTrustedOrigin,
-        context.security.requireCsrf,
-      ],
-    },
+    { preHandler: mutationPreHandlers },
     async (request) => {
       const identity = context.security.getIdentity(request);
       const { workflowId, taskId } = WorkflowTaskParametersSchema.parse(request.params);
@@ -166,13 +142,7 @@ export const registerWorkflowRoutes = (
 
   app.post(
     "/api/workflows/:workflowId/tasks/:taskId/artifacts",
-    {
-      preHandler: [
-        context.security.requireAuthentication,
-        context.security.requireTrustedOrigin,
-        context.security.requireCsrf,
-      ],
-    },
+    { preHandler: mutationPreHandlers },
     async (request) => {
       const identity = context.security.getIdentity(request);
       const { workflowId, taskId } = WorkflowTaskParametersSchema.parse(request.params);

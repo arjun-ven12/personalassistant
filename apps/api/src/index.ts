@@ -1,6 +1,7 @@
 import { parseApiEnvironment } from "@alexa-control/config";
 
 import { buildApi, LOG_REDACTION_PATHS } from "./app.js";
+import { createTelemetrySink } from "./telemetry/service.js";
 import { BUILT_IN_TOOLS } from "./governance/defaults.js";
 import { PostgresGovernanceStore } from "./governance/postgres-store.js";
 import type { GovernanceStore } from "./governance/store.js";
@@ -326,10 +327,6 @@ const redis = new RedisService({
   ...(environment.REDIS_PASSWORD ? { password: environment.REDIS_PASSWORD } : {}),
   tls: environment.REDIS_TLS,
 });
-if (environment.NODE_ENV === "production" && environment.CACHE_ENABLED) {
-  const redisHealth = await redis.health();
-  if (!redisHealth.available) throw new Error("Redis is required but unavailable.");
-}
 const cache = new CacheService(redis, {
   enabled: environment.CACHE_ENABLED,
   namespace: environment.REDIS_NAMESPACE,
@@ -434,6 +431,7 @@ const networkVerifier =
         : new UnknownNetworkVerifier();
 
 const app = await buildApi({
+  telemetry: createTelemetrySink(process.env.OTEL_EXPORTER_OTLP_ENDPOINT),
   deploymentMode: environment.DEPLOYMENT_MODE,
   corsOrigin: environment.WEB_ORIGIN,
   privateNetworkRequired: environment.PRIVATE_NETWORK_REQUIRED,

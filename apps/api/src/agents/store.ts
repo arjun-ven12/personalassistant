@@ -32,6 +32,16 @@ import {
 } from "@alexa-control/shared";
 
 import type { Awaitable } from "../identity/store.js";
+import { companyScope } from "../companies/scope.js";
+
+const scopedKey = (ownerId: string, id: string) =>
+  `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:${id}`;
+const scopedPrefix = (ownerId: string) =>
+  `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:`;
+const scopedValues = <T extends { ownerId: string }>(values: Map<string, T>, ownerId: string) =>
+  [...values.entries()]
+    .filter(([key, value]) => key.startsWith(scopedPrefix(ownerId)) && value.ownerId === ownerId)
+    .map(([, value]) => value);
 
 export interface AgentStore {
   upsertAgent(agent: AgentRecord): Awaitable<void>;
@@ -111,47 +121,56 @@ export class InMemoryAgentStore implements AgentStore {
 
   upsertAgent(agent: AgentRecord) {
     const parsed = AgentRecordSchema.parse(agent);
-    this.#agents.set(`${parsed.ownerId}:${parsed.id}`, structuredClone(parsed));
+    const targetKey = scopedKey(parsed.ownerId, parsed.id);
+    const crossCompany = [...this.#agents.entries()].some(
+      ([existingKey, existing]) =>
+        existingKey !== targetKey &&
+        existing.ownerId === parsed.ownerId &&
+        existing.id === parsed.id,
+    );
+    if (crossCompany) throw new Error("Agent belongs to another company.");
+    this.#agents.set(targetKey, structuredClone(parsed));
   }
 
   findAgent(ownerId: string, agentId: string) {
-    const agent = this.#agents.get(`${ownerId}:${agentId}`);
+    const agent = this.#agents.get(scopedKey(ownerId, agentId));
     return agent ? structuredClone(agent) : undefined;
   }
 
   listAgents(ownerId: string) {
-    return [...this.#agents.values()]
-      .filter((agent) => agent.ownerId === ownerId)
+    return [...this.#agents.entries()]
+      .filter(([key, agent]) => key.startsWith(scopedPrefix(ownerId)) && agent.ownerId === ownerId)
+      .map(([, agent]) => agent)
       .sort((left, right) => left.displayName.localeCompare(right.displayName))
       .map((agent) => structuredClone(agent));
   }
 
   saveTask(task: AgentTaskRecord) {
     const parsed = AgentTaskRecordSchema.parse(task);
-    this.#tasks.set(parsed.id, structuredClone(parsed));
+    this.#tasks.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   listTasks(ownerId: string, limit: number) {
-    return [...this.#tasks.values()]
-      .filter((task) => task.ownerId === ownerId)
+    return [...this.#tasks.entries()]
+      .filter(([key, task]) => key.startsWith(scopedPrefix(ownerId)) && task.ownerId === ownerId)
+      .map(([, task]) => task)
       .sort((left, right) => right.assignedAt.localeCompare(left.assignedAt))
       .slice(0, limit)
       .map((task) => structuredClone(task));
   }
 
   findTask(ownerId: string, taskId: string) {
-    const task = this.#tasks.get(taskId);
+    const task = this.#tasks.get(scopedKey(ownerId, taskId));
     return task?.ownerId === ownerId ? structuredClone(task) : undefined;
   }
 
   saveMessage(message: AgentMessageRecord) {
     const parsed = AgentMessageRecordSchema.parse(message);
-    this.#messages.set(parsed.id, structuredClone(parsed));
+    this.#messages.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   listMessages(ownerId: string, limit: number) {
-    return [...this.#messages.values()]
-      .filter((message) => message.ownerId === ownerId)
+    return scopedValues(this.#messages, ownerId)
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
       .slice(0, limit)
       .map((message) => structuredClone(message));
@@ -159,12 +178,11 @@ export class InMemoryAgentStore implements AgentStore {
 
   saveContext(context: AgentContextRecord) {
     const parsed = AgentContextRecordSchema.parse(context);
-    this.#contexts.set(parsed.id, structuredClone(parsed));
+    this.#contexts.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   listContexts(ownerId: string, limit: number) {
-    return [...this.#contexts.values()]
-      .filter((context) => context.ownerId === ownerId)
+    return scopedValues(this.#contexts, ownerId)
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
       .slice(0, limit)
       .map((context) => structuredClone(context));
@@ -172,12 +190,11 @@ export class InMemoryAgentStore implements AgentStore {
 
   saveConsensus(consensus: AgentConsensusRecord) {
     const parsed = AgentConsensusRecordSchema.parse(consensus);
-    this.#consensus.set(parsed.id, structuredClone(parsed));
+    this.#consensus.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   listConsensus(ownerId: string, limit: number) {
-    return [...this.#consensus.values()]
-      .filter((consensus) => consensus.ownerId === ownerId)
+    return scopedValues(this.#consensus, ownerId)
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
       .slice(0, limit)
       .map((consensus) => structuredClone(consensus));
@@ -185,12 +202,11 @@ export class InMemoryAgentStore implements AgentStore {
 
   saveConflict(conflict: AgentConflictRecord) {
     const parsed = AgentConflictRecordSchema.parse(conflict);
-    this.#conflicts.set(parsed.id, structuredClone(parsed));
+    this.#conflicts.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   listConflicts(ownerId: string, limit: number) {
-    return [...this.#conflicts.values()]
-      .filter((conflict) => conflict.ownerId === ownerId)
+    return scopedValues(this.#conflicts, ownerId)
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
       .slice(0, limit)
       .map((conflict) => structuredClone(conflict));
@@ -198,54 +214,53 @@ export class InMemoryAgentStore implements AgentStore {
 
   saveHealth(health: AgentHealthRecord) {
     const parsed = AgentHealthRecordSchema.parse(health);
-    this.#health.set(`${parsed.ownerId}:${parsed.agentId}`, structuredClone(parsed));
+    this.#health.set(scopedKey(parsed.ownerId, parsed.agentId), structuredClone(parsed));
   }
 
   listHealth(ownerId: string) {
-    return [...this.#health.values()]
-      .filter((health) => health.ownerId === ownerId)
+    return scopedValues(this.#health, ownerId)
       .map((health) => structuredClone(health));
   }
 
   saveMetrics(metrics: AgentMetricsRecord) {
     const parsed = AgentMetricsRecordSchema.parse(metrics);
-    this.#metrics.set(`${parsed.ownerId}:${parsed.agentId}`, structuredClone(parsed));
+    this.#metrics.set(scopedKey(parsed.ownerId, parsed.agentId), structuredClone(parsed));
   }
 
   listMetrics(ownerId: string) {
-    return [...this.#metrics.values()]
-      .filter((metrics) => metrics.ownerId === ownerId)
+    return scopedValues(this.#metrics, ownerId)
       .map((metrics) => structuredClone(metrics));
   }
 
   saveTemplate(template: AgentTemplateRecord) {
     const parsed = AgentTemplateRecordSchema.parse(template);
-    this.#templates.set(`${parsed.ownerId}:${parsed.id}`, structuredClone(parsed));
+    this.#templates.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   listTemplates(ownerId: string) {
-    return [...this.#templates.values()]
-      .filter((template) => template.ownerId === ownerId)
+    return scopedValues(this.#templates, ownerId)
       .sort((left, right) => left.displayName.localeCompare(right.displayName))
       .map((template) => structuredClone(template));
   }
 
   saveCapability(capability: CapabilityRecord) {
     const parsed = CapabilityRecordSchema.parse(capability);
-    this.#capabilities.set(`${parsed.ownerId}:${parsed.id}`, structuredClone(parsed));
+    this.#capabilities.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   listCapabilities(ownerId: string) {
-    return [...this.#capabilities.values()]
-      .filter((capability) => capability.ownerId === ownerId)
+    return [...this.#capabilities.entries()]
+      .filter(([key, capability]) => key.startsWith(scopedPrefix(ownerId)) && capability.ownerId === ownerId)
+      .map(([, capability]) => capability)
       .sort((left, right) => left.name.localeCompare(right.name))
       .map((capability) => structuredClone(capability));
   }
 
   searchCapabilities(ownerId: string, query: string, limit: number) {
     const needle = query.toLowerCase();
-    return [...this.#capabilities.values()]
-      .filter((capability) => capability.ownerId === ownerId)
+    return [...this.#capabilities.entries()]
+      .filter(([key, capability]) => key.startsWith(scopedPrefix(ownerId)) && capability.ownerId === ownerId)
+      .map(([, capability]) => capability)
       .filter(
         (capability) =>
           capability.id.toLowerCase().includes(needle) ||
@@ -259,17 +274,18 @@ export class InMemoryAgentStore implements AgentStore {
 
   saveDynamicAgent(agent: DynamicAgentRecord) {
     const parsed = DynamicAgentRecordSchema.parse(agent);
-    this.#dynamicAgents.set(`${parsed.ownerId}:${parsed.id}`, structuredClone(parsed));
+    this.#dynamicAgents.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   findDynamicAgent(ownerId: string, agentId: string) {
-    const agent = this.#dynamicAgents.get(`${ownerId}:${agentId}`);
+    const agent = this.#dynamicAgents.get(scopedKey(ownerId, agentId));
     return agent ? structuredClone(agent) : undefined;
   }
 
   listDynamicAgents(ownerId: string, includeArchived: boolean) {
-    return [...this.#dynamicAgents.values()]
-      .filter((agent) => agent.ownerId === ownerId)
+    return [...this.#dynamicAgents.entries()]
+      .filter(([key, agent]) => key.startsWith(scopedPrefix(ownerId)) && agent.ownerId === ownerId)
+      .map(([, agent]) => agent)
       .filter((agent) => includeArchived || agent.lifecycleStatus !== "archived")
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
       .map((agent) => structuredClone(agent));
@@ -277,12 +293,11 @@ export class InMemoryAgentStore implements AgentStore {
 
   saveLifecycleEvent(event: AgentLifecycleEventRecord) {
     const parsed = AgentLifecycleEventRecordSchema.parse(event);
-    this.#lifecycle.set(parsed.id, structuredClone(parsed));
+    this.#lifecycle.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   listLifecycleEvents(ownerId: string, limit: number) {
-    return [...this.#lifecycle.values()]
-      .filter((event) => event.ownerId === ownerId)
+    return scopedValues(this.#lifecycle, ownerId)
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
       .slice(0, limit)
       .map((event) => structuredClone(event));
@@ -290,12 +305,11 @@ export class InMemoryAgentStore implements AgentStore {
 
   saveDynamicPerformance(performance: DynamicAgentPerformanceRecord) {
     const parsed = DynamicAgentPerformanceRecordSchema.parse(performance);
-    this.#dynamicPerformance.set(parsed.id, structuredClone(parsed));
+    this.#dynamicPerformance.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   listDynamicPerformance(ownerId: string, limit: number) {
-    return [...this.#dynamicPerformance.values()]
-      .filter((performance) => performance.ownerId === ownerId)
+    return scopedValues(this.#dynamicPerformance, ownerId)
       .sort((left, right) => right.recordedAt.localeCompare(left.recordedAt))
       .slice(0, limit)
       .map((performance) => structuredClone(performance));
@@ -303,12 +317,11 @@ export class InMemoryAgentStore implements AgentStore {
 
   saveTeamComposition(composition: TeamCompositionRecord) {
     const parsed = TeamCompositionRecordSchema.parse(composition);
-    this.#teamCompositions.set(parsed.id, structuredClone(parsed));
+    this.#teamCompositions.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   listTeamCompositions(ownerId: string, limit: number) {
-    return [...this.#teamCompositions.values()]
-      .filter((composition) => composition.ownerId === ownerId)
+    return scopedValues(this.#teamCompositions, ownerId)
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
       .slice(0, limit)
       .map((composition) => structuredClone(composition));
@@ -316,12 +329,11 @@ export class InMemoryAgentStore implements AgentStore {
 
   savePromotionCandidate(candidate: AgentPromotionCandidateRecord) {
     const parsed = AgentPromotionCandidateRecordSchema.parse(candidate);
-    this.#promotionCandidates.set(parsed.id, structuredClone(parsed));
+    this.#promotionCandidates.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   listPromotionCandidates(ownerId: string, limit: number) {
-    return [...this.#promotionCandidates.values()]
-      .filter((candidate) => candidate.ownerId === ownerId)
+    return scopedValues(this.#promotionCandidates, ownerId)
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
       .slice(0, limit)
       .map((candidate) => structuredClone(candidate));

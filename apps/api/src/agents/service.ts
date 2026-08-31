@@ -66,7 +66,6 @@ export class AgentRegistryService {
   }
 
   async dashboard(ownerId: string) {
-    await this.ensureBuiltIns(ownerId);
     const dynamicWorkforce = await this.factory?.dashboard(ownerId);
     return AgentDashboardResponseSchema.parse({
       agents: await this.store.listAgents(ownerId),
@@ -82,7 +81,6 @@ export class AgentRegistryService {
   }
 
   async list(ownerId: string) {
-    await this.ensureBuiltIns(ownerId);
     return this.store.listAgents(ownerId);
   }
 
@@ -92,7 +90,6 @@ export class AgentRegistryService {
     requestId: string;
     ipAddress: string;
   }) {
-    await this.ensureBuiltIns(input.ownerId, input.requestId);
     const parsed = CreateAgentTaskRequestSchema.parse(input.body);
     const agent = await this.requireAgent(input.ownerId, parsed.agentId);
     if (agent.status === "disabled" || agent.status === "unhealthy") {
@@ -184,7 +181,6 @@ export class AgentRegistryService {
     requestId: string;
     ipAddress: string;
   }) {
-    await this.ensureBuiltIns(input.ownerId, input.requestId);
     const parsed = CreateAgentMessageRequestSchema.parse(input.body);
     await this.requireAgent(input.ownerId, parsed.senderAgentId);
     await this.requireAgent(input.ownerId, parsed.recipientAgentId);
@@ -225,7 +221,6 @@ export class AgentRegistryService {
     requestId: string;
     ipAddress: string;
   }) {
-    await this.ensureBuiltIns(input.ownerId, input.requestId);
     const parsed = CreateAgentConsensusRequestSchema.parse(input.body);
     for (const agentId of parsed.requiredAgentIds) {
       await this.requireAgent(input.ownerId, agentId);

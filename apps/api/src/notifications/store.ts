@@ -5,6 +5,7 @@ import type {
 import type { Pool } from "pg";
 
 import type { Awaitable } from "../identity/store.js";
+import { companyScope } from "../companies/scope.js";
 
 export interface PushSubscription {
   ownerId: string;
@@ -27,6 +28,7 @@ export interface NotificationPreferences {
 export interface NotificationDelivery {
   id: string;
   ownerId: string;
+  companyId: string | null;
   deviceId: string;
   eventId: string;
   category: ExecutiveNotificationCategory;
@@ -114,6 +116,7 @@ export class InMemoryNotificationStore implements NotificationStore {
         .find(
           (item) =>
             item.ownerId === ownerId &&
+            (!companyScope.companyId(ownerId) || item.companyId === companyScope.companyId(ownerId)) &&
             item.deviceId === deviceId &&
             item.dedupeKey === dedupeKey &&
             item.createdAt >= since,
@@ -125,6 +128,7 @@ export class InMemoryNotificationStore implements NotificationStore {
     return this.#deliveries.filter(
       (item) =>
         item.ownerId === ownerId &&
+        (!companyScope.companyId(ownerId) || item.companyId === companyScope.companyId(ownerId)) &&
         item.deviceId === deviceId &&
         item.createdAt >= since &&
         item.outcome === "ACCEPTED",
@@ -194,11 +198,12 @@ export class PostgresNotificationStore implements NotificationStore {
   async saveDelivery(delivery: NotificationDelivery) {
     await this.pool.query(
       `INSERT INTO notification_deliveries
-       (id,owner_id,device_id,event_id,category,dedupe_key,outcome,record,created_at)
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+       (id,owner_id,company_id,device_id,event_id,category,dedupe_key,outcome,record,created_at)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       [
         delivery.id,
         delivery.ownerId,
+        delivery.companyId,
         delivery.deviceId,
         delivery.eventId,
         delivery.category,
@@ -214,8 +219,9 @@ export class PostgresNotificationStore implements NotificationStore {
     const result = await this.pool.query<{ record: NotificationDelivery }>(
       `SELECT record FROM notification_deliveries
        WHERE owner_id=$1 AND device_id=$2 AND dedupe_key=$3 AND created_at >= $4
+       AND ($5::uuid IS NULL OR company_id=$5)
        ORDER BY created_at DESC LIMIT 1`,
-      [ownerId, deviceId, dedupeKey, since],
+      [ownerId, deviceId, dedupeKey, since, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows[0]?.record;
   }
@@ -223,8 +229,9 @@ export class PostgresNotificationStore implements NotificationStore {
   async countRecentDeliveries(ownerId: string, deviceId: string, since: string) {
     const result = await this.pool.query<{ count: string }>(
       `SELECT count(*)::text AS count FROM notification_deliveries
-       WHERE owner_id=$1 AND device_id=$2 AND created_at >= $3 AND outcome='ACCEPTED'`,
-      [ownerId, deviceId, since],
+       WHERE owner_id=$1 AND device_id=$2 AND created_at >= $3 AND outcome='ACCEPTED'
+       AND ($4::uuid IS NULL OR company_id=$4)`,
+      [ownerId, deviceId, since, companyScope.companyId(ownerId) ?? null],
     );
     return Number(result.rows[0]?.count ?? 0);
   }

@@ -11,6 +11,7 @@ import type {
   StoredPolicyEvaluation,
 } from "./types.js";
 import type { Awaitable } from "../identity/store.js";
+import { companyScope } from "../companies/scope.js";
 
 export interface GovernanceStore {
   createApplication(application: AllowedApplication): Awaitable<void>;
@@ -52,6 +53,7 @@ export class InMemoryGovernanceStore implements GovernanceStore {
   readonly #tools = new Map<string, ToolDefinition>();
   readonly #approvals = new Map<string, StoredApprovalRequest>();
   readonly #evaluations: StoredPolicyEvaluation[] = [];
+  readonly #evaluationCompanies = new Map<string, string | null>();
   #securityState: GovernanceSecurityState;
 
   constructor(tools: ToolDefinition[] = [], emergencyStopActive = true) {
@@ -69,51 +71,61 @@ export class InMemoryGovernanceStore implements GovernanceStore {
   }
 
   createApplication(application: AllowedApplication) {
-    if (this.#applications.has(application.id)) {
+    const key = `${application.ownerId}:${companyScope.companyId(application.ownerId) ?? "owner-default"}:${application.id}`;
+    if (this.#applications.has(key)) {
       throw new Error("Application ID already exists.");
     }
-    this.#applications.set(application.id, structuredClone(application));
+    this.#applications.set(key, structuredClone(application));
   }
 
   findApplicationById(id: string) {
-    return this.clone(this.#applications.get(id));
+    const suffix = `:${companyScope.companyId() ?? "owner-default"}:${id}`;
+    return this.clone([...this.#applications.entries()].find(([key]) => key.endsWith(suffix))?.[1]);
   }
 
   listApplications(ownerId: string) {
-    return [...this.#applications.values()]
-      .filter((application) => application.ownerId === ownerId)
+    const prefix = `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:`;
+    return [...this.#applications.entries()]
+      .filter(([key,application]) => key.startsWith(prefix) && application.ownerId === ownerId)
+      .map(([,application])=>application)
       .map((application) => structuredClone(application));
   }
 
   updateApplication(application: AllowedApplication) {
-    if (!this.#applications.has(application.id)) {
+    const key = `${application.ownerId}:${companyScope.companyId(application.ownerId) ?? "owner-default"}:${application.id}`;
+    if (!this.#applications.has(key)) {
       throw new Error("Application does not exist.");
     }
-    this.#applications.set(application.id, structuredClone(application));
+    this.#applications.set(key, structuredClone(application));
   }
 
   createWorkspace(workspace: AllowedWorkspace) {
-    if (this.#workspaces.has(workspace.id)) {
+    const key = `${workspace.ownerId}:${companyScope.companyId(workspace.ownerId) ?? "owner-default"}:${workspace.id}`;
+    if (this.#workspaces.has(key)) {
       throw new Error("Workspace ID already exists.");
     }
-    this.#workspaces.set(workspace.id, structuredClone(workspace));
+    this.#workspaces.set(key, structuredClone(workspace));
   }
 
   findWorkspaceById(id: string) {
-    return this.clone(this.#workspaces.get(id));
+    const suffix = `:${companyScope.companyId() ?? "owner-default"}:${id}`;
+    return this.clone([...this.#workspaces.entries()].find(([key]) => key.endsWith(suffix))?.[1]);
   }
 
   listWorkspaces(ownerId: string) {
-    return [...this.#workspaces.values()]
-      .filter((workspace) => workspace.ownerId === ownerId)
+    const prefix = `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:`;
+    return [...this.#workspaces.entries()]
+      .filter(([key,workspace]) => key.startsWith(prefix) && workspace.ownerId === ownerId)
+      .map(([,workspace])=>workspace)
       .map((workspace) => structuredClone(workspace));
   }
 
   updateWorkspace(workspace: AllowedWorkspace) {
-    if (!this.#workspaces.has(workspace.id)) {
+    const key = `${workspace.ownerId}:${companyScope.companyId(workspace.ownerId) ?? "owner-default"}:${workspace.id}`;
+    if (!this.#workspaces.has(key)) {
       throw new Error("Workspace does not exist.");
     }
-    this.#workspaces.set(workspace.id, structuredClone(workspace));
+    this.#workspaces.set(key, structuredClone(workspace));
   }
 
   listTools() {
@@ -138,7 +150,9 @@ export class InMemoryGovernanceStore implements GovernanceStore {
   }
 
   findApprovalById(id: string) {
-    return this.clone(this.#approvals.get(id));
+    const approval = this.#approvals.get(id);
+    const activeCompanyId = approval ? companyScope.companyId(approval.ownerId) : undefined;
+    return this.clone(approval && (!activeCompanyId || approval.companyId === activeCompanyId) ? approval : undefined);
   }
 
   findApprovalByDigest(
@@ -149,6 +163,7 @@ export class InMemoryGovernanceStore implements GovernanceStore {
     const approval = [...this.#approvals.values()].find(
       (entry) =>
         entry.ownerId === ownerId &&
+        (!companyScope.companyId(ownerId) || entry.companyId === companyScope.companyId(ownerId)) &&
         entry.actionDigest === actionDigest &&
         statuses.includes(entry.status),
     );
@@ -159,7 +174,10 @@ export class InMemoryGovernanceStore implements GovernanceStore {
     return [...this.#approvals.values()]
       .filter(
         (approval) =>
-          approval.ownerId === ownerId && (!status || approval.status === status),
+          approval.ownerId === ownerId &&
+          (!companyScope.companyId(ownerId) ||
+            approval.companyId === companyScope.companyId(ownerId)) &&
+          (!status || approval.status === status),
       )
       .sort((left, right) => right.requestedAt.localeCompare(left.requestedAt))
       .map((approval) => structuredClone(approval));
@@ -167,7 +185,8 @@ export class InMemoryGovernanceStore implements GovernanceStore {
 
   updateApproval(approval: StoredApprovalRequest) {
     const current = this.#approvals.get(approval.id);
-    if (!current) {
+    const activeCompanyId = companyScope.companyId(approval.ownerId);
+    if (!current || (activeCompanyId && current.companyId !== activeCompanyId)) {
       throw new Error("Approval does not exist.");
     }
     const allowedTransition =
@@ -205,11 +224,12 @@ export class InMemoryGovernanceStore implements GovernanceStore {
 
   appendPolicyEvaluation(evaluation: StoredPolicyEvaluation) {
     this.#evaluations.push(structuredClone(evaluation));
+    this.#evaluationCompanies.set(evaluation.id, companyScope.companyId(evaluation.ownerId) ?? null);
   }
 
   listPolicyEvaluations(ownerId: string, limit: number) {
     return this.#evaluations
-      .filter((evaluation) => evaluation.ownerId === ownerId)
+      .filter((evaluation) => evaluation.ownerId === ownerId && (!companyScope.companyId(ownerId) || this.#evaluationCompanies.get(evaluation.id) === companyScope.companyId(ownerId)))
       .slice(-limit)
       .reverse()
       .map((evaluation) => structuredClone(evaluation));

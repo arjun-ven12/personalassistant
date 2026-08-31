@@ -32,6 +32,7 @@ class AlexaFirebaseMessagingService : FirebaseMessagingService() {
       putExtra(EXTRA_OBJECT_KIND, target.kind)
       putExtra(EXTRA_OBJECT_ID, target.objectId)
       putExtra(EXTRA_EVENT_ID, target.eventId)
+      putExtra(EXTRA_COMPANY_ID, target.companyId)
     }
     val pendingIntent = PendingIntent.getActivity(
       this,
@@ -63,5 +64,6 @@ class AlexaFirebaseMessagingService : FirebaseMessagingService() {
     const val EXTRA_OBJECT_KIND = "alexa.notification.objectKind"
     const val EXTRA_OBJECT_ID = "alexa.notification.objectId"
     const val EXTRA_EVENT_ID = "alexa.notification.eventId"
+    const val EXTRA_COMPANY_ID = "alexa.notification.companyId"
   }
 }

@@ -23,11 +23,18 @@ class AlexaRepository(
   private val gson: Gson = Gson(),
 ) {
   private var crossDeviceRegistered = false
+  private var activeCompanyId: String? = null
   suspend fun login(email: String, password: String): Result<Owner> = api.login(email, password).map { it.user }
 
   suspend fun session(): Result<Owner> = api.session().mapCatching { session ->
     session.user ?: error("The server did not return an owner session.")
   }
+
+  suspend fun companies(): Result<CompanyListResponse> = api.companies().onSuccess { activeCompanyId = it.currentCompany.id }
+  suspend fun selectCompany(companyId: String): Result<CompanyListResponse> = api.csrf().fold(
+    onSuccess = { api.selectCompany(it.token, companyId).onSuccess { selected -> activeCompanyId = selected.currentCompany.id } },
+    onFailure = Result<CompanyListResponse>::failure,
+  )
 
   suspend fun beginPairing(): Result<PairingIntent> = api.csrf().fold(
     onSuccess = { api.createPairingIntent(it.token) },
@@ -79,7 +86,7 @@ class AlexaRepository(
       return Result.failure(AlexaApiException(AlexaFailure.DeviceRevoked))
     }
     return api.deviceSummary(envelope)
-      .onSuccess { cache.save("summary", gson.toJson(it), System.currentTimeMillis()) }
+      .onSuccess { summary -> scopedCacheKey("summary")?.let { cache.save(it, gson.toJson(summary), System.currentTimeMillis()) } }
       .onFailure(::clearOnRevocation)
   }
 
@@ -114,20 +121,20 @@ class AlexaRepository(
   suspend fun experiments(objectiveId: String): Result<ExperimentDashboard> = if (objectiveId == "__all__") api.allExperiments() else api.experiments(objectiveId)
 
   suspend fun conversations(): Result<ConversationCenter> = api.conversations()
-    .onSuccess { cache.save(CONVERSATION_CACHE_KEY, gson.toJson(it), System.currentTimeMillis()) }
+    .onSuccess { center -> scopedCacheKey(CONVERSATION_CACHE_KEY)?.let { cache.save(it, gson.toJson(center), System.currentTimeMillis()) } }
     .onFailure(::clearOnRevocation)
 
   suspend fun syncCrossDeviceClient(): Result<CrossDevicePollResponse> {
     val clientInstanceId = registrationStore.clientInstanceId()
     if (!crossDeviceRegistered) {
-      val register = signedDeviceRequest(
+      val register = signedCrossDeviceRequest(
         payload = mapOf(
           "operation" to JsonPrimitive("register"),
           "request" to gson.toJsonTree(
             mapOf(
               "clientInstanceId" to clientInstanceId,
               "clientType" to "ANDROID",
-              "displayName" to "Alexa Android",
+              "displayName" to "Monday OS",
               "platform" to "Android",
               "capabilities" to listOf("SHOW_SCREEN", "OPEN_OBJECTIVE", "OPEN_AGENT", "OPEN_WORKFLOW", "OPEN_APPROVAL", "OPEN_CONVERSATION"),
               "currentRoute" to null,
@@ -139,7 +146,7 @@ class AlexaRepository(
       if (register.isFailure) return Result.failure(register.exceptionOrNull()!!)
       crossDeviceRegistered = true
     }
-    return signedDeviceRequest(
+    return signedCrossDeviceRequest(
       payload = mapOf(
         "operation" to JsonPrimitive("poll"),
         "request" to gson.toJsonTree(mapOf("clientInstanceId" to clientInstanceId, "limit" to 5)),
@@ -153,7 +160,7 @@ class AlexaRepository(
       val synced = syncCrossDeviceClient()
       if (synced.isFailure) return Result.failure(synced.exceptionOrNull()!!)
     }
-    return signedDeviceRequest(
+    return signedCrossDeviceRequest(
       payload = mapOf(
         "operation" to JsonPrimitive("utterance"),
         "request" to gson.toJsonTree(
@@ -172,7 +179,7 @@ class AlexaRepository(
   }
 
   suspend fun completeCrossDeviceCommand(commandId: String, succeeded: Boolean, message: String): Result<CrossDeviceCommand> =
-    signedDeviceRequest(
+    signedCrossDeviceRequest(
       payload = mapOf(
         "operation" to JsonPrimitive("receipt"),
         "request" to gson.toJsonTree(
@@ -189,7 +196,7 @@ class AlexaRepository(
     )
 
   suspend fun acknowledgeCrossDeviceCommand(commandId: String): Result<CrossDeviceCommand> =
-    signedDeviceRequest(
+    signedCrossDeviceRequest(
       payload = mapOf(
         "operation" to JsonPrimitive("receipt"),
         "request" to gson.toJsonTree(
@@ -198,7 +205,7 @@ class AlexaRepository(
             "commandId" to commandId,
             "status" to "ACKNOWLEDGED",
             "failureCode" to null,
-            "safeMessage" to "Alexa Android acknowledged the command.",
+            "safeMessage" to "Monday OS acknowledged the command.",
           ),
         ),
       ),
@@ -206,7 +213,7 @@ class AlexaRepository(
     )
 
   suspend fun crossDeviceCommandStatus(commandId: String): Result<CrossDeviceCommand> =
-    signedDeviceRequest(
+    signedCrossDeviceRequest(
       payload = mapOf(
         "operation" to JsonPrimitive("status"),
         "commandId" to JsonPrimitive(commandId),
@@ -276,7 +283,7 @@ class AlexaRepository(
               sessions = response.dashboard.conversationSessions,
               history = response.dashboard.conversationHistory,
             )
-            cache.save(CONVERSATION_CACHE_KEY, gson.toJson(center), System.currentTimeMillis())
+            scopedCacheKey(CONVERSATION_CACHE_KEY)?.let { cache.save(it, gson.toJson(center), System.currentTimeMillis()) }
           }.also {
             // The lease protects one submitted turn, not the entire conversation.
             // Ignore release errors so an already-completed turn is never retried.
@@ -393,13 +400,13 @@ class AlexaRepository(
     request = api::registerBiometricKey,
   )
 
-  fun cachedSummary(): Pair<AlexaSummary, Long>? = cache.read("summary")?.let {
+  fun cachedSummary(): Pair<AlexaSummary, Long>? = scopedCacheKey("summary")?.let(cache::read)?.let {
     runCatching { gson.fromJson(it.json, AlexaSummary::class.java) to it.updatedAt }.getOrNull()
   }
   fun cachedHealth(): Pair<ApiHealth, Long>? = cache.read("health")?.let {
     runCatching { gson.fromJson(it.json, ApiHealth::class.java) to it.updatedAt }.getOrNull()
   }
-  fun cachedConversations(): Pair<ConversationCenter, Long>? = cache.read(CONVERSATION_CACHE_KEY)?.let {
+  fun cachedConversations(): Pair<ConversationCenter, Long>? = scopedCacheKey(CONVERSATION_CACHE_KEY)?.let(cache::read)?.let {
     runCatching { gson.fromJson(it.json, ConversationCenter::class.java) to it.updatedAt }.getOrNull()
   }
   fun registration() = registrationStore.load()
@@ -418,11 +425,24 @@ class AlexaRepository(
     if ((error as? AlexaApiException)?.failure == AlexaFailure.DeviceRevoked) clearAuthority()
   }
 
+  private fun scopedCacheKey(key: String): String? = activeCompanyId?.let { "$it:$key" }
+
   private suspend fun <T> signedVoiceRequest(
     payload: Map<String, JsonElement>,
     request: suspend (SignedEnvelope) -> Result<T>,
   ): Result<T> {
-    return signedDeviceRequest(payload) { _, envelope -> request(envelope) }
+    val companyId = activeCompanyId
+      ?: return Result.failure(AlexaApiException(AlexaFailure.Unknown("Select a company before starting voice.")))
+    return signedDeviceRequest(payload + ("companyId" to JsonPrimitive(companyId))) { _, envelope -> request(envelope) }
+  }
+
+  private suspend fun <T> signedCrossDeviceRequest(
+    payload: Map<String, JsonElement>,
+    request: suspend (String, SignedEnvelope) -> Result<T>,
+  ): Result<T> {
+    val companyId = activeCompanyId
+      ?: return Result.failure(AlexaApiException(AlexaFailure.Unknown("Select a company before using another device.")))
+    return signedDeviceRequest(payload + ("companyId" to JsonPrimitive(companyId)), request)
   }
 
   private suspend fun <T> signedDeviceRequest(

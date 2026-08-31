@@ -20037,6 +20037,7 @@ var CrossDeviceFailureCodeSchema = external_exports.enum([
 var CrossDeviceClientInstanceSchema = external_exports.object({
   id: external_exports.string().uuid(),
   ownerId: external_exports.string().uuid(),
+  activeCompanyId: external_exports.string().uuid().nullable().default(null),
   sessionId: external_exports.string().min(1).max(200),
   trustedDeviceId: external_exports.string().uuid().nullable(),
   clientType: CrossDeviceClientTypeSchema,
@@ -20073,6 +20074,7 @@ var CrossDeviceUtteranceRequestSchema = external_exports.object({
 var CrossDeviceCommandSchema = external_exports.object({
   id: external_exports.string().uuid(),
   ownerId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid().nullable().default(null),
   sourceClientInstanceId: external_exports.string().uuid(),
   sourceDeviceId: external_exports.string().uuid().nullable(),
   sourceClientType: CrossDeviceClientTypeSchema,
@@ -20470,6 +20472,7 @@ var AuditRecordSchema = external_exports.object({
   eventType: AuditEventTypeSchema,
   timestamp: external_exports.iso.datetime(),
   userId: external_exports.string().uuid().nullable(),
+  companyId: external_exports.string().uuid().nullable().default(null),
   deviceId: external_exports.string().uuid().nullable(),
   ipAddress: external_exports.string().min(1),
   outcome: AuditOutcomeSchema,
@@ -24835,6 +24838,56 @@ var CanonicalAlexaSummarySchema = external_exports.object({
   }).strict()
 }).strict();
 
+// ../../packages/shared/src/companies.ts
+var CompanyStatusSchema = external_exports.enum(["ACTIVE", "PAUSED", "ARCHIVED"]);
+var CompanySchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  slug: external_exports.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).min(2).max(80),
+  name: external_exports.string().trim().min(1).max(160),
+  status: CompanyStatusSchema,
+  timezone: external_exports.string().trim().min(1).max(80).nullable(),
+  defaultCurrency: external_exports.string().regex(/^[A-Z]{3}$/).nullable(),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var CompanyMembershipSchema = external_exports.object({
+  companyId: external_exports.string().uuid(),
+  principalId: external_exports.string().uuid(),
+  principalType: external_exports.literal("OWNER"),
+  role: external_exports.literal("OWNER"),
+  status: external_exports.enum(["ACTIVE", "REVOKED"]),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var CompanySummarySchema = CompanySchema.pick({
+  id: true,
+  slug: true,
+  name: true,
+  status: true
+});
+var CompanyListResponseSchema = external_exports.object({
+  currentCompany: CompanySummarySchema,
+  companies: external_exports.array(CompanySummarySchema).max(100)
+}).strict();
+var CreateCompanyRequestSchema = external_exports.object({
+  name: external_exports.string().trim().min(1).max(160),
+  slug: external_exports.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).min(2).max(80),
+  timezone: external_exports.string().trim().min(1).max(80).optional(),
+  defaultCurrency: external_exports.string().regex(/^[A-Z]{3}$/).optional()
+}).strict();
+var SelectCompanyRequestSchema = external_exports.object({
+  companyId: external_exports.string().uuid()
+}).strict();
+var CompanyContextSchema = external_exports.object({
+  ownerId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid(),
+  role: external_exports.literal("OWNER"),
+  sourceDeviceId: external_exports.string().uuid().optional(),
+  sourceClientInstanceId: external_exports.string().uuid().optional(),
+  requestId: external_exports.string().min(1).max(200)
+}).strict();
+
 // ../../packages/shared/src/infrastructure.ts
 var InfrastructureComponentStatusSchema = external_exports.enum([
   "ready",
@@ -26479,6 +26532,7 @@ var AIEconomicOverrideGrantSchema = external_exports.object({ id: external_expor
 var AIEconomicOverrideReferenceSchema = external_exports.object({ grantId: external_exports.string().uuid() }).strict();
 var AIEconomicContextSchema = external_exports.object({
   ownerId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid().optional(),
   agentId: external_exports.string().uuid().optional(),
   departmentId: external_exports.string().max(160).optional(),
   workflowId: external_exports.string().uuid().optional(),
@@ -29135,6 +29189,7 @@ var ExecutivePushPayloadSchema = external_exports.object({
   type: ExecutiveNotificationCategorySchema,
   objectKind: ExecutiveNotificationObjectKindSchema,
   objectId: external_exports.string().trim().min(1).max(160),
+  companyId: external_exports.string().uuid().optional(),
   eventId: external_exports.string().trim().min(1).max(200),
   severity: ExecutiveNotificationSeveritySchema,
   title: external_exports.string().trim().min(1).max(100)
@@ -31008,20 +31063,24 @@ var RecordVoiceTranscriptRequestSchema = external_exports.object({
 var DeviceVoiceRuntimePayloadSchema = external_exports.discriminatedUnion("operation", [
   external_exports.object({
     operation: external_exports.literal("start_session"),
+    companyId: external_exports.string().uuid().optional(),
     session: CreateVoiceSessionRequestSchema
   }).strict(),
   external_exports.object({
     operation: external_exports.literal("submit_transcript"),
+    companyId: external_exports.string().uuid().optional(),
     transcript: RecordVoiceTranscriptRequestSchema
   }).strict(),
   external_exports.object({
     operation: external_exports.literal("cancel_turn"),
+    companyId: external_exports.string().uuid().optional(),
     turnId: external_exports.string().uuid(),
     sessionId: external_exports.string().uuid().nullable().optional(),
     reason: external_exports.enum(["barge_in", "owner_stop", "transport_disconnect"])
   }).strict(),
   external_exports.object({
     operation: external_exports.literal("capture_lease"),
+    companyId: external_exports.string().uuid().optional(),
     action: external_exports.enum(["acquire", "takeover", "heartbeat", "release", "status"]),
     voiceSessionId: external_exports.string().uuid()
   }).strict()

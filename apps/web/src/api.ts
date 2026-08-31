@@ -386,6 +386,10 @@ import {
   type UpsertSemanticAliasRequest,
   type UpsertSynonymRequest,
   type AIBudgetPolicy,
+  CompanyListResponseSchema,
+  CreateCompanyRequestSchema,
+  SelectCompanyRequestSchema,
+  type CreateCompanyRequest,
 } from "@alexa-control/shared";
 import { z } from "zod";
 
@@ -460,6 +464,7 @@ const jsonBody = (value: unknown, method = "POST"): RequestInit => ({
 
 export const createApiClient = (baseUrl: string) => {
   let csrfToken: string | undefined;
+  let activeCompanyId: string | undefined;
   const requestAndValidate = async <TSchema extends z.ZodType>(
     requestBaseUrl: string,
     path: string,
@@ -485,6 +490,7 @@ export const createApiClient = (baseUrl: string) => {
       return await rawRequestAndValidate(requestBaseUrl, path, schema, {
         ...init,
         headers: {
+          ...(activeCompanyId ? { "x-company-id": activeCompanyId } : {}),
           ...(csrfToken && mutation ? { "x-csrf-token": csrfToken } : {}),
           ...init?.headers,
         },
@@ -507,6 +513,21 @@ export const createApiClient = (baseUrl: string) => {
   };
 
   return {
+    getCompanies: async () => {
+      const response = await requestAndValidate(baseUrl, "/api/companies", CompanyListResponseSchema);
+      activeCompanyId = response.currentCompany.id;
+      return response;
+    },
+    createCompany: async (input: CreateCompanyRequest) => {
+      const response = await requestAndValidate(baseUrl, "/api/companies", CompanyListResponseSchema, jsonBody(CreateCompanyRequestSchema.parse(input)));
+      activeCompanyId = response.currentCompany.id;
+      return response;
+    },
+    selectCompany: async (companyId: string) => {
+      const response = await requestAndValidate(baseUrl, "/api/companies/select", CompanyListResponseSchema, jsonBody(SelectCompanyRequestSchema.parse({ companyId })));
+      activeCompanyId = response.currentCompany.id;
+      return response;
+    },
     getHealth: (): Promise<HealthResponse> =>
       requestAndValidate(baseUrl, "/health", HealthResponseSchema),
     getAuthState: (): Promise<AuthStateResponse> =>

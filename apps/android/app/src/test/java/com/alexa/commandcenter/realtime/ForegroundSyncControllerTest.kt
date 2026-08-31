@@ -12,7 +12,8 @@ class ForegroundSyncControllerTest {
     assertTrue(controller.pollIntervalMs >= 10_000L)
     assertTrue(controller.shouldRefreshExecutive(0))
     assertFalse(controller.shouldRefreshExecutive(1))
-    assertTrue(controller.shouldRefreshExecutive(2))
+    assertFalse(controller.shouldRefreshExecutive(2))
+    assertTrue(controller.shouldRefreshExecutive(6))
     assertFalse(controller.shouldRefreshExecutive(-1))
   }
 }

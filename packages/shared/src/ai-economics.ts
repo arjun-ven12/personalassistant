@@ -85,6 +85,7 @@ export const AIEconomicOverrideReferenceSchema = z.object({ grantId: z.string().
 export const AIEconomicContextSchema = z
   .object({
     ownerId: z.string().uuid(),
+    companyId: z.string().uuid().optional(),
     agentId: z.string().uuid().optional(),
     departmentId: z.string().max(160).optional(),
     workflowId: z.string().uuid().optional(),

@@ -40,12 +40,14 @@ data class AlexaUiState(
   val health: ApiHealth? = null,
   val summary: AlexaSummary? = null,
   val commandCenter: CommandCenterSnapshot? = null,
+  val companies: CompanyListResponse? = null,
   val agentDetails: Map<String, WorkforceAgentDetail> = emptyMap(),
   val workflowDetails: Map<String, WorkflowDetail> = emptyMap(),
   val experimentDashboards: Map<String, ExperimentDashboard> = emptyMap(),
   val approvalDetails: Map<String, Approval> = emptyMap(),
   val notificationPreferences: NotificationPreferencesResponse? = null,
   val notificationTarget: NotificationTarget? = null,
+  val externalDestination: String? = null,
   val notificationPermissionGranted: Boolean = false,
   val conversations: ConversationCenter? = null,
   val selectedConversationId: String? = null,
@@ -177,6 +179,7 @@ class AlexaViewModel(
     if (mutableState.value.connection == ConnectionState.OFFLINE) return@launch cachedOfflineState()
     val healthy = foregroundSync.boundedReconnect {
       val health = repository.refreshHealth().getOrNull() ?: return@boundedReconnect false
+      val companies = repository.companies().getOrNull() ?: return@boundedReconnect false
       val summary = repository.refreshSummary().getOrNull() ?: return@boundedReconnect false
       val commandCenter = repository.commandCenter().getOrNull()
       val conversations = repository.conversations().getOrNull()
@@ -186,6 +189,7 @@ class AlexaViewModel(
         health = health,
         summary = summary,
         commandCenter = commandCenter,
+        companies = companies,
         notificationPreferences = notificationPreferences,
         crossDeviceCommand = crossDevice?.commands?.firstOrNull() ?: mutableState.value.crossDeviceCommand,
         connection = ConnectionState.ONLINE,
@@ -197,11 +201,25 @@ class AlexaViewModel(
     if (!healthy) cachedOfflineState()
   }
 
+  fun selectCompany(companyId: String) = viewModelScope.launch {
+    if (companyId == mutableState.value.companies?.currentCompany?.id) return@launch
+    mutableState.value = mutableState.value.copy(
+      commandCenter = null, agentDetails = emptyMap(), workflowDetails = emptyMap(),
+      experimentDashboards = emptyMap(), approvalDetails = emptyMap(), conversations = null,
+      selectedConversationId = null, activeVoiceSessionId = null, notificationTarget = null,
+    )
+    repository.selectCompany(companyId).fold(
+      onSuccess = { mutableState.value = mutableState.value.copy(companies = it, error = null); refresh() },
+      onFailure = ::showFailure,
+    )
+  }
+
   fun onBackground() {
     foregroundStateSync?.cancel()
     foregroundStateSync = null
     executiveRefresh?.cancel()
     executiveRefresh = null
+    suspendVoiceActivity()
     lockController.onBackground(System.currentTimeMillis())
   }
   fun onForeground() {
@@ -288,6 +306,25 @@ class AlexaViewModel(
 
   fun openNotification(target: NotificationTarget) {
     if (!target.isValid()) return
+    val activeCompanyId = mutableState.value.companies?.currentCompany?.id
+    if (target.companyId != null && target.companyId != activeCompanyId) {
+      viewModelScope.launch {
+        mutableState.value = mutableState.value.copy(
+          commandCenter = null, agentDetails = emptyMap(), workflowDetails = emptyMap(),
+          experimentDashboards = emptyMap(), approvalDetails = emptyMap(), conversations = null,
+          selectedConversationId = null, activeVoiceSessionId = null, notificationTarget = null,
+        )
+        repository.selectCompany(target.companyId).fold(
+          onSuccess = {
+            mutableState.value = mutableState.value.copy(companies = it, error = null)
+            openNotification(target.copy(companyId = null))
+            refresh()
+          },
+          onFailure = ::showFailure,
+        )
+      }
+      return
+    }
     mutableState.value = mutableState.value.copy(notificationTarget = target)
     if (mutableState.value.connection == ConnectionState.ONLINE) refreshExecutiveSnapshot()
     when (target.kind) {
@@ -299,6 +336,15 @@ class AlexaViewModel(
 
   fun consumeNotificationTarget() {
     mutableState.value = mutableState.value.copy(notificationTarget = null)
+  }
+
+  fun openExternalDestination(destination: String) {
+    if (destination !in setOf("VOICE", "APPROVALS")) return
+    mutableState.value = mutableState.value.copy(externalDestination = destination)
+  }
+
+  fun consumeExternalDestination() {
+    mutableState.value = mutableState.value.copy(externalDestination = null)
   }
 
   fun loadAgentDetail(agentId: String) = loadAgentDetail(agentId, force = false)
@@ -455,8 +501,20 @@ class AlexaViewModel(
   }
 
   private fun requireBiometric() {
+    suspendVoiceActivity()
     mutableState.value = mutableState.value.copy(screen = AlexaScreenState.BiometricLocked, error = null)
     viewModelScope.launch { biometricRequests.emit(BiometricRequest(BiometricPurpose.UNLOCK)) }
+  }
+
+  private fun suspendVoiceActivity() {
+    voiceController.cancelCapture()
+    voiceController.stopSpeaking()
+    if (mutableState.value.voiceState != MobileVoiceState.IDLE) {
+      mutableState.value = mutableState.value.copy(
+        voiceState = MobileVoiceState.INTERRUPTED,
+        voiceError = null,
+      )
+    }
   }
 
   private fun cachedOfflineState() {

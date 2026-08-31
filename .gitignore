@@ -18,3 +18,7 @@ apps/android/local.properties
 apps/android/*.jks
 apps/android/*.keystore
 external-research/
+
+external-research/*
+!external-research/README.md
+!external-research/notes/

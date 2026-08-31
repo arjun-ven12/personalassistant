@@ -2,6 +2,8 @@ import {
   CreatePairingIntentResponseSchema,
   CanonicalAlexaSummarySchema,
   CanonicalRuntimeHealthSchema,
+  CrossDeviceClientListResponseSchema,
+  CompanyListResponseSchema,
   CsrfTokenResponseSchema,
   PairingRequestResponseSchema,
   PolicyEvaluationResponseSchema,
@@ -627,6 +629,12 @@ describe("Phase 2.1 API", () => {
       },
     });
     const cloudCookie = cookieFrom(registration);
+    const companyList = CompanyListResponseSchema.parse((await cloud.inject({
+      method: "GET",
+      url: "/api/companies",
+      headers: { cookie: cloudCookie },
+    })).json());
+    const cloudCompanyId = companyList.currentCompany.id;
     const csrfResponse = await cloud.inject({
       method: "GET",
       url: "/api/security/csrf",
@@ -741,6 +749,32 @@ describe("Phase 2.1 API", () => {
         protocolVersion: "1",
       });
     };
+    const androidLogin = await cloud.inject({
+      method: "POST",
+      url: "/api/auth/login",
+      headers: { origin, "user-agent": "Alexa Android test" },
+      payload: { email: "cloud-owner@example.com", password },
+    });
+    const androidCookie = cookieFrom(androidLogin);
+    const androidClientInstanceId = crypto.randomUUID();
+    const crossDeviceRegistration = await cloud.inject({
+      method: "POST",
+      url: "/api/v1/device/cross-device",
+      headers: { cookie: androidCookie },
+      payload: await signAndroid({
+        operation: "register",
+        companyId: cloudCompanyId,
+        request: {
+          clientInstanceId: androidClientInstanceId,
+          clientType: "ANDROID",
+          displayName: "Alexa Android",
+          platform: "Android test",
+          capabilities: ["SHOW_SCREEN", "OPEN_APPROVAL"],
+          currentRoute: null,
+        },
+      }),
+    });
+    expect(crossDeviceRegistration.statusCode).toBe(200);
     const pushRegistration = await cloud.inject({
       method: "POST",
       url: "/api/v1/devices/push-token",
@@ -872,6 +906,7 @@ describe("Phase 2.1 API", () => {
       url: "/api/voice/device-runtime",
       payload: await signAndroid({
         operation: "start_session",
+        companyId: cloudCompanyId,
         session: {
           microphoneDeviceId: null,
           wakeWordEnabled: false,
@@ -889,6 +924,7 @@ describe("Phase 2.1 API", () => {
       url: "/api/voice/device-runtime",
       payload: await signAndroid({
         operation: "capture_lease",
+        companyId: cloudCompanyId,
         action: "acquire",
         voiceSessionId,
       }),
@@ -899,6 +935,7 @@ describe("Phase 2.1 API", () => {
     const submitAndroidTurn = () =>
       signAndroid({
         operation: "submit_transcript",
+        companyId: cloudCompanyId,
         transcript: {
           sessionId: voiceSessionId,
           turnId,
@@ -927,7 +964,7 @@ describe("Phase 2.1 API", () => {
     const sharedConversation = await cloud.inject({
       method: "GET",
       url: "/api/conversations",
-      headers: { cookie: cloudCookie },
+      headers: { cookie: cloudCookie, "x-company-id": cloudCompanyId },
     });
     expect(sharedConversation.statusCode).toBe(200);
     const sharedConversationBody = z
@@ -975,6 +1012,26 @@ describe("Phase 2.1 API", () => {
       url: `/api/devices/${androidDeviceId}/revoke`,
       headers: cloudMutationHeaders,
     });
+    expect((await cloud.inject({
+      method: "GET",
+      url: "/api/auth/session",
+      headers: { cookie: androidCookie },
+    })).statusCode).toBe(401);
+    expect((await cloud.inject({
+      method: "GET",
+      url: "/api/auth/session",
+      headers: { cookie: cloudCookie },
+    })).statusCode).toBe(200);
+    const revokedClients = await cloud.inject({
+      method: "GET",
+      url: "/api/cross-device/clients",
+      headers: { cookie: cloudCookie },
+    });
+    expect(revokedClients.statusCode).toBe(200);
+    const revokedAndroidClient = CrossDeviceClientListResponseSchema.parse(
+      revokedClients.json(),
+    ).clients.find((client) => client.id === androidClientInstanceId);
+    expect(revokedAndroidClient).toMatchObject({ presence: "OFFLINE" });
     const revokedAndroidVoice = await cloud.inject({
       method: "POST",
       url: "/api/voice/device-runtime",

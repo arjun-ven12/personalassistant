@@ -16,6 +16,16 @@ import {
 import type { Awaitable } from "../../identity/store.js";
 import { AIEconomicError } from "./errors.js";
 import { digestEconomicOverride } from "./override-digest.js";
+import { companyScope } from "../../companies/scope.js";
+
+const scopedKey = (ownerId: string, id: string) =>
+  `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:${id}`;
+const scopedPrefix = (ownerId: string) =>
+  `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:`;
+const scopedValues = <T extends { ownerId: string }>(values: Map<string, T>, ownerId: string) =>
+  [...values.entries()]
+    .filter(([key, value]) => key.startsWith(scopedPrefix(ownerId)) && value.ownerId === ownerId)
+    .map(([, value]) => value);
 
 export const MONEY_SCALE = 100_000_000n;
 export const decimalToUnits = (value: string) => {
@@ -274,29 +284,27 @@ export class InMemoryAIEconomicsStore implements AIEconomicsStore {
     return item;
   }
   listPolicies(ownerId: string) {
-    return [...this.policies.values()]
-      .filter((item) => item.ownerId === ownerId)
+    return scopedValues(this.policies, ownerId)
       .map((item) => structuredClone(item));
   }
   upsertPolicy(input: AIBudgetPolicy) {
     const item = AIBudgetPolicySchema.parse(input);
-    this.policies.set(item.id, structuredClone(item));
+    this.policies.set(scopedKey(item.ownerId, item.id), structuredClone(item));
     return item;
   }
   disablePolicy(ownerId: string, id: string) {
-    const item = this.policies.get(id);
+    const key = scopedKey(ownerId, id);
+    const item = this.policies.get(key);
     if (!item || item.ownerId !== ownerId) return false;
-    this.policies.set(id, { ...item, enabled: false });
+    this.policies.set(key, { ...item, enabled: false });
     return true;
   }
   listReservations(ownerId: string) {
-    return [...this.reservations.values()]
-      .filter((item) => item.ownerId === ownerId)
+    return scopedValues(this.reservations, ownerId)
       .map((item) => structuredClone(item));
   }
   listLedger(ownerId: string, limit: number) {
-    return [...this.ledger.values()]
-      .filter((item) => item.ownerId === ownerId)
+    return scopedValues(this.ledger, ownerId)
       .slice(-limit)
       .reverse()
       .map((item) => structuredClone(item));
@@ -306,7 +314,7 @@ export class InMemoryAIEconomicsStore implements AIEconomicsStore {
     let failure: unknown;
     this.queue = this.queue.then(() => {
       try {
-        const duplicate = [...this.reservations.values()].find(
+        const duplicate = scopedValues(this.reservations, input.reservation.ownerId).find(
           (item) =>
             item.ownerId === input.reservation.ownerId &&
             item.requestId === input.reservation.requestId &&
@@ -334,7 +342,7 @@ export class InMemoryAIEconomicsStore implements AIEconomicsStore {
           context: input.context,
           candidate: input.candidate,
         });
-        this.reservations.set(reservation.id, structuredClone(reservation));
+        this.reservations.set(scopedKey(reservation.ownerId, reservation.id), structuredClone(reservation));
         output = reservation;
       } catch (error) {
         failure = error;
@@ -347,14 +355,15 @@ export class InMemoryAIEconomicsStore implements AIEconomicsStore {
     return output;
   }
   settleAtomic(input: AtomicSettlementInput) {
-    const key = `${input.entry.ownerId}:${input.entry.requestId}:${input.entry.attemptId ?? input.entry.id}`;
+    const key = scopedKey(input.entry.ownerId, `${input.entry.requestId}:${input.entry.attemptId ?? input.entry.id}`);
     const existing = this.ledger.get(key);
     if (existing) return Promise.resolve(structuredClone(existing));
     if (input.reservationId) {
-      const reservation = this.reservations.get(input.reservationId);
+      const reservationKey = scopedKey(input.ownerId, input.reservationId);
+      const reservation = this.reservations.get(reservationKey);
       if (!reservation || reservation.ownerId !== input.ownerId)
         throw new AIEconomicError("RESERVATION_FAILED", "Reservation was not found.");
-      this.reservations.set(reservation.id, {
+      this.reservations.set(reservationKey, {
         ...reservation,
         status: input.entry.status === "SETTLED" ? "SETTLED" : "RELEASED",
         settledAmountUsd: input.entry.actualCostUsd ?? "0",
@@ -365,10 +374,11 @@ export class InMemoryAIEconomicsStore implements AIEconomicsStore {
     return Promise.resolve(entry);
   }
   release(ownerId: string, reservationId: string) {
-    const item = this.reservations.get(reservationId);
+    const key = scopedKey(ownerId, reservationId);
+    const item = this.reservations.get(key);
     if (!item || item.ownerId !== ownerId) return undefined;
     const released = { ...item, status: "RELEASED" as const, settledAmountUsd: "0" };
-    this.reservations.set(item.id, released);
+    this.reservations.set(key, released);
     return released;
   }
   reconcileExpired(now: Date) {
@@ -381,7 +391,7 @@ export class InMemoryAIEconomicsStore implements AIEconomicsStore {
     return Promise.resolve(count);
   }
   findActiveReservation(ownerId: string, reservationId: string) {
-    const item = this.reservations.get(reservationId);
+    const item = this.reservations.get(scopedKey(ownerId, reservationId));
     return item?.ownerId === ownerId &&
       item.status === "ACTIVE" &&
       Date.parse(item.expiresAt) > Date.now()
@@ -394,7 +404,7 @@ export class InMemoryAIEconomicsStore implements AIEconomicsStore {
     const grant = AIEconomicOverrideGrantSchema.parse(input.grant);
     if (grant.ownerId !== descriptor.ownerId || grant.requestId !== descriptor.requestId)
       throw new AIEconomicError("OVERRIDE_REQUIRED", "Override grant binding is invalid.");
-    this.overrideGrants.set(grant.id, {
+    this.overrideGrants.set(scopedKey(grant.ownerId, grant.id), {
       grant: structuredClone(grant),
       descriptor: structuredClone(descriptor),
     });
@@ -402,7 +412,7 @@ export class InMemoryAIEconomicsStore implements AIEconomicsStore {
   }
 
   getOverrideGrant(ownerId: string, grantId: string) {
-    const record = this.overrideGrants.get(grantId);
+    const record = this.overrideGrants.get(scopedKey(ownerId, grantId));
     return Promise.resolve(
       record && record.grant.ownerId === ownerId ? structuredClone(record) : undefined,
     );
@@ -413,7 +423,7 @@ export class InMemoryAIEconomicsStore implements AIEconomicsStore {
     let failure: unknown;
     this.queue = this.queue.then(() => {
       try {
-        const record = this.overrideGrants.get(input.grantId);
+        const record = this.overrideGrants.get(scopedKey(input.ownerId, input.grantId));
         if (!record || record.grant.ownerId !== input.ownerId)
           throw new AIEconomicError("OVERRIDE_REQUIRED", "Override grant was not found.");
         if (record.grant.status !== "ACTIVE")
@@ -436,10 +446,10 @@ export class InMemoryAIEconomicsStore implements AIEconomicsStore {
           ...input.reservation,
           policyIds: policies.map((item) => item.id),
         });
-        if ([...this.reservations.values()].some((item) => item.ownerId === input.ownerId && item.requestId === reservation.requestId && item.attemptId === reservation.attemptId)) {
+        if (scopedValues(this.reservations, input.ownerId).some((item) => item.requestId === reservation.requestId && item.attemptId === reservation.attemptId)) {
           throw new AIEconomicError("OVERRIDE_REQUIRED", "Override reservation already exists.");
         }
-        this.reservations.set(reservation.id, structuredClone(reservation));
+        this.reservations.set(scopedKey(reservation.ownerId, reservation.id), structuredClone(reservation));
         record.grant = { ...record.grant, status: "CONSUMED", consumedAt: new Date().toISOString() };
         output = reservation;
       } catch (error) {
@@ -453,7 +463,7 @@ export class InMemoryAIEconomicsStore implements AIEconomicsStore {
   }
 
   expireOverrideGrant(ownerId: string, grantId: string) {
-    const record = this.overrideGrants.get(grantId);
+    const record = this.overrideGrants.get(scopedKey(ownerId, grantId));
     if (!record || record.grant.ownerId !== ownerId) return Promise.resolve(false);
     if (record.grant.status !== "ACTIVE") return Promise.resolve(false);
     record.grant = { ...record.grant, status: "EXPIRED" };

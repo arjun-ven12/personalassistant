@@ -1,6 +1,7 @@
 import { CacheMetricsSchema, type CacheMetrics } from "@alexa-control/shared";
 
 import type { RedisService } from "./redis-service.js";
+import { companyScope } from "../companies/scope.js";
 
 export interface CacheServiceOptions {
   enabled: boolean;
@@ -23,14 +24,21 @@ export class CacheService {
   async getJson<T>(key: string, schema: { parse(value: unknown): T }) {
     if (!this.options.enabled) return null;
     const start = performance.now();
-    const raw = await this.redis.get(`cache:${key}`);
-    this.recordLatency(start);
-    if (!raw) {
+    try {
+      const raw = await this.redis.get(this.scopedKey(key));
+      if (!raw) {
+        this.#misses += 1;
+        return null;
+      }
+      const parsed = schema.parse(JSON.parse(raw));
+      this.#hits += 1;
+      return parsed;
+    } catch {
       this.#misses += 1;
       return null;
+    } finally {
+      this.recordLatency(start);
     }
-    this.#hits += 1;
-    return schema.parse(JSON.parse(raw));
   }
 
   async setJson(
@@ -40,25 +48,39 @@ export class CacheService {
   ) {
     if (!this.options.enabled) return;
     const start = performance.now();
-    await this.redis.set(`cache:${key}`, JSON.stringify(value), ttlSeconds);
-    this.recordLatency(start);
-    this.#writes += 1;
+    try {
+      await this.redis.set(this.scopedKey(key), JSON.stringify(value), ttlSeconds);
+      this.#writes += 1;
+    } catch {
+      // Cache loss must not replace PostgreSQL-backed canonical work with an error.
+    } finally {
+      this.recordLatency(start);
+    }
   }
 
   async invalidate(key: string) {
     if (!this.options.enabled) return;
     const start = performance.now();
-    await this.redis.del(`cache:${key}`);
-    this.recordLatency(start);
-    this.#invalidations += 1;
+    try {
+      await this.redis.del(this.scopedKey(key));
+      this.#invalidations += 1;
+    } catch {
+      // A stale cache entry remains bounded by its TTL when Redis is unavailable.
+    } finally {
+      this.recordLatency(start);
+    }
   }
 
   async publishInvalidation(topic: string, payload: unknown) {
     if (!this.options.enabled) return;
-    await this.redis.publish(
-      `cache-events:${topic}`,
-      JSON.stringify({ topic, payload, publishedAt: new Date().toISOString() }),
-    );
+    try {
+      await this.redis.publish(
+        `cache-events:${this.scopedKey(topic)}`,
+        JSON.stringify({ topic, payload, publishedAt: new Date().toISOString() }),
+      );
+    } catch {
+      // Publication is advisory; canonical data and audit remain in PostgreSQL.
+    }
   }
 
   metrics(): CacheMetrics {
@@ -78,6 +100,11 @@ export class CacheService {
       hitRate: total > 0 ? this.#hits / total : 0,
       averageLatencyMs,
     });
+  }
+
+  private scopedKey(key: string) {
+    const companyId = companyScope.companyId();
+    return `cache:${companyId ? `company:${companyId}` : "global"}:${key}`;
   }
 
   recordLatency(start: number) {

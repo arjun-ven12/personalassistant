@@ -29,6 +29,7 @@ import {
 import type { Pool } from "pg";
 
 import type { TaskStore } from "./store.js";
+import { companyScope } from "../companies/scope.js";
 
 const list = async <T>(
   pool: Pool,
@@ -39,8 +40,8 @@ const list = async <T>(
   schema: { parse: (value: unknown) => T },
 ) => {
   const result = await pool.query<{ record: unknown }>(
-    `SELECT record FROM ${table} WHERE owner_id=$1 ORDER BY ${order} DESC LIMIT $2`,
-    [ownerId, limit],
+    `SELECT record FROM ${table} WHERE owner_id=$1 AND ($3::uuid IS NULL OR company_id=$3) ORDER BY ${order} DESC LIMIT $2`,
+    [ownerId, limit, companyScope.companyId(ownerId) ?? null],
   );
   return result.rows.map((row) => schema.parse(row.record));
 };
@@ -51,8 +52,8 @@ const insertRecord = async (
   record: { id: string; ownerId: string },
   columns: Record<string, string | number | boolean | null>,
 ) => {
-  const names = ["id", "owner_id", ...Object.keys(columns), "record"];
-  const values = [record.id, record.ownerId, ...Object.values(columns), record];
+  const names = ["id", "owner_id", "company_id", ...Object.keys(columns), "record"];
+  const values = [record.id, record.ownerId, companyScope.companyId(record.ownerId) ?? null, ...Object.values(columns), record];
   const placeholders = values.map((_, index) => `$${index + 1}`).join(",");
   await pool.query(
     `INSERT INTO ${table}(${names.join(",")}) VALUES (${placeholders})
@@ -88,8 +89,8 @@ export class PostgresTaskStore implements TaskStore {
   }
   async getTask(ownerId: string, taskId: string) {
     const result = await this.pool.query<{ record: unknown }>(
-      "SELECT record FROM tasks WHERE owner_id=$1 AND id=$2",
-      [ownerId, taskId],
+      "SELECT record FROM tasks WHERE owner_id=$1 AND id=$2 AND ($3::uuid IS NULL OR company_id=$3)",
+      [ownerId, taskId, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows[0] ? TaskRecordSchema.parse(result.rows[0].record) : null;
   }

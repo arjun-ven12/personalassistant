@@ -118,11 +118,15 @@ import type { BusinessOSService } from "../business-os/service.js";
 import type { ExecutiveNotificationService } from "../notifications/service.js";
 import type { CrossDeviceService } from "../cross-device/service.js";
 import type { CrossDeviceStore } from "../cross-device/store.js";
+import type { CompanyService } from "../companies/service.js";
+import type { CompanyContextResolver } from "../companies/context.js";
 
 export interface ApiRouteContext {
   deploymentMode: "private" | "cloud";
   identity: IdentityService;
   security: SecurityMiddleware;
+  companies: CompanyService;
+  companyContext: CompanyContextResolver;
   securityState: SecurityStateService;
   networkVerifier: NetworkVerifier;
   cookieName: string;

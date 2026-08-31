@@ -13,10 +13,12 @@ import { GovernanceError } from "./errors.js";
 import type { GovernanceStore } from "./store.js";
 import type { StoredApprovalRequest } from "./types.js";
 import type { Awaitable } from "../identity/store.js";
+import { companyScope } from "../companies/scope.js";
 
 export interface GovernanceAuditInput {
   eventType: AuditEventType;
   ownerId: string;
+  companyId?: string | null;
   deviceId?: string;
   outcome: "SUCCESS" | "FAILURE" | "DENIED";
   reason: string;
@@ -76,6 +78,7 @@ export class ApprovalService {
     }
     const now = new Date();
     const stored: StoredApprovalRequest = {
+      companyId: companyScope.companyId(input.ownerId) ?? null,
       ...ApprovalRequestSchema.parse({
         id: crypto.randomUUID(),
         ownerId: input.ownerId,
@@ -330,6 +333,7 @@ export class ApprovalService {
   private toPublic(approval: StoredApprovalRequest): ApprovalRequest {
     const publicApproval = { ...approval } as Partial<StoredApprovalRequest>;
     delete publicApproval.action;
+    delete publicApproval.companyId;
     return ApprovalRequestSchema.parse(publicApproval);
   }
 }

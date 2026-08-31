@@ -22,6 +22,7 @@ import type { IdentityStore } from "../identity/store.js";
 import type { StoredDevice } from "../identity/types.js";
 import type { NativeProviderRuntime } from "../native-providers/service.js";
 import type { CrossDeviceStore } from "./store.js";
+import { companyScope } from "../companies/scope.js";
 
 const WEB_CAPABILITIES: CrossDeviceCapability[] = [
   "NAVIGATE_TO_ROUTE",
@@ -243,6 +244,7 @@ export class CrossDeviceService {
     if (
       existing &&
       existing.sessionId !== input.sessionId &&
+      existing.sessionId !== existing.trustedDeviceId &&
       new Date(existing.leaseExpiresAt) > at
     )
       throw new ExecutionError(
@@ -253,6 +255,7 @@ export class CrossDeviceService {
     const client = CrossDeviceClientInstanceSchema.parse({
       id: body.clientInstanceId,
       ownerId: input.ownerId,
+      activeCompanyId: companyScope.companyId(input.ownerId) ?? null,
       sessionId: input.sessionId,
       trustedDeviceId: input.trustedDeviceId ?? null,
       clientType: body.clientType,
@@ -269,6 +272,7 @@ export class CrossDeviceService {
     await this.audit({
       eventType: existing ? "CROSS_DEVICE_PRESENCE_UPDATED" : "CROSS_DEVICE_CLIENT_REGISTERED",
       ownerId: input.ownerId,
+      companyId: companyScope.companyId(input.ownerId) ?? null,
       ...(input.trustedDeviceId ? { deviceId: input.trustedDeviceId } : {}),
       ipAddress: input.ipAddress,
       outcome: "SUCCESS",
@@ -335,6 +339,7 @@ export class CrossDeviceService {
     let command = CrossDeviceCommandSchema.parse({
       id: crypto.randomUUID(),
       ownerId: input.ownerId,
+      companyId: companyScope.companyId(input.ownerId) ?? null,
       sourceClientInstanceId: source.id,
       sourceDeviceId: input.sourceDeviceId ?? null,
       sourceClientType: source.clientType,

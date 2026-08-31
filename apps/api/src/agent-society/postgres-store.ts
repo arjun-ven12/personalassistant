@@ -39,6 +39,7 @@ import {
 import type { Pool } from "pg";
 
 import type { AgentSocietyStore } from "./store.js";
+import { companyScope } from "../companies/scope.js";
 
 const list = async <T>(
   pool: Pool,
@@ -49,8 +50,8 @@ const list = async <T>(
   schema: { parse: (value: unknown) => T },
 ) => {
   const result = await pool.query<{ record: unknown }>(
-    `SELECT record FROM ${table} WHERE owner_id=$1 ORDER BY ${order} DESC LIMIT $2`,
-    [ownerId, limit],
+    `SELECT record FROM ${table} WHERE owner_id=$1 AND ($3::uuid IS NULL OR company_id=$3) ORDER BY ${order} DESC LIMIT $2`,
+    [ownerId, limit, companyScope.companyId(ownerId) ?? null],
   );
   return result.rows.map((row) => schema.parse(row.record));
 };
@@ -61,8 +62,8 @@ const insertRecord = async (
   record: { id: string; ownerId: string },
   columns: Record<string, string | number | boolean | null>,
 ) => {
-  const names = ["id", "owner_id", ...Object.keys(columns), "record"];
-  const values = [record.id, record.ownerId, ...Object.values(columns), record];
+  const names = ["id", "owner_id", ...Object.keys(columns), "record", "company_id"];
+  const values = [record.id, record.ownerId, ...Object.values(columns), record, companyScope.companyId(record.ownerId) ?? null];
   const placeholders = values.map((_, index) => `$${index + 1}`).join(",");
   await pool.query(
     `INSERT INTO ${table}(${names.join(",")}) VALUES (${placeholders})
@@ -114,8 +115,8 @@ export class PostgresAgentSocietyStore implements AgentSocietyStore {
   async saveRole(record: OrganizationalRoleRecord) {
     const parsed = OrganizationalRoleRecordSchema.parse(record);
     await this.pool.query(
-      `INSERT INTO organizational_roles(id,owner_id,role,created_at,updated_at,record)
-       VALUES ($1,$2,$3,$4,$5,$6)
+      `INSERT INTO organizational_roles(id,owner_id,role,created_at,updated_at,record,company_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
        ON CONFLICT (owner_id,role) DO UPDATE SET updated_at=$5,record=$6`,
       [
         parsed.id,
@@ -124,6 +125,7 @@ export class PostgresAgentSocietyStore implements AgentSocietyStore {
         parsed.createdAt,
         parsed.updatedAt,
         parsed,
+        companyScope.companyId(parsed.ownerId) ?? null,
       ],
     );
   }
@@ -347,8 +349,8 @@ export class PostgresAgentSocietyStore implements AgentSocietyStore {
   async saveReputation(record: ReputationScoreRecord) {
     const parsed = ReputationScoreRecordSchema.parse(record);
     await this.pool.query(
-      `INSERT INTO reputation_scores(id,owner_id,agent_id,overall,updated_at,record)
-       VALUES ($1,$2,$3,$4,$5,$6)
+      `INSERT INTO reputation_scores(id,owner_id,agent_id,overall,updated_at,record,company_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
        ON CONFLICT (owner_id,agent_id) DO UPDATE SET overall=$4,updated_at=$5,record=$6`,
       [
         parsed.id,
@@ -357,6 +359,7 @@ export class PostgresAgentSocietyStore implements AgentSocietyStore {
         parsed.overall,
         parsed.updatedAt,
         parsed,
+        companyScope.companyId(parsed.ownerId) ?? null,
       ],
     );
   }

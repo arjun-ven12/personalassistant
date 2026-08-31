@@ -6,6 +6,7 @@ import {
   UserSchema,
 } from "@alexa-control/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { readFile } from "node:fs/promises";
 
 import { BUILT_IN_TOOLS } from "../governance/defaults.js";
 import { PostgresGovernanceStore } from "../governance/postgres-store.js";
@@ -14,6 +15,9 @@ import { PostgresSecurityStateStore } from "../security-state/store.js";
 import { PostgresExecutionStore } from "../execution/postgres-store.js";
 import { PostgresDatabase } from "./database.js";
 import { safeTestDatabaseUrl } from "./test-database.js";
+import { PostgresCompanyStore } from "../companies/store.js";
+import { CompanyService } from "../companies/service.js";
+import { companyScope } from "../companies/scope.js";
 
 const connectionString = safeTestDatabaseUrl();
 
@@ -35,9 +39,15 @@ describe.skipIf(!connectionString)("PostgreSQL store adapters", () => {
     isolatedUrl.hostname = isolatedUrl.hostname.replace("-pooler.", ".");
     if (isolatedUrl.searchParams.get("sslmode") !== "disable")
       isolatedUrl.searchParams.set("sslmode", "verify-full");
-    isolatedUrl.searchParams.set("options", `-c search_path=${testSchema},public`);
+    isolatedUrl.searchParams.set("options", `-c search_path=${testSchema}`);
     database = new PostgresDatabase(isolatedUrl.toString());
     await database.migrate();
+    await database.pool.query(
+      await readFile(
+        new URL("../../migrations/0078_phase_25_1_multi_company_tenancy.sql", import.meta.url),
+        "utf8",
+      ),
+    );
     ownerId = crypto.randomUUID();
     identity = new PostgresIdentityStore(database.pool);
     governance = new PostgresGovernanceStore(database.pool, BUILT_IN_TOOLS);
@@ -72,6 +82,16 @@ describe.skipIf(!connectionString)("PostgreSQL store adapters", () => {
     await identity.createUser(user);
     expect(await identity.findUserByEmail(user.email)).toEqual(user);
     await expect(identity.createUser(user)).rejects.toThrow();
+    const company = await new CompanyService(
+      new PostgresCompanyStore(database.pool),
+      identity,
+    ).ensureDefault(ownerId);
+    companyScope.enter({
+      ownerId,
+      companyId: company.id,
+      role: "OWNER",
+      requestId: "postgres-integration-test",
+    });
 
     const session = {
       id: crypto.randomUUID(),

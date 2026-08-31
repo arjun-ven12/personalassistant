@@ -34,7 +34,7 @@ describe.skipIf(!connectionString)(
       isolated.hostname = isolated.hostname.replace("-pooler.", ".");
       if (isolated.searchParams.get("sslmode") !== "disable")
         isolated.searchParams.set("sslmode", "verify-full");
-      isolated.searchParams.set("options", `-c search_path=${schema},public`);
+      isolated.searchParams.set("options", `-c search_path=${schema}`);
       database = new PostgresDatabase(isolated.toString());
       await database.migrate();
       await database.pool.query(

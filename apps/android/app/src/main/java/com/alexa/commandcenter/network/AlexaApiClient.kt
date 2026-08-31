@@ -28,11 +28,14 @@ import java.io.IOException
 import java.net.SocketTimeoutException
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 
 interface AlexaApiService {
   @POST("api/auth/login") suspend fun login(@Body request: LoginRequest): Response<AuthResponse>
   @GET("api/auth/session") suspend fun session(): Response<SessionResponse>
   @GET("api/security/csrf") suspend fun csrf(): Response<CsrfResponse>
+  @GET("api/companies") suspend fun companies(): Response<CompanyListResponse>
+  @POST("api/companies/select") suspend fun selectCompany(@Header("X-CSRF-Token") csrf: String, @Body request: SelectCompanyRequest): Response<CompanyListResponse>
   @POST("api/devices/pairing-intents") suspend fun createPairingIntent(@Header("X-CSRF-Token") csrf: String): Response<PairingIntent>
   @POST("api/devices/pairing-requests") suspend fun requestPairing(@Body request: PairingRequest): Response<PairingResponse>
   @POST("api/devices/pairing-status") suspend fun pairingStatus(@Body request: PairingStatusRequest): Response<PairingStatusResponse>
@@ -75,10 +78,13 @@ interface AlexaApiService {
 class AlexaApiClient private constructor(
   private val service: AlexaApiService,
   private val gson: Gson,
+  private val activeCompanyId: AtomicReference<String?>,
 ) {
   suspend fun login(email: String, password: String) = call { service.login(LoginRequest(email, password)) }
   suspend fun session() = call { service.session() }
   suspend fun csrf() = call { service.csrf() }
+  suspend fun companies() = call { service.companies() }.onSuccess { activeCompanyId.set(it.currentCompany.id) }
+  suspend fun selectCompany(csrf: String, companyId: String) = call { service.selectCompany(csrf, SelectCompanyRequest(companyId)) }.onSuccess { activeCompanyId.set(it.currentCompany.id) }
   suspend fun createPairingIntent(csrf: String) = call { service.createPairingIntent(csrf) }
   suspend fun requestPairing(request: PairingRequest) = call { service.requestPairing(request) }
   suspend fun pairingStatus(deviceId: String, token: String) = call { service.pairingStatus(PairingStatusRequest(deviceId, token)) }
@@ -137,9 +143,10 @@ class AlexaApiClient private constructor(
   companion object {
     fun create(config: AlexaEnvironmentConfig, sessionStore: SessionStore): AlexaApiClient {
       val gson = Gson()
+      val activeCompanyId = AtomicReference<String?>(null)
       val client = OkHttpClient.Builder()
         .cookieJar(SecureCookieJar(sessionStore))
-        .addInterceptor(RequestIdentityInterceptor(config.trustedWebOrigin))
+        .addInterceptor(RequestIdentityInterceptor(config.trustedWebOrigin) { activeCompanyId.get() })
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .callTimeout(20, TimeUnit.SECONDS)
@@ -153,6 +160,7 @@ class AlexaApiClient private constructor(
           .build()
           .create(AlexaApiService::class.java),
         gson,
+        activeCompanyId,
       )
     }
   }
@@ -160,14 +168,14 @@ class AlexaApiClient private constructor(
 
 class AlexaApiException(val failure: AlexaFailure) : RuntimeException()
 
-private class RequestIdentityInterceptor(private val origin: String) : Interceptor {
+private class RequestIdentityInterceptor(private val origin: String, private val companyId: () -> String?) : Interceptor {
   override fun intercept(chain: Interceptor.Chain): okhttp3.Response {
-    val request = chain.request().newBuilder()
+    val builder = chain.request().newBuilder()
       .header("Accept", "application/json")
       .header("X-Request-Id", UUID.randomUUID().toString())
       .header("Origin", origin)
-      .build()
-    return chain.proceed(request)
+    companyId()?.let { builder.header("X-Company-Id", it) }
+    return chain.proceed(builder.build())
   }
 }
 

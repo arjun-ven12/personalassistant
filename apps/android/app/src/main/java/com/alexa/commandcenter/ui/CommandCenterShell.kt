@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.*
@@ -21,9 +22,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -34,7 +37,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntSize
 import com.alexa.commandcenter.config.AlexaEnvironmentConfig
 import com.alexa.commandcenter.model.*
+import kotlin.math.cos
+import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.math.sin
 
 private val CcBg = AlexaBackground
 private val CcSurface = AlexaSurface
@@ -44,12 +50,14 @@ private val CcBlue = AlexaPrimary
 private val CcGreen = AlexaGreen
 private val CcAmber = AlexaAmber
 private val CcRed = AlexaRed
+private val CcMuted = AlexaMutedContent
 
 @Composable
 fun CommandCenterShell(
   state: AlexaUiState,
   environment: AlexaEnvironmentConfig,
   onRefresh: () -> Unit,
+  onCompanySelected: (String) -> Unit,
   onLock: () -> Unit,
   onForgetDevice: () -> Unit,
   onCreateObjective: (CreateObjectiveRequest) -> Unit,
@@ -73,6 +81,7 @@ fun CommandCenterShell(
   onLoadEarlierMessages: () -> Unit,
   onApprovalSelected: (String) -> Unit,
   onNotificationTargetConsumed: () -> Unit,
+  onExternalDestinationConsumed: () -> Unit,
   onNotificationPreferences: (NotificationPreferences) -> Unit,
   onApprovalDecisionWithReason: (String, Boolean, String?) -> Unit,
   onCrossDeviceCommandApplied: (String, Boolean, String) -> Unit,
@@ -118,8 +127,8 @@ fun CommandCenterShell(
     onCrossDeviceCommandApplied(
       command.id,
       supported,
-      if (supported) "Alexa Android opened the requested registered screen."
-      else "This Alexa Android build does not expose the requested registered screen.",
+      if (supported) "Monday OS opened the requested registered screen."
+      else "This Monday OS build does not expose the requested registered screen.",
     )
   }
   LaunchedEffect(state.notificationTarget, state.connection) {
@@ -135,30 +144,81 @@ fun CommandCenterShell(
     }
     if (state.connection == ConnectionState.ONLINE) onNotificationTargetConsumed()
   }
-  val destinations = listOf(
+  LaunchedEffect(state.externalDestination, state.screen) {
+    when (state.externalDestination) {
+      "VOICE" -> { destination = "Alexa"; secondaryDestination = null }
+      "APPROVALS" -> { destination = "Approvals"; secondaryDestination = null }
+      else -> return@LaunchedEffect
+    }
+    onExternalDestinationConsumed()
+  }
+  val leftDestinations = listOf(
     "Home" to Icons.Outlined.Home,
     "Objectives" to Icons.Outlined.Flag,
+  )
+  val rightDestinations = listOf(
     "Workforce" to Icons.Outlined.Groups,
     "Approvals" to Icons.Outlined.TaskAlt,
-    "Alexa" to Icons.Outlined.AutoAwesome,
   )
   Scaffold(
       containerColor = CcBg,
       bottomBar = {
-        NavigationBar(containerColor = CcSurface) {
-          destinations.forEach { (label, icon) ->
-            NavigationBarItem(
-              selected = destination == label,
-              onClick = { destination = label; if (label != "Alexa") secondaryDestination = null },
-              icon = { Icon(icon, label) },
-              label = { Text(label) },
-            )
+        Box {
+          NavigationBar(containerColor = CcSurface) {
+            leftDestinations.forEach { (label, icon) ->
+              NavigationBarItem(
+                selected = destination == label,
+                onClick = { destination = label; secondaryDestination = null },
+                icon = { Icon(icon, label) },
+                label = { Text(label) },
+              )
+            }
+            Spacer(Modifier.width(72.dp))
+            rightDestinations.forEach { (label, icon) ->
+              NavigationBarItem(
+                selected = destination == label,
+                onClick = { destination = label; secondaryDestination = null },
+                icon = { Icon(icon, label) },
+                label = { Text(label) },
+              )
+            }
+          }
+          FloatingActionButton(
+            onClick = { destination = "Alexa"; secondaryDestination = null },
+            modifier = Modifier
+              .align(Alignment.TopCenter)
+              .offset(y = (-14).dp)
+              .size(62.dp)
+              .shadow(18.dp, CircleShape, ambientColor = CcBlue, spotColor = CcBlue),
+            shape = CircleShape,
+            containerColor = CcBlue,
+            contentColor = CcBg,
+          ) {
+            Icon(Icons.Outlined.GraphicEq, "Open Alexa Voice", Modifier.size(28.dp))
           }
         }
       },
   ) { padding ->
-      Box(Modifier.padding(padding)) {
-        when (destination) {
+      Column(Modifier.padding(padding)) {
+        val companies = state.companies
+        if (companies != null) {
+          var expanded by remember { mutableStateOf(false) }
+          Box(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
+            OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+              Icon(Icons.Outlined.Business, null)
+              Spacer(Modifier.width(8.dp))
+              Text(companies.currentCompany.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+              Spacer(Modifier.weight(1f))
+              Icon(Icons.Outlined.ExpandMore, "Switch company")
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+              companies.companies.filter { it.status == "ACTIVE" }.forEach { company ->
+                DropdownMenuItem(text = { Text(company.name) }, onClick = { expanded = false; onCompanySelected(company.id) })
+              }
+            }
+          }
+        }
+        Box(Modifier.weight(1f)) { when (destination) {
           "Home" -> ExecutiveHome(state, onRefresh, onObjectiveAction, onApprovalDecision)
           "Objectives" -> ObjectivesScreen(state, onCreateObjective, onObjectiveAction, onModifyObjective)
           "Workforce" -> WorkforceScreen(state.commandCenter?.workforce, state.agentDetails, onAgentSelected)
@@ -191,7 +251,7 @@ fun CommandCenterShell(
               onForgetDevice = onForgetDevice,
             )
           }
-        }
+        } }
       }
   }
 }
@@ -215,6 +275,7 @@ fun CommandCenterShell(
     }
     item { ConnectionStateBanner(state.connection, state.lastUpdatedAt) }
     state.error?.let { item { ErrorBanner(it) } }
+    item { AlexaCoreMap(snapshot?.workforce, state.connection) }
     item { OrganizationMetrics(snapshot, state.health?.status) }
     item {
       SectionTitle("Needs your attention", snapshot?.attention?.total?.let { "$it pending" })
@@ -233,6 +294,104 @@ fun CommandCenterShell(
       ActivityRows(snapshot?.objectives?.events.orEmpty())
     }
     item { Spacer(Modifier.height(8.dp)) }
+  }
+}
+
+@Composable
+private fun AlexaCoreMap(workforce: WorkforceGraph?, connection: ConnectionState) {
+  val departments = workforce?.departments.orEmpty().take(6)
+  Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+      Text("ALEXA BRAIN", color = CcMuted, style = MaterialTheme.typography.labelSmall)
+      Text(
+        "${workforce?.summary?.registered ?: 0} AGENTS · ${workforce?.summary?.departments ?: 0} DEPARTMENTS",
+        color = CcMuted,
+        style = MaterialTheme.typography.labelSmall,
+      )
+    }
+    Box(
+      Modifier
+        .fillMaxWidth()
+        .height(270.dp)
+        .background(Color(0xFF0D1118), RoundedCornerShape(8.dp)),
+      contentAlignment = Alignment.Center,
+    ) {
+      Canvas(Modifier.fillMaxSize()) {
+        val center = Offset(size.width / 2f, size.height * .52f)
+        val radius = min(size.width, size.height) * .29f
+        drawCircle(CcBlue.copy(alpha = .06f), radius * 1.28f, center)
+        drawCircle(Color(0xFF172B3C), radius, center)
+        drawCircle(Color(0xFF8FC6DF).copy(alpha = .5f), radius, center, style = Stroke(1.2.dp.toPx()))
+        for (index in 1..4) {
+          val fraction = index / 5f
+          drawOval(
+            Color(0xFF8FC6DF).copy(alpha = .19f),
+            topLeft = Offset(center.x - radius * fraction, center.y - radius),
+            size = androidx.compose.ui.geometry.Size(radius * fraction * 2f, radius * 2f),
+            style = Stroke(.7.dp.toPx()),
+          )
+          drawOval(
+            Color(0xFF8FC6DF).copy(alpha = .15f),
+            topLeft = Offset(center.x - radius, center.y - radius * fraction),
+            size = androidx.compose.ui.geometry.Size(radius * 2f, radius * fraction * 2f),
+            style = Stroke(.7.dp.toPx()),
+          )
+        }
+        drawOval(
+          CcBlue.copy(alpha = .28f),
+          topLeft = Offset(center.x - radius * 1.58f, center.y - radius * .62f),
+          size = androidx.compose.ui.geometry.Size(radius * 3.16f, radius * 1.24f),
+          style = Stroke(1.dp.toPx()),
+        )
+        departments.forEachIndexed { index, department ->
+          val angle = (index.toFloat() / departments.size.coerceAtLeast(1)) * (Math.PI * 2) - Math.PI / 2
+          val point = Offset(
+            center.x + cos(angle).toFloat() * radius * 1.43f,
+            center.y + sin(angle).toFloat() * radius * 1.28f,
+          )
+          drawCircle(CcBlue.copy(alpha = .16f), 12.dp.toPx(), point)
+          drawCircle(CcBlue, 4.dp.toPx(), point)
+          drawContext.canvas.nativeCanvas.apply {
+            val paint = android.graphics.Paint().apply {
+              color = android.graphics.Color.rgb(225, 231, 242)
+              textAlign = android.graphics.Paint.Align.CENTER
+              textSize = 10.dp.toPx()
+              isAntiAlias = true
+              typeface = android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD)
+            }
+            drawText(department.name.take(18), point.x, point.y + 22.dp.toPx(), paint)
+          }
+        }
+      }
+      Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = Color(0xEE102131),
+        border = BorderStroke(1.dp, CcBlue.copy(alpha = .35f)),
+        shadowElevation = 8.dp,
+      ) {
+        Row(
+          Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+          Icon(Icons.Outlined.AutoAwesome, null, tint = Color(0xFF9CE8FF), modifier = Modifier.size(18.dp))
+          Text(
+            if (connection == ConnectionState.ONLINE) "ALEXA CORE ONLINE" else "ALEXA CORE ${connection.name}",
+            color = Color(0xFFC5EDFF),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+          )
+        }
+      }
+      if (departments.isEmpty()) {
+        Text(
+          "Workforce topology will appear after sync",
+          Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp),
+          color = CcMuted,
+          style = MaterialTheme.typography.labelSmall,
+        )
+      }
+    }
   }
 }
 

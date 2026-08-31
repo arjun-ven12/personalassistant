@@ -24,6 +24,7 @@ import {
   type OverrideGrantWithDescriptor,
   assertOverrideBindings,
 } from "./store.js";
+import { companyScope } from "../../companies/scope.js";
 
 type Row = Record<string, unknown>;
 const iso = (value: unknown) =>
@@ -166,10 +167,10 @@ const insertLedger = async (client: pg.PoolClient, entry: AIUsageLedgerEntry) =>
       workflow_run_id, task_id, conversation_id, purpose, locality,
       input_tokens, cached_input_tokens, output_tokens, reasoning_tokens,
       total_tokens, usage_source, estimated_cost_usd, actual_cost_usd,
-      pricing_version, status, started_at, completed_at, metadata_json, cost_center
+      pricing_version, status, started_at, completed_at, metadata_json, cost_center, company_id
     ) VALUES (
       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
-      $19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30
+      $19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31
     )`,
     [
       entry.id,
@@ -202,6 +203,7 @@ const insertLedger = async (client: pg.PoolClient, entry: AIUsageLedgerEntry) =>
       entry.completedAt ?? null,
       entry.metadata ?? {},
       typeof entry.metadata?.costCenter === "string" ? entry.metadata.costCenter : null,
+      companyScope.companyId(entry.ownerId) ?? null,
     ],
   );
 };
@@ -276,8 +278,8 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
 
   async listPolicies(ownerId: string) {
     const result = await this.pool.query<Row>(
-      `SELECT * FROM ai_budget_policies WHERE owner_id=$1 ORDER BY scope, scope_id NULLS FIRST, id`,
-      [ownerId],
+      `SELECT * FROM ai_budget_policies WHERE owner_id=$1 AND ($2::uuid IS NULL OR company_id=$2) ORDER BY scope, scope_id NULLS FIRST, id`,
+      [ownerId, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows.map(policyFromRow);
   }
@@ -290,8 +292,8 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
         warning_threshold_pct, throttle_threshold_pct, hard_stop_threshold_pct,
         overflow_behavior, enabled, priority, effective_from, effective_until,
         max_calls_per_minute, max_calls_per_run, max_cloud_calls_per_run,
-        created_at, updated_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,NOW(),NOW())
+        created_at, updated_at, company_id
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,NOW(),NOW(),$19)
       ON CONFLICT(id) DO UPDATE SET
         scope=EXCLUDED.scope, scope_id=EXCLUDED.scope_id, period=EXCLUDED.period,
         currency=EXCLUDED.currency, limit_usd=EXCLUDED.limit_usd,
@@ -305,7 +307,7 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
         max_calls_per_run=EXCLUDED.max_calls_per_run,
         max_cloud_calls_per_run=EXCLUDED.max_cloud_calls_per_run,
         updated_at=NOW()
-      WHERE ai_budget_policies.owner_id=EXCLUDED.owner_id
+      WHERE ai_budget_policies.owner_id=EXCLUDED.owner_id AND ai_budget_policies.company_id=EXCLUDED.company_id
       RETURNING *`,
       [
         item.id,
@@ -326,6 +328,7 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
         item.maxCallsPerMinute ?? null,
         item.maxCallsPerRun ?? null,
         item.maxCloudCallsPerRun ?? null,
+        companyScope.companyId(item.ownerId) ?? null,
       ],
     );
     if (!result.rows[0]) throw new Error("BUDGET_POLICY_OWNER_MISMATCH");
@@ -334,39 +337,41 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
 
   async disablePolicy(ownerId: string, id: string) {
     const result = await this.pool.query(
-      `UPDATE ai_budget_policies SET enabled=FALSE, updated_at=NOW() WHERE id=$1 AND owner_id=$2`,
-      [id, ownerId],
+      `UPDATE ai_budget_policies SET enabled=FALSE, updated_at=NOW() WHERE id=$1 AND owner_id=$2 AND ($3::uuid IS NULL OR company_id=$3)`,
+      [id, ownerId, companyScope.companyId(ownerId) ?? null],
     );
     return result.rowCount === 1;
   }
 
   async listReservations(ownerId: string) {
     const result = await this.pool.query<Row>(
-      `SELECT * FROM ai_budget_reservations WHERE owner_id=$1 ORDER BY created_at DESC`,
-      [ownerId],
+      `SELECT * FROM ai_budget_reservations WHERE owner_id=$1 AND ($2::uuid IS NULL OR company_id=$2) ORDER BY created_at DESC`,
+      [ownerId, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows.map(reservationFromRow);
   }
 
   async listLedger(ownerId: string, limit: number) {
     const result = await this.pool.query<Row>(
-      `SELECT * FROM ai_usage_ledger WHERE owner_id=$1 ORDER BY started_at DESC LIMIT $2`,
-      [ownerId, limit],
+      `SELECT * FROM ai_usage_ledger WHERE owner_id=$1 AND ($3::uuid IS NULL OR company_id=$3) ORDER BY started_at DESC LIMIT $2`,
+      [ownerId, limit, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows.map(ledgerFromRow);
   }
 
   async reserveAtomic(input: AtomicReservationInput) {
     const client = await this.pool.connect();
+    const companyId = companyScope.companyId(input.reservation.ownerId) ?? null;
     try {
       await client.query("BEGIN");
       const duplicate = await client.query<Row>(
         `SELECT * FROM ai_budget_reservations
-         WHERE owner_id=$1 AND request_id=$2 AND attempt_id=$3 FOR UPDATE`,
+         WHERE owner_id=$1 AND request_id=$2 AND attempt_id=$3 AND ($4::uuid IS NULL OR company_id=$4) FOR UPDATE`,
         [
           input.reservation.ownerId,
           input.reservation.requestId,
           input.reservation.attemptId,
+          companyId,
         ],
       );
       if (duplicate.rows[0]) {
@@ -375,23 +380,23 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
       }
       const policyRows = await client.query<Row>(
         `SELECT * FROM ai_budget_policies
-         WHERE owner_id=$1 AND enabled=TRUE
+         WHERE owner_id=$1 AND ($2::uuid IS NULL OR company_id=$2) AND enabled=TRUE
            AND effective_from <= NOW()
            AND (effective_until IS NULL OR effective_until > NOW())
          ORDER BY scope, scope_id NULLS FIRST, id FOR UPDATE`,
-        [input.reservation.ownerId],
+        [input.reservation.ownerId, companyId],
       );
       const policies = policyRows.rows
         .map(policyFromRow)
         .filter((policy) => policyApplies(policy, input.context, input.candidate));
       const ledgerRows = await client.query<Row>(
-        `SELECT * FROM ai_usage_ledger WHERE owner_id=$1 ORDER BY started_at DESC`,
-        [input.reservation.ownerId],
+        `SELECT * FROM ai_usage_ledger WHERE owner_id=$1 AND ($2::uuid IS NULL OR company_id=$2) ORDER BY started_at DESC`,
+        [input.reservation.ownerId, companyId],
       );
       const reservationRows = await client.query<Row>(
         `SELECT * FROM ai_budget_reservations
-         WHERE owner_id=$1 AND status='ACTIVE' AND expires_at > NOW() FOR UPDATE`,
-        [input.reservation.ownerId],
+         WHERE owner_id=$1 AND ($2::uuid IS NULL OR company_id=$2) AND status='ACTIVE' AND expires_at > NOW() FOR UPDATE`,
+        [input.reservation.ownerId, companyId],
       );
       const reservation = AIBudgetReservationSchema.parse({
         ...input.reservation,
@@ -409,8 +414,8 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
         `INSERT INTO ai_budget_reservations(
           id, owner_id, request_id, route_id, attempt_id, provider_key,
           model_key, pricing_version, policy_ids, context_json, amount_usd, status,
-          created_at, expires_at, settled_amount_usd
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+          created_at, expires_at, settled_amount_usd, company_id
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
         RETURNING *`,
         [
           reservation.id,
@@ -428,6 +433,7 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
           reservation.createdAt,
           reservation.expiresAt,
           reservation.settledAmountUsd ?? null,
+          companyId,
         ],
       );
       await client.query("COMMIT");
@@ -442,12 +448,13 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
 
   async settleAtomic(input: AtomicSettlementInput) {
     const client = await this.pool.connect();
+    const companyId = companyScope.companyId(input.ownerId) ?? null;
     try {
       await client.query("BEGIN");
       const existing = input.entry.attemptId
         ? await client.query<Row>(
-            `SELECT * FROM ai_usage_ledger WHERE owner_id=$1 AND request_id=$2 AND attempt_id=$3 FOR UPDATE`,
-            [input.ownerId, input.entry.requestId, input.entry.attemptId],
+            `SELECT * FROM ai_usage_ledger WHERE owner_id=$1 AND request_id=$2 AND attempt_id=$3 AND ($4::uuid IS NULL OR company_id=$4) FOR UPDATE`,
+            [input.ownerId, input.entry.requestId, input.entry.attemptId, companyId],
           )
         : { rows: [] as Row[] };
       if (existing.rows[0]) {
@@ -457,8 +464,8 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
       let reservation: AIBudgetReservation | undefined;
       if (input.reservationId) {
         const result = await client.query<Row>(
-          `SELECT * FROM ai_budget_reservations WHERE id=$1 AND owner_id=$2 FOR UPDATE`,
-          [input.reservationId, input.ownerId],
+          `SELECT * FROM ai_budget_reservations WHERE id=$1 AND owner_id=$2 AND ($3::uuid IS NULL OR company_id=$3) FOR UPDATE`,
+          [input.reservationId, input.ownerId, companyId],
         );
         if (!result.rows[0])
           throw new AIEconomicError("RESERVATION_FAILED", "Reservation was not found.");
@@ -468,12 +475,13 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
       if (reservation) {
         await client.query(
           `UPDATE ai_budget_reservations
-           SET status=$3, settled_amount_usd=$4 WHERE id=$1 AND owner_id=$2`,
+           SET status=$3, settled_amount_usd=$4 WHERE id=$1 AND owner_id=$2 AND ($5::uuid IS NULL OR company_id=$5)`,
           [
             reservation.id,
             input.ownerId,
             input.entry.status === "SETTLED" ? "SETTLED" : "RELEASED",
             input.entry.actualCostUsd ?? "0",
+            companyId,
           ],
         );
         if (
@@ -483,8 +491,8 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
           await client.query(
             `INSERT INTO ai_economic_anomalies(
               id, owner_id, request_id, attempt_id, anomaly_type, severity,
-              metadata_json, created_at
-            ) VALUES ($1,$2,$3,$4,'OVER_RESERVATION','CRITICAL',$5,NOW())`,
+              metadata_json, created_at, company_id
+            ) VALUES ($1,$2,$3,$4,'OVER_RESERVATION','CRITICAL',$5,NOW(),$6)`,
             [
               crypto.randomUUID(),
               input.ownerId,
@@ -494,6 +502,7 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
                 reservedUsd: reservation.amountUsd,
                 actualUsd: input.entry.actualCostUsd ?? "0",
               },
+              companyId,
             ],
           );
       }
@@ -510,8 +519,8 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
   async release(ownerId: string, reservationId: string) {
     const result = await this.pool.query<Row>(
       `UPDATE ai_budget_reservations SET status='RELEASED', settled_amount_usd=0
-       WHERE id=$1 AND owner_id=$2 AND status='ACTIVE' RETURNING *`,
-      [reservationId, ownerId],
+       WHERE id=$1 AND owner_id=$2 AND ($3::uuid IS NULL OR company_id=$3) AND status='ACTIVE' RETURNING *`,
+      [reservationId, ownerId, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows[0] ? reservationFromRow(result.rows[0]) : undefined;
   }
@@ -528,8 +537,8 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
   async findActiveReservation(ownerId: string, reservationId: string) {
     const result = await this.pool.query<Row>(
       `SELECT * FROM ai_budget_reservations
-       WHERE id=$1 AND owner_id=$2 AND status='ACTIVE' AND expires_at > NOW()`,
-      [reservationId, ownerId],
+       WHERE id=$1 AND owner_id=$2 AND ($3::uuid IS NULL OR company_id=$3) AND status='ACTIVE' AND expires_at > NOW()`,
+      [reservationId, ownerId, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows[0] ? reservationFromRow(result.rows[0]) : undefined;
   }
@@ -544,8 +553,8 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
         id, owner_id, approval_id, request_id, workflow_run_id, scope, scope_id,
         max_additional_spend_usd, expires_at, status, created_at, digest,
         descriptor_json, agent_id, workflow_id, task_id, cost_center,
-        provider_key, model_key
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+        provider_key, model_key, company_id
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
       RETURNING *`,
       [
         grant.id, grant.ownerId, grant.approvalId, grant.requestId,
@@ -554,6 +563,7 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
         grant.digest, descriptor, descriptor.agentId ?? null, descriptor.workflowId ?? null,
         descriptor.taskId ?? null, descriptor.costCenter ?? null,
         descriptor.providerId ?? null, descriptor.modelId ?? null,
+        companyScope.companyId(grant.ownerId) ?? null,
       ],
     );
     return grantFromRow(result.rows[0]!).grant;
@@ -561,19 +571,20 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
 
   async getOverrideGrant(ownerId: string, grantId: string) {
     const result = await this.pool.query<Row>(
-      `SELECT * FROM ai_budget_override_grants WHERE id=$1 AND owner_id=$2`,
-      [grantId, ownerId],
+      `SELECT * FROM ai_budget_override_grants WHERE id=$1 AND owner_id=$2 AND ($3::uuid IS NULL OR company_id=$3)`,
+      [grantId, ownerId, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows[0] ? grantFromRow(result.rows[0]) : undefined;
   }
 
   async consumeOverrideGrantWithReservation(input: OverrideGrantReservationInput) {
     const client = await this.pool.connect();
+    const companyId = companyScope.companyId(input.ownerId) ?? null;
     try {
       await client.query("BEGIN");
       const grantResult = await client.query<Row>(
-        `SELECT * FROM ai_budget_override_grants WHERE id=$1 AND owner_id=$2 FOR UPDATE`,
-        [input.grantId, input.ownerId],
+        `SELECT * FROM ai_budget_override_grants WHERE id=$1 AND owner_id=$2 AND ($3::uuid IS NULL OR company_id=$3) FOR UPDATE`,
+        [input.grantId, input.ownerId, companyId],
       );
       const row = grantResult.rows[0];
       if (!row) throw new AIEconomicError("OVERRIDE_REQUIRED", "Override grant was not found.");
@@ -589,17 +600,17 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
         throw new AIEconomicError("OVERRIDE_REQUIRED", "Override grant amount was exceeded.");
       assertOverrideBindings(record.descriptor, input.context, input.candidate);
       const policyRows = await client.query<Row>(
-        `SELECT * FROM ai_budget_policies WHERE owner_id=$1 AND enabled=TRUE
+        `SELECT * FROM ai_budget_policies WHERE owner_id=$1 AND ($2::uuid IS NULL OR company_id=$2) AND enabled=TRUE
          AND effective_from <= NOW() AND (effective_until IS NULL OR effective_until > NOW())
-         ORDER BY scope, scope_id NULLS FIRST, id FOR UPDATE`, [input.ownerId],
+         ORDER BY scope, scope_id NULLS FIRST, id FOR UPDATE`, [input.ownerId, companyId],
       );
       const policies = policyRows.rows.map(policyFromRow).filter((policy) =>
         policyApplies(policy, input.context, input.candidate),
       );
       if (!policies.length) throw new AIEconomicError("OVERRIDE_REQUIRED", "No applicable budget policy exists.");
       const duplicate = await client.query<Row>(
-        `SELECT * FROM ai_budget_reservations WHERE owner_id=$1 AND request_id=$2 AND attempt_id=$3 FOR UPDATE`,
-        [input.ownerId, input.reservation.requestId, input.reservation.attemptId],
+        `SELECT * FROM ai_budget_reservations WHERE owner_id=$1 AND request_id=$2 AND attempt_id=$3 AND ($4::uuid IS NULL OR company_id=$4) FOR UPDATE`,
+        [input.ownerId, input.reservation.requestId, input.reservation.attemptId, companyId],
       );
       if (duplicate.rows[0]) throw new AIEconomicError("OVERRIDE_REQUIRED", "Override reservation already exists.");
       const reservation = AIBudgetReservationSchema.parse({
@@ -610,18 +621,18 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
         `INSERT INTO ai_budget_reservations(
           id, owner_id, request_id, route_id, attempt_id, provider_key, model_key,
           pricing_version, policy_ids, context_json, amount_usd, status, created_at,
-          expires_at, settled_amount_usd
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+          expires_at, settled_amount_usd, company_id
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
         [reservation.id, reservation.ownerId, reservation.requestId, reservation.routeId ?? null,
          reservation.attemptId ?? null, reservation.providerId ?? null, reservation.modelId ?? null,
          reservation.pricingVersion ?? null, reservation.policyIds ?? [], reservation.context ?? {},
          reservation.amountUsd, reservation.status, reservation.createdAt, reservation.expiresAt,
-         reservation.settledAmountUsd ?? null],
+         reservation.settledAmountUsd ?? null, companyId],
       );
       await client.query(
         `UPDATE ai_budget_override_grants SET status='CONSUMED', consumed_at=NOW(), reservation_id=$1
-         WHERE id=$2 AND owner_id=$3 AND status='ACTIVE'`,
-        [reservation.id, input.grantId, input.ownerId],
+         WHERE id=$2 AND owner_id=$3 AND ($4::uuid IS NULL OR company_id=$4) AND status='ACTIVE'`,
+        [reservation.id, input.grantId, input.ownerId, companyId],
       );
       await client.query("COMMIT");
       return reservationFromRow(inserted.rows[0]!);
@@ -636,8 +647,8 @@ export class PostgresAIEconomicsStore implements AIEconomicsStore {
   async expireOverrideGrant(ownerId: string, grantId: string) {
     const result = await this.pool.query(
       `UPDATE ai_budget_override_grants SET status='EXPIRED'
-       WHERE id=$1 AND owner_id=$2 AND status='ACTIVE' AND expires_at <= NOW()`,
-      [grantId, ownerId],
+       WHERE id=$1 AND owner_id=$2 AND ($3::uuid IS NULL OR company_id=$3) AND status='ACTIVE' AND expires_at <= NOW()`,
+      [grantId, ownerId, companyScope.companyId(ownerId) ?? null],
     );
     return result.rowCount === 1;
   }

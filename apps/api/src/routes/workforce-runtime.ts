@@ -8,12 +8,14 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
 import type { ApiRouteContext } from "./context.js";
+import { installCompanyRouteGuard } from "./company-guard.js";
 
 const Params = z.object({ taskId: z.string().uuid() }).strict();
 const taskResponse = z.object({ task: WorkforceRuntimeTaskSchema }).strict();
 
 export const registerWorkforceRuntimeRoutes = (app: FastifyInstance, context: ApiRouteContext) => {
-  app.get("/api/workforce-runtime", { preHandler: [context.security.requireAuthentication] }, async (request) => {
+  installCompanyRouteGuard(app, "/api/workforce-runtime", context);
+  app.get("/api/workforce-runtime", { preHandler: [context.security.requireAuthentication,context.companyContext.requireCompany] }, async (request) => {
     const ownerId = context.security.getIdentity(request).user.id;
     return WorkforceRuntimeDashboardSchema.parse(await context.workforceRuntime.dashboard(ownerId));
   });

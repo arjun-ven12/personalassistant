@@ -8,7 +8,7 @@ class ForegroundSyncController {
 
   val pollIntervalMs: Long = 10_000L
 
-  fun shouldRefreshExecutive(cycle: Int): Boolean = cycle >= 0 && cycle % 2 == 0
+  fun shouldRefreshExecutive(cycle: Int): Boolean = cycle >= 0 && cycle % 6 == 0
 
   fun nextState(networkAvailable: Boolean): ConnectionState = when {
     !networkAvailable -> ConnectionState.OFFLINE

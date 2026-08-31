@@ -586,18 +586,21 @@ export const DeviceVoiceRuntimePayloadSchema = z.discriminatedUnion("operation",
   z
     .object({
       operation: z.literal("start_session"),
+      companyId: z.string().uuid().optional(),
       session: CreateVoiceSessionRequestSchema,
     })
     .strict(),
   z
     .object({
       operation: z.literal("submit_transcript"),
+      companyId: z.string().uuid().optional(),
       transcript: RecordVoiceTranscriptRequestSchema,
     })
     .strict(),
   z
     .object({
       operation: z.literal("cancel_turn"),
+      companyId: z.string().uuid().optional(),
       turnId: z.string().uuid(),
       sessionId: z.string().uuid().nullable().optional(),
       reason: z.enum(["barge_in", "owner_stop", "transport_disconnect"]),
@@ -606,6 +609,7 @@ export const DeviceVoiceRuntimePayloadSchema = z.discriminatedUnion("operation",
   z
     .object({
       operation: z.literal("capture_lease"),
+      companyId: z.string().uuid().optional(),
       action: z.enum(["acquire", "takeover", "heartbeat", "release", "status"]),
       voiceSessionId: z.string().uuid(),
     })

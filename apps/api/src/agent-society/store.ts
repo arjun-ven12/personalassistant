@@ -38,6 +38,7 @@ import {
 } from "@alexa-control/shared";
 
 import type { Awaitable } from "../identity/store.js";
+import { companyScope } from "../companies/scope.js";
 
 export interface AgentSocietyStore {
   saveOrganization(record: OrganizationRecord): Awaitable<void>;
@@ -85,6 +86,14 @@ export interface AgentSocietyStore {
 }
 
 const clone = <T>(value: T): T => structuredClone(value);
+const scopedKey = (ownerId: string, id: string) =>
+  `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:${id}`;
+const scopedPrefix = (ownerId: string) =>
+  `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:`;
+const scopedValues = <T extends { ownerId: string }>(values: Map<string, T>, ownerId: string) =>
+  [...values.entries()]
+    .filter(([key, value]) => key.startsWith(scopedPrefix(ownerId)) && value.ownerId === ownerId)
+    .map(([, value]) => value);
 const ordered = <T>(items: T[], field: keyof T, limit: number) =>
   items
     .sort((left, right) => String(right[field]).localeCompare(String(left[field])))
@@ -112,180 +121,184 @@ export class InMemoryAgentSocietyStore implements AgentSocietyStore {
   readonly #memory = new Map<string, OrganizationalMemoryRecord>();
 
   saveOrganization(record: OrganizationRecord) {
-    this.#organizations.set(record.id, clone(OrganizationRecordSchema.parse(record)));
+    const parsed = OrganizationRecordSchema.parse(record);
+    this.#organizations.set(scopedKey(parsed.ownerId, parsed.id), clone(parsed));
   }
   listOrganizations(ownerId: string) {
-    return [...this.#organizations.values()]
-      .filter((item) => item.ownerId === ownerId)
-      .map(clone);
+    return scopedValues(this.#organizations, ownerId).map(clone);
   }
   saveDepartment(record: DepartmentRecord) {
-    this.#departments.set(record.id, clone(DepartmentRecordSchema.parse(record)));
+    const parsed = DepartmentRecordSchema.parse(record);
+    this.#departments.set(scopedKey(parsed.ownerId, parsed.id), clone(parsed));
   }
   listDepartments(ownerId: string) {
-    return [...this.#departments.values()]
-      .filter((item) => item.ownerId === ownerId)
-      .map(clone);
+    return scopedValues(this.#departments, ownerId).map(clone);
   }
   saveRole(record: OrganizationalRoleRecord) {
     const parsed = OrganizationalRoleRecordSchema.parse(record);
-    this.#roles.set(`${parsed.ownerId}:${parsed.role}`, clone(parsed));
+    this.#roles.set(scopedKey(parsed.ownerId, parsed.role), clone(parsed));
   }
   listRoles(ownerId: string) {
-    return [...this.#roles.values()]
-      .filter((item) => item.ownerId === ownerId)
-      .map(clone);
+    return scopedValues(this.#roles, ownerId).map(clone);
   }
   saveTeam(record: TeamRecord) {
-    this.#teams.set(record.id, clone(TeamRecordSchema.parse(record)));
+    const parsed = TeamRecordSchema.parse(record);
+    this.#teams.set(scopedKey(parsed.ownerId, parsed.id), clone(parsed));
   }
   listTeams(ownerId: string, limit: number) {
     return ordered(
-      [...this.#teams.values()].filter((item) => item.ownerId === ownerId),
+      scopedValues(this.#teams, ownerId),
       "createdAt",
       limit,
     );
   }
   saveTeamMember(record: TeamMemberRecord) {
-    this.#members.set(record.id, clone(TeamMemberRecordSchema.parse(record)));
+    const parsed = TeamMemberRecordSchema.parse(record);
+    this.#members.set(scopedKey(parsed.ownerId, parsed.id), clone(parsed));
   }
   listTeamMembers(ownerId: string, limit: number) {
     return ordered(
-      [...this.#members.values()].filter((item) => item.ownerId === ownerId),
+      scopedValues(this.#members, ownerId),
       "joinedAt",
       limit,
     );
   }
   saveDelegation(record: DelegationRecord) {
-    this.#delegations.set(record.id, clone(DelegationRecordSchema.parse(record)));
+    const parsed = DelegationRecordSchema.parse(record);
+    this.#delegations.set(scopedKey(parsed.ownerId, parsed.id), clone(parsed));
   }
   listDelegations(ownerId: string, limit: number) {
     return ordered(
-      [...this.#delegations.values()].filter((item) => item.ownerId === ownerId),
+      scopedValues(this.#delegations, ownerId),
       "createdAt",
       limit,
     );
   }
   saveDebate(record: DebateRecord) {
-    this.#debates.set(record.id, clone(DebateRecordSchema.parse(record)));
+    const parsed = DebateRecordSchema.parse(record);
+    this.#debates.set(scopedKey(parsed.ownerId, parsed.id), clone(parsed));
   }
   listDebates(ownerId: string, limit: number) {
     return ordered(
-      [...this.#debates.values()].filter((item) => item.ownerId === ownerId),
+      scopedValues(this.#debates, ownerId),
       "createdAt",
       limit,
     );
   }
   saveDebateArgument(record: DebateArgumentRecord) {
-    this.#arguments.set(record.id, clone(DebateArgumentRecordSchema.parse(record)));
+    const parsed = DebateArgumentRecordSchema.parse(record);
+    this.#arguments.set(scopedKey(parsed.ownerId, parsed.id), clone(parsed));
   }
   listDebateArguments(ownerId: string, limit: number) {
     return ordered(
-      [...this.#arguments.values()].filter((item) => item.ownerId === ownerId),
+      scopedValues(this.#arguments, ownerId),
       "createdAt",
       limit,
     );
   }
   saveConsensus(record: SocietyConsensusRecord) {
-    this.#consensus.set(record.id, clone(SocietyConsensusRecordSchema.parse(record)));
+    const parsed = SocietyConsensusRecordSchema.parse(record);
+    this.#consensus.set(scopedKey(parsed.ownerId, parsed.id), clone(parsed));
   }
   listConsensus(ownerId: string, limit: number) {
     return ordered(
-      [...this.#consensus.values()].filter((item) => item.ownerId === ownerId),
+      scopedValues(this.#consensus, ownerId),
       "createdAt",
       limit,
     );
   }
   savePeerReview(record: PeerReviewRecord) {
-    this.#reviews.set(record.id, clone(PeerReviewRecordSchema.parse(record)));
+    const parsed = PeerReviewRecordSchema.parse(record);
+    this.#reviews.set(scopedKey(parsed.ownerId, parsed.id), clone(parsed));
   }
   listPeerReviews(ownerId: string, limit: number) {
     return ordered(
-      [...this.#reviews.values()].filter((item) => item.ownerId === ownerId),
+      scopedValues(this.#reviews, ownerId),
       "createdAt",
       limit,
     );
   }
   saveMentorship(record: MentorshipRecord) {
-    this.#mentorships.set(record.id, clone(MentorshipRecordSchema.parse(record)));
+    const parsed = MentorshipRecordSchema.parse(record);
+    this.#mentorships.set(scopedKey(parsed.ownerId, parsed.id), clone(parsed));
   }
   listMentorships(ownerId: string, limit: number) {
     return ordered(
-      [...this.#mentorships.values()].filter((item) => item.ownerId === ownerId),
+      scopedValues(this.#mentorships, ownerId),
       "createdAt",
       limit,
     );
   }
   saveConflict(record: OrganizationalConflictRecord) {
     this.#conflicts.set(
-      record.id,
+      scopedKey(record.ownerId, record.id),
       clone(OrganizationalConflictRecordSchema.parse(record)),
     );
   }
   listConflicts(ownerId: string, limit: number) {
     return ordered(
-      [...this.#conflicts.values()].filter((item) => item.ownerId === ownerId),
+      scopedValues(this.#conflicts, ownerId),
       "createdAt",
       limit,
     );
   }
   saveMeeting(record: MeetingRecord) {
-    this.#meetings.set(record.id, clone(MeetingRecordSchema.parse(record)));
+    const parsed = MeetingRecordSchema.parse(record);
+    this.#meetings.set(scopedKey(parsed.ownerId, parsed.id), clone(parsed));
   }
   listMeetings(ownerId: string, limit: number) {
     return ordered(
-      [...this.#meetings.values()].filter((item) => item.ownerId === ownerId),
+      scopedValues(this.#meetings, ownerId),
       "createdAt",
       limit,
     );
   }
   saveCommunication(record: CommunicationRecord) {
-    this.#communications.set(record.id, clone(CommunicationRecordSchema.parse(record)));
+    const parsed = CommunicationRecordSchema.parse(record);
+    this.#communications.set(scopedKey(parsed.ownerId, parsed.id), clone(parsed));
   }
   listCommunications(ownerId: string, limit: number) {
     return ordered(
-      [...this.#communications.values()].filter((item) => item.ownerId === ownerId),
+      scopedValues(this.#communications, ownerId),
       "createdAt",
       limit,
     );
   }
   saveReputation(record: ReputationScoreRecord) {
     const parsed = ReputationScoreRecordSchema.parse(record);
-    this.#reputation.set(`${parsed.ownerId}:${parsed.agentId}`, clone(parsed));
+    this.#reputation.set(scopedKey(parsed.ownerId, parsed.agentId), clone(parsed));
   }
   listReputation(ownerId: string) {
-    return [...this.#reputation.values()]
-      .filter((item) => item.ownerId === ownerId)
-      .map(clone);
+    return scopedValues(this.#reputation, ownerId).map(clone);
   }
   saveCollaborationEdge(record: CollaborationEdgeRecord) {
     const parsed = CollaborationEdgeRecordSchema.parse(record);
     this.#edges.set(
-      `${parsed.ownerId}:${parsed.sourceAgentId}:${parsed.targetAgentId}:${parsed.relationship}`,
+      scopedKey(parsed.ownerId, `${parsed.sourceAgentId}:${parsed.targetAgentId}:${parsed.relationship}`),
       clone(parsed),
     );
   }
   listCollaborationEdges(ownerId: string) {
-    return [...this.#edges.values()]
-      .filter((item) => item.ownerId === ownerId)
-      .map(clone);
+    return scopedValues(this.#edges, ownerId).map(clone);
   }
   saveMetric(record: OrganizationalMetricRecord) {
-    this.#metrics.set(record.id, clone(OrganizationalMetricRecordSchema.parse(record)));
+    const parsed = OrganizationalMetricRecordSchema.parse(record);
+    this.#metrics.set(scopedKey(parsed.ownerId, parsed.id), clone(parsed));
   }
   listMetrics(ownerId: string, limit: number) {
     return ordered(
-      [...this.#metrics.values()].filter((item) => item.ownerId === ownerId),
+      scopedValues(this.#metrics, ownerId),
       "measuredAt",
       limit,
     );
   }
   saveMemory(record: OrganizationalMemoryRecord) {
-    this.#memory.set(record.id, clone(OrganizationalMemoryRecordSchema.parse(record)));
+    const parsed = OrganizationalMemoryRecordSchema.parse(record);
+    this.#memory.set(scopedKey(parsed.ownerId, parsed.id), clone(parsed));
   }
   listMemory(ownerId: string, limit: number) {
     return ordered(
-      [...this.#memory.values()].filter((item) => item.ownerId === ownerId),
+      scopedValues(this.#memory, ownerId),
       "createdAt",
       limit,
     );

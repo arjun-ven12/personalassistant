@@ -21,6 +21,7 @@ import {
 } from "@alexa-control/shared";
 
 import type { Awaitable } from "../identity/store.js";
+import { companyScope } from "../companies/scope.js";
 
 export interface MemoryStore {
   saveMemory(memory: MemoryRecord): Awaitable<void>;
@@ -68,6 +69,15 @@ const searchableText = (memory: MemoryRecord) =>
     .join(" ")
     .toLowerCase();
 
+const scopedKey = (ownerId: string, id: string) =>
+  `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:${id}`;
+const scopedPrefix = (ownerId: string) =>
+  `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:`;
+const scopedValues = <T extends { ownerId: string }>(values: Map<string, T>, ownerId: string) =>
+  [...values.entries()]
+    .filter(([key, value]) => key.startsWith(scopedPrefix(ownerId)) && value.ownerId === ownerId)
+    .map(([, value]) => value);
+
 export class InMemoryMemoryStore implements MemoryStore {
   readonly #memories = new Map<string, MemoryRecord>();
   readonly #nodes = new Map<string, KnowledgeNode>();
@@ -81,17 +91,17 @@ export class InMemoryMemoryStore implements MemoryStore {
 
   saveMemory(memory: MemoryRecord) {
     const parsed = MemoryRecordSchema.parse(memory);
-    this.#memories.set(parsed.id, structuredClone(parsed));
+    this.#memories.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   findMemory(ownerId: string, memoryId: string) {
-    const memory = this.#memories.get(memoryId);
+    const memory = this.#memories.get(scopedKey(ownerId, memoryId));
     return memory?.ownerId === ownerId ? structuredClone(memory) : undefined;
   }
 
   listMemories(ownerId: string, limit: number) {
     return descending(
-      [...this.#memories.values()].filter((memory) => memory.ownerId === ownerId),
+      scopedValues(this.#memories, ownerId),
       "updatedAt",
       limit,
     );
@@ -99,8 +109,7 @@ export class InMemoryMemoryStore implements MemoryStore {
 
   searchMemories(ownerId: string, query: MemorySearchQuery) {
     const needle = query.q.toLowerCase();
-    const scored = [...this.#memories.values()]
-      .filter((memory) => memory.ownerId === ownerId)
+    const scored = scopedValues(this.#memories, ownerId)
       .filter((memory) => !query.type || memory.memoryType === query.type)
       .filter(
         (memory) => !query.repositoryId || memory.repositoryId === query.repositoryId,
@@ -118,12 +127,12 @@ export class InMemoryMemoryStore implements MemoryStore {
 
   saveKnowledgeNode(node: KnowledgeNode) {
     const parsed = KnowledgeNodeSchema.parse(node);
-    this.#nodes.set(parsed.id, structuredClone(parsed));
+    this.#nodes.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   listKnowledgeNodes(ownerId: string, limit: number) {
     return descending(
-      [...this.#nodes.values()].filter((node) => node.ownerId === ownerId),
+      scopedValues(this.#nodes, ownerId),
       "updatedAt",
       limit,
     );
@@ -131,12 +140,12 @@ export class InMemoryMemoryStore implements MemoryStore {
 
   saveKnowledgeEdge(edge: KnowledgeEdge) {
     const parsed = KnowledgeEdgeSchema.parse(edge);
-    this.#edges.set(parsed.id, structuredClone(parsed));
+    this.#edges.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   listKnowledgeEdges(ownerId: string, limit: number) {
     return descending(
-      [...this.#edges.values()].filter((edge) => edge.ownerId === ownerId),
+      scopedValues(this.#edges, ownerId),
       "createdAt",
       limit,
     );
@@ -144,12 +153,12 @@ export class InMemoryMemoryStore implements MemoryStore {
 
   saveDecision(decision: EngineeringDecisionRecord) {
     const parsed = EngineeringDecisionRecordSchema.parse(decision);
-    this.#decisions.set(parsed.id, structuredClone(parsed));
+    this.#decisions.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   listDecisions(ownerId: string, limit: number) {
     return descending(
-      [...this.#decisions.values()].filter((decision) => decision.ownerId === ownerId),
+      scopedValues(this.#decisions, ownerId),
       "createdAt",
       limit,
     );
@@ -158,37 +167,37 @@ export class InMemoryMemoryStore implements MemoryStore {
   saveRepositoryMemory(memory: RepositoryMemoryRecord) {
     const parsed = RepositoryMemoryRecordSchema.parse(memory);
     this.#repositoryMemory.set(
-      `${parsed.ownerId}:${parsed.repositoryId}`,
+      scopedKey(parsed.ownerId, parsed.repositoryId),
       structuredClone(parsed),
     );
   }
 
   getRepositoryMemory(ownerId: string, repositoryId: string) {
-    const memory = this.#repositoryMemory.get(`${ownerId}:${repositoryId}`);
+    const memory = this.#repositoryMemory.get(scopedKey(ownerId, repositoryId));
     return memory ? structuredClone(memory) : undefined;
   }
 
   saveAgentMemory(memory: AgentMemoryRecord) {
     const parsed = AgentMemoryRecordSchema.parse(memory);
     this.#agentMemory.set(
-      `${parsed.ownerId}:${parsed.agentId}`,
+      scopedKey(parsed.ownerId, parsed.agentId),
       structuredClone(parsed),
     );
   }
 
   getAgentMemory(ownerId: string, agentId: string) {
-    const memory = this.#agentMemory.get(`${ownerId}:${agentId}`);
+    const memory = this.#agentMemory.get(scopedKey(ownerId, agentId));
     return memory ? structuredClone(memory) : undefined;
   }
 
   saveLearningEvent(event: LearningEventRecord) {
     const parsed = LearningEventRecordSchema.parse(event);
-    this.#learningEvents.set(parsed.id, structuredClone(parsed));
+    this.#learningEvents.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   listLearningEvents(ownerId: string, limit: number) {
     return descending(
-      [...this.#learningEvents.values()].filter((event) => event.ownerId === ownerId),
+      scopedValues(this.#learningEvents, ownerId),
       "createdAt",
       limit,
     );
@@ -196,14 +205,12 @@ export class InMemoryMemoryStore implements MemoryStore {
 
   saveSuggestion(suggestion: MemorySuggestionRecord) {
     const parsed = MemorySuggestionRecordSchema.parse(suggestion);
-    this.#suggestions.set(parsed.id, structuredClone(parsed));
+    this.#suggestions.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   listSuggestions(ownerId: string, limit: number) {
     return descending(
-      [...this.#suggestions.values()].filter(
-        (suggestion) => suggestion.ownerId === ownerId,
-      ),
+      scopedValues(this.#suggestions, ownerId),
       "createdAt",
       limit,
     );
@@ -211,12 +218,12 @@ export class InMemoryMemoryStore implements MemoryStore {
 
   saveTimelineEvent(event: MemoryTimelineEvent) {
     const parsed = MemoryTimelineEventSchema.parse(event);
-    this.#timeline.set(parsed.id, structuredClone(parsed));
+    this.#timeline.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
   }
 
   listTimeline(ownerId: string, limit: number) {
     return descending(
-      [...this.#timeline.values()].filter((event) => event.ownerId === ownerId),
+      scopedValues(this.#timeline, ownerId),
       "occurredAt",
       limit,
     );

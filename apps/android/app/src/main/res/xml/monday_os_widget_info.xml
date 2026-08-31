@@ -1,0 +1,11 @@
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+  android:description="@string/widget_description"
+  android:initialLayout="@layout/monday_os_widget"
+  android:minWidth="280dp"
+  android:minHeight="180dp"
+  android:previewLayout="@layout/monday_os_widget"
+  android:resizeMode="horizontal|vertical"
+  android:targetCellWidth="4"
+  android:targetCellHeight="3"
+  android:updatePeriodMillis="0"
+  android:widgetCategory="home_screen" />

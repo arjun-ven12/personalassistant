@@ -42,6 +42,7 @@ import {
 } from "@alexa-control/shared";
 
 import type { Awaitable } from "../identity/store.js";
+import { companyScope } from "../companies/scope.js";
 
 export interface VoiceStore {
   saveSession(record: VoiceSessionRecord): Awaitable<void>;
@@ -148,6 +149,14 @@ export interface VoiceStore {
 }
 
 const clone = <T>(value: T): T => structuredClone(value);
+const conversationKey = (ownerId: string, id: string) =>
+  `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:${id}`;
+const conversationPrefix = (ownerId: string) =>
+  `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:`;
+const scopedValues = <T extends { ownerId: string }>(map: Map<string, T>, ownerId: string) =>
+  [...map.entries()]
+    .filter(([key, value]) => key.startsWith(conversationPrefix(ownerId)) && value.ownerId === ownerId)
+    .map(([, value]) => value);
 const ordered = <T>(items: T[], field: keyof T, limit: number) =>
   items
     .sort((left, right) => String(right[field]).localeCompare(String(left[field])))
@@ -214,13 +223,13 @@ export class InMemoryVoiceStore implements VoiceStore {
   }
   saveConversation(record: ConversationHistoryRecord) {
     this.#conversation.set(
-      record.id,
+      conversationKey(record.ownerId, record.id),
       clone(ConversationHistoryRecordSchema.parse(record)),
     );
   }
   listConversation(ownerId: string, limit: number) {
     return ordered(
-      [...this.#conversation.values()].filter((item) => item.ownerId === ownerId),
+      scopedValues(this.#conversation, ownerId),
       "createdAt",
       limit,
     );
@@ -237,7 +246,7 @@ export class InMemoryVoiceStore implements VoiceStore {
   }
   saveMicrophonePreference(record: MicrophonePreferenceRecord) {
     this.#microphonePreferences.set(
-      record.id,
+      conversationKey(record.ownerId, record.id),
       clone(MicrophonePreferenceRecordSchema.parse(record)),
     );
   }
@@ -288,124 +297,114 @@ export class InMemoryVoiceStore implements VoiceStore {
   }
   saveConversationSession(record: ConversationSessionRecord) {
     this.#conversationSessions.set(
-      record.id,
+      conversationKey(record.ownerId, record.id),
       clone(ConversationSessionRecordSchema.parse(record)),
     );
   }
   listConversationSessions(ownerId: string, limit: number) {
     return ordered(
-      [...this.#conversationSessions.values()].filter(
-        (item) => item.ownerId === ownerId,
-      ),
+      scopedValues(this.#conversationSessions, ownerId),
       "updatedAt",
       limit,
     );
   }
   saveConversationTopic(record: ConversationTopicRecord) {
     this.#conversationTopics.set(
-      record.id,
+      conversationKey(record.ownerId, record.id),
       clone(ConversationTopicRecordSchema.parse(record)),
     );
   }
   listConversationTopics(ownerId: string, limit: number) {
     return ordered(
-      [...this.#conversationTopics.values()].filter((item) => item.ownerId === ownerId),
+      scopedValues(this.#conversationTopics, ownerId),
       "updatedAt",
       limit,
     );
   }
   saveConversationGoal(record: ConversationGoalRecord) {
     this.#conversationGoals.set(
-      record.id,
+      conversationKey(record.ownerId, record.id),
       clone(ConversationGoalRecordSchema.parse(record)),
     );
   }
   listConversationGoals(ownerId: string, limit: number) {
     return ordered(
-      [...this.#conversationGoals.values()].filter((item) => item.ownerId === ownerId),
+      scopedValues(this.#conversationGoals, ownerId),
       "updatedAt",
       limit,
     );
   }
   saveConversationSummary(record: ConversationSummaryRecord) {
     this.#conversationSummaries.set(
-      record.id,
+      conversationKey(record.ownerId, record.id),
       clone(ConversationSummaryRecordSchema.parse(record)),
     );
   }
   listConversationSummaries(ownerId: string, limit: number) {
     return ordered(
-      [...this.#conversationSummaries.values()].filter(
-        (item) => item.ownerId === ownerId,
-      ),
+      scopedValues(this.#conversationSummaries, ownerId),
       "createdAt",
       limit,
     );
   }
   saveConversationPersona(record: ConversationPersonaRecord) {
     this.#conversationPersonas.set(
-      record.id,
+      conversationKey(record.ownerId, record.id),
       clone(ConversationPersonaRecordSchema.parse(record)),
     );
   }
   listConversationPersonas(ownerId: string, limit: number) {
     return ordered(
-      [...this.#conversationPersonas.values()].filter(
-        (item) => item.ownerId === ownerId,
-      ),
+      scopedValues(this.#conversationPersonas, ownerId),
       "updatedAt",
       limit,
     );
   }
   saveClarification(record: ClarificationHistoryRecord) {
     this.#clarifications.set(
-      record.id,
+      conversationKey(record.ownerId, record.id),
       clone(ClarificationHistoryRecordSchema.parse(record)),
     );
   }
   listClarifications(ownerId: string, limit: number) {
     return ordered(
-      [...this.#clarifications.values()].filter((item) => item.ownerId === ownerId),
+      scopedValues(this.#clarifications, ownerId),
       "updatedAt",
       limit,
     );
   }
   saveConversationContext(record: ConversationContextRecord) {
     this.#conversationContext.set(
-      record.id,
+      conversationKey(record.ownerId, record.id),
       clone(ConversationContextRecordSchema.parse(record)),
     );
   }
   listConversationContext(ownerId: string, limit: number) {
     return ordered(
-      [...this.#conversationContext.values()].filter(
-        (item) => item.ownerId === ownerId,
-      ),
+      scopedValues(this.#conversationContext, ownerId),
       "updatedAt",
       limit,
     );
   }
   saveConversationContinuity(record: ConversationContinuityRecord) {
     this.#conversationContinuity.set(
-      `${record.ownerId}:${record.conversationId}`,
+      conversationKey(record.ownerId, record.conversationId),
       clone(ConversationContinuityRecordSchema.parse(record)),
     );
   }
   getConversationContinuity(ownerId: string, conversationId: string) {
-    const record = this.#conversationContinuity.get(`${ownerId}:${conversationId}`);
+    const record = this.#conversationContinuity.get(conversationKey(ownerId, conversationId));
     return record?.ownerId === ownerId ? clone(record) : null;
   }
   listConversationContinuity(ownerId: string, limit: number) {
     return ordered(
-      [...this.#conversationContinuity.values()].filter(
-        (item) => item.ownerId === ownerId,
-      ),
+      scopedValues(this.#conversationContinuity, ownerId),
       "updatedAt",
       limit,
     );
   }
   claimConversationTurn(ownerId: string, conversationId: string, turnId: string) {
-    const key = `${ownerId}:${conversationId}:${turnId}`;
+    const key = conversationKey(ownerId, `${conversationId}:${turnId}`);
     if (this.#conversationTurnClaims.has(key)) return false;
     this.#conversationTurnClaims.add(key);
     return true;
@@ -415,7 +414,7 @@ export class InMemoryVoiceStore implements VoiceStore {
     conversationId: string,
     run: () => Awaitable<T>,
   ) {
-    const key = `${ownerId}:${conversationId}`;
+    const key = conversationKey(ownerId, conversationId);
     const previous = this.#conversationContinuityLocks.get(key) ?? Promise.resolve();
     let release: () => void = () => {};
     const current = new Promise<void>((resolve) => {
@@ -434,43 +433,39 @@ export class InMemoryVoiceStore implements VoiceStore {
   }
   saveConversationAnalytics(record: ConversationAnalyticsRecord) {
     this.#conversationAnalytics.set(
-      record.id,
+      conversationKey(record.ownerId, record.id),
       clone(ConversationAnalyticsRecordSchema.parse(record)),
     );
   }
   listConversationAnalytics(ownerId: string, limit: number) {
     return ordered(
-      [...this.#conversationAnalytics.values()].filter(
-        (item) => item.ownerId === ownerId,
-      ),
+      scopedValues(this.#conversationAnalytics, ownerId),
       "measuredAt",
       limit,
     );
   }
   saveConversationBookmark(record: ConversationBookmarkRecord) {
     this.#conversationBookmarks.set(
-      record.id,
+      conversationKey(record.ownerId, record.id),
       clone(ConversationBookmarkRecordSchema.parse(record)),
     );
   }
   listConversationBookmarks(ownerId: string, limit: number) {
     return ordered(
-      [...this.#conversationBookmarks.values()].filter(
-        (item) => item.ownerId === ownerId,
-      ),
+      scopedValues(this.#conversationBookmarks, ownerId),
       "createdAt",
       limit,
     );
   }
   saveTurnFeedback(record: ConversationTurnFeedbackRecord) {
     this.#turnFeedback.set(
-      record.id,
+      conversationKey(record.ownerId, record.id),
       clone(ConversationTurnFeedbackRecordSchema.parse(record)),
     );
   }
   listTurnFeedback(ownerId: string, limit: number) {
     return ordered(
-      [...this.#turnFeedback.values()].filter((item) => item.ownerId === ownerId),
+      scopedValues(this.#turnFeedback, ownerId),
       "createdAt",
       limit,
     );

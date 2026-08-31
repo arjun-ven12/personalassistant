@@ -9,6 +9,7 @@ import type {
   StoredDevice,
   StoredSession,
 } from "./types.js";
+import { companyScope } from "../companies/scope.js";
 
 const record = <T>(row: { record: T } | undefined) =>
   row ? structuredClone(row.record) : undefined;
@@ -60,8 +61,8 @@ export class PostgresIdentityStore implements IdentityStore {
     await this.pool.query(
       `INSERT INTO sessions(
         id, owner_id, token_hash, record, created_at, last_seen_at,
-        idle_expires_at, absolute_expires_at, revoked_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        idle_expires_at, absolute_expires_at, revoked_at, active_company_id
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       [
         session.id,
         session.userId,
@@ -72,6 +73,7 @@ export class PostgresIdentityStore implements IdentityStore {
         session.idleExpiresAt,
         session.absoluteExpiresAt,
         session.revokedAt,
+        session.activeCompanyId ?? null,
       ],
     );
   }
@@ -103,7 +105,7 @@ export class PostgresIdentityStore implements IdentityStore {
   async updateSession(session: StoredSession) {
     const result = await this.pool.query(
       `UPDATE sessions SET record=$2, last_seen_at=$3, idle_expires_at=$4,
-       absolute_expires_at=$5, revoked_at=$6, version=version+1 WHERE id=$1`,
+       absolute_expires_at=$5, revoked_at=$6, active_company_id=$7, version=version+1 WHERE id=$1`,
       [
         session.id,
         session,
@@ -111,6 +113,7 @@ export class PostgresIdentityStore implements IdentityStore {
         session.idleExpiresAt,
         session.absoluteExpiresAt,
         session.revokedAt,
+        session.activeCompanyId ?? null,
       ],
     );
     if (result.rowCount !== 1) throw new Error("Session does not exist.");
@@ -220,16 +223,18 @@ export class PostgresIdentityStore implements IdentityStore {
       id: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
       userId: input.userId ?? null,
+      companyId: input.companyId ?? null,
       deviceId: input.deviceId ?? null,
       ...input,
     };
     await this.pool.query(
       `INSERT INTO audit_events(
-        id,owner_id,device_id,event_type,outcome,request_id,occurred_at,record
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        id,owner_id,company_id,device_id,event_type,outcome,request_id,occurred_at,record
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [
         stored.id,
         stored.userId,
+        stored.companyId,
         stored.deviceId,
         stored.eventType,
         stored.outcome,
@@ -244,8 +249,9 @@ export class PostgresIdentityStore implements IdentityStore {
   async listAudit(userId: string, limit: number) {
     const result = await this.pool.query<{ record: StoredAuditRecord }>(
       `SELECT record FROM audit_events WHERE owner_id=$1
+       AND ($3::uuid IS NULL OR company_id=$3)
        ORDER BY occurred_at DESC LIMIT $2`,
-      [userId, limit],
+      [userId, limit, companyScope.companyId(userId) ?? null],
     );
     return result.rows.map((row) => structuredClone(row.record));
   }

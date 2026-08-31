@@ -15,6 +15,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
 import type { ApiRouteContext } from "./context.js";
+import { installCompanyRouteGuard } from "./company-guard.js";
 
 const IntegrationParametersSchema = z
   .object({ integrationId: z.string().min(3).max(120) })
@@ -34,6 +35,12 @@ export const registerIntegrationRoutes = (
   app: FastifyInstance,
   context: ApiRouteContext,
 ) => {
+  installCompanyRouteGuard(
+    app,
+    "/api/integrations",
+    context,
+    ["/api/integrations/business/webhooks/"],
+  );
   app.get(
     "/api/integrations/business/dashboard",
     { preHandler: [context.security.requireAuthentication] },

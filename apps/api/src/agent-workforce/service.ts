@@ -93,7 +93,6 @@ export class AgentWorkforceService {
   ) {}
 
   async preview(ownerId: string) {
-    await this.agents.ensureBuiltIns(ownerId);
     const current = await this.agentStore.listAgents(ownerId);
     const candidateIds = new Set([...ECC_AGENT_SEEDS, ...ALEXA_NATIVE_WORKFORCE].map((seed) => seed.id));
     const additions = [...candidateIds].filter((id) => !current.some((agent) => agent.id === id)).length;
@@ -133,7 +132,6 @@ export class AgentWorkforceService {
 
   async graph(ownerId: string, rawQuery: unknown) {
     const query = WorkforceSearchQuerySchema.parse(rawQuery);
-    await this.agents.ensureBuiltIns(ownerId);
     const [society, allAgents, economyDashboard, preview] = await Promise.all([
       this.society.dashboard(ownerId), this.agentStore.listAgents(ownerId), this.economy.dashboard(ownerId), this.preview(ownerId),
     ]);

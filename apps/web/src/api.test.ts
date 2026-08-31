@@ -31,6 +31,26 @@ describe("web API client", () => {
     );
   });
 
+  it("adds the selected company header to subsequent scoped requests", async () => {
+    const companyId = "20000000-0000-4000-8000-000000000001";
+    const company = {
+      id: companyId,
+      slug: "default-company",
+      name: "Default Company",
+      status: "ACTIVE",
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ companies: [company], currentCompany: company }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: "ok", service: "alexa-api", version: "0.1.0", timestamp: new Date().toISOString(), uptimeSeconds: 1 }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const client = createApiClient("http://localhost:3001");
+    await client.getCompanies();
+    await client.getHealth();
+    const request = fetchMock.mock.calls[1]?.[1] as RequestInit | undefined;
+    expect(new Headers(request?.headers).get("x-company-id")).toBe(companyId);
+  });
+
   it("rejects an invalid response instead of trusting it", async () => {
     vi.stubGlobal(
       "fetch",

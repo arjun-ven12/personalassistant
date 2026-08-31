@@ -25,6 +25,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
 import type { ApiRouteContext } from "./context.js";
+import { installCompanyRouteGuard } from "./company-guard.js";
 
 const RepositoryParametersSchema = z
   .object({ repositoryId: z.string().uuid() })
@@ -34,6 +35,7 @@ export const registerRepositoryRoutes = (
   app: FastifyInstance,
   context: ApiRouteContext,
 ) => {
+  installCompanyRouteGuard(app, "/api/repositories", context);
   app.get(
     "/api/repositories",
     { preHandler: [context.security.requireAuthentication] },

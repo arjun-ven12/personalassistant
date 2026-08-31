@@ -7,6 +7,7 @@ import type {
   StoredDevice,
   StoredSession,
 } from "./types.js";
+import { companyScope } from "../companies/scope.js";
 
 export type Awaitable<T> = T | Promise<T>;
 
@@ -169,6 +170,7 @@ export class InMemoryIdentityStore implements IdentityStore {
       id: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
       userId: record.userId ?? null,
+      companyId: record.companyId ?? null,
       deviceId: record.deviceId ?? null,
       ...record,
     };
@@ -177,8 +179,9 @@ export class InMemoryIdentityStore implements IdentityStore {
   }
 
   listAudit(userId: string, limit: number) {
+    const companyId = companyScope.companyId(userId);
     return this.#audit
-      .filter((record) => record.userId === userId)
+      .filter((record) => record.userId === userId && (!companyId || record.companyId === companyId))
       .slice(-limit)
       .reverse()
       .map((record) => structuredClone(record));

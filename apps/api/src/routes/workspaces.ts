@@ -8,6 +8,7 @@ import {
 import type { FastifyInstance, FastifyRequest } from "fastify";
 
 import type { ApiRouteContext } from "./context.js";
+import { installCompanyRouteGuard } from "./company-guard.js";
 
 const auditContext = (request: FastifyRequest) => ({
   ipAddress: request.ip,
@@ -18,6 +19,7 @@ export const registerWorkspaceRoutes = (
   app: FastifyInstance,
   context: ApiRouteContext,
 ) => {
+  installCompanyRouteGuard(app, "/api/workspaces", context);
   app.get(
     "/api/workspaces",
     { preHandler: [context.security.requireAuthentication] },

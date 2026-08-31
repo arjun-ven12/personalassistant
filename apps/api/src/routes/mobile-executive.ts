@@ -30,6 +30,7 @@ import { verifyEd25519Signature } from "../identity/crypto.js";
 
 const signedMobileHandlers = (context: ApiRouteContext) => [
   context.security.requireAuthentication,
+  context.companyContext.requireCompany,
   context.security.requireTrustedDevice,
   context.security.verifySignedRequest,
 ] as const;
@@ -85,7 +86,7 @@ export const registerMobileExecutiveRoutes = (
 
   app.get(
     "/api/v1/notifications/preferences",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany] },
     async (request) =>
       NotificationPreferencesResponseSchema.parse(
         await context.notifications.preferences(
@@ -117,7 +118,7 @@ export const registerMobileExecutiveRoutes = (
 
   app.get(
     "/api/v1/attention",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany] },
     async (request) => {
       const summary = await context.businessOS.summary(
         context.security.getIdentity(request).user.id,

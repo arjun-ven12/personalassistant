@@ -29,9 +29,11 @@ export const registerMemoryRoutes = (
   app: FastifyInstance,
   context: ApiRouteContext,
 ) => {
+  const read = [context.security.requireAuthentication, context.companyContext.requireCompany];
+  const mutate = [...read, context.security.requireTrustedOrigin, context.security.requireCsrf];
   app.get(
     "/api/memory/center",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: read },
     async (request) => {
       const identity = context.security.getIdentity(request);
       return MemoryCenterResponseSchema.parse(
@@ -42,7 +44,7 @@ export const registerMemoryRoutes = (
 
   app.get(
     "/api/memory/search",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: read },
     async (request) => {
       const identity = context.security.getIdentity(request);
       const query = MemorySearchQuerySchema.parse(request.query);
@@ -54,13 +56,7 @@ export const registerMemoryRoutes = (
 
   app.post(
     "/api/memory",
-    {
-      preHandler: [
-        context.security.requireAuthentication,
-        context.security.requireTrustedOrigin,
-        context.security.requireCsrf,
-      ],
-    },
+    { preHandler: mutate },
     async (request) => {
       const identity = context.security.getIdentity(request);
       return MemoryRecordResponseSchema.parse(
@@ -76,13 +72,7 @@ export const registerMemoryRoutes = (
 
   app.post(
     "/api/memory/explicit",
-    {
-      preHandler: [
-        context.security.requireAuthentication,
-        context.security.requireTrustedOrigin,
-        context.security.requireCsrf,
-      ],
-    },
+    { preHandler: mutate },
     async (request) => {
       const identity = context.security.getIdentity(request);
       return ExplicitMemoryTeachingResponseSchema.parse(
@@ -98,7 +88,7 @@ export const registerMemoryRoutes = (
 
   app.get(
     "/api/memory/graph",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: read },
     async (request) => {
       const identity = context.security.getIdentity(request);
       return KnowledgeGraphResponseSchema.parse(
@@ -109,7 +99,7 @@ export const registerMemoryRoutes = (
 
   app.get(
     "/api/memory/decisions",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: read },
     async (request) => {
       const identity = context.security.getIdentity(request);
       return EngineeringDecisionListResponseSchema.parse(
@@ -120,13 +110,7 @@ export const registerMemoryRoutes = (
 
   app.post(
     "/api/memory/decisions",
-    {
-      preHandler: [
-        context.security.requireAuthentication,
-        context.security.requireTrustedOrigin,
-        context.security.requireCsrf,
-      ],
-    },
+    { preHandler: mutate },
     async (request) => {
       const identity = context.security.getIdentity(request);
       return EngineeringDecisionResponseSchema.parse(
@@ -143,7 +127,7 @@ export const registerMemoryRoutes = (
 
   app.get(
     "/api/memory/repositories/:repositoryId",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: read },
     async (request) => {
       const identity = context.security.getIdentity(request);
       const { repositoryId } = RepositoryParametersSchema.parse(request.params);
@@ -155,7 +139,7 @@ export const registerMemoryRoutes = (
 
   app.get(
     "/api/memory/agents/:agentId",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: read },
     async (request) => {
       const identity = context.security.getIdentity(request);
       const { agentId } = AgentParametersSchema.parse(request.params);
@@ -167,7 +151,7 @@ export const registerMemoryRoutes = (
 
   app.get(
     "/api/memory/timeline",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: read },
     async (request) => {
       const identity = context.security.getIdentity(request);
       return MemoryTimelineResponseSchema.parse(
@@ -178,7 +162,7 @@ export const registerMemoryRoutes = (
 
   app.get(
     "/api/memory/suggestions",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: read },
     async (request) => {
       const identity = context.security.getIdentity(request);
       return MemorySuggestionListResponseSchema.parse(
@@ -189,7 +173,7 @@ export const registerMemoryRoutes = (
 
   app.get(
     "/api/memory/statistics",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: read },
     async (request) => {
       const identity = context.security.getIdentity(request);
       return MemoryStatisticsSchema.parse(

@@ -32,7 +32,7 @@ describe("PostgresAgentEconomyStore", () => {
 
     const [sql, values] = query.mock.calls[0] as [string, unknown[]];
     const parameters = [...sql.matchAll(/\$(\d+)/g)].map((match) => Number(match[1]));
-    expect(values).toHaveLength(10);
-    expect(new Set(parameters)).toEqual(new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
+    expect(values).toHaveLength(11);
+    expect(new Set(parameters)).toEqual(new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]));
   });
 });

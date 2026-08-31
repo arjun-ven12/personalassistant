@@ -710,6 +710,30 @@ textarea:focus-visible {
   gap: 12px;
 }
 
+.company-switcher {
+  display: grid;
+  gap: 3px;
+  min-width: 150px;
+}
+
+.company-switcher > span {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.company-switcher select {
+  min-width: 0;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0 28px 0 9px;
+  color: var(--text);
+  background: var(--surface);
+}
+
 .brand-mark {
   display: grid;
   width: 42px;

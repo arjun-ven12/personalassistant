@@ -9,6 +9,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
 import type { ApiRouteContext } from "./context.js";
+import { installCompanyRouteGuard } from "./company-guard.js";
 
 const AgentParametersSchema = z
   .object({ agentId: z.string().min(3).max(120) })
@@ -18,6 +19,7 @@ export const registerAgentCognitionRoutes = (
   app: FastifyInstance,
   context: ApiRouteContext,
 ) => {
+  installCompanyRouteGuard(app, "/api/agent-cognition", context);
   app.get(
     "/api/agent-cognition/dashboard",
     { preHandler: [context.security.requireAuthentication] },

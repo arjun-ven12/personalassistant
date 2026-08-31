@@ -18,6 +18,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
 import type { ApiRouteContext } from "./context.js";
+import { installCompanyRouteGuard } from "./company-guard.js";
 
 const LimitQuerySchema = z
   .object({ limit: z.coerce.number().int().min(1).max(500).default(200) })
@@ -27,6 +28,7 @@ export const registerAgentSocietyRoutes = (
   app: FastifyInstance,
   context: ApiRouteContext,
 ) => {
+  installCompanyRouteGuard(app, "/api/agent-society", context);
   app.get(
     "/api/agent-society/dashboard",
     { preHandler: [context.security.requireAuthentication] },

@@ -19,6 +19,7 @@ export interface StoredSession {
   revocationReason: string | null;
   ipAddress: string;
   userAgent: string;
+  activeCompanyId?: string;
   lastNetworkVerification?:
     "PRIVATE_NETWORK" | "PUBLIC_NETWORK" | "UNKNOWN" | "UNAVAILABLE";
 }
@@ -41,6 +42,7 @@ export interface StoredAuditRecord {
   eventType: AuditEventType;
   timestamp: string;
   userId: string | null;
+  companyId: string | null;
   deviceId: string | null;
   ipAddress: string;
   outcome: AuditOutcome;
@@ -52,6 +54,7 @@ export interface StoredAuditRecord {
 export interface CreateAuditRecord {
   eventType: AuditEventType;
   userId?: string | null;
+  companyId?: string | null;
   deviceId?: string | null;
   ipAddress: string;
   outcome: AuditOutcome;

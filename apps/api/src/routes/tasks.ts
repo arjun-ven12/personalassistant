@@ -6,7 +6,7 @@ import type { ApiRouteContext } from "./context.js";
 export const registerTaskRoutes = (app: FastifyInstance, context: ApiRouteContext) => {
   app.get(
     "/api/tasks",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany] },
     async (request) => {
       const identity = context.security.getIdentity(request);
       return TaskCenterResponseSchema.parse(
@@ -27,6 +27,7 @@ export const registerTaskRoutes = (app: FastifyInstance, context: ApiRouteContex
       {
         preHandler: [
           context.security.requireAuthentication,
+          context.companyContext.requireCompany,
           context.security.requireTrustedOrigin,
           context.security.requireCsrf,
         ],

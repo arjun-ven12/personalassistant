@@ -20,6 +20,8 @@ import { z } from "zod";
 import type { ApiRouteContext } from "./context.js";
 import { verifyEnvelopeSignature } from "../identity/crypto.js";
 import { ExecutionError } from "../execution/errors.js";
+import { companyScope } from "../companies/scope.js";
+import { installCompanyRouteGuard } from "./company-guard.js";
 
 const VoiceTranscriptHistoryResponseSchema = z
   .object({
@@ -105,6 +107,17 @@ export const authenticateTrustedDeviceEnvelope = async (
 };
 
 export const registerVoiceRoutes = (app: FastifyInstance, context: ApiRouteContext) => {
+  installCompanyRouteGuard(app, "/api/voice", context, ["/api/voice/device-runtime"]);
+  const conversationReadPreHandlers = [
+    context.security.requireAuthentication,
+    context.companyContext.requireCompany,
+  ];
+  const conversationMutationPreHandlers = [
+    context.security.requireAuthentication,
+    context.companyContext.requireCompany,
+    context.security.requireTrustedOrigin,
+    context.security.requireCsrf,
+  ];
   app.post(
     "/api/voice/device-runtime",
     { config: { rateLimit: { max: 240, timeWindow: "1 minute" } } },
@@ -115,6 +128,12 @@ export const registerVoiceRoutes = (app: FastifyInstance, context: ApiRouteConte
         TRUSTED_VOICE_DEVICE_TYPES,
       );
       const payload = DeviceVoiceRuntimePayloadSchema.parse(envelope.payload);
+      const company = await context.companyContext.companies.resolveOwner(
+        device.ownerId,
+        payload.companyId,
+        envelope.commandId,
+      );
+      return companyScope.run(company, async () => {
       const clientType = device.deviceType === "ANDROID" ? "ANDROID" : "OVERLAY";
       if (payload.operation === "start_session")
         return VoiceDashboardResponseSchema.parse(
@@ -174,6 +193,7 @@ export const registerVoiceRoutes = (app: FastifyInstance, context: ApiRouteConte
           envelope.commandId,
         ),
       );
+      });
     },
   );
   app.get(
@@ -368,7 +388,7 @@ export const registerVoiceRoutes = (app: FastifyInstance, context: ApiRouteConte
 
   app.get(
     "/api/conversations",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: conversationReadPreHandlers },
     async (request) => {
       const identity = context.security.getIdentity(request);
       return ConversationCenterResponseSchema.parse(
@@ -379,13 +399,7 @@ export const registerVoiceRoutes = (app: FastifyInstance, context: ApiRouteConte
 
   app.post(
     "/api/conversations/personas",
-    {
-      preHandler: [
-        context.security.requireAuthentication,
-        context.security.requireTrustedOrigin,
-        context.security.requireCsrf,
-      ],
-    },
+    { preHandler: conversationMutationPreHandlers },
     async (request) => {
       const identity = context.security.getIdentity(request);
       return ConversationCenterResponseSchema.parse(
@@ -401,13 +415,7 @@ export const registerVoiceRoutes = (app: FastifyInstance, context: ApiRouteConte
 
   app.post(
     "/api/conversations/bookmarks",
-    {
-      preHandler: [
-        context.security.requireAuthentication,
-        context.security.requireTrustedOrigin,
-        context.security.requireCsrf,
-      ],
-    },
+    { preHandler: conversationMutationPreHandlers },
     async (request) => {
       const identity = context.security.getIdentity(request);
       return ConversationCenterResponseSchema.parse(
@@ -423,13 +431,7 @@ export const registerVoiceRoutes = (app: FastifyInstance, context: ApiRouteConte
 
   app.post(
     "/api/conversations/turns/:turnId/feedback",
-    {
-      preHandler: [
-        context.security.requireAuthentication,
-        context.security.requireTrustedOrigin,
-        context.security.requireCsrf,
-      ],
-    },
+    { preHandler: conversationMutationPreHandlers },
     async (request) => {
       const identity = context.security.getIdentity(request);
       const { turnId } = z
@@ -450,13 +452,7 @@ export const registerVoiceRoutes = (app: FastifyInstance, context: ApiRouteConte
 
   app.post(
     "/api/conversations/turns/:turnId/replay",
-    {
-      preHandler: [
-        context.security.requireAuthentication,
-        context.security.requireTrustedOrigin,
-        context.security.requireCsrf,
-      ],
-    },
+    { preHandler: conversationMutationPreHandlers },
     async (request) => {
       const identity = context.security.getIdentity(request);
       const { turnId } = z

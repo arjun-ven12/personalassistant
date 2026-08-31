@@ -164,11 +164,34 @@ export const registerDeviceRoutes = (
         identity.user.id,
         "revoke",
       );
+      const revokedAt = device.revokedAt ?? new Date().toISOString();
       await context.governanceStore.cancelApprovalsForDevice(
         deviceId,
-        new Date().toISOString(),
+        revokedAt,
       );
-      await context.executionStore.cancelForDevice(deviceId, new Date().toISOString());
+      await context.executionStore.cancelForDevice(deviceId, revokedAt);
+      const boundClients = (await context.crossDeviceStore.listClients(identity.user.id)).filter(
+        (client) => client.trustedDeviceId === deviceId,
+      );
+      for (const client of boundClients) {
+        await context.crossDeviceStore.saveClient({
+          ...client,
+          presence: "OFFLINE",
+          leaseExpiresAt: revokedAt,
+        });
+      }
+      for (const sessionId of new Set(boundClients.map((client) => client.sessionId))) {
+        const session = await context.identity.store.findSessionById(sessionId);
+        if (!session || session.userId !== identity.user.id) continue;
+        await context.identity.revokeSession(sessionId, identity.user.id, "DEVICE_REVOKED");
+        await context.securityState.store.revokeSessionSecurity(sessionId, revokedAt);
+      }
+      await context.notifications.unregister({
+        ownerId: identity.user.id,
+        deviceId,
+        requestId: request.id,
+        ipAddress: request.ip,
+      }).catch(() => undefined);
       await context.identity.store.appendAudit({
         eventType: "DEVICE_REVOKED",
         userId: identity.user.id,
@@ -180,12 +203,12 @@ export const registerDeviceRoutes = (
       });
       await context.notifications.dispatch({
         ownerId: identity.user.id,
-        eventId: `device:${deviceId}:revoked:${device.revokedAt ?? "current"}`,
+        eventId: `device:${deviceId}:revoked:${revokedAt}`,
         category: "DEVICE_EVENT",
         severity: "HIGH",
         objectKind: "DEVICE",
         objectId: deviceId,
-        stateVersion: `REVOKED:${device.revokedAt ?? "current"}`,
+        stateVersion: `REVOKED:${revokedAt}`,
         title: "Device trust changed",
       }).catch(() => undefined);
       return DeviceMutationResponseSchema.parse({
