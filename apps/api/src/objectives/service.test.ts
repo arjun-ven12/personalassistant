@@ -81,6 +81,17 @@ describe("ObjectiveEngineService",()=>{
     expect(store.findObjectiveExecution(ownerId,first.objective!.id)?.executionProgress).toBe(33);expect(store.findObjectiveExecution(ownerId,first.objective!.id)?.spentCredits).toBe(7);expect(store.findObjectiveExecution(ownerId,second.objective!.id)?.executionProgress).toBe(0);
   });
 
+  it("keeps an objective active when a later project is only queued behind an occupied specialist",async()=>{
+    const {service,store,tasks}=harness();
+    const draft=await service.create({...request,body:objectiveBody("Sequential specialist work")});
+    await service.activate({...request,objectiveId:draft.objective!.id,idempotencyKey:"activate-sequential"});
+    const queued=tasks[2]!;
+    queued.status="WAITING";
+    queued.selection=[{agentId:"agent-1",estimatedCost:10,estimatedDurationMs:60_000,rejectionReasons:["agent unavailable"]}] as unknown as typeof queued.selection;
+    await service.handleWorkforceTaskChanged(queued as unknown as WorkforceRuntimeTask);
+    expect(store.findObjectiveExecution(ownerId,draft.objective!.id)).toMatchObject({status:"ACTIVE",blockers:[]});
+  });
+
   it("creates one evidence-based strategy version after bounded metric stagnation",async()=>{
     const {service,store}=harness();const draft=await service.create({...request,body:objectiveBody("Generate qualified leads")});await service.activate({...request,objectiveId:draft.objective!.id,idempotencyKey:"activate-leads"});const kpi=store.listKpis(ownerId)[0]!;
     for(const value of [1,1.05,1.1,1.1])await service.observeMetric({...request,objectiveId:draft.objective!.id,body:{kpiId:kpi.id,value,source:"WORKFLOW"}});

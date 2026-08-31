@@ -304,13 +304,14 @@ export class ObjectiveEngineService {
       if(!["ACTIVE","AT_RISK","BLOCKED"].includes(objective.status)) return;
       const owned=allProjects.filter((item)=>item.objectiveExecutionId===objective.id); if(!owned.length) return;
       const tasks=new Map(runtime.tasks.map((item)=>[item.id,item])); const at=this.now().toISOString();
-      let completed=0; let spent=0; let failed=false; let waiting=owned.some((item)=>item.status==="BLOCKED"||item.status==="WAITING");
+      let completed=0; let spent=0; let failed=false; let interventionRequired=false;
       let projectedCost=0; let remainingDurationMs=0;
-      for(const project of owned) { const task=project.workforceTaskId?tasks.get(project.workforceTaskId):undefined; if(!task) continue;
+      for(const project of owned) { const task=project.workforceTaskId?tasks.get(project.workforceTaskId):undefined; if(!task) { interventionRequired ||= project.status==="BLOCKED"; continue; }
         const status:ObjectiveProject["status"]=task.status==="COMPLETED"?"COMPLETED":task.status==="FAILED"?"FAILED":["ASSIGNED","RESERVED","RUNNING","REVIEW_REQUIRED"].includes(task.status)?"RUNNING":TERMINAL.has(task.status)?"CANCELLED":task.status==="WAITING"?"WAITING":"QUEUED";
         if(status!==project.status) await this.store.saveObjectiveProject(ObjectiveProjectSchema.parse({...project,status,updatedAt:at}));
         const selected=task.selection.find((item)=>item.agentId===task.assignedAgentId)??task.selection[0];
-        completed+=status==="COMPLETED"?1:0; spent+=task.actualCost; failed ||= status==="FAILED"; waiting ||= status==="WAITING";
+        completed+=status==="COMPLETED"?1:0; spent+=task.actualCost; failed ||= status==="FAILED";
+        interventionRequired ||= status==="WAITING"&&this.waitingTaskRequiresIntervention(task);
         if(status!=="COMPLETED"&&status!=="CANCELLED") { projectedCost+=selected?.estimatedCost??project.budgetCredits; remainingDurationMs+=selected?.estimatedDurationMs??60*60*1_000; }
       }
       projectedCost+=spent;
@@ -325,9 +326,9 @@ export class ObjectiveEngineService {
       const trigger=forcedTrigger??(capabilityBlocked?"CAPABILITY_BLOCK":budgetStatus==="BUDGET_AT_RISK"?"BUDGET_AT_RISK":deadlineStatus==="AT_RISK"||deadlineStatus==="OVERDUE"?"DEADLINE_AT_RISK":stagnating?"METRIC_STAGNATION":failed?"MAJOR_PROJECT_FAILURE":undefined);
       if(trigger&&objective.lastReplanTrigger!==trigger) await this.automaticReplan(ownerId,objective,trigger,{failedProjects:owned.filter((item)=>item.status==="FAILED").map((item)=>item.id),projectedCost,deadlineStatus,metricObservationCount:observations.length});
       const effectiveObjective=trigger&&objective.lastReplanTrigger!==trigger?await this.requireObjective(ownerId,objective.id):objective;
-      const blockers=[...(capabilityBlocked?["A required capability request is unresolved."]:[]),...(waiting?["A project is waiting for an eligible specialist or economic reservation."]:[]),...(failed?["A delegated project failed and requires bounded recovery."]:[])];
+      const blockers=[...(capabilityBlocked?["A required capability request is unresolved."]:[]),...(interventionRequired?["A project needs a specialist, governed capability, or economic reservation before it can continue."]:[]),...(failed?["A delegated project failed and requires bounded recovery."]:[])];
       const riskReasons=[...(budgetStatus!=="ON_TRACK"?[`Projected cost ${projectedCost} exceeds or exhausts the ${objective.budgetCredits}-credit budget.`]:[]),...(deadlineStatus!=="ON_TRACK"?[deadlineStatus==="OVERDUE"?"The objective deadline is overdue.":"Current bounded duration estimates put the deadline at risk."]:[]),...(stagnating?["The success metric has not moved meaningfully across the configured observation window."]:[])];
-      const status:ObjectiveExecution["status"]=completed===owned.length&&outcomeProgress>=100?"COMPLETED":capabilityBlocked||waiting?"BLOCKED":failed||riskReasons.length?"AT_RISK":"ACTIVE";
+      const status:ObjectiveExecution["status"]=completed===owned.length&&outcomeProgress>=100?"COMPLETED":capabilityBlocked||interventionRequired?"BLOCKED":failed||riskReasons.length?"AT_RISK":"ACTIVE";
       const updated=ObjectiveExecutionSchema.parse({...effectiveObjective,status,executionProgress,outcomeProgress,spentCredits:spent,projectedCost,budgetStatus,deadlineStatus,riskReasons,updatedAt:at,completedAt:status==="COMPLETED"?at:null,blockers,lastReplanTrigger:trigger??effectiveObjective.lastReplanTrigger});
       await this.store.saveObjectiveExecution(updated);
       if(status!==objective.status||executionProgress!==objective.executionProgress||outcomeProgress!==objective.outcomeProgress) await this.event(ownerId,objective.id,"MONITORED","Objective state updated from bounded lifecycle evidence.",null,{status,executionProgress,outcomeProgress,budgetStatus,deadlineStatus});
@@ -350,6 +351,11 @@ export class ObjectiveEngineService {
       // determine whether an existing or newly approved specialist can perform it.
       const updated=ObjectiveProjectSchema.parse({...project,status:"QUEUED",updatedAt:this.now().toISOString()}); await this.store.saveObjectiveProject(updated); return {project:updated,blocked:false};
     }
+  }
+
+  private waitingTaskRequiresIntervention(task:WorkforceRuntimeTask) {
+    const rejectionReasons=task.selection.flatMap((score)=>score.rejectionReasons);
+    return rejectionReasons.length===0||rejectionReasons.some((reason)=>reason!=="agent unavailable");
   }
 
   private async createCapabilityLink(input:{ownerId:string;requestId:string;ipAddress:string},objective:ObjectiveExecution,project:ObjectiveProject,workflowId:string,requiredCapability:string,applicationId:string) {
