@@ -86,6 +86,16 @@ describe("ObjectiveEngineService",()=>{
     expect(result.capabilityRequests[0]).toMatchObject({objectiveExecutionId:draft.objective!.id,requiredCapability:"email.send",status:"OPEN"});expect(store.listPlans(ownerId).map((item)=>item.version).sort()).toEqual([1,2]);
   });
 
+  it("falls back to workforce matching when workflow reuse fails, preserving the specialist-resolution path",async()=>{
+    const {service,createTask,library,store}=harness({withWorkflows:true});
+    library?.compose.mockRejectedValueOnce(new Error("workflow service unavailable"));
+    const draft=await service.create({...request,body:objectiveBody("Research outreach leads")});
+    await service.activate({...request,objectiveId:draft.objective!.id,idempotencyKey:"activate-workflow-fallback"});
+    expect(createTask).toHaveBeenCalledTimes(3);
+    expect(store.listObjectiveProjects(ownerId).filter((item)=>item.objectiveExecutionId===draft.objective!.id).every((item)=>item.workforceTaskId!==null)).toBe(true);
+    expect(store.findObjectiveExecution(ownerId,draft.objective!.id)?.lastReplanTrigger).toBe("WORKFLOW_FAILURE");
+  });
+
   it("ignores ordinary workflow lifecycle events and replans only on workflow failure evidence",async()=>{
     const {service,store}=harness({withWorkflows:true});const draft=await service.create({...request,body:objectiveBody("Workflow recovery")});const active=await service.activate({...request,objectiveId:draft.objective!.id,idempotencyKey:"activate-workflow-events"});const graphId=active.projects.find((item)=>item.objectiveExecutionId===draft.objective!.id)?.workflowId;if(!graphId)throw new Error("Missing workflow graph fixture");
     await service.handleWorkflowChanged(ownerId,graphId,"WORKFLOW_STARTED");expect(store.listPlans(ownerId).map((item)=>item.version)).toEqual([1]);

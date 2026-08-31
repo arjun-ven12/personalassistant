@@ -315,7 +315,7 @@ export class ObjectiveEngineService {
     if(!this.workflows||!project.selectedWorkflowTemplateId) return {project,blocked:false};
     try {
       const detail=await this.workflows.compose({ownerId:input.ownerId,requestId:input.requestId,ipAddress:input.ipAddress,body:{goal:project.outcome,templateId:project.selectedWorkflowTemplateId,variables:{objectiveExecutionId:objective.id,projectId:project.id},origin:"planner"}});
-      const graph=detail.graphs[0]; if(!graph) return {project,blocked:true};
+      const graph=detail.graphs[0]; if(!graph) return {project,blocked:false};
       let blocked=false;
       for(const node of detail.nodes.filter((item)=>item.errorCode==="CAPABILITY_NOT_DECLARED"&&item.semanticCapabilityId&&item.applicationId)) {
         blocked=true; await this.createCapabilityLink(input,objective,project,graph.id,node.semanticCapabilityId!,node.applicationId!);
@@ -324,7 +324,9 @@ export class ObjectiveEngineService {
       await this.store.saveObjectiveProject(updated); return {project:updated,blocked};
     } catch {
       await this.automaticReplan(input.ownerId,objective,"WORKFLOW_FAILURE",{projectId:project.id,templateId:project.selectedWorkflowTemplateId});
-      const updated=ObjectiveProjectSchema.parse({...project,status:"BLOCKED",updatedAt:this.now().toISOString()}); await this.store.saveObjectiveProject(updated); return {project:updated,blocked:true};
+      // Workflow reuse is optional. Keep the project bounded and let workforce matching
+      // determine whether an existing or newly approved specialist can perform it.
+      const updated=ObjectiveProjectSchema.parse({...project,status:"QUEUED",updatedAt:this.now().toISOString()}); await this.store.saveObjectiveProject(updated); return {project:updated,blocked:false};
     }
   }
 

@@ -402,7 +402,7 @@ export class WorkforceRuntimeService {
       return { requirement, decision: "CAPABILITY_REQUESTED", selectedAgentId: null, selectedCategory: null, proposal: null, missingCapabilities, blockerCode: "CAPABILITY_MISSING", reasons: [`Missing governed capabilities: ${missingCapabilities.join(", ")}.`] };
     }
     const duplicate = scores.find((score) => score.finalScore >= MATCH_THRESHOLDS.duplicate && score.capabilityFit === 1);
-    const proposal = await this.proposalFor(ownerId, task, requirement, duplicate?.agentId ?? null);
+    const proposal = task.workforceGap?.proposal ?? await this.proposalFor(ownerId, task, requirement, duplicate?.agentId ?? null);
     const approval = z.object({ approved: z.boolean(), proposalId: z.string().uuid().optional() }).passthrough().safeParse(task.inputs.workforceGapApproval);
     if (!approval.success || !approval.data.approved || (approval.data.proposalId && approval.data.proposalId !== proposal.proposalId)) {
       await this.message(ownerId, task, task.createdByAgentId ?? "engineering_manager", null, "PROPOSAL", { workforceGap: { proposal, duplicateAgentId: duplicate?.agentId ?? null, scores: scores.slice(0, 5) } }, task.evidenceRefs);
