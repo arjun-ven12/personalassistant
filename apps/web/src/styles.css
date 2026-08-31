@@ -8383,6 +8383,9 @@ pre {
 .objective-workforce-prep header { grid-template-columns:1fr auto; color:#a9b1c0; }
 .objective-workforce-prep h3,.objective-workforce-prep strong { margin:0; font-size:13px; font-weight:600; color:#f4f6fb; }
 .objective-workforce-prep small,.objective-workforce-prep p,.objective-workforce-prep span { margin:0; color:#8790a1; font-size:11px; }
+.specialist-creation-status { grid-column:1 / -1; padding:8px 10px; border-left:3px solid #7596ff; background:#151a29; color:#b9c6ff !important; }
+.specialist-creation-status.success { border-color:#65d5a1; background:#102018; color:#9be8bf !important; }
+.specialist-creation-status.error { border-color:#e77a86; background:#251419; color:#ffb0b8 !important; }
 .objective-modification-result { padding:9px 10px; border-left:3px solid #7596ff; background:#151a29; color:#aebeff; }
 .objective-edit-toggle { display:flex; justify-content:flex-end; margin:12px 0; }
 .objective-modifier { display:grid; grid-template-columns:repeat(5,minmax(100px,1fr)); gap:10px; padding:14px; margin-bottom:16px; border:1px solid #2b2f3a; background:#13151c; }

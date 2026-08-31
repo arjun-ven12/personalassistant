@@ -11,7 +11,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
-import type { ApiClient } from "./api.js";
+import { ApiClientError, type ApiClient } from "./api.js";
 import { ObjectiveExperimentsPanel } from "./ObjectiveExperimentsPanel.js";
 import {
   ContextualAskAlexa,
@@ -64,6 +64,11 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
   const [editMetric, setEditMetric] = useState("");
   const [editTarget, setEditTarget] = useState(1);
   const [modificationStatus, setModificationStatus] = useState("");
+  const [specialistStatus, setSpecialistStatus] = useState<{
+    taskId: string;
+    tone: "pending" | "success" | "error";
+    message: string;
+  } | null>(null);
   const [sort, setSort] = useState<"attention" | "priority" | "deadline" | "budget" | "outcome">("attention");
   const refresh = async () => {
     await client.invalidateQueries({ queryKey: ["objectives"] });
@@ -114,7 +119,29 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
         approved: true,
         proposalId: input.proposalId,
       }),
-    onSuccess: refresh,
+    onMutate: (input) => {
+      setSpecialistStatus({
+        taskId: input.taskId,
+        tone: "pending",
+        message: "Creating specialist and reserving its first assignment...",
+      });
+    },
+    onSuccess: async (result, input) => {
+      setSpecialistStatus({
+        taskId: input.taskId,
+        tone: "success",
+        message: result.task.assignedAgentId
+          ? `Specialist created and assigned: ${result.task.assignedAgentId}.`
+          : "Specialist created. The scheduler is preparing its assignment.",
+      });
+      await refresh();
+    },
+    onError: (error, input) => {
+      const message = error instanceof ApiClientError
+        ? `${error.code}: ${error.message}`
+        : "Specialist creation could not be confirmed. No specialist was created.";
+      setSpecialistStatus({ taskId: input.taskId, tone: "error", message });
+    },
   });
   const modify = useMutation({
     mutationFn: (id: string) =>
@@ -506,6 +533,11 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                         task?.selection.find(
                           (score) => score.agentId === task.assignedAgentId,
                         ) ?? task?.selection[0];
+                      const status = task
+                        ? specialistStatus?.taskId === task.id
+                          ? specialistStatus
+                          : null
+                        : null;
                       return (
                         <article key={project.id}>
                           <div>
@@ -544,8 +576,15 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                                 })
                               }
                             >
-                              Create specialist
+                              {approveSpecialist.isPending && status?.tone === "pending"
+                                ? "Creating specialist..."
+                                : "Create specialist"}
                             </button>
+                          ) : null}
+                          {status ? (
+                            <p className={`specialist-creation-status ${status.tone}`} role="status">
+                              {status.message}
+                            </p>
                           ) : null}
                         </article>
                       );
