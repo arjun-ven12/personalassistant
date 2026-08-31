@@ -35,6 +35,14 @@ class AlexaRepository(
     onSuccess = { api.selectCompany(it.token, companyId).onSuccess { selected -> activeCompanyId = selected.currentCompany.id } },
     onFailure = Result<CompanyListResponse>::failure,
   )
+  suspend fun createCompany(name: String, description: String?, industry: String?): Result<CompanyListResponse> = api.csrf().fold(
+    onSuccess = { api.createCompany(it.token, CreateCompanyRequest(name, description, industry, UUID.randomUUID().toString())).onSuccess { created -> activeCompanyId = created.currentCompany.id } },
+    onFailure = Result<CompanyListResponse>::failure,
+  )
+  suspend fun transitionCompany(companyId: String, action: String): Result<CompanyDetailResponse> = api.csrf().fold(
+    onSuccess = { api.transitionCompany(it.token, companyId, action) },
+    onFailure = Result<CompanyDetailResponse>::failure,
+  )
 
   suspend fun beginPairing(): Result<PairingIntent> = api.csrf().fold(
     onSuccess = { api.createPairingIntent(it.token) },

@@ -387,9 +387,15 @@ import {
   type UpsertSynonymRequest,
   type AIBudgetPolicy,
   CompanyListResponseSchema,
+  CompanyDetailResponseSchema,
+  CompanyLifecycleActionSchema,
   CreateCompanyRequestSchema,
   SelectCompanyRequestSchema,
+  UpdateCompanyRequestSchema,
+  UpdateCompanyLimitRequestSchema,
+  type CompanyLifecycleAction,
   type CreateCompanyRequest,
+  type UpdateCompanyRequest,
 } from "@alexa-control/shared";
 import { z } from "zod";
 
@@ -528,6 +534,21 @@ export const createApiClient = (baseUrl: string) => {
       activeCompanyId = response.currentCompany.id;
       return response;
     },
+    getCompany: (companyId: string) => requestAndValidate(
+      baseUrl, `/api/companies/${encodeURIComponent(companyId)}`, CompanyDetailResponseSchema,
+    ),
+    updateCompany: (companyId: string, input: UpdateCompanyRequest) => requestAndValidate(
+      baseUrl, `/api/companies/${encodeURIComponent(companyId)}`, CompanyDetailResponseSchema,
+      jsonBody(UpdateCompanyRequestSchema.parse(input), "PATCH"),
+    ),
+    transitionCompany: (companyId: string, action: CompanyLifecycleAction) => requestAndValidate(
+      baseUrl, `/api/companies/${encodeURIComponent(companyId)}/${CompanyLifecycleActionSchema.parse(action)}`,
+      CompanyDetailResponseSchema, jsonBody({}),
+    ),
+    updateCompanyLimit: (companyLimit: number) => requestAndValidate(
+      baseUrl, "/api/companies/limit", CompanyListResponseSchema,
+      jsonBody(UpdateCompanyLimitRequestSchema.parse({ companyLimit }), "PATCH"),
+    ),
     getHealth: (): Promise<HealthResponse> =>
       requestAndValidate(baseUrl, "/health", HealthResponseSchema),
     getAuthState: (): Promise<AuthStateResponse> =>

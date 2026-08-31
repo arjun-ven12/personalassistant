@@ -214,6 +214,20 @@ class AlexaViewModel(
     )
   }
 
+  fun createCompany(name: String, description: String?, industry: String?) = viewModelScope.launch {
+    repository.createCompany(name, description, industry).fold(
+      onSuccess = { mutableState.value = mutableState.value.copy(companies = it, error = null); refresh() },
+      onFailure = ::showFailure,
+    )
+  }
+
+  fun transitionCompany(companyId: String, action: String) = viewModelScope.launch {
+    repository.transitionCompany(companyId, action).fold(
+      onSuccess = { repository.companies().onSuccess { companies -> mutableState.value = mutableState.value.copy(companies = companies, error = null) } },
+      onFailure = ::showFailure,
+    )
+  }
+
   fun onBackground() {
     foregroundStateSync?.cancel()
     foregroundStateSync = null

@@ -123,6 +123,8 @@ class MainActivity : FragmentActivity() {
         onRefreshApproval = model::refreshApproval,
         onRefresh = model::refresh,
         onCompanySelected = model::selectCompany,
+        onCompanyCreated = model::createCompany,
+        onCompanyAction = model::transitionCompany,
         onLock = model::lockNow,
         onForgetDevice = model::signOutAndForgetDevice,
         onCreateObjective = model::createObjective,

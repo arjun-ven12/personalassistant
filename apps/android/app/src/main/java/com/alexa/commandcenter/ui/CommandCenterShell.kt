@@ -58,6 +58,8 @@ fun CommandCenterShell(
   environment: AlexaEnvironmentConfig,
   onRefresh: () -> Unit,
   onCompanySelected: (String) -> Unit,
+  onCompanyCreated: (String, String?, String?) -> Unit,
+  onCompanyAction: (String, String) -> Unit,
   onLock: () -> Unit,
   onForgetDevice: () -> Unit,
   onCreateObjective: (CreateObjectiveRequest) -> Unit,
@@ -89,6 +91,7 @@ fun CommandCenterShell(
   var destination by rememberSaveable { mutableStateOf("Home") }
   var secondaryDestination by rememberSaveable { mutableStateOf<String?>(null) }
   var selectedApprovalId by rememberSaveable { mutableStateOf<String?>(null) }
+  var manageCompanies by rememberSaveable { mutableStateOf(false) }
   LaunchedEffect(state.crossDeviceCommand) {
     val command = state.crossDeviceCommand ?: return@LaunchedEffect
     var supported = true
@@ -215,8 +218,13 @@ fun CommandCenterShell(
               companies.companies.filter { it.status == "ACTIVE" }.forEach { company ->
                 DropdownMenuItem(text = { Text(company.name) }, onClick = { expanded = false; onCompanySelected(company.id) })
               }
+              HorizontalDivider()
+              DropdownMenuItem(text = { Text("Manage companies") }, leadingIcon = { Icon(Icons.Outlined.Settings, null) }, onClick = { expanded = false; manageCompanies = true })
             }
           }
+        }
+        if (manageCompanies && companies != null) {
+          CompanyManagementDialog(companies, { manageCompanies = false }, onCompanySelected, onCompanyCreated, onCompanyAction)
         }
         Box(Modifier.weight(1f)) { when (destination) {
           "Home" -> ExecutiveHome(state, onRefresh, onObjectiveAction, onApprovalDecision)
@@ -743,6 +751,56 @@ private data class ExecutiveActivity(val category: String, val summary: String, 
     if (objectives.isEmpty()) item { EmptyLine("No objective is available for experiment monitoring.") }
     else if (dashboard != null && dashboard.experiments.isEmpty()) item { EmptyLine("No experiments exist for this objective.") }
   }
+}
+
+@Composable private fun CompanyManagementDialog(
+  companies: CompanyListResponse,
+  onDismiss: () -> Unit,
+  onSelect: (String) -> Unit,
+  onCreate: (String, String?, String?) -> Unit,
+  onAction: (String, String) -> Unit,
+) {
+  var creating by remember { mutableStateOf(false) }
+  var name by remember { mutableStateOf("") }
+  var industry by remember { mutableStateOf("") }
+  var description by remember { mutableStateOf("") }
+  AlertDialog(
+    onDismissRequest = onDismiss,
+    title = { Text("Companies") },
+    text = {
+      LazyColumn(Modifier.heightIn(max = 520.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        item { Text("${companies.companies.size} / ${companies.companyLimit} companies", color = CcMuted, style = MaterialTheme.typography.bodySmall) }
+        items(companies.companies, key = { it.id }) { company ->
+          Surface(color = CcElevated, shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, CcBorder)) {
+            Column(Modifier.padding(10.dp)) {
+              Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { Text(company.name, Modifier.weight(1f), fontWeight = FontWeight.SemiBold); StatusPill(company.status) }
+              Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (company.status !in setOf("DRAFT", "PROVISIONING", "FAILED_PROVISIONING")) TextButton(onClick = { onDismiss(); onSelect(company.id) }) { Text("Open") }
+                when (company.status) {
+                  "ACTIVE" -> { TextButton(onClick = { onAction(company.id, "pause") }) { Text("Pause") }; TextButton(onClick = { onAction(company.id, "suspend") }) { Text("Suspend") }; TextButton(onClick = { onAction(company.id, "archive") }) { Text("Archive") } }
+                  "PAUSED" -> TextButton(onClick = { onAction(company.id, "resume") }) { Text("Resume") }
+                  "SUSPENDED", "ARCHIVED" -> TextButton(onClick = { onAction(company.id, "restore") }) { Text("Restore") }
+                  "PROVISIONING", "FAILED_PROVISIONING" -> TextButton(onClick = { onAction(company.id, "retry-provisioning") }) { Text("Retry") }
+                }
+              }
+            }
+          }
+        }
+        item {
+          if (!creating) OutlinedButton(onClick = { creating = true }, Modifier.fillMaxWidth()) { Icon(Icons.Outlined.AddBusiness, null); Spacer(Modifier.width(6.dp)); Text("Create company") }
+          else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("New company", fontWeight = FontWeight.SemiBold)
+            OutlinedTextField(name, { name = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(industry, { industry = it }, label = { Text("Industry") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(description, { description = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+            Button(onClick = { onDismiss(); onCreate(name.trim(), description.trim().ifBlank { null }, industry.trim().ifBlank { null }) }, enabled = name.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("Create and provision") }
+            Text("Starts with zero credits and a dormant Governor.", color = CcMuted, style = MaterialTheme.typography.bodySmall)
+          }
+        }
+      }
+    },
+    confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
+  )
 }
 
 @Composable private fun SystemScreen(state: AlexaUiState, environment: AlexaEnvironmentConfig, onPreferences: (NotificationPreferences) -> Unit, onBack: () -> Unit) = LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

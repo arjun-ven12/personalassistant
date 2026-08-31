@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
   Bot,
+  Building2,
   Boxes,
   BrainCircuit,
   CheckCircle2,
@@ -50,6 +51,7 @@ import { LocalAIPage } from "./LocalAIPage.js";
 import { KnowledgeGraphPage } from "./KnowledgeGraphPage.js";
 import { AdvisorPage } from "./AdvisorPage.js";
 import { CommandsPage } from "./CommandsPage.js";
+import { CompaniesPage } from "./CompaniesPage.js";
 import { CommandStudioPage } from "./CommandStudioPage.js";
 import { ConversationPage } from "./ConversationPage.js";
 import { ExecutivePage } from "./ExecutivePage.js";
@@ -92,6 +94,7 @@ const navigation: Array<{
   { path: "/devices", label: "Devices", icon: Cpu, section: "Environment" },
   { path: "/spatial", label: "Spatial", icon: Sparkles, section: "Environment" },
   { path: "/ai", label: "AI", icon: BrainCircuit, section: "System" },
+  { path: "/companies", label: "Companies", icon: Building2, section: "System" },
   { path: "/security", label: "Security", icon: Shield, section: "System" },
   { path: "/approvals", label: "Approvals", icon: CheckCircle2, section: "System" },
   {
@@ -530,6 +533,7 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
               <main className="content">
                 {pathname === "/" ? <Dashboard apiClient={apiClient} /> : null}
                 {pathname === "/devices" ? <DevicesPage apiClient={apiClient} /> : null}
+                {pathname === "/companies" ? <CompaniesPage apiClient={apiClient} onSelect={(companyId) => selectCompany.mutate(companyId)} /> : null}
                 {pathname === "/spatial" ? (
                   <SpatialPage apiClient={apiClient} onNavigate={navigate} />
                 ) : null}

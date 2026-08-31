@@ -36,6 +36,8 @@ interface AlexaApiService {
   @GET("api/security/csrf") suspend fun csrf(): Response<CsrfResponse>
   @GET("api/companies") suspend fun companies(): Response<CompanyListResponse>
   @POST("api/companies/select") suspend fun selectCompany(@Header("X-CSRF-Token") csrf: String, @Body request: SelectCompanyRequest): Response<CompanyListResponse>
+  @POST("api/companies") suspend fun createCompany(@Header("X-CSRF-Token") csrf: String, @Body request: CreateCompanyRequest): Response<CompanyListResponse>
+  @POST("api/companies/{companyId}/{action}") suspend fun transitionCompany(@Path("companyId") companyId: String, @Path("action") action: String, @Header("X-CSRF-Token") csrf: String, @Body body: Map<String, String> = emptyMap()): Response<CompanyDetailResponse>
   @POST("api/devices/pairing-intents") suspend fun createPairingIntent(@Header("X-CSRF-Token") csrf: String): Response<PairingIntent>
   @POST("api/devices/pairing-requests") suspend fun requestPairing(@Body request: PairingRequest): Response<PairingResponse>
   @POST("api/devices/pairing-status") suspend fun pairingStatus(@Body request: PairingStatusRequest): Response<PairingStatusResponse>
@@ -85,6 +87,8 @@ class AlexaApiClient private constructor(
   suspend fun csrf() = call { service.csrf() }
   suspend fun companies() = call { service.companies() }.onSuccess { activeCompanyId.set(it.currentCompany.id) }
   suspend fun selectCompany(csrf: String, companyId: String) = call { service.selectCompany(csrf, SelectCompanyRequest(companyId)) }.onSuccess { activeCompanyId.set(it.currentCompany.id) }
+  suspend fun createCompany(csrf: String, request: CreateCompanyRequest) = call { service.createCompany(csrf, request) }.onSuccess { activeCompanyId.set(it.currentCompany.id) }
+  suspend fun transitionCompany(csrf: String, companyId: String, action: String) = call { service.transitionCompany(companyId, action, csrf) }
   suspend fun createPairingIntent(csrf: String) = call { service.createPairingIntent(csrf) }
   suspend fun requestPairing(request: PairingRequest) = call { service.requestPairing(request) }
   suspend fun pairingStatus(deviceId: String, token: String) = call { service.pairingStatus(PairingStatusRequest(deviceId, token)) }

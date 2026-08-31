@@ -51,7 +51,7 @@ import type { ServerExecutionSigner } from "./execution/server-key-store.js";
 import { registerExecutionRoutes } from "./routes/executions.js";
 import { registerCrossDeviceRoutes } from "./routes/cross-device.js";
 import { registerCompanyRoutes } from "./routes/companies.js";
-import { CompanyService } from "./companies/service.js";
+import { CompanyService, type CompanyProvisioningHook } from "./companies/service.js";
 import { CompanyContextResolver } from "./companies/context.js";
 import { companyScope } from "./companies/scope.js";
 import { NoopTelemetrySink, type TelemetrySink } from "./telemetry/service.js";
@@ -363,6 +363,8 @@ export interface BuildApiOptions {
   signedRequestToleranceSeconds?: number;
   identityStore?: IdentityStore;
   companyStore?: CompanyStore;
+  companyLimit?: number;
+  companyProvisioningHook?: CompanyProvisioningHook;
   telemetry?: TelemetrySink;
   networkVerifier?: NetworkVerifier;
   governanceStore?: GovernanceStore;
@@ -461,6 +463,8 @@ export const buildApi = async ({
   signedRequestToleranceSeconds = 120,
   identityStore = new InMemoryIdentityStore(),
   companyStore,
+  companyLimit = 100,
+  companyProvisioningHook,
   telemetry = new NoopTelemetrySink(),
   networkVerifier = new PlaceholderNetworkVerifier(),
   governanceStore = new InMemoryGovernanceStore(BUILT_IN_TOOLS),
@@ -748,7 +752,8 @@ export const buildApi = async ({
     (database
       ? new PostgresCompanyStore(database.pool)
       : new InMemoryCompanyStore());
-  const companies = new CompanyService(resolvedCompanyStore, identityStore, now);
+  const companies = new CompanyService(resolvedCompanyStore, identityStore, now, companyLimit);
+  companies.setProvisioningHook(companyProvisioningHook);
   const companyContext = new CompanyContextResolver(companies, security, telemetry);
   const governanceAudit = async (
     input: Parameters<ApiRouteContext["governanceAudit"]>[0],
@@ -765,6 +770,7 @@ export const buildApi = async ({
       ...(input.metadata ? { metadata: input.metadata } : {}),
     });
   };
+  companies.setAudit(governanceAudit);
   const resolvedNotificationStore =
     notificationStore ??
     (persistenceMode === "postgresql" && database

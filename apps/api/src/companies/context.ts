@@ -28,7 +28,12 @@ export class CompanyContextResolver {
       [AlexaTelemetryAttributes.ownerId]: identity.user.id,
       [AlexaTelemetryAttributes.requestId]: request.id,
       ...(requested ? { [AlexaTelemetryAttributes.companyId]: requested } : {}),
-    }, () => this.companies.resolve(identity, requested, request.id));
+    }, () => this.companies.resolve(
+      identity,
+      requested,
+      request.id,
+      ["GET", "HEAD", "OPTIONS"].includes(request.method) ? "READ" : "OPERATE",
+    ));
     this.#contexts.set(request, context);
     return context;
   }

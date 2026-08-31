@@ -45,8 +45,15 @@ data class AuthResponse(val success: Boolean, val user: Owner)
 data class SessionResponse(val authenticated: Boolean, val user: Owner?)
 data class Owner(val id: String, val email: String, val displayName: String)
 data class CompanySummary(val id: String, val slug: String, val name: String, val status: String)
-data class CompanyListResponse(val currentCompany: CompanySummary, val companies: List<CompanySummary>)
+data class CompanyListResponse(val currentCompany: CompanySummary, val companies: List<CompanySummary>, val companyLimit: Int = 100)
 data class SelectCompanyRequest(val companyId: String)
+data class CreateCompanyRequest(
+  val name: String,
+  val description: String? = null,
+  val industry: String? = null,
+  val idempotencyKey: String,
+)
+data class CompanyDetailResponse(val company: CompanySummary)
 data class CsrfResponse(val token: String, val expiresAt: String)
 data class PairingIntent(val pairingCode: String, val expiresAt: String)
 data class PairingRequest(

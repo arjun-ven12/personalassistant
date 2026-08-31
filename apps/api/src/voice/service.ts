@@ -323,6 +323,7 @@ export class VoiceRuntimeService {
     ipAddress: string;
     governanceSessionId?: string;
     networkState?: NetworkVerificationState;
+    responseOverride?: string | null;
   }) {
     await this.ensureBaseline(input.ownerId, input.requestId);
     const started = performance.now();
@@ -591,7 +592,11 @@ export class VoiceRuntimeService {
       classification =
         deterministic.classification === "MULTI_INTENT" ? "MULTI_INTENT" : "ACTION";
 
-    if (explicitTeaching && !hasExplicitMemoryInput) {
+    if (input.responseOverride) {
+      responseText = input.responseOverride;
+      classification = "ANSWER";
+      routeStages = ["PRECODED"];
+    } else if (explicitTeaching && !hasExplicitMemoryInput) {
       responseText = "What would you like me to remember?";
       classification = "CLARIFY";
       routeStages = ["MEMORY", "CLARIFICATION"];

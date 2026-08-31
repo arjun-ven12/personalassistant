@@ -132,6 +132,7 @@ export const registerVoiceRoutes = (app: FastifyInstance, context: ApiRouteConte
         device.ownerId,
         payload.companyId,
         envelope.commandId,
+        "OPERATE",
       );
       return companyScope.run(company, async () => {
       const clientType = device.deviceType === "ANDROID" ? "ANDROID" : "OVERLAY";
@@ -301,6 +302,9 @@ export const registerVoiceRoutes = (app: FastifyInstance, context: ApiRouteConte
           ipAddress: request.ip,
           governanceSessionId: identity.session.id,
           networkState: context.security.getNetworkState(request),
+          responseOverride: body.isFinal && body.confidence >= 0.55
+            ? await context.companies.handleConversation(identity, body.transcript, { requestId: request.id, ipAddress: request.ip })
+            : null,
         }),
       );
     },
