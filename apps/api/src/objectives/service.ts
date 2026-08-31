@@ -285,7 +285,7 @@ export class ObjectiveEngineService {
       let completed=0; let spent=0; let failed=false; let waiting=owned.some((item)=>item.status==="BLOCKED"||item.status==="WAITING");
       let projectedCost=0; let remainingDurationMs=0;
       for(const project of owned) { const task=project.workforceTaskId?tasks.get(project.workforceTaskId):undefined; if(!task) continue;
-        const status:ObjectiveProject["status"]=task.status==="COMPLETED"?"COMPLETED":task.status==="FAILED"?"FAILED":task.status==="RUNNING"?"RUNNING":TERMINAL.has(task.status)?"CANCELLED":task.status==="WAITING"?"WAITING":"QUEUED";
+        const status:ObjectiveProject["status"]=task.status==="COMPLETED"?"COMPLETED":task.status==="FAILED"?"FAILED":["ASSIGNED","RESERVED","RUNNING","REVIEW_REQUIRED"].includes(task.status)?"RUNNING":TERMINAL.has(task.status)?"CANCELLED":task.status==="WAITING"?"WAITING":"QUEUED";
         if(status!==project.status) await this.store.saveObjectiveProject(ObjectiveProjectSchema.parse({...project,status,updatedAt:at}));
         const selected=task.selection.find((item)=>item.agentId===task.assignedAgentId)??task.selection[0];
         completed+=status==="COMPLETED"?1:0; spent+=task.actualCost; failed ||= status==="FAILED"; waiting ||= status==="WAITING";

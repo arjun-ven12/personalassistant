@@ -547,6 +547,11 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                                 ? `${selected.category.replaceAll("_", " ")} · ${Math.round(selected.finalScore * 100)}% match`
                                 : task?.workforceGap?.blockerCode ?? project.status}
                             </small>
+                            {selected?.rejectionReasons.length ? (
+                              <small className="workforce-rejection-reason">
+                                {selected.rejectionReasons.join(" · ")}
+                              </small>
+                            ) : null}
                           </div>
                           {proposal ? (
                             <div>
