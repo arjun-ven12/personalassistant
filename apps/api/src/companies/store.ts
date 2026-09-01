@@ -35,8 +35,16 @@ const canonicalTimestamp = (value: unknown) => {
 const canonicalizeTimestamps = (record: unknown) => {
   if (!record || typeof record !== "object" || Array.isArray(record)) return record;
   const parsed = { ...(record as Record<string, unknown>) };
-  for (const field of ["createdAt", "updatedAt"]) {
-    parsed[field] = canonicalTimestamp(parsed[field]);
+  for (const field of [
+    "createdAt",
+    "updatedAt",
+    "activatedAt",
+    "pausedAt",
+    "suspendedAt",
+    "archivedAt",
+    "completedAt",
+  ]) {
+    if (field in parsed) parsed[field] = canonicalTimestamp(parsed[field]);
   }
   return parsed;
 };
