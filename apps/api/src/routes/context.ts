@@ -120,6 +120,8 @@ import type { CrossDeviceService } from "../cross-device/service.js";
 import type { CrossDeviceStore } from "../cross-device/store.js";
 import type { CompanyService } from "../companies/service.js";
 import type { CompanyContextResolver } from "../companies/context.js";
+import type { CompanyDataService } from "../company-data/service.js";
+import type { CompanyDataStore } from "../company-data/store.js";
 
 export interface ApiRouteContext {
   deploymentMode: "private" | "cloud";
@@ -127,6 +129,8 @@ export interface ApiRouteContext {
   security: SecurityMiddleware;
   companies: CompanyService;
   companyContext: CompanyContextResolver;
+  companyData: CompanyDataService;
+  companyDataStore: CompanyDataStore;
   securityState: SecurityStateService;
   networkVerifier: NetworkVerifier;
   cookieName: string;

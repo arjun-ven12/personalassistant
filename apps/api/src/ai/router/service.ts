@@ -173,12 +173,21 @@ export class AIRouterService {
         code: "COMPANY_SCOPE_MISMATCH",
       });
     }
-    const request = activeCompanyId && parsedRequest.economicContext
+    const companyScopedRequest = activeCompanyId && parsedRequest.economicContext
       ? AIRouterRequestSchema.parse({
           ...parsedRequest,
           economicContext: { ...parsedRequest.economicContext, companyId: activeCompanyId },
         })
       : parsedRequest;
+    const request = companyScopedRequest.dataPolicy?.routing === "LOCAL_ONLY" ||
+      companyScopedRequest.dataPolicy?.sensitivity === "RESTRICTED"
+      ? AIRouterRequestSchema.parse({
+          ...companyScopedRequest,
+          privacy: "LOCAL_ONLY",
+          locality: "LOCAL_ONLY",
+          allowCloud: false,
+        })
+      : companyScopedRequest;
     const canonicalRequestId = request.requestId ?? crypto.randomUUID();
     const routeId = crypto.randomUUID();
     let active;
@@ -834,6 +843,12 @@ export class AIRouterService {
         (model) => request.locality !== "LOCAL_ONLY" || model.locality === "LOCAL",
       )
       .filter((model) => model.locality === "LOCAL" || request.allowCloud)
+      .filter((model) => {
+        if (model.locality === "LOCAL" || !request.dataPolicy) return true;
+        if (request.dataPolicy.routing === "LOCAL_ONLY") return false;
+        if (request.dataPolicy.routing === "ANY_APPROVED") return true;
+        return (request.dataPolicy.approvedCloudProviderIds ?? []).includes(model.providerId);
+      })
       .filter((model) => this.roleCompatible(model, role, complexity))
       .filter((model) => {
         const state = this.failures.get(modelKey(model.providerId, model.modelId));

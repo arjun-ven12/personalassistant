@@ -1056,6 +1056,94 @@ textarea:focus-visible {
   align-items: center;
   gap: 6px;
 }
+.company-information {
+  margin-top: 20px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.company-data-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.company-data-tabs button[aria-selected="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(87, 184, 255, 0.08);
+}
+.company-data-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.company-data-grid.single {
+  grid-template-columns: 1fr;
+}
+.company-data-grid article {
+  min-width: 0;
+  border: 1px solid var(--border);
+  padding: 12px;
+}
+.company-data-grid h3 {
+  margin: 0 0 10px;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.company-data-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+.company-data-row span,
+.company-data-row b {
+  min-width: 0;
+}
+.company-data-row strong,
+.company-data-row small,
+.company-data-row b small {
+  display: block;
+}
+.company-data-row small {
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.67rem;
+  text-overflow: ellipsis;
+}
+.company-data-row em {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-style: normal;
+}
+.company-data-row.metric b {
+  text-align: right;
+}
+.company-memory-total {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+.company-memory-total strong {
+  font-size: 1.6rem;
+}
+.company-memory-total span {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.company-glossary-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.company-glossary-search input {
+  width: 100%;
+}
 .company-create {
   display: grid;
   grid-template-columns: minmax(240px, 1fr) repeat(2, minmax(180px, 0.6fr));
@@ -1082,6 +1170,9 @@ textarea:focus-visible {
     grid-column: auto;
   }
   .company-resources {
+    grid-template-columns: 1fr;
+  }
+  .company-data-grid {
     grid-template-columns: 1fr;
   }
 }

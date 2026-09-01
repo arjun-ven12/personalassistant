@@ -26,6 +26,7 @@ export const AgentDefinitionSchema = z
     description: z.string().min(1).max(1_000),
     skills: z.array(z.string().min(2).max(120)).min(1).max(50),
     capabilityRequirements: z.array(boundedRef).min(1).max(80),
+    dataRequirements: z.array(boundedRef).max(40).default([]),
     supportedTasks: z.array(boundedRef).min(1).max(80),
     defaultModelPolicy: z.enum([
       "CHEAP_ROUTINE",

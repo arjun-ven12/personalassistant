@@ -100,6 +100,24 @@ describe("AIRouterService", () => {
     expect(result.providerId).toBe("ollama");
   });
 
+  it("structurally forces restricted company context onto a local model", async () => {
+    const { router } = await makeRouter();
+    const result = await router.executeStructured({
+      ...request(),
+      allowCloud: true,
+      locality: "ALLOW_REMOTE",
+      dataPolicy: {
+        sensitivity: "RESTRICTED",
+        routing: "LOCAL_ONLY",
+        approvedCloudProviderIds: ["openai"],
+      },
+      schemaName: "restricted-company-context",
+      schema: z.object({ intent: z.string(), entities: z.record(z.string(), z.unknown()), confidence: z.number(), requiresClarification: z.boolean() }),
+    });
+    expect(result.providerId).toBe("ollama");
+    expect(result.attempts.every((attempt) => attempt.locality === "LOCAL")).toBe(true);
+  });
+
   it("uses the configured Luna role mapping for ordinary remote-allowed interpretation", async () => {
     const { router, economics } = await makeRouter();
     const ownerId = crypto.randomUUID();

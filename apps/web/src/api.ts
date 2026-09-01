@@ -400,6 +400,8 @@ import {
   type CompanyLifecycleAction,
   type CreateCompanyRequest,
   type UpdateCompanyRequest,
+  CompanyDataDashboardSchema,
+  ResolvedCompanyAgentContextSchema,
 } from "@alexa-control/shared";
 import { z } from "zod";
 
@@ -578,6 +580,14 @@ export const createApiClient = (baseUrl: string) => {
         "/api/companies/limit",
         CompanyListResponseSchema,
         jsonBody(UpdateCompanyLimitRequestSchema.parse({ companyLimit }), "PATCH"),
+      ),
+    getCompanyData: () =>
+      requestAndValidate(baseUrl, "/api/company-data", CompanyDataDashboardSchema),
+    getCompanyAgentDataContext: (assignmentId: string) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/company-data/agents/${encodeURIComponent(assignmentId)}/context`,
+        ResolvedCompanyAgentContextSchema,
       ),
     getHealth: (): Promise<HealthResponse> =>
       requestAndValidate(baseUrl, "/health", HealthResponseSchema),

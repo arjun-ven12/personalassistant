@@ -16,6 +16,13 @@ export const AILocalityPreferenceSchema = z.enum([
   "ALLOW_REMOTE",
 ]);
 export const AILatencyPreferenceSchema = z.enum(["FAST", "BALANCED", "QUALITY"]);
+export const AIDataRoutingPolicySchema = z
+  .object({
+    sensitivity: z.enum(["PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED"]),
+    routing: z.enum(["ANY_APPROVED", "APPROVED_CLOUD", "LOCAL_ONLY"]),
+    approvedCloudProviderIds: z.array(z.string().min(1).max(80)).max(20).default([]),
+  })
+  .strict();
 export const AIRouterOutcomeSchema = z.enum([
   "SUCCESS",
   "NO_AI",
@@ -68,6 +75,7 @@ export const AIRouterRequestSchema = AIInferenceRequestSchema.extend({
   workflowRunId: z.string().uuid().optional(),
   taskId: z.string().uuid().optional(),
   projectId: z.string().uuid().optional(),
+  dataPolicy: AIDataRoutingPolicySchema.optional(),
 }).strict();
 
 export const AIRouterAttemptSchema = z

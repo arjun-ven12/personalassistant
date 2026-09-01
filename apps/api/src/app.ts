@@ -51,6 +51,7 @@ import type { ServerExecutionSigner } from "./execution/server-key-store.js";
 import { registerExecutionRoutes } from "./routes/executions.js";
 import { registerCrossDeviceRoutes } from "./routes/cross-device.js";
 import { registerCompanyRoutes } from "./routes/companies.js";
+import { registerCompanyDataRoutes } from "./routes/company-data.js";
 import { CompanyService, type CompanyProvisioningHook } from "./companies/service.js";
 import { CompanyContextResolver } from "./companies/context.js";
 import { companyScope } from "./companies/scope.js";
@@ -60,6 +61,12 @@ import {
   PostgresCompanyStore,
   type CompanyStore,
 } from "./companies/store.js";
+import { CompanyDataService } from "./company-data/service.js";
+import {
+  InMemoryCompanyDataStore,
+  type CompanyDataStore,
+} from "./company-data/store.js";
+import { PostgresCompanyDataStore } from "./company-data/postgres-store.js";
 import { CrossDeviceService } from "./cross-device/service.js";
 import {
   InMemoryCrossDeviceStore,
@@ -363,6 +370,7 @@ export interface BuildApiOptions {
   signedRequestToleranceSeconds?: number;
   identityStore?: IdentityStore;
   companyStore?: CompanyStore;
+  companyDataStore?: CompanyDataStore;
   companyLimit?: number;
   companyProvisioningHook?: CompanyProvisioningHook;
   telemetry?: TelemetrySink;
@@ -463,6 +471,7 @@ export const buildApi = async ({
   signedRequestToleranceSeconds = 120,
   identityStore = new InMemoryIdentityStore(),
   companyStore,
+  companyDataStore,
   companyLimit = 100,
   companyProvisioningHook,
   telemetry = new NoopTelemetrySink(),
@@ -774,6 +783,19 @@ export const buildApi = async ({
     });
   };
   companies.setAudit(governanceAudit);
+  const resolvedCompanyDataStore =
+    companyDataStore ??
+    (database
+      ? new PostgresCompanyDataStore(database.pool)
+      : new InMemoryCompanyDataStore());
+  const companyData = new CompanyDataService(
+    resolvedCompanyDataStore,
+    resolvedCompanyStore,
+    agentStore,
+    undefined,
+    governanceAudit,
+    now,
+  );
   const resolvedNotificationStore =
     notificationStore ??
     (persistenceMode === "postgresql" && database
@@ -1453,6 +1475,8 @@ export const buildApi = async ({
     security,
     companies,
     companyContext,
+    companyData,
+    companyDataStore: resolvedCompanyDataStore,
     securityState,
     networkVerifier,
     cookieName: sessionCookieName,
@@ -1713,6 +1737,7 @@ export const buildApi = async ({
 
   registerAuthRoutes(app, context);
   registerCompanyRoutes(app, context);
+  registerCompanyDataRoutes(app, context);
   registerDeviceRoutes(app, context);
   registerAuditRoutes(app, context);
   registerSystemRoutes(app, context);
