@@ -13,6 +13,7 @@ import {
 import { useMemo, useState } from "react";
 
 import type { ApiClient } from "./api.js";
+import { portfolioCompanyState } from "./portfolio-state.js";
 
 type Tab = "Overview" | "Business" | "System" | "AI";
 const statusClass = (value: string) => `portfolio-${value.toLowerCase()}`;
@@ -124,57 +125,59 @@ export const PortfolioPage = ({ apiClient }: { apiClient: ApiClient }) => {
             </article>
           </section>
           <section className="portfolio-company-grid">
-            {data.companies.map((company) => (
-              <article className="portfolio-company-card" key={company.companyId}>
-                <header>
-                  <div>
-                    <h2>{company.companyName}</h2>
-                    <small>{company.companyStatus}</small>
+            {data.companies.map((company) => {
+              const companyState = portfolioCompanyState(company.health);
+              return (
+                <article className="portfolio-company-card" key={company.companyId}>
+                  <header>
+                    <div>
+                      <h2>{company.companyName}</h2>
+                      <small>{company.companyStatus}</small>
+                    </div>
+                    <strong className={statusClass(companyState.tone)}>
+                      {companyState.label}
+                    </strong>
+                  </header>
+                  <div className="portfolio-health-strip">
+                    {company.health.map((item) => (
+                      <span
+                        className={statusClass(item.state)}
+                        key={item.dimension}
+                        title={item.evidence.join(" ")}
+                      >
+                        {item.dimension}
+                        <b>{item.state}</b>
+                      </span>
+                    ))}
                   </div>
-                  <strong>
-                    {company.health.filter((item) => item.state === "CRITICAL").length
-                      ? "CRITICAL"
-                      : company.health.some((item) => item.state === "WARNING")
-                        ? "ATTENTION"
-                        : "STABLE"}
-                  </strong>
-                </header>
-                <div className="portfolio-health-strip">
-                  {company.health.map((item) => (
-                    <span
-                      className={statusClass(item.state)}
-                      key={item.dimension}
-                      title={item.evidence.join(" ")}
-                    >
-                      {item.dimension}
-                      <b>{item.state}</b>
-                    </span>
-                  ))}
-                </div>
-                <dl>
-                  <div>
-                    <dt>AI cost</dt>
-                    <dd>{company.aiSpendCredits.toFixed(1)}</dd>
-                  </div>
-                  <div>
-                    <dt>AI success</dt>
-                    <dd>
-                      {company.aiSuccessRate === null
-                        ? "—"
-                        : `${Math.round(company.aiSuccessRate * 100)}%`}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Data alerts</dt>
-                    <dd>{company.dataAlerts}</dd>
-                  </div>
-                  <div>
-                    <dt>Incidents</dt>
-                    <dd>{company.systemIncidents}</dd>
-                  </div>
-                </dl>
-              </article>
-            ))}
+                  <dl>
+                    <div>
+                      <dt>AI cost</dt>
+                      <dd>{company.aiSpendCredits.toFixed(1)}</dd>
+                    </div>
+                    <div>
+                      <dt>AI success</dt>
+                      <dd>
+                        {company.aiSuccessRate === null
+                          ? "—"
+                          : `${Math.round(company.aiSuccessRate * 100)}%`}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Data alerts</dt>
+                      <dd>{company.dataAlerts}</dd>
+                    </div>
+                    <div>
+                      <dt>Incidents</dt>
+                      <dd>{company.systemIncidents}</dd>
+                    </div>
+                  </dl>
+                </article>
+              );
+            })}
+            {!data.companies.length ? (
+              <p className="portfolio-empty">No companies are available to compare.</p>
+            ) : null}
           </section>
           <section className="dashboard-grid two-column-grid">
             <article className="panel">
@@ -193,6 +196,11 @@ export const PortfolioPage = ({ apiClient }: { apiClient: ApiClient }) => {
                   </div>
                 </div>
               ))}
+              {!data.attentionQueue.length ? (
+                <p className="portfolio-empty">
+                  No portfolio signals currently require attention.
+                </p>
+              ) : null}
             </article>
             <article className="panel">
               <h2>Executive insights</h2>
@@ -208,6 +216,11 @@ export const PortfolioPage = ({ apiClient }: { apiClient: ApiClient }) => {
                   </small>
                 </div>
               ))}
+              {!data.insights.length ? (
+                <p className="portfolio-empty">
+                  No evidence-backed executive insights are available yet.
+                </p>
+              ) : null}
             </article>
           </section>
         </>
@@ -222,17 +235,19 @@ export const PortfolioPage = ({ apiClient }: { apiClient: ApiClient }) => {
                 and units are directly comparable.
               </p>
             </div>
-            <label>
-              Metric
-              <select
-                value={selectedMetric}
-                onChange={(event) => setMetricKey(event.target.value)}
-              >
-                {metricKeys.map((key) => (
-                  <option key={key}>{key}</option>
-                ))}
-              </select>
-            </label>
+            {metricKeys.length ? (
+              <label>
+                Metric
+                <select
+                  value={selectedMetric}
+                  onChange={(event) => setMetricKey(event.target.value)}
+                >
+                  {metricKeys.map((key) => (
+                    <option key={key}>{key}</option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
           </div>
           <div className="portfolio-metric-grid">
             {data.portfolioMetrics
@@ -260,6 +275,12 @@ export const PortfolioPage = ({ apiClient }: { apiClient: ApiClient }) => {
                   </small>
                 </article>
               ))}
+            {!data.portfolioMetrics.length ? (
+              <p className="portfolio-empty">
+                No canonical company metrics are available. Define a semantic metric and
+                record an observation to populate this view.
+              </p>
+            ) : null}
           </div>
         </section>
       ) : null}
@@ -283,12 +304,23 @@ export const PortfolioPage = ({ apiClient }: { apiClient: ApiClient }) => {
                 </b>
               </div>
             ))}
+            {!data.systemHealth.serviceHealth.length ? (
+              <p className="portfolio-empty">
+                No retained system telemetry is available.
+              </p>
+            ) : null}
           </article>
           <article className="panel">
             <h2>
               <GitBranch size={16} />
               Trace inspector
             </h2>
+            {traces.isPending ? (
+              <p className="portfolio-empty">Loading retained system traces…</p>
+            ) : null}
+            {traces.error instanceof Error ? (
+              <p className="error-banner">{traces.error.message}</p>
+            ) : null}
             {traces.data?.slice(0, 30).map((trace) => (
               <div className="portfolio-trace" key={trace.id}>
                 <span>
@@ -303,6 +335,11 @@ export const PortfolioPage = ({ apiClient }: { apiClient: ApiClient }) => {
                 </b>
               </div>
             ))}
+            {!traces.isPending && !traces.error && !traces.data?.length ? (
+              <p className="portfolio-empty">
+                No retained traces match the current portfolio scope.
+              </p>
+            ) : null}
           </article>
         </section>
       ) : null}
@@ -334,12 +371,23 @@ export const PortfolioPage = ({ apiClient }: { apiClient: ApiClient }) => {
                 </b>
               </div>
             ))}
+            {!data.aiHealth.modelBreakdown.length ? (
+              <p className="portfolio-empty">
+                No model-backed AI calls are present in retained telemetry.
+              </p>
+            ) : null}
           </article>
           <article className="panel">
             <h2>
               <Bot size={16} />
               AI traces
             </h2>
+            {aiTraces.isPending ? (
+              <p className="portfolio-empty">Loading retained AI traces…</p>
+            ) : null}
+            {aiTraces.error instanceof Error ? (
+              <p className="error-banner">{aiTraces.error.message}</p>
+            ) : null}
             {aiTraces.data?.slice(0, 30).map((trace) => (
               <div className="portfolio-trace" key={trace.id}>
                 <span>
@@ -356,6 +404,11 @@ export const PortfolioPage = ({ apiClient }: { apiClient: ApiClient }) => {
                 </b>
               </div>
             ))}
+            {!aiTraces.isPending && !aiTraces.error && !aiTraces.data?.length ? (
+              <p className="portfolio-empty">
+                No retained AI traces match the current portfolio scope.
+              </p>
+            ) : null}
           </article>
           <article className="panel">
             <h2>

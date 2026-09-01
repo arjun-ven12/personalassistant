@@ -1184,6 +1184,15 @@ textarea:focus-visible {
   color: var(--muted);
   font-size: 0.68rem;
 }
+.portfolio-empty {
+  margin: 14px 0 4px;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.portfolio-company-grid > .portfolio-empty,
+.portfolio-metric-grid > .portfolio-empty {
+  grid-column: 1 / -1;
+}
 .portfolio-health-strip {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -316,7 +316,7 @@ export const PortfolioTraceQuerySchema = z
     companyId: uuid.optional(),
     traceId: z.string().min(16).max(64).optional(),
     status: z.enum(["OK", "ERROR"]).optional(),
-    limit: z.number().int().min(1).max(500).default(100),
+    limit: z.coerce.number().int().min(1).max(500).default(100),
   })
   .strict();
 export const PortfolioAITraceQuerySchema = z
@@ -325,7 +325,7 @@ export const PortfolioAITraceQuerySchema = z
     provider: boundedKey.optional(),
     model: z.string().min(1).max(160).optional(),
     taskClass: boundedKey.optional(),
-    limit: z.number().int().min(1).max(500).default(100),
+    limit: z.coerce.number().int().min(1).max(500).default(100),
   })
   .strict();
 export const PortfolioAlertActionSchema = z
