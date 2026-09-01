@@ -49,6 +49,13 @@ export const EconomyReferenceSetSchema = z
     skillId: reference.optional(),
     providerRequestId: reference.optional(),
     experimentId: reference.optional(),
+    serviceRequestId: reference.optional(),
+    durableExecutionId: reference.optional(),
+    companyId: reference.optional(),
+    assignmentId: reference.optional(),
+    costAttribution: z
+      .enum(["SOURCE_PAYS", "DESTINATION_PAYS", "SHARED", "OWNER_PORTFOLIO"])
+      .optional(),
   })
   .strict();
 
@@ -191,4 +198,6 @@ export type AgentEconomyOutcome = z.infer<typeof AgentEconomyOutcomeSchema>;
 export type EconomyReferenceSet = z.infer<typeof EconomyReferenceSetSchema>;
 export type AgentEconomyDashboard = z.infer<typeof AgentEconomyDashboardSchema>;
 export type EnrollAgentEconomyRequest = z.infer<typeof EnrollAgentEconomyRequestSchema>;
-export type AllocateAgentCreditsRequest = z.infer<typeof AllocateAgentCreditsRequestSchema>;
+export type AllocateAgentCreditsRequest = z.infer<
+  typeof AllocateAgentCreditsRequestSchema
+>;

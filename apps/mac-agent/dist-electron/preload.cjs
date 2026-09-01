@@ -11336,12 +11336,12 @@ function describe(description) {
   return ch;
 }
 // @__NO_SIDE_EFFECTS__
-function meta(metadata) {
+function meta(metadata2) {
   const ch = new $ZodCheck({ check: "meta" });
   ch._zod.onattach = [
     (inst) => {
       const existing = globalRegistry.get(inst) ?? {};
-      globalRegistry.add(inst, { ...existing, ...metadata });
+      globalRegistry.add(inst, { ...existing, ...metadata2 });
     }
   ];
   ch._zod.check = () => {
@@ -14838,7 +14838,7 @@ var AgentTemplateRecordSchema = external_exports.object({
   role: external_exports.string().min(1).max(120),
   displayName: external_exports.string().min(1).max(120),
   description: external_exports.string().min(1).max(1e3),
-  capabilities: external_exports.array(external_exports.string().min(3).max(120)).min(1).max(80),
+  capabilities: external_exports.array(external_exports.string().min(3).max(120)).min(1).max(50),
   prompt: external_exports.string().min(1).max(4e3),
   tools: external_exports.array(external_exports.string().min(1).max(120)).max(50),
   allowedActions: external_exports.array(external_exports.string().min(1).max(120)).max(50),
@@ -14858,7 +14858,7 @@ var DynamicAgentRecordSchema = external_exports.object({
   displayName: external_exports.string().min(1).max(120),
   roleDescription: external_exports.string().min(1).max(1e3),
   responsibilities: external_exports.array(external_exports.string().min(1).max(500)).min(1).max(50),
-  capabilities: external_exports.array(external_exports.string().min(3).max(120)).min(1).max(80),
+  capabilities: external_exports.array(external_exports.string().min(3).max(120)).min(1).max(50),
   prompt: external_exports.string().min(1).max(4e3),
   constraints: external_exports.array(external_exports.string().min(1).max(500)).min(1).max(50),
   successCriteria: external_exports.array(external_exports.string().min(1).max(500)).min(1).max(50),
@@ -15000,6 +15000,121 @@ var TeamCompositionResponseSchema = external_exports.object({
   dynamicAgents: external_exports.array(DynamicAgentRecordSchema).max(100)
 }).strict();
 var DynamicWorkforceDashboardResponseSchema = AgentDashboardResponseSchema.shape.dynamicWorkforce.unwrap();
+
+// ../../packages/shared/src/agent-catalog.ts
+var boundedRef = external_exports.string().min(3).max(160);
+var AgentDefinitionStatusSchema = external_exports.enum(["ACTIVE", "RETIRED"]);
+var AgentDefinitionProvenanceSchema = external_exports.enum([
+  "ALEXA_CREATED",
+  "OWNER_CREATED",
+  "IMPORTED",
+  "SYSTEM"
+]);
+var AgentDefinitionSchema = external_exports.object({
+  id: boundedRef,
+  ownerId: external_exports.string().uuid(),
+  canonicalKey: external_exports.string().min(3).max(160).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  name: external_exports.string().min(1).max(120),
+  role: AgentRoleSchema,
+  description: external_exports.string().min(1).max(1e3),
+  skills: external_exports.array(external_exports.string().min(2).max(120)).min(1).max(50),
+  capabilityRequirements: external_exports.array(boundedRef).min(1).max(80),
+  dataRequirements: external_exports.array(boundedRef).max(40).default([]),
+  supportedTasks: external_exports.array(boundedRef).min(1).max(80),
+  defaultModelPolicy: external_exports.enum([
+    "CHEAP_ROUTINE",
+    "LOCAL_FIRST",
+    "BALANCED",
+    "STRONG_REASONING",
+    "SECURITY_REVIEW"
+  ]),
+  defaultSafetyPolicy: boundedRef,
+  defaultOperatingPolicy: boundedRef,
+  executionPlacement: external_exports.enum([
+    "LOCAL",
+    "REMOTE_ALLOWED",
+    "REMOTE_PREFERRED",
+    "LOCAL_ONLY"
+  ]),
+  evaluationProfile: external_exports.array(external_exports.string().min(2).max(120)).min(1).max(20),
+  generalizedReputationPrior: external_exports.number().min(0).max(100),
+  generalizedCalibrationPrior: external_exports.number().min(0).max(1),
+  provenance: AgentDefinitionProvenanceSchema,
+  sourcePath: external_exports.string().max(500).nullable(),
+  sourceVersion: external_exports.string().max(80).nullable(),
+  license: external_exports.string().max(80).nullable(),
+  version: external_exports.string().min(1).max(40),
+  status: AgentDefinitionStatusSchema,
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var CompanyAgentAssignmentStatusSchema = external_exports.enum([
+  "DORMANT",
+  "ACTIVE",
+  "PAUSED",
+  "REVOKED"
+]);
+var CompanyAgentAssignmentSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid(),
+  agentDefinitionId: boundedRef,
+  organizationId: external_exports.string().uuid(),
+  departmentId: external_exports.string().uuid().nullable(),
+  managerAssignmentId: external_exports.string().uuid().nullable(),
+  managerAgentDefinitionId: boundedRef.nullable(),
+  governorAssignmentId: external_exports.string().uuid().nullable(),
+  status: CompanyAgentAssignmentStatusSchema,
+  memoryScopeId: boundedRef,
+  departmentMemoryScopeId: boundedRef.nullable(),
+  organizationMemoryScopeId: boundedRef,
+  capabilityGrantProfileId: boundedRef,
+  economyPolicyId: boundedRef,
+  modelPolicyOverride: AgentDefinitionSchema.shape.defaultModelPolicy.nullable(),
+  localReputation: external_exports.number().min(0).max(100).nullable(),
+  localCalibration: external_exports.number().min(0).max(1).nullable(),
+  companyInstructions: external_exports.string().max(2e3).nullable(),
+  isGovernor: external_exports.boolean(),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime(),
+  revokedAt: external_exports.iso.datetime().nullable()
+}).strict();
+var CatalogCompanyStatusSchema = external_exports.enum([
+  "ASSIGNED",
+  "AVAILABLE",
+  "UNAVAILABLE",
+  "CAPABILITY_GAP",
+  "POLICY_RESTRICTED"
+]);
+var AgentCatalogItemSchema = external_exports.object({
+  definition: AgentDefinitionSchema,
+  currentCompanyStatus: CatalogCompanyStatusSchema,
+  assignment: CompanyAgentAssignmentSchema.nullable(),
+  assignedCompanyCount: external_exports.number().int().nonnegative(),
+  effectiveCapabilities: external_exports.array(boundedRef).max(80),
+  missingCapabilities: external_exports.array(boundedRef).max(80)
+}).strict();
+var AgentCatalogResponseSchema = external_exports.object({
+  catalogCount: external_exports.number().int().nonnegative(),
+  assignedCount: external_exports.number().int().nonnegative(),
+  activeRuntimeCount: external_exports.number().int().nonnegative(),
+  items: external_exports.array(AgentCatalogItemSchema).max(1e3),
+  runtime: external_exports.object({
+    modelSessionsFromDefinitions: external_exports.literal(0),
+    workersFromAssignments: external_exports.literal(0),
+    pollingLoopsFromAssignments: external_exports.literal(0),
+    sharedAIRouter: external_exports.literal(true)
+  }).strict()
+}).strict();
+var AgentCatalogQuerySchema = external_exports.object({
+  q: external_exports.string().trim().max(160).default(""),
+  state: CatalogCompanyStatusSchema.optional(),
+  limit: external_exports.coerce.number().int().min(1).max(1e3).default(500)
+}).strict();
+var AssignCatalogAgentRequestSchema = external_exports.object({
+  departmentId: external_exports.string().uuid().optional(),
+  companyInstructions: external_exports.string().trim().max(2e3).optional()
+}).strict();
 
 // ../../packages/shared/src/agent-os.ts
 var AgentOsStatusSchema = external_exports.enum([
@@ -16142,7 +16257,12 @@ var EconomyReferenceSetSchema = external_exports.object({
   workflowId: reference.optional(),
   skillId: reference.optional(),
   providerRequestId: reference.optional(),
-  experimentId: reference.optional()
+  experimentId: reference.optional(),
+  serviceRequestId: reference.optional(),
+  durableExecutionId: reference.optional(),
+  companyId: reference.optional(),
+  assignmentId: reference.optional(),
+  costAttribution: external_exports.enum(["SOURCE_PAYS", "DESTINATION_PAYS", "SHARED", "OWNER_PORTFOLIO"]).optional()
 }).strict();
 var AgentEconomyLedgerEntrySchema = external_exports.object({
   id: external_exports.string().uuid(),
@@ -16299,10 +16419,13 @@ var OrganizationRecordSchema = external_exports.object({
 var DepartmentRecordSchema = external_exports.object({
   id: external_exports.string().uuid(),
   ownerId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid().optional(),
   organizationId: external_exports.string().uuid(),
+  departmentTemplateId: external_exports.string().min(3).max(120).nullable().optional(),
   name: external_exports.string().min(1).max(120),
   responsibility: external_exports.string().min(1).max(1e3),
   parentDepartmentId: external_exports.string().uuid().nullable().optional(),
+  managerAssignmentId: external_exports.string().uuid().nullable().optional(),
   leadAgentId: external_exports.string().min(3).max(120).nullable(),
   status: external_exports.enum(["active", "archived"]).optional(),
   createdAt: external_exports.iso.datetime(),
@@ -16585,6 +16708,41 @@ var SocietyDebateResponseSchema = external_exports.object({
 var SocietyMeetingResponseSchema = external_exports.object({ meeting: MeetingRecordSchema }).strict();
 
 // ../../packages/shared/src/agent-workforce.ts
+var DepartmentTemplateSchema = external_exports.object({
+  id: external_exports.string().min(3).max(120),
+  canonicalKey: external_exports.string().min(3).max(120),
+  name: external_exports.string().min(1).max(120),
+  category: external_exports.string().min(1).max(120),
+  genericPurpose: external_exports.string().min(1).max(1e3),
+  suggestedManagerRole: external_exports.string().min(1).max(120).nullable(),
+  suggestedAgentRoles: external_exports.array(external_exports.string().min(1).max(120)).max(20),
+  defaultPolicyHints: external_exports.array(external_exports.string().min(1).max(240)).max(20),
+  provenance: external_exports.enum(["SYSTEM", "OWNER_CREATED"]),
+  status: external_exports.enum(["ACTIVE", "RETIRED"])
+}).strict();
+var DepartmentTemplateListResponseSchema = external_exports.object({
+  templates: external_exports.array(DepartmentTemplateSchema).max(100)
+}).strict();
+var CreateWorkforceDepartmentRequestSchema = external_exports.object({
+  name: external_exports.string().trim().min(1).max(120),
+  purpose: external_exports.string().trim().min(1).max(1e3),
+  parentDepartmentId: external_exports.string().uuid().nullable().optional(),
+  templateId: external_exports.string().min(3).max(120).nullable().optional(),
+  managerDefinitionId: external_exports.string().min(3).max(160).nullable().optional(),
+  initialDefinitionIds: external_exports.array(external_exports.string().min(3).max(160)).max(20).default([])
+}).strict();
+var UpdateWorkforceDepartmentRequestSchema = external_exports.object({
+  name: external_exports.string().trim().min(1).max(120).optional(),
+  purpose: external_exports.string().trim().min(1).max(1e3).optional(),
+  parentDepartmentId: external_exports.string().uuid().nullable().optional(),
+  managerDefinitionId: external_exports.string().min(3).max(160).nullable().optional()
+}).strict().refine((value) => Object.keys(value).length > 0, "Provide a department change.");
+var ArchiveWorkforceDepartmentRequestSchema = external_exports.object({
+  relocateToDepartmentId: external_exports.string().uuid().nullable()
+}).strict();
+var MoveWorkforceAgentRequestSchema = external_exports.object({
+  departmentId: external_exports.string().uuid().nullable()
+}).strict();
 var WorkforceEventTypeSchema = external_exports.enum([
   "REGISTERED",
   "ACTIVATED",
@@ -16622,7 +16780,7 @@ var WorkforceImportReportSchema = external_exports.object({
   runtimeActivationsDuringImport: external_exports.literal(0)
 }).strict();
 var WorkforceGraphNodeSchema = external_exports.object({
-  id: external_exports.string().min(3).max(120),
+  id: external_exports.string().min(3).max(160),
   kind: external_exports.enum(["GOVERNOR", "DEPARTMENT", "AGENT"]),
   label: external_exports.string().min(1).max(160),
   subtitle: external_exports.string().max(160),
@@ -16645,10 +16803,25 @@ var WorkforceGraphResponseSchema = external_exports.object({
   departments: external_exports.array(DepartmentRecordSchema).max(100),
   nodes: external_exports.array(WorkforceGraphNodeSchema).max(1e3),
   edges: external_exports.array(WorkforceGraphEdgeSchema).max(2e3),
-  summary: external_exports.object({ registered: external_exports.number().int().nonnegative(), active: external_exports.number().int().nonnegative(), dormant: external_exports.number().int().nonnegative(), suspended: external_exports.number().int().nonnegative(), departments: external_exports.number().int().nonnegative(), memoryScopes: external_exports.number().int().nonnegative(), capabilityProfiles: external_exports.number().int().nonnegative(), aggregateCredits: external_exports.number().int().nonnegative(), averageReputation: external_exports.number().min(0).max(100) }).strict(),
+  summary: external_exports.object({
+    registered: external_exports.number().int().nonnegative(),
+    active: external_exports.number().int().nonnegative(),
+    dormant: external_exports.number().int().nonnegative(),
+    suspended: external_exports.number().int().nonnegative(),
+    departments: external_exports.number().int().nonnegative(),
+    memoryScopes: external_exports.number().int().nonnegative(),
+    capabilityProfiles: external_exports.number().int().nonnegative(),
+    aggregateCredits: external_exports.number().int().nonnegative(),
+    averageReputation: external_exports.number().min(0).max(100)
+  }).strict(),
   bootstrapAvailable: external_exports.boolean(),
   importPreview: WorkforceImportReportSchema,
-  runtime: external_exports.object({ modelInstancesFromRegistration: external_exports.literal(0), workerProcessesFromRegistration: external_exports.literal(0), providerCallsFromRegistration: external_exports.literal(0), sharedAIRouter: external_exports.literal(true) }).strict()
+  runtime: external_exports.object({
+    modelInstancesFromRegistration: external_exports.literal(0),
+    workerProcessesFromRegistration: external_exports.literal(0),
+    providerCallsFromRegistration: external_exports.literal(0),
+    sharedAIRouter: external_exports.literal(true)
+  }).strict()
 }).strict();
 var WorkforceAgentDetailSchema = external_exports.object({
   agent: AgentRecordSchema,
@@ -16659,9 +16832,26 @@ var WorkforceAgentDetailSchema = external_exports.object({
   performance: AgentEconomyPerformanceSchema.nullable(),
   tasks: external_exports.array(AgentTaskRecordSchema).max(100),
   events: external_exports.array(WorkforceEventSchema).max(100),
-  recentLedger: external_exports.array(external_exports.object({ id: external_exports.string().uuid(), type: external_exports.string(), amount: external_exports.number(), reasonCode: external_exports.string(), createdAt: external_exports.iso.datetime() }).strict()).max(100),
-  memoryAccess: external_exports.object({ privateScope: external_exports.string(), departmentScope: external_exports.string(), organizationScope: external_exports.string(), ownerPrivateIncluded: external_exports.literal(false) }).strict(),
-  authority: external_exports.object({ hierarchyGrantsPermissions: external_exports.literal(false), creditsGrantAuthority: external_exports.literal(false), capabilitiesExplicitOnly: external_exports.literal(true) }).strict()
+  recentLedger: external_exports.array(
+    external_exports.object({
+      id: external_exports.string().uuid(),
+      type: external_exports.string(),
+      amount: external_exports.number(),
+      reasonCode: external_exports.string(),
+      createdAt: external_exports.iso.datetime()
+    }).strict()
+  ).max(100),
+  memoryAccess: external_exports.object({
+    privateScope: external_exports.string(),
+    departmentScope: external_exports.string(),
+    organizationScope: external_exports.string(),
+    ownerPrivateIncluded: external_exports.literal(false)
+  }).strict(),
+  authority: external_exports.object({
+    hierarchyGrantsPermissions: external_exports.literal(false),
+    creditsGrantAuthority: external_exports.literal(false),
+    capabilitiesExplicitOnly: external_exports.literal(true)
+  }).strict()
 }).strict();
 var WorkforceSearchQuerySchema = external_exports.object({
   q: external_exports.string().trim().max(160).default(""),
@@ -16673,7 +16863,7 @@ var WorkforceSearchQuerySchema = external_exports.object({
 var UpdateWorkforceActivationRequestSchema = external_exports.object({ state: external_exports.enum(["ACTIVE", "DORMANT"]) }).strict();
 
 // ../../packages/shared/src/workforce-runtime.ts
-var boundedRef = external_exports.string().min(1).max(160);
+var boundedRef2 = external_exports.string().min(1).max(160);
 var WorkforceTaskStatusSchema = external_exports.enum([
   "CREATED",
   "QUEUED",
@@ -16713,14 +16903,21 @@ var WorkforceCandidateCategorySchema = external_exports.enum([
 ]);
 var WorkforceGapDecisionSchema = external_exports.enum([
   "ASSIGN_EXISTING",
+  "ASSIGNMENT_MATCH",
   "ADAPT_EXISTING",
+  "ADAPTABLE_ASSIGNMENT",
+  "CATALOG_MATCH",
+  "NEW_DEFINITION_REQUIRED",
+  "CAPABILITY_GAP",
+  "SKILL_GAP",
+  "POLICY_BLOCKED",
   "SPECIALIST_APPROVAL_PENDING",
   "SPECIALIST_CREATED",
   "CAPABILITY_REQUESTED",
   "BLOCKED"
 ]);
 var WorkforceMatchScoreSchema = external_exports.object({
-  agentId: boundedRef,
+  agentId: boundedRef2,
   category: WorkforceCandidateCategorySchema.default("WEAK_MATCH"),
   skillFit: external_exports.number().min(0).max(1),
   capabilityFit: external_exports.number().min(0).max(1),
@@ -16742,19 +16939,19 @@ var WorkforceMatchScoreSchema = external_exports.object({
 }).strict();
 var SpecialistRequirementSchema = external_exports.object({
   requirementId: external_exports.string().uuid(),
-  objectiveId: boundedRef.nullable(),
-  projectId: boundedRef.nullable(),
+  objectiveId: boundedRef2.nullable(),
+  projectId: boundedRef2.nullable(),
   taskId: external_exports.string().uuid().nullable(),
-  companyId: boundedRef.nullable(),
-  departmentAffinity: boundedRef.nullable(),
-  taskType: boundedRef,
-  domain: boundedRef,
-  requiredSkills: external_exports.array(boundedRef).max(30),
-  preferredSkills: external_exports.array(boundedRef).max(30).default([]),
-  requiredCapabilities: external_exports.array(boundedRef).max(30),
-  preferredCapabilities: external_exports.array(boundedRef).max(30).default([]),
-  memoryRequirements: external_exports.array(boundedRef).max(20),
-  authorityRequirements: external_exports.array(boundedRef).max(20).default([]),
+  companyId: boundedRef2.nullable(),
+  departmentAffinity: boundedRef2.nullable(),
+  taskType: boundedRef2,
+  domain: boundedRef2,
+  requiredSkills: external_exports.array(boundedRef2).max(30),
+  preferredSkills: external_exports.array(boundedRef2).max(30).default([]),
+  requiredCapabilities: external_exports.array(boundedRef2).max(30),
+  preferredCapabilities: external_exports.array(boundedRef2).max(30).default([]),
+  memoryRequirements: external_exports.array(boundedRef2).max(20),
+  authorityRequirements: external_exports.array(boundedRef2).max(20).default([]),
   riskLevel: external_exports.enum(["LOW", "MEDIUM", "HIGH"]),
   expectedDurationMs: external_exports.number().int().nonnegative().max(864e5).nullable(),
   estimatedCost: external_exports.number().int().nonnegative().max(1e6).nullable()
@@ -16764,18 +16961,18 @@ var WorkforceSpecialistProposalSchema = external_exports.object({
   requirementId: external_exports.string().uuid(),
   name: external_exports.string().min(1).max(120),
   role: external_exports.string().min(1).max(120),
-  departmentId: boundedRef.nullable(),
+  departmentId: boundedRef2.nullable(),
   departmentName: external_exports.string().min(1).max(120).nullable(),
   description: external_exports.string().min(1).max(500),
-  skills: external_exports.array(boundedRef).min(1).max(30),
-  capabilities: external_exports.array(boundedRef).min(1).max(30),
-  missingCapabilities: external_exports.array(boundedRef).max(30),
-  memoryScope: boundedRef,
-  authority: external_exports.array(boundedRef).max(20),
+  skills: external_exports.array(boundedRef2).min(1).max(30),
+  capabilities: external_exports.array(boundedRef2).min(1).max(30),
+  missingCapabilities: external_exports.array(boundedRef2).max(30),
+  memoryScope: boundedRef2,
+  authority: external_exports.array(boundedRef2).max(20),
   modelPolicyId: external_exports.string().min(1).max(120),
   economyPolicy: external_exports.string().min(1).max(160),
-  reportsToAgentId: boundedRef.nullable(),
-  delegationPermissions: external_exports.array(boundedRef).max(20),
+  reportsToAgentId: boundedRef2.nullable(),
+  delegationPermissions: external_exports.array(boundedRef2).max(20),
   approvalBoundaries: external_exports.array(external_exports.string().min(1).max(240)).max(20),
   recommendation: external_exports.enum(["TEMPORARY", "REUSABLE"]),
   rationale: external_exports.string().min(1).max(1e3)
@@ -16783,10 +16980,10 @@ var WorkforceSpecialistProposalSchema = external_exports.object({
 var WorkforceGapResolutionSchema = external_exports.object({
   requirement: SpecialistRequirementSchema,
   decision: WorkforceGapDecisionSchema,
-  selectedAgentId: boundedRef.nullable(),
+  selectedAgentId: boundedRef2.nullable(),
   selectedCategory: WorkforceCandidateCategorySchema.nullable(),
   proposal: WorkforceSpecialistProposalSchema.nullable(),
-  missingCapabilities: external_exports.array(boundedRef).max(30),
+  missingCapabilities: external_exports.array(boundedRef2).max(30),
   blockerCode: external_exports.enum([
     "NO_ELIGIBLE_AGENT",
     "SPECIALIST_CREATION_REQUIRED",
@@ -16801,9 +16998,11 @@ var WorkforceRuntimeTaskSchema = external_exports.object({
   id: external_exports.string().uuid(),
   idempotencyKey: external_exports.string().min(8).max(200).nullable(),
   ownerId: external_exports.string().uuid(),
-  organizationId: boundedRef.nullable(),
-  createdByAgentId: boundedRef.nullable(),
-  assignedAgentId: boundedRef.nullable(),
+  organizationId: boundedRef2.nullable(),
+  createdByAgentId: boundedRef2.nullable(),
+  assignedAgentId: boundedRef2.nullable(),
+  agentDefinitionId: boundedRef2.nullable().default(null),
+  companyAssignmentId: external_exports.string().uuid().nullable().default(null),
   parentTaskId: external_exports.string().uuid().nullable(),
   rootTaskId: external_exports.string().uuid(),
   depth: external_exports.number().int().min(0).max(4),
@@ -16811,11 +17010,11 @@ var WorkforceRuntimeTaskSchema = external_exports.object({
   title: external_exports.string().trim().min(1).max(255),
   objective: external_exports.string().trim().min(1).max(2e3),
   inputs: external_exports.record(external_exports.string().max(80), external_exports.json()).default({}),
-  evidenceRefs: external_exports.array(boundedRef).max(50),
-  memoryScopeRefs: external_exports.array(boundedRef).max(20),
-  requiredSkills: external_exports.array(boundedRef).max(30),
-  requiredCapabilities: external_exports.array(boundedRef).max(30),
-  preferredDepartmentId: boundedRef.nullable(),
+  evidenceRefs: external_exports.array(boundedRef2).max(50),
+  memoryScopeRefs: external_exports.array(boundedRef2).max(20),
+  requiredSkills: external_exports.array(boundedRef2).max(30),
+  requiredCapabilities: external_exports.array(boundedRef2).max(30),
+  preferredDepartmentId: boundedRef2.nullable(),
   priority: external_exports.enum(["low", "normal", "high", "urgent"]),
   riskLevel: external_exports.enum(["LOW", "MEDIUM", "HIGH"]),
   economicBudget: external_exports.number().int().nonnegative().max(1e6),
@@ -16844,40 +17043,40 @@ var WorkforceRuntimeTaskSchema = external_exports.object({
 var WorkforceRuntimeMessageSchema = external_exports.object({
   id: external_exports.string().uuid(),
   ownerId: external_exports.string().uuid(),
-  organizationId: boundedRef.nullable(),
-  fromAgentId: boundedRef,
-  toAgentId: boundedRef.nullable(),
+  organizationId: boundedRef2.nullable(),
+  fromAgentId: boundedRef2,
+  toAgentId: boundedRef2.nullable(),
   taskId: external_exports.string().uuid(),
   type: WorkforceMessageTypeSchema,
   payload: external_exports.record(external_exports.string().max(80), external_exports.json()).default({}),
-  evidenceRefs: external_exports.array(boundedRef).max(50),
+  evidenceRefs: external_exports.array(boundedRef2).max(50),
   createdAt: external_exports.iso.datetime()
 }).strict();
 var WorkforceRuntimeReviewSchema = external_exports.object({
   id: external_exports.string().uuid(),
   ownerId: external_exports.string().uuid(),
   taskId: external_exports.string().uuid(),
-  reviewerAgentId: boundedRef,
-  subjectAgentId: boundedRef,
+  reviewerAgentId: boundedRef2,
+  subjectAgentId: boundedRef2,
   verdict: WorkforceReviewVerdictSchema,
   findings: external_exports.array(external_exports.string().min(1).max(1e3)).max(50),
-  evidenceRefs: external_exports.array(boundedRef).max(50),
+  evidenceRefs: external_exports.array(boundedRef2).max(50),
   createdAt: external_exports.iso.datetime()
 }).strict();
 var CreateWorkforceTaskRequestSchema = external_exports.object({
   idempotencyKey: external_exports.string().min(8).max(200).nullable().default(null),
-  createdByAgentId: boundedRef.nullable().default(null),
+  createdByAgentId: boundedRef2.nullable().default(null),
   parentTaskId: external_exports.string().uuid().nullable().default(null),
-  assignedAgentId: boundedRef.nullable().default(null),
+  assignedAgentId: boundedRef2.nullable().default(null),
   type: external_exports.enum(["WORK", "QUESTION", "REVIEW"]).default("WORK"),
   title: external_exports.string().trim().min(1).max(255),
   objective: external_exports.string().trim().min(1).max(2e3),
   inputs: external_exports.record(external_exports.string().max(80), external_exports.json()).default({}),
-  evidenceRefs: external_exports.array(boundedRef).max(50).default([]),
-  memoryScopeRefs: external_exports.array(boundedRef).max(20).default([]),
-  requiredSkills: external_exports.array(boundedRef).max(30).default([]),
-  requiredCapabilities: external_exports.array(boundedRef).max(30).default([]),
-  preferredDepartmentId: boundedRef.nullable().default(null),
+  evidenceRefs: external_exports.array(boundedRef2).max(50).default([]),
+  memoryScopeRefs: external_exports.array(boundedRef2).max(20).default([]),
+  requiredSkills: external_exports.array(boundedRef2).max(30).default([]),
+  requiredCapabilities: external_exports.array(boundedRef2).max(30).default([]),
+  preferredDepartmentId: boundedRef2.nullable().default(null),
   priority: external_exports.enum(["low", "normal", "high", "urgent"]).default("normal"),
   riskLevel: external_exports.enum(["LOW", "MEDIUM", "HIGH"]).default("LOW"),
   economicBudget: external_exports.number().int().min(1).max(1e6).default(10),
@@ -16885,33 +17084,55 @@ var CreateWorkforceTaskRequestSchema = external_exports.object({
   expiresAt: external_exports.iso.datetime().nullable().default(null)
 }).strict();
 var CreateWorkforceMessageRequestSchema = external_exports.object({
-  fromAgentId: boundedRef,
-  toAgentId: boundedRef.nullable().default(null),
+  fromAgentId: boundedRef2,
+  toAgentId: boundedRef2.nullable().default(null),
   taskId: external_exports.string().uuid(),
   type: WorkforceMessageTypeSchema,
   payload: external_exports.record(external_exports.string().max(80), external_exports.json()).default({}),
-  evidenceRefs: external_exports.array(boundedRef).max(50).default([])
+  evidenceRefs: external_exports.array(boundedRef2).max(50).default([])
 }).strict();
 var CompleteWorkforceTaskRequestSchema = external_exports.object({
   resultSummary: external_exports.string().trim().min(1).max(4e3),
   resultConfidence: external_exports.number().min(0).max(1),
   actualCost: external_exports.number().int().nonnegative().max(1e6),
-  evidenceRefs: external_exports.array(boundedRef).max(50).default([]),
+  evidenceRefs: external_exports.array(boundedRef2).max(50).default([]),
   reviewRequired: external_exports.boolean().default(false)
 }).strict();
 var SubmitWorkforceReviewRequestSchema = external_exports.object({
-  reviewerAgentId: boundedRef,
+  reviewerAgentId: boundedRef2,
   verdict: WorkforceReviewVerdictSchema,
   findings: external_exports.array(external_exports.string().min(1).max(1e3)).max(50).default([]),
-  evidenceRefs: external_exports.array(boundedRef).max(50).default([])
+  evidenceRefs: external_exports.array(boundedRef2).max(50).default([])
 }).strict();
 var WorkforceRuntimeDashboardSchema = external_exports.object({
-  summary: external_exports.object({ registered: external_exports.number().int().nonnegative(), active: external_exports.number().int().nonnegative(), dormant: external_exports.number().int().nonnegative(), queued: external_exports.number().int().nonnegative(), running: external_exports.number().int().nonnegative(), waitingReview: external_exports.number().int().nonnegative(), completed: external_exports.number().int().nonnegative(), failed: external_exports.number().int().nonnegative(), maxConcurrent: external_exports.number().int().positive() }).strict(),
+  summary: external_exports.object({
+    registered: external_exports.number().int().nonnegative(),
+    active: external_exports.number().int().nonnegative(),
+    dormant: external_exports.number().int().nonnegative(),
+    queued: external_exports.number().int().nonnegative(),
+    running: external_exports.number().int().nonnegative(),
+    waitingReview: external_exports.number().int().nonnegative(),
+    completed: external_exports.number().int().nonnegative(),
+    failed: external_exports.number().int().nonnegative(),
+    maxConcurrent: external_exports.number().int().positive()
+  }).strict(),
   tasks: external_exports.array(WorkforceRuntimeTaskSchema).max(500),
   messages: external_exports.array(WorkforceRuntimeMessageSchema).max(500),
   reviews: external_exports.array(WorkforceRuntimeReviewSchema).max(500),
-  metrics: external_exports.object({ assignments: external_exports.number().int().nonnegative(), providerCalls: external_exports.number().int().nonnegative(), matchingLatencyMs: external_exports.number().nonnegative(), peakActiveAgents: external_exports.number().int().nonnegative(), completionRate: external_exports.number().min(0).max(1) }).strict(),
-  invariants: external_exports.object({ sharedAIRouter: external_exports.literal(true), dedicatedModelPerAgent: external_exports.literal(false), hierarchyGrantsAuthority: external_exports.literal(false), creditsGrantAuthority: external_exports.literal(false), maxTaskDepth: external_exports.literal(4) }).strict()
+  metrics: external_exports.object({
+    assignments: external_exports.number().int().nonnegative(),
+    providerCalls: external_exports.number().int().nonnegative(),
+    matchingLatencyMs: external_exports.number().nonnegative(),
+    peakActiveAgents: external_exports.number().int().nonnegative(),
+    completionRate: external_exports.number().min(0).max(1)
+  }).strict(),
+  invariants: external_exports.object({
+    sharedAIRouter: external_exports.literal(true),
+    dedicatedModelPerAgent: external_exports.literal(false),
+    hierarchyGrantsAuthority: external_exports.literal(false),
+    creditsGrantAuthority: external_exports.literal(false),
+    maxTaskDepth: external_exports.literal(4)
+  }).strict()
 }).strict();
 var WorkforceRuntimeTaskResponseSchema = external_exports.object({ task: WorkforceRuntimeTaskSchema }).strict();
 var WorkforceRuntimeMessageResponseSchema = external_exports.object({ message: WorkforceRuntimeMessageSchema }).strict();
@@ -20228,6 +20449,17 @@ var AuditEventTypeSchema = external_exports.enum([
   "INVALID_SIGNATURE",
   "REPLAY_REJECTED",
   "REQUEST_DENIED",
+  "COMPANY_CREATED",
+  "COMPANY_PROVISIONING_STARTED",
+  "COMPANY_PROVISIONING_FAILED",
+  "COMPANY_ACTIVATED",
+  "COMPANY_PAUSED",
+  "COMPANY_RESUMED",
+  "COMPANY_SUSPENDED",
+  "COMPANY_ARCHIVED",
+  "COMPANY_RESTORED",
+  "COMPANY_SETTINGS_UPDATED",
+  "COMPANY_SWITCHED",
   "APPLICATION_REGISTERED",
   "APPLICATION_UPDATED",
   "APPLICATION_DISABLED",
@@ -20325,6 +20557,31 @@ var AuditEventTypeSchema = external_exports.enum([
   "INTEGRATION_OPERATION_APPROVAL_REQUIRED",
   "INTEGRATION_OPERATION_COMPLETED",
   "INTEGRATION_OPERATION_FAILED",
+  "DATA_SOURCE_CREATED",
+  "DATASET_CREATED",
+  "DATASET_SCHEMA_CHANGED",
+  "DATA_PIPELINE_CREATED",
+  "DATA_PIPELINE_RUN",
+  "DATA_PIPELINE_FAILED",
+  "METRIC_DEFINITION_CHANGED",
+  "GLOSSARY_CHANGED",
+  "DATA_ACCESS_CHANGED",
+  "COMPANY_INTEGRATION_CONNECTED",
+  "COMPANY_CREDENTIAL_CHANGED",
+  "SENSITIVE_DATA_ACCESSED",
+  "PORTFOLIO_ALERT_UPDATED",
+  "CROSS_COMPANY_POLICY_UPDATED",
+  "CROSS_COMPANY_SERVICE_REQUESTED",
+  "CROSS_COMPANY_SERVICE_STATE_CHANGED",
+  "DURABLE_EXECUTION_STATE_CHANGED",
+  "DURABLE_WORKER_CLAIMED",
+  "DURABLE_ACTIVITY_STARTED",
+  "DURABLE_ACTIVITY_RECONCILED",
+  "CROSS_COMPANY_BUDGET_RESERVED",
+  "CROSS_COMPANY_ECONOMY_SETTLED",
+  "CROSS_COMPANY_ECONOMY_RELEASED",
+  "CROSS_COMPANY_APPROVAL_RESUMED",
+  "SANDBOX_EXECUTION_COMPLETED",
   "AGENT_REGISTERED",
   "AGENT_TASK_ASSIGNED",
   "AGENT_TASK_COMPLETED",
@@ -20540,6 +20797,15 @@ var AuditEventTypeSchema = external_exports.enum([
   "AGENT_ECONOMY_DUPLICATE_MUTATION",
   "AGENT_WORKFORCE_BOOTSTRAPPED",
   "AGENT_WORKFORCE_ACTIVATION_CHANGED",
+  "COMPANY_AGENT_ASSIGNMENT_CREATED",
+  "COMPANY_AGENT_ASSIGNMENT_REVOKED",
+  "COMPANY_AGENT_ASSIGNMENT_MOVED",
+  "WORKFORCE_DEPARTMENT_CREATED",
+  "WORKFORCE_DEPARTMENT_UPDATED",
+  "WORKFORCE_DEPARTMENT_ARCHIVED",
+  "WORKFORCE_DEPARTMENT_MANAGER_ASSIGNED",
+  "WORKFORCE_DEPARTMENT_MANAGER_REMOVED",
+  "AGENT_CATALOG_MATCH_USED",
   "WORKFORCE_TASK_CREATED",
   "WORKFORCE_TASK_SCHEDULED",
   "WORKFORCE_TASK_REVIEWED",
@@ -22698,6 +22964,11 @@ var ObjectiveProjectSchema = external_exports.object({
   departmentId: external_exports.string().max(160).nullable(),
   requiredSkills: external_exports.array(external_exports.string().max(160)).max(20),
   requiredCapabilities: external_exports.array(external_exports.string().max(160)).max(20),
+  capabilityReadiness: external_exports.array(external_exports.object({
+    capabilityId: external_exports.string().min(1).max(160),
+    status: external_exports.enum(["AVAILABLE", "REQUEST_REQUIRED"])
+  }).strict()).max(20).default([]),
+  estimatedAiCostCredits: external_exports.number().int().nonnegative().max(1e6).default(0),
   memoryScopeRefs: external_exports.array(external_exports.string().max(160)).max(20),
   budgetCredits: external_exports.number().int().nonnegative().max(1e6),
   workforceTaskId: external_exports.string().uuid().nullable(),
@@ -24919,7 +25190,29 @@ var CanonicalAlexaSummarySchema = external_exports.object({
 }).strict();
 
 // ../../packages/shared/src/companies.ts
-var CompanyStatusSchema = external_exports.enum(["ACTIVE", "PAUSED", "ARCHIVED"]);
+var CompanyStatusSchema = external_exports.enum([
+  "DRAFT",
+  "PROVISIONING",
+  "ACTIVE",
+  "PAUSED",
+  "SUSPENDED",
+  "ARCHIVED",
+  "FAILED_PROVISIONING"
+]);
+var CompanyRiskToleranceSchema = external_exports.enum(["LOW", "BALANCED", "HIGH"]);
+var CompanyAutonomyLevelSchema = external_exports.enum(["SUPERVISED", "GUARDED"]);
+var CompanyApprovalPolicySchema = external_exports.enum(["SUPERVISED", "STANDARD"]);
+var CompanySettingsSchema = external_exports.object({
+  description: external_exports.string().trim().max(2e3).nullable().default(null),
+  industry: external_exports.string().trim().max(160).nullable().default(null),
+  businessModel: external_exports.string().trim().max(160).nullable().default(null),
+  jurisdiction: external_exports.string().trim().max(120).nullable().default(null),
+  defaultLanguage: external_exports.string().trim().min(2).max(16).default("en"),
+  riskTolerance: CompanyRiskToleranceSchema.default("LOW"),
+  autonomyLevel: CompanyAutonomyLevelSchema.default("SUPERVISED"),
+  defaultApprovalPolicy: CompanyApprovalPolicySchema.default("SUPERVISED"),
+  starterCredits: external_exports.literal(0).default(0)
+}).strict();
 var CompanySchema = external_exports.object({
   id: external_exports.string().uuid(),
   ownerId: external_exports.string().uuid(),
@@ -24928,6 +25221,27 @@ var CompanySchema = external_exports.object({
   status: CompanyStatusSchema,
   timezone: external_exports.string().trim().min(1).max(80).nullable(),
   defaultCurrency: external_exports.string().regex(/^[A-Z]{3}$/).nullable(),
+  settings: CompanySettingsSchema.default({
+    description: null,
+    industry: null,
+    businessModel: null,
+    jurisdiction: null,
+    defaultLanguage: "en",
+    riskTolerance: "LOW",
+    autonomyLevel: "SUPERVISED",
+    defaultApprovalPolicy: "SUPERVISED",
+    starterCredits: 0
+  }),
+  memoryScopeId: external_exports.string().min(1).max(200).nullable().default(null),
+  economyAccountId: external_exports.string().min(1).max(200).nullable().default(null),
+  governanceProfileId: external_exports.string().min(1).max(200).nullable().default(null),
+  capabilityProfileId: external_exports.string().min(1).max(200).nullable().default(null),
+  credentialScopeId: external_exports.string().min(1).max(200).nullable().default(null),
+  governorAgentId: external_exports.string().min(1).max(200).nullable().default(null),
+  activatedAt: external_exports.iso.datetime().nullable().default(null),
+  pausedAt: external_exports.iso.datetime().nullable().default(null),
+  suspendedAt: external_exports.iso.datetime().nullable().default(null),
+  archivedAt: external_exports.iso.datetime().nullable().default(null),
   createdAt: external_exports.iso.datetime(),
   updatedAt: external_exports.iso.datetime()
 }).strict();
@@ -24940,25 +25254,61 @@ var CompanyMembershipSchema = external_exports.object({
   createdAt: external_exports.iso.datetime(),
   updatedAt: external_exports.iso.datetime()
 }).strict();
-var CompanySummarySchema = CompanySchema.pick({
-  id: true,
-  slug: true,
-  name: true,
-  status: true
-});
+var CompanyProvisioningStepNameSchema = external_exports.enum([
+  "COMPANY_CREATED",
+  "MEMORY_SCOPE_READY",
+  "ECONOMY_ACCOUNT_READY",
+  "GOVERNANCE_PROFILE_READY",
+  "CAPABILITY_PROFILE_READY",
+  "CREDENTIAL_SCOPE_READY",
+  "GOVERNOR_PLACEHOLDER_READY",
+  "VALIDATED",
+  "ACTIVATED"
+]);
+var CompanyProvisioningStepSchema = external_exports.object({
+  name: CompanyProvisioningStepNameSchema,
+  status: external_exports.enum(["PENDING", "COMPLETED", "FAILED"]),
+  attempts: external_exports.number().int().min(0),
+  errorCode: external_exports.string().max(100).nullable(),
+  completedAt: external_exports.iso.datetime().nullable(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var CompanyProvisioningSchema = external_exports.object({
+  companyId: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  idempotencyKey: external_exports.string().min(8).max(200),
+  status: external_exports.enum(["PENDING", "RUNNING", "COMPLETED", "FAILED"]),
+  steps: external_exports.array(CompanyProvisioningStepSchema).max(20),
+  lastErrorCode: external_exports.string().max(100).nullable(),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var CompanySummarySchema = CompanySchema.pick({ id: true, slug: true, name: true, status: true, settings: true });
 var CompanyListResponseSchema = external_exports.object({
   currentCompany: CompanySummarySchema,
-  companies: external_exports.array(CompanySummarySchema).max(100)
+  companies: external_exports.array(CompanySummarySchema).max(100),
+  companyLimit: external_exports.number().int().positive().max(100).default(100)
 }).strict();
+var CompanyDetailResponseSchema = external_exports.object({ company: CompanySchema, provisioning: CompanyProvisioningSchema.nullable() }).strict();
 var CreateCompanyRequestSchema = external_exports.object({
   name: external_exports.string().trim().min(1).max(160),
-  slug: external_exports.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).min(2).max(80),
+  slug: external_exports.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).min(2).max(80).optional(),
+  description: external_exports.string().trim().max(2e3).optional(),
+  industry: external_exports.string().trim().max(160).optional(),
+  businessModel: external_exports.string().trim().max(160).optional(),
+  jurisdiction: external_exports.string().trim().max(120).optional(),
+  defaultLanguage: external_exports.string().trim().min(2).max(16).optional(),
   timezone: external_exports.string().trim().min(1).max(80).optional(),
-  defaultCurrency: external_exports.string().regex(/^[A-Z]{3}$/).optional()
+  defaultCurrency: external_exports.string().regex(/^[A-Z]{3}$/).optional(),
+  riskTolerance: CompanyRiskToleranceSchema.optional(),
+  autonomyLevel: CompanyAutonomyLevelSchema.optional(),
+  defaultApprovalPolicy: CompanyApprovalPolicySchema.optional(),
+  idempotencyKey: external_exports.string().trim().min(8).max(200).optional()
 }).strict();
-var SelectCompanyRequestSchema = external_exports.object({
-  companyId: external_exports.string().uuid()
-}).strict();
+var UpdateCompanyRequestSchema = CreateCompanyRequestSchema.omit({ idempotencyKey: true }).partial().refine((value) => Object.keys(value).length > 0, "At least one setting is required.");
+var SelectCompanyRequestSchema = external_exports.object({ companyId: external_exports.string().uuid() }).strict();
+var UpdateCompanyLimitRequestSchema = external_exports.object({ companyLimit: external_exports.number().int().min(1).max(100) }).strict();
+var CompanyLifecycleActionSchema = external_exports.enum(["pause", "resume", "suspend", "archive", "restore", "retry-provisioning"]);
 var CompanyContextSchema = external_exports.object({
   ownerId: external_exports.string().uuid(),
   companyId: external_exports.string().uuid(),
@@ -24966,6 +25316,1117 @@ var CompanyContextSchema = external_exports.object({
   sourceDeviceId: external_exports.string().uuid().optional(),
   sourceClientInstanceId: external_exports.string().uuid().optional(),
   requestId: external_exports.string().min(1).max(200)
+}).strict();
+
+// ../../packages/shared/src/company-data.ts
+var uuid3 = external_exports.string().uuid();
+var boundedKey = external_exports.string().trim().min(2).max(160).regex(/^[A-Za-z0-9][A-Za-z0-9_.:-]*$/);
+var metadata = external_exports.record(external_exports.string().trim().min(1).max(80), external_exports.json()).default({});
+var CompanyDataSensitivitySchema = external_exports.enum([
+  "PUBLIC",
+  "INTERNAL",
+  "CONFIDENTIAL",
+  "RESTRICTED"
+]);
+var CompanyDataSourceTypeSchema = external_exports.enum([
+  "CRM",
+  "ACCOUNTING",
+  "ADS",
+  "ANALYTICS",
+  "COMMERCE",
+  "FILES",
+  "SUPPORT",
+  "MARKET_DATA",
+  "INTERNAL_API",
+  "PAYMENTS",
+  "SYNTHETIC"
+]);
+var CompanyDataStatusSchema = external_exports.enum([
+  "DRAFT",
+  "ACTIVE",
+  "PAUSED",
+  "DEGRADED",
+  "FAILED",
+  "ARCHIVED"
+]);
+var CompanyDataSourceSchema = external_exports.object({
+  id: uuid3,
+  ownerId: uuid3,
+  companyId: uuid3,
+  sourceType: CompanyDataSourceTypeSchema,
+  provider: boundedKey,
+  displayName: external_exports.string().trim().min(1).max(160),
+  status: CompanyDataStatusSchema,
+  connectionRef: boundedKey.nullable(),
+  ingestionMode: external_exports.enum(["MANUAL", "SCHEDULED", "EVENT_DRIVEN"]),
+  metadata,
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var CompanySchemaFieldSchema = external_exports.object({
+  name: boundedKey,
+  dataType: external_exports.enum(["STRING", "NUMBER", "BOOLEAN", "TIMESTAMP", "JSON"]),
+  nullable: external_exports.boolean(),
+  sensitivity: CompanyDataSensitivitySchema
+}).strict();
+var CompanyDatasetSchema = external_exports.object({
+  id: uuid3,
+  ownerId: uuid3,
+  companyId: uuid3,
+  sourceId: uuid3,
+  canonicalName: boundedKey,
+  logicalContract: boundedKey.nullable(),
+  physicalLocation: boundedKey,
+  schemaMetadata: external_exports.object({
+    version: external_exports.number().int().positive(),
+    fields: external_exports.array(CompanySchemaFieldSchema).max(500),
+    lastChangedAt: external_exports.iso.datetime()
+  }).strict(),
+  sensitivity: CompanyDataSensitivitySchema,
+  ownerDepartmentId: uuid3.nullable(),
+  status: CompanyDataStatusSchema,
+  freshness: external_exports.object({
+    lastUpdatedAt: external_exports.iso.datetime().nullable(),
+    staleAfterSeconds: external_exports.number().int().positive().max(31536e3),
+    state: external_exports.enum(["UNKNOWN", "FRESH", "STALE", "DEGRADED"])
+  }).strict(),
+  quality: external_exports.object({
+    completeness: external_exports.number().min(0).max(1).nullable(),
+    schemaValid: external_exports.boolean(),
+    missingValueRate: external_exports.number().min(0).max(1).nullable(),
+    duplicateRate: external_exports.number().min(0).max(1).nullable(),
+    sourceHealth: external_exports.enum(["UNKNOWN", "HEALTHY", "DEGRADED", "UNHEALTHY"])
+  }).strict(),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var CompanyDataPipelineSchema = external_exports.object({
+  id: uuid3,
+  ownerId: uuid3,
+  companyId: uuid3,
+  sourceId: uuid3,
+  datasetId: uuid3,
+  connectorKey: boundedKey,
+  destination: external_exports.literal("SHARED_POSTGRES"),
+  triggerMode: external_exports.enum(["MANUAL", "SCHEDULED", "EVENT_DRIVEN"]),
+  schedule: external_exports.string().trim().min(1).max(160).nullable(),
+  schemaContract: external_exports.enum(["EVOLVE", "FREEZE"]),
+  writeDisposition: external_exports.enum(["APPEND", "MERGE"]),
+  primaryKey: boundedKey.nullable(),
+  incrementalCursor: boundedKey.nullable(),
+  incrementalState: external_exports.record(external_exports.string().max(80), external_exports.json()),
+  status: CompanyDataStatusSchema,
+  lastSuccessfulRun: external_exports.iso.datetime().nullable(),
+  lastFailureCode: external_exports.string().max(120).nullable(),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var CompanyPipelineRunSchema = external_exports.object({
+  id: uuid3,
+  ownerId: uuid3,
+  companyId: uuid3,
+  sourceId: uuid3,
+  pipelineId: uuid3,
+  datasetId: uuid3,
+  loadPackageId: uuid3,
+  status: external_exports.enum(["RUNNING", "SUCCEEDED", "FAILED"]),
+  recordsRead: external_exports.number().int().nonnegative(),
+  recordsWritten: external_exports.number().int().nonnegative(),
+  schemaChanges: external_exports.array(boundedKey).max(500),
+  durationMs: external_exports.number().nonnegative(),
+  retryCount: external_exports.number().int().nonnegative().max(20),
+  errorCode: external_exports.string().max(120).nullable(),
+  startedAt: external_exports.iso.datetime(),
+  completedAt: external_exports.iso.datetime().nullable()
+}).strict();
+var MetadataEntityTypeSchema = external_exports.enum([
+  "DATASET",
+  "TABLE",
+  "FIELD",
+  "METRIC",
+  "REPORT",
+  "DOCUMENT",
+  "MEMORY_SCOPE",
+  "WORKFLOW_OUTPUT",
+  "OBJECTIVE_OUTPUT",
+  "INTEGRATION",
+  "DATA_SOURCE",
+  "PIPELINE"
+]);
+var MetadataEntitySchema = external_exports.object({
+  id: uuid3,
+  ownerId: uuid3,
+  companyId: uuid3,
+  entityType: MetadataEntityTypeSchema,
+  canonicalName: boundedKey,
+  displayName: external_exports.string().trim().min(1).max(160),
+  description: external_exports.string().trim().max(2e3),
+  domain: external_exports.string().trim().min(1).max(120).nullable(),
+  ownerDepartmentId: uuid3.nullable(),
+  humanOwnerId: uuid3.nullable(),
+  agentAssignmentId: uuid3.nullable(),
+  sourceSystem: boundedKey.nullable(),
+  classification: external_exports.array(boundedKey).max(40),
+  sensitivity: CompanyDataSensitivitySchema,
+  provenance: external_exports.object({
+    sourceType: external_exports.enum(["OWNER", "INGESTION", "SYSTEM", "INTEGRATION", "WORKFLOW"]),
+    sourceRef: boundedKey,
+    observedAt: external_exports.iso.datetime()
+  }).strict(),
+  status: CompanyDataStatusSchema,
+  metadata,
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var MetadataLineageEdgeSchema = external_exports.object({
+  id: uuid3,
+  ownerId: uuid3,
+  companyId: uuid3,
+  fromEntityId: uuid3,
+  toEntityId: uuid3,
+  relation: external_exports.enum([
+    "PRODUCES",
+    "LOADS",
+    "FEEDS",
+    "DERIVES",
+    "MEASURES",
+    "INFORMS",
+    "USES",
+    "OWNS"
+  ]),
+  provenance: external_exports.enum(["MANUAL", "PIPELINE", "METRIC_DEFINITION", "SYSTEM"]),
+  description: external_exports.string().trim().max(500),
+  createdAt: external_exports.iso.datetime()
+}).strict();
+var CompanyGlossaryTermSchema = external_exports.object({
+  id: uuid3,
+  ownerId: uuid3,
+  companyId: uuid3,
+  canonicalKey: boundedKey,
+  name: external_exports.string().trim().min(1).max(160),
+  definition: external_exports.string().trim().min(1).max(2e3),
+  aliases: external_exports.array(external_exports.string().trim().min(1).max(160)).max(40),
+  domain: external_exports.string().trim().min(1).max(120).nullable(),
+  ownerDepartmentId: uuid3.nullable(),
+  linkedEntityIds: external_exports.array(uuid3).max(100),
+  linkedMetricIds: external_exports.array(uuid3).max(100),
+  sensitivity: CompanyDataSensitivitySchema,
+  version: external_exports.number().int().positive(),
+  status: external_exports.enum(["ACTIVE", "DEPRECATED"]),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var formula = external_exports.string().trim().min(1).max(1e3).refine(
+  (value) => !/[;]|--|\/\*/.test(value),
+  "Metric formulas are inert semantic expressions and cannot contain SQL statement syntax."
+);
+var SemanticMetricSchema = external_exports.object({
+  id: uuid3,
+  ownerId: uuid3,
+  companyId: uuid3,
+  canonicalKey: boundedKey,
+  name: external_exports.string().trim().min(1).max(160),
+  description: external_exports.string().trim().min(1).max(2e3),
+  formula,
+  sourceEntityIds: external_exports.array(uuid3).min(1).max(100),
+  dimensions: external_exports.array(boundedKey).max(40),
+  timeField: boundedKey.nullable(),
+  unit: external_exports.string().trim().min(1).max(40),
+  ownerDepartmentId: uuid3.nullable(),
+  definitionSource: external_exports.enum(["OWNER", "SYSTEM", "IMPORTED"]),
+  version: external_exports.number().int().positive(),
+  status: external_exports.enum(["DRAFT", "ACTIVE", "SUPERSEDED", "ARCHIVED"]),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var SemanticMetricObservationSchema = external_exports.object({
+  id: uuid3,
+  ownerId: uuid3,
+  companyId: uuid3,
+  metricId: uuid3,
+  metricVersion: external_exports.number().int().positive(),
+  value: external_exports.string().regex(/^-?\d+(\.\d{1,12})?$/),
+  dimensions: external_exports.record(boundedKey, external_exports.string().max(160)),
+  observedAt: external_exports.iso.datetime(),
+  sourceUpdatedAt: external_exports.iso.datetime(),
+  expiresAt: external_exports.iso.datetime(),
+  provenanceEntityIds: external_exports.array(uuid3).min(1).max(100),
+  qualityState: external_exports.enum(["VERIFIED", "DEGRADED", "CONFLICT"])
+}).strict();
+var SemanticMetricQueryResultSchema = external_exports.object({
+  definition: SemanticMetricSchema,
+  observation: SemanticMetricObservationSchema.nullable(),
+  freshness: external_exports.enum(["CURRENT", "STALE", "UNAVAILABLE", "CONFLICT"]),
+  lineage: external_exports.array(MetadataLineageEdgeSchema).max(500)
+}).strict();
+var CompanyCredentialReferenceSchema = external_exports.object({
+  id: uuid3,
+  ownerId: uuid3,
+  companyId: uuid3,
+  provider: boundedKey,
+  secretLocator: boundedKey,
+  status: external_exports.enum(["READY", "MISSING", "EXPIRED", "REVOKED"]),
+  lastVerifiedAt: external_exports.iso.datetime().nullable(),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var CompanyIntegrationBindingSchema = external_exports.object({
+  id: uuid3,
+  ownerId: uuid3,
+  companyId: uuid3,
+  provider: boundedKey,
+  integrationType: boundedKey,
+  integrationId: boundedKey,
+  credentialRef: uuid3,
+  status: external_exports.enum(["READY", "DEGRADED", "DISABLED"]),
+  capabilitiesExposed: external_exports.array(boundedKey).max(100),
+  metadata,
+  lastSyncAt: external_exports.iso.datetime().nullable(),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var CompanyDataAccessRuleSchema = external_exports.object({
+  id: uuid3,
+  departmentId: uuid3.nullable(),
+  assignmentId: uuid3.nullable(),
+  entityId: uuid3.nullable(),
+  logicalContract: boundedKey.nullable(),
+  access: external_exports.enum(["METADATA", "AGGREGATE", "RAW"]),
+  maximumSensitivity: CompanyDataSensitivitySchema,
+  effect: external_exports.enum(["ALLOW", "DENY"])
+}).strict().refine(
+  (value) => value.departmentId || value.assignmentId,
+  "A data access rule must target a department or assignment."
+);
+var CompanyDataPolicySchema = external_exports.object({
+  id: uuid3,
+  ownerId: uuid3,
+  companyId: uuid3,
+  rules: external_exports.array(CompanyDataAccessRuleSchema).max(500),
+  modelRouting: external_exports.object({
+    PUBLIC: external_exports.enum(["ANY_APPROVED", "APPROVED_CLOUD", "LOCAL_ONLY"]),
+    INTERNAL: external_exports.enum(["ANY_APPROVED", "APPROVED_CLOUD", "LOCAL_ONLY"]),
+    CONFIDENTIAL: external_exports.enum(["APPROVED_CLOUD", "LOCAL_ONLY"]),
+    RESTRICTED: external_exports.literal("LOCAL_ONLY"),
+    approvedCloudProviderIds: external_exports.array(boundedKey).max(20)
+  }).strict(),
+  externalTransferAllowed: external_exports.boolean(),
+  status: external_exports.enum(["ACTIVE", "ARCHIVED"]),
+  version: external_exports.number().int().positive(),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var CompanyMemoryScopeTypeSchema = external_exports.enum([
+  "OWNER",
+  "COMPANY",
+  "DEPARTMENT",
+  "AGENT_ASSIGNMENT",
+  "TASK",
+  "CONVERSATION"
+]);
+var CompanySemanticDocumentTypeSchema = external_exports.enum([
+  "MEMORY",
+  "DOCUMENT",
+  "AGENT_EXPERIENCE",
+  "METADATA_ENTITY",
+  "GLOSSARY_TERM",
+  "WORKFLOW_KNOWLEDGE"
+]);
+var CompanySemanticDocumentSchema = external_exports.object({
+  id: uuid3,
+  ownerId: uuid3,
+  companyId: uuid3,
+  entityType: CompanySemanticDocumentTypeSchema,
+  scopeType: CompanyMemoryScopeTypeSchema,
+  scopeId: boundedKey,
+  sourceEntityId: external_exports.string().min(1).max(160),
+  title: external_exports.string().trim().min(1).max(255),
+  summary: external_exports.string().trim().min(1).max(2e3),
+  sensitivity: CompanyDataSensitivitySchema,
+  embeddingVersion: external_exports.string().min(1).max(80).nullable(),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var EffectiveCapabilityStateSchema = external_exports.enum([
+  "AVAILABLE",
+  "APPROVAL_REQUIRED",
+  "INTEGRATION_MISSING",
+  "CREDENTIAL_EXPIRED",
+  "POLICY_DENIED",
+  "DEVICE_OFFLINE",
+  "BUDGET_BLOCKED",
+  "COMPANY_PAUSED"
+]);
+var EffectiveCapabilitySchema = external_exports.object({
+  capabilityId: boundedKey,
+  state: EffectiveCapabilityStateSchema,
+  integrationBindingId: uuid3.nullable(),
+  reasonCode: external_exports.string().min(1).max(120)
+}).strict();
+var ResolvedCompanyDataContextSchema = external_exports.object({
+  ownerId: uuid3,
+  companyId: uuid3,
+  authorizedDatasets: external_exports.array(CompanyDatasetSchema).max(2e3),
+  authorizedMemoryScopes: external_exports.array(
+    external_exports.object({ type: CompanyMemoryScopeTypeSchema, scopeId: boundedKey }).strict()
+  ).max(500),
+  availableMetrics: external_exports.array(SemanticMetricQueryResultSchema).max(2e3),
+  metadataDomains: external_exports.array(external_exports.string().min(1).max(120)).max(200),
+  glossary: external_exports.array(CompanyGlossaryTermSchema).max(2e3),
+  dataSensitivityPolicy: CompanyDataPolicySchema.nullable(),
+  integrationBindings: external_exports.array(CompanyIntegrationBindingSchema).max(500),
+  freshness: external_exports.enum(["CURRENT", "STALE", "DEGRADED", "EMPTY"])
+}).strict();
+var ResolvedCompanyAgentContextSchema = external_exports.object({
+  ownerId: uuid3,
+  companyId: uuid3,
+  agentDefinitionId: boundedKey,
+  companyAgentAssignmentId: uuid3,
+  departmentId: uuid3.nullable(),
+  memoryScopes: ResolvedCompanyDataContextSchema.shape.authorizedMemoryScopes,
+  datasets: external_exports.array(CompanyDatasetSchema).max(2e3),
+  metrics: external_exports.array(SemanticMetricQueryResultSchema).max(2e3),
+  glossary: external_exports.array(CompanyGlossaryTermSchema).max(2e3),
+  metadataAccess: external_exports.enum(["NONE", "METADATA", "AGGREGATE", "RAW"]),
+  effectiveCapabilities: external_exports.array(EffectiveCapabilitySchema).max(200),
+  integrationBindings: external_exports.array(CompanyIntegrationBindingSchema).max(500),
+  credentialReferences: external_exports.array(CompanyCredentialReferenceSchema.omit({ secretLocator: true })).max(500),
+  restrictions: external_exports.array(external_exports.string().min(1).max(240)).max(100)
+}).strict();
+var CompanyDataDashboardSchema = external_exports.object({
+  sources: external_exports.array(CompanyDataSourceSchema).max(500),
+  datasets: external_exports.array(CompanyDatasetSchema).max(2e3),
+  pipelines: external_exports.array(CompanyDataPipelineSchema).max(2e3),
+  recentRuns: external_exports.array(CompanyPipelineRunSchema).max(200),
+  metadataEntities: external_exports.array(MetadataEntitySchema).max(2e3),
+  glossary: external_exports.array(CompanyGlossaryTermSchema).max(2e3),
+  metrics: external_exports.array(SemanticMetricQueryResultSchema).max(2e3),
+  integrations: external_exports.array(CompanyIntegrationBindingSchema).max(500),
+  memory: external_exports.object({
+    byType: external_exports.record(
+      CompanySemanticDocumentTypeSchema,
+      external_exports.number().int().nonnegative()
+    ),
+    total: external_exports.number().int().nonnegative()
+  }).strict()
+}).strict();
+var CreateCompanyDataSourceRequestSchema = CompanyDataSourceSchema.pick({
+  sourceType: true,
+  provider: true,
+  displayName: true,
+  connectionRef: true,
+  ingestionMode: true,
+  metadata: true
+});
+var CreateCompanyDatasetRequestSchema = CompanyDatasetSchema.pick({
+  sourceId: true,
+  canonicalName: true,
+  logicalContract: true,
+  physicalLocation: true,
+  sensitivity: true,
+  ownerDepartmentId: true
+}).extend({
+  staleAfterSeconds: external_exports.number().int().positive().max(31536e3).default(86400)
+}).strict();
+var CreateCompanyDataPipelineRequestSchema = CompanyDataPipelineSchema.pick({
+  sourceId: true,
+  datasetId: true,
+  connectorKey: true,
+  triggerMode: true,
+  schedule: true,
+  schemaContract: true,
+  writeDisposition: true,
+  primaryKey: true,
+  incrementalCursor: true
+});
+var CreateMetadataEntityRequestSchema = MetadataEntitySchema.pick({
+  entityType: true,
+  canonicalName: true,
+  displayName: true,
+  description: true,
+  domain: true,
+  ownerDepartmentId: true,
+  humanOwnerId: true,
+  agentAssignmentId: true,
+  sourceSystem: true,
+  classification: true,
+  sensitivity: true,
+  provenance: true,
+  metadata: true
+});
+var CreateLineageEdgeRequestSchema = MetadataLineageEdgeSchema.pick({
+  fromEntityId: true,
+  toEntityId: true,
+  relation: true,
+  provenance: true,
+  description: true
+});
+var CreateGlossaryTermRequestSchema = CompanyGlossaryTermSchema.pick({
+  canonicalKey: true,
+  name: true,
+  definition: true,
+  aliases: true,
+  domain: true,
+  ownerDepartmentId: true,
+  linkedEntityIds: true,
+  linkedMetricIds: true,
+  sensitivity: true
+});
+var CreateSemanticMetricRequestSchema = SemanticMetricSchema.pick({
+  canonicalKey: true,
+  name: true,
+  description: true,
+  formula: true,
+  sourceEntityIds: true,
+  dimensions: true,
+  timeField: true,
+  unit: true,
+  ownerDepartmentId: true,
+  definitionSource: true
+});
+var RecordSemanticMetricObservationRequestSchema = SemanticMetricObservationSchema.pick({
+  value: true,
+  dimensions: true,
+  observedAt: true,
+  sourceUpdatedAt: true,
+  expiresAt: true,
+  provenanceEntityIds: true,
+  qualityState: true
+});
+var UpsertCompanyCredentialReferenceRequestSchema = CompanyCredentialReferenceSchema.pick({
+  provider: true,
+  secretLocator: true,
+  status: true,
+  lastVerifiedAt: true
+}).extend({ id: uuid3.optional() }).strict();
+var UpsertCompanyIntegrationBindingRequestSchema = CompanyIntegrationBindingSchema.pick({
+  provider: true,
+  integrationType: true,
+  integrationId: true,
+  credentialRef: true,
+  status: true,
+  capabilitiesExposed: true,
+  metadata: true,
+  lastSyncAt: true
+}).extend({ id: uuid3.optional() }).strict();
+var UpdateCompanyDataPolicyRequestSchema = CompanyDataPolicySchema.pick({
+  rules: true,
+  modelRouting: true,
+  externalTransferAllowed: true
+});
+var IndexCompanySemanticDocumentRequestSchema = CompanySemanticDocumentSchema.pick({
+  entityType: true,
+  scopeType: true,
+  scopeId: true,
+  sourceEntityId: true,
+  title: true,
+  summary: true,
+  sensitivity: true,
+  embeddingVersion: true
+});
+var CompanySemanticSearchRequestSchema = external_exports.object({
+  query: external_exports.string().trim().min(1).max(500),
+  entityTypes: external_exports.array(CompanySemanticDocumentTypeSchema).max(6).default([]),
+  limit: external_exports.number().int().min(1).max(50).default(10),
+  assignmentId: uuid3.optional()
+}).strict();
+
+// ../../packages/shared/src/portfolio-observability.ts
+var uuid5 = external_exports.string().uuid();
+var boundedKey2 = external_exports.string().trim().min(1).max(160).regex(/^[A-Za-z0-9][A-Za-z0-9_.:-]*$/);
+var optionalUuid = uuid5.nullable();
+var TelemetryRetentionClassSchema = external_exports.enum([
+  "SHORT",
+  "STANDARD",
+  "EXTENDED",
+  "SECURITY_CRITICAL"
+]);
+var TelemetryErrorSourceSchema = external_exports.enum([
+  "PLANNING",
+  "SCHEDULER",
+  "AGENT",
+  "MODEL",
+  "CAPABILITY",
+  "INTEGRATION",
+  "DATABASE",
+  "POLICY",
+  "APPROVAL",
+  "BUDGET",
+  "DEVICE",
+  "UNKNOWN"
+]);
+var TelemetryAttributeValueSchema = external_exports.union([
+  external_exports.string().max(240),
+  external_exports.number().finite(),
+  external_exports.boolean()
+]);
+var SystemTelemetrySpanSchema = external_exports.object({
+  id: uuid5,
+  traceId: external_exports.string().min(16).max(64),
+  spanId: external_exports.string().min(8).max(32),
+  parentSpanId: external_exports.string().min(8).max(32).nullable(),
+  ownerId: uuid5,
+  companyId: optionalUuid,
+  service: boundedKey2,
+  operation: external_exports.string().trim().min(1).max(240),
+  status: external_exports.enum(["OK", "ERROR"]),
+  errorSource: TelemetryErrorSourceSchema.nullable(),
+  durationMs: external_exports.number().nonnegative().max(864e5),
+  objectiveId: optionalUuid,
+  workflowId: optionalUuid,
+  taskId: optionalUuid,
+  assignmentId: optionalUuid,
+  agentDefinitionId: boundedKey2.nullable(),
+  capabilityId: boundedKey2.nullable(),
+  provider: boundedKey2.nullable(),
+  model: external_exports.string().trim().min(1).max(160).nullable(),
+  attributes: external_exports.record(external_exports.string().min(1).max(120), TelemetryAttributeValueSchema),
+  retentionClass: TelemetryRetentionClassSchema,
+  sampled: external_exports.boolean(),
+  startedAt: external_exports.iso.datetime(),
+  endedAt: external_exports.iso.datetime(),
+  expiresAt: external_exports.iso.datetime()
+}).strict();
+var AIEvaluationScoreSchema = external_exports.object({
+  name: boundedKey2,
+  value: external_exports.number().min(0).max(1),
+  source: external_exports.enum([
+    "HUMAN_REVIEW",
+    "TASK_VERIFIER",
+    "WORKFLOW_EVALUATOR",
+    "BENCHMARK"
+  ]),
+  recordedAt: external_exports.iso.datetime()
+}).strict();
+var AIObservabilityTraceSchema = external_exports.object({
+  id: uuid5,
+  traceId: external_exports.string().min(16).max(64),
+  ownerId: uuid5,
+  companyId: uuid5,
+  assignmentId: optionalUuid,
+  taskId: optionalUuid,
+  objectiveId: optionalUuid,
+  workflowId: optionalUuid,
+  agentDefinitionId: boundedKey2.nullable(),
+  provider: boundedKey2,
+  model: external_exports.string().trim().min(1).max(160),
+  promptVersion: boundedKey2.nullable(),
+  policyVersion: boundedKey2.nullable(),
+  taskClass: boundedKey2,
+  reasoningType: external_exports.enum(["NONE", "LOW", "MEDIUM", "HIGH", "STRUCTURED"]),
+  locality: external_exports.enum(["LOCAL", "REMOTE"]),
+  latencyMs: external_exports.number().nonnegative().max(864e5),
+  inputTokens: external_exports.number().int().nonnegative(),
+  outputTokens: external_exports.number().int().nonnegative(),
+  costCredits: external_exports.number().nonnegative(),
+  costUsd: external_exports.string().regex(/^\d+(\.\d{1,8})?$/).nullable(),
+  success: external_exports.boolean(),
+  retries: external_exports.number().int().nonnegative().max(100),
+  reviewOutcome: external_exports.enum(["PASS", "FAIL", "NOT_REVIEWED"]).default("NOT_REVIEWED"),
+  verificationResult: external_exports.enum(["VERIFIED", "FAILED", "NOT_VERIFIED"]).default("NOT_VERIFIED"),
+  evaluationScores: external_exports.array(AIEvaluationScoreSchema).max(40),
+  dataSensitivity: CompanyDataSensitivitySchema,
+  exportPolicy: external_exports.enum(["LOCAL_ONLY", "METADATA_ONLY", "APPROVED_EXTERNAL"]),
+  retentionClass: TelemetryRetentionClassSchema,
+  startedAt: external_exports.iso.datetime(),
+  endedAt: external_exports.iso.datetime(),
+  expiresAt: external_exports.iso.datetime()
+}).strict();
+var PortfolioMetricViewSchema = external_exports.object({
+  ownerId: uuid5,
+  companyId: uuid5,
+  companyName: external_exports.string().trim().min(1).max(160),
+  canonicalMetricKey: boundedKey2,
+  metricId: uuid5,
+  metricVersion: external_exports.number().int().positive(),
+  definitionFingerprint: external_exports.string().length(64),
+  value: external_exports.string().regex(/^-?\d+(\.\d{1,12})?$/).nullable(),
+  previousValue: external_exports.string().regex(/^-?\d+(\.\d{1,12})?$/).nullable(),
+  delta: external_exports.number().finite().nullable(),
+  deltaPercent: external_exports.number().finite().nullable(),
+  trend: external_exports.enum(["UP", "DOWN", "FLAT", "INSUFFICIENT_DATA"]),
+  unit: external_exports.string().trim().min(1).max(40),
+  period: external_exports.string().trim().min(1).max(120),
+  dimensions: external_exports.array(boundedKey2).max(40),
+  freshness: external_exports.enum(["FRESH", "STALE", "CONFLICTED", "UNAVAILABLE"]),
+  quality: external_exports.enum(["VERIFIED", "DEGRADED", "CONFLICT", "UNAVAILABLE"]),
+  observedAt: external_exports.iso.datetime().nullable(),
+  lineageRefs: external_exports.array(uuid5).max(100)
+}).strict();
+var PortfolioMetricCompatibilitySchema = external_exports.object({
+  status: external_exports.enum(["COMPARABLE", "NOT_DIRECTLY_COMPARABLE"]),
+  canonicalMetricKey: boundedKey2,
+  reasons: external_exports.array(external_exports.string().min(1).max(240)).max(20),
+  views: external_exports.array(PortfolioMetricViewSchema).max(100)
+}).strict();
+var PortfolioHealthComponentSchema = external_exports.object({
+  dimension: external_exports.enum([
+    "BUSINESS",
+    "DATA",
+    "SYSTEM",
+    "AI",
+    "OBJECTIVES",
+    "WORKFORCE",
+    "ECONOMY"
+  ]),
+  state: external_exports.enum(["HEALTHY", "WARNING", "CRITICAL", "UNKNOWN"]),
+  confidence: external_exports.number().min(0).max(1),
+  evidence: external_exports.array(external_exports.string().min(1).max(240)).max(20)
+}).strict();
+var PortfolioAttentionSignalSchema = external_exports.object({
+  id: external_exports.string().min(1).max(240),
+  ownerId: uuid5,
+  companyId: uuid5,
+  companyName: external_exports.string().min(1).max(160),
+  signalType: boundedKey2,
+  title: external_exports.string().min(1).max(240),
+  severity: external_exports.enum(["INFO", "WARNING", "HIGH", "CRITICAL"]),
+  confidence: external_exports.number().min(0).max(1),
+  businessImpact: external_exports.number().min(0).max(1),
+  urgency: external_exports.number().min(0).max(1),
+  recoverability: external_exports.number().min(0).max(1),
+  priority: external_exports.number().min(0).max(4),
+  evidenceRefs: external_exports.array(external_exports.string().min(1).max(240)).max(40),
+  status: external_exports.enum(["OPEN", "ACKNOWLEDGED", "SNOOZED"]),
+  snoozedUntil: external_exports.iso.datetime().nullable(),
+  detectedAt: external_exports.iso.datetime()
+}).strict();
+var PortfolioCompanySummarySchema = external_exports.object({
+  companyId: uuid5,
+  companyName: external_exports.string().min(1).max(160),
+  companyStatus: external_exports.string().min(1).max(40),
+  health: external_exports.array(PortfolioHealthComponentSchema).max(10),
+  metrics: external_exports.array(PortfolioMetricViewSchema).max(100),
+  dataAlerts: external_exports.number().int().nonnegative(),
+  systemIncidents: external_exports.number().int().nonnegative(),
+  aiSpendCredits: external_exports.number().nonnegative(),
+  aiSuccessRate: external_exports.number().min(0).max(1).nullable(),
+  integrationHealth: external_exports.enum(["HEALTHY", "DEGRADED", "UNAVAILABLE"])
+}).strict();
+var PortfolioSystemOverviewSchema = external_exports.object({
+  serviceHealth: external_exports.array(
+    external_exports.object({
+      service: boundedKey2,
+      state: external_exports.enum(["HEALTHY", "DEGRADED", "DOWN", "UNKNOWN"]),
+      requests: external_exports.number().int().nonnegative(),
+      errors: external_exports.number().int().nonnegative(),
+      errorRate: external_exports.number().min(0).max(1),
+      averageLatencyMs: external_exports.number().nonnegative()
+    }).strict()
+  ).max(100),
+  activeTraces: external_exports.number().int().nonnegative(),
+  incidentCount: external_exports.number().int().nonnegative()
+}).strict();
+var PortfolioAIOverviewSchema = external_exports.object({
+  calls: external_exports.number().int().nonnegative(),
+  successfulCalls: external_exports.number().int().nonnegative(),
+  successRate: external_exports.number().min(0).max(1).nullable(),
+  totalCostCredits: external_exports.number().nonnegative(),
+  totalInputTokens: external_exports.number().int().nonnegative(),
+  totalOutputTokens: external_exports.number().int().nonnegative(),
+  averageLatencyMs: external_exports.number().nonnegative(),
+  modelBreakdown: external_exports.array(
+    external_exports.object({
+      provider: boundedKey2,
+      model: external_exports.string().min(1).max(160),
+      taskClass: boundedKey2,
+      calls: external_exports.number().int().nonnegative(),
+      successRate: external_exports.number().min(0).max(1).nullable(),
+      averageCostPerSuccess: external_exports.number().nonnegative().nullable(),
+      averageLatencyMs: external_exports.number().nonnegative()
+    }).strict()
+  ).max(500),
+  regressions: external_exports.array(
+    external_exports.object({
+      companyId: uuid5,
+      provider: boundedKey2,
+      model: external_exports.string().min(1).max(160),
+      taskClass: boundedKey2,
+      kind: external_exports.enum(["QUALITY_DOWN", "COST_UP", "LATENCY_UP", "COMBINED"]),
+      evidence: external_exports.array(external_exports.string().min(1).max(240)).max(20),
+      confidence: external_exports.number().min(0).max(1)
+    }).strict()
+  ).max(100)
+}).strict();
+var PortfolioExecutiveInsightSchema = external_exports.object({
+  id: external_exports.string().min(1).max(240),
+  observation: external_exports.string().min(1).max(1e3),
+  evidence: external_exports.array(external_exports.string().min(1).max(500)).max(30),
+  confidence: external_exports.number().min(0).max(1),
+  companyId: uuid5,
+  companyName: external_exports.string().min(1).max(160),
+  category: external_exports.enum(["BUSINESS", "DATA", "SYSTEM", "AI", "MIXED"]),
+  potentialImpact: external_exports.string().min(1).max(500),
+  suggestedNextAction: external_exports.string().min(1).max(500),
+  approvalRequired: external_exports.boolean(),
+  lineage: external_exports.array(MetadataLineageEdgeSchema).max(200),
+  traceIds: external_exports.array(external_exports.string().min(16).max(64)).max(100),
+  aiTraceIds: external_exports.array(uuid5).max(100)
+}).strict();
+var OwnerPortfolioDashboardSchema = external_exports.object({
+  ownerId: uuid5,
+  generatedAt: external_exports.iso.datetime(),
+  companies: external_exports.array(PortfolioCompanySummarySchema).max(100),
+  portfolioMetrics: external_exports.array(PortfolioMetricViewSchema).max(2e3),
+  attentionQueue: external_exports.array(PortfolioAttentionSignalSchema).max(500),
+  systemHealth: PortfolioSystemOverviewSchema,
+  aiHealth: PortfolioAIOverviewSchema,
+  insights: external_exports.array(PortfolioExecutiveInsightSchema).max(100),
+  evidenceQuality: external_exports.enum(["FRESH", "STALE", "CONFLICTED", "UNAVAILABLE"])
+}).strict();
+var PortfolioMetricComparisonRequestSchema = external_exports.object({
+  canonicalMetricKey: boundedKey2,
+  companyIds: external_exports.array(uuid5).min(2).max(100),
+  period: external_exports.string().trim().min(1).max(120).default("LATEST")
+}).strict();
+var PortfolioTraceQuerySchema = external_exports.object({
+  companyId: uuid5.optional(),
+  traceId: external_exports.string().min(16).max(64).optional(),
+  status: external_exports.enum(["OK", "ERROR"]).optional(),
+  limit: external_exports.number().int().min(1).max(500).default(100)
+}).strict();
+var PortfolioAITraceQuerySchema = external_exports.object({
+  companyId: uuid5.optional(),
+  provider: boundedKey2.optional(),
+  model: external_exports.string().min(1).max(160).optional(),
+  taskClass: boundedKey2.optional(),
+  limit: external_exports.number().int().min(1).max(500).default(100)
+}).strict();
+var PortfolioAlertActionSchema = external_exports.object({
+  action: external_exports.enum(["ACKNOWLEDGE", "SNOOZE"]),
+  snoozedUntil: external_exports.iso.datetime().optional()
+}).strict().refine(
+  (value) => value.action !== "SNOOZE" || value.snoozedUntil,
+  "Snooze requires an expiry."
+);
+
+// ../../packages/shared/src/durable-execution.ts
+var uuid8 = external_exports.string().uuid();
+var boundedKey3 = external_exports.string().trim().min(1).max(160).regex(/^[A-Za-z0-9][A-Za-z0-9_.:-]*$/);
+var reference2 = external_exports.string().trim().min(1).max(240);
+var DurabilityClassSchema = external_exports.enum([
+  "EPHEMERAL",
+  "DURABLE",
+  "LONG_RUNNING",
+  "EXTERNAL_WAIT",
+  "APPROVAL_WAIT",
+  "CROSS_COMPANY"
+]);
+var CrossCompanySharingScopeSchema = external_exports.enum([
+  "NONE",
+  "SUMMARY_ONLY",
+  "SPECIFIC_ARTIFACTS",
+  "SPECIFIC_DATASET",
+  "SPECIFIC_METRICS",
+  "TASK_BOUND_CONTEXT"
+]);
+var CrossCompanyServiceStatusSchema = external_exports.enum([
+  "REQUESTED",
+  "NEEDS_APPROVAL",
+  "ACCEPTED",
+  "RUNNING",
+  "WAITING",
+  "REVIEW",
+  "COMPLETED",
+  "REJECTED",
+  "FAILED",
+  "CANCELLED",
+  "BUDGET_BLOCKED"
+]);
+var ServiceCostAttributionSchema = external_exports.enum([
+  "SOURCE_PAYS",
+  "DESTINATION_PAYS",
+  "SHARED",
+  "OWNER_PORTFOLIO"
+]);
+var DurableExecutionStatusSchema = external_exports.enum([
+  "QUEUED",
+  "RUNNING",
+  "WAITING_FOR_APPROVAL",
+  "WAITING_EXTERNAL",
+  "PAUSED",
+  "REVIEW",
+  "COMPLETED",
+  "FAILED",
+  "CANCELLED"
+]);
+var DurableFailureClassSchema = external_exports.enum([
+  "TRANSIENT",
+  "PERMANENT",
+  "POLICY",
+  "APPROVAL",
+  "CREDENTIAL",
+  "BUDGET",
+  "VALIDATION",
+  "INFRASTRUCTURE"
+]);
+var CrossCompanySharedInputSchema = external_exports.object({
+  scope: CrossCompanySharingScopeSchema,
+  artifactRefs: external_exports.array(reference2).max(40),
+  metricRefs: external_exports.array(reference2).max(40),
+  contextRefs: external_exports.array(reference2).max(40),
+  summary: external_exports.string().trim().max(4e3).nullable()
+}).strict().superRefine((value, context) => {
+  if (value.scope === "NONE" && (value.artifactRefs.length || value.metricRefs.length || value.contextRefs.length || value.summary))
+    context.addIssue({
+      code: "custom",
+      message: "NONE sharing cannot carry input references."
+    });
+  if (value.scope === "SPECIFIC_ARTIFACTS" && !value.artifactRefs.length)
+    context.addIssue({
+      code: "custom",
+      message: "Artifact sharing requires explicit artifact references."
+    });
+  if (value.scope === "SPECIFIC_METRICS" && !value.metricRefs.length)
+    context.addIssue({
+      code: "custom",
+      message: "Metric sharing requires explicit metric references."
+    });
+});
+var CrossCompanyServiceResultSchema = external_exports.object({
+  summary: external_exports.string().trim().min(1).max(8e3),
+  structuredResult: external_exports.json().nullable(),
+  artifactRefs: external_exports.array(reference2).max(40),
+  metricRefs: external_exports.array(reference2).max(40),
+  evidenceRefs: external_exports.array(reference2).max(80),
+  verification: external_exports.enum(["VERIFIED", "FAILED", "NOT_VERIFIED"]),
+  reviewOutcome: external_exports.enum(["PASS", "FAIL", "NOT_REVIEWED"])
+}).strict();
+var CrossCompanyWorkforceResolutionSchema = external_exports.object({
+  selectedAssignmentId: uuid8,
+  selectedDefinitionId: reference2,
+  decision: external_exports.enum(["EXISTING", "LAZY_ACTIVATION", "CATALOG_ASSIGNMENT"]),
+  candidateAssignmentIds: external_exports.array(uuid8).max(100),
+  catalogMatchDefinitionId: reference2.nullable(),
+  assignmentCreated: external_exports.boolean(),
+  capabilityBlockers: external_exports.array(reference2).max(100),
+  evidence: external_exports.array(external_exports.string().trim().min(1).max(300)).max(40),
+  resolvedAt: external_exports.iso.datetime()
+}).strict();
+var CrossCompanyCollaborationPolicySchema = external_exports.object({
+  id: uuid8,
+  ownerId: uuid8,
+  companyId: uuid8,
+  allowedDestinationCompanyIds: external_exports.array(uuid8).max(100),
+  allowedServiceTypes: external_exports.array(boundedKey3).max(100),
+  allowedSharingScopes: external_exports.array(CrossCompanySharingScopeSchema).max(6),
+  allowedCapabilities: external_exports.array(boundedKey3).max(100),
+  maxBudgetCredits: external_exports.number().int().nonnegative().max(1e6),
+  approvalThresholdCredits: external_exports.number().int().nonnegative().max(1e6),
+  maxConcurrentServices: external_exports.number().int().min(1).max(100),
+  status: external_exports.enum(["ACTIVE", "ARCHIVED"]),
+  version: external_exports.number().int().positive(),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var CrossCompanyServiceRequestSchema = external_exports.object({
+  id: uuid8,
+  ownerId: uuid8,
+  sourceCompanyId: uuid8,
+  destinationCompanyId: uuid8,
+  requesterAssignmentId: uuid8.nullable(),
+  destinationGovernorAssignmentId: uuid8.nullable(),
+  destinationAssignmentId: uuid8.nullable(),
+  serviceType: boundedKey3,
+  requestedOutcome: external_exports.string().trim().min(1).max(4e3),
+  objectiveId: uuid8.nullable(),
+  workflowId: uuid8.nullable(),
+  requestedCapabilities: external_exports.array(boundedKey3).max(100),
+  sharedInput: CrossCompanySharedInputSchema,
+  permittedOutputTypes: external_exports.array(external_exports.enum(["STRUCTURED_RESULT", "ARTIFACTS", "METRICS", "EVIDENCE"])).min(1).max(4),
+  confidentiality: external_exports.enum(["PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED"]),
+  budgetCredits: external_exports.number().int().positive().max(1e6),
+  costAttribution: ServiceCostAttributionSchema,
+  actualCostCredits: external_exports.number().nonnegative(),
+  payingCompanyId: uuid8.nullable().default(null),
+  payingAssignmentId: uuid8.nullable().default(null),
+  estimatedCostCredits: external_exports.number().int().nonnegative().default(0),
+  reservedCostCredits: external_exports.number().int().nonnegative().default(0),
+  settledCostCredits: external_exports.number().int().nonnegative().default(0),
+  economyReservationId: uuid8.nullable().default(null),
+  economyState: external_exports.enum(["NONE", "RESERVED", "SETTLED", "RELEASED"]).default("NONE"),
+  workforceResolution: CrossCompanyWorkforceResolutionSchema.nullable().default(null),
+  deadline: external_exports.iso.datetime().nullable(),
+  priority: external_exports.enum(["LOW", "NORMAL", "HIGH", "CRITICAL"]),
+  status: CrossCompanyServiceStatusSchema,
+  approvalRequirement: external_exports.enum(["NONE", "EXPLICIT", "RECENT_AUTHENTICATION"]),
+  approvalId: uuid8.nullable(),
+  durabilityClass: external_exports.literal("CROSS_COMPANY"),
+  traceId: external_exports.string().min(16).max(64),
+  currentStep: boundedKey3.nullable(),
+  waitReason: external_exports.string().trim().max(500).nullable(),
+  result: CrossCompanyServiceResultSchema.nullable(),
+  failureClass: DurableFailureClassSchema.nullable(),
+  failureCode: boundedKey3.nullable(),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime(),
+  completedAt: external_exports.iso.datetime().nullable()
+}).strict().refine((value) => value.sourceCompanyId !== value.destinationCompanyId, {
+  message: "Cross-company services require different source and destination companies."
+});
+var DurableExecutionSchema = external_exports.object({
+  id: uuid8,
+  ownerId: uuid8,
+  companyId: uuid8,
+  serviceRequestId: uuid8.nullable(),
+  objectiveId: uuid8.nullable(),
+  workflowId: uuid8.nullable(),
+  deterministicKey: external_exports.string().min(1).max(300),
+  durabilityClass: DurabilityClassSchema,
+  backend: external_exports.enum(["NATIVE_POSTGRES", "TEMPORAL"]),
+  backendWorkflowId: external_exports.string().min(1).max(500),
+  status: DurableExecutionStatusSchema,
+  currentStep: boundedKey3.nullable(),
+  attempt: external_exports.number().int().nonnegative().max(100),
+  maxAttempts: external_exports.number().int().min(1).max(100),
+  nextRunAt: external_exports.iso.datetime().nullable(),
+  cancellationRequested: external_exports.boolean(),
+  version: external_exports.number().int().positive(),
+  traceId: external_exports.string().min(16).max(64),
+  leaseOwner: reference2.nullable().default(null),
+  leaseAcquiredAt: external_exports.iso.datetime().nullable().default(null),
+  leaseExpiresAt: external_exports.iso.datetime().nullable().default(null),
+  lastHeartbeatAt: external_exports.iso.datetime().nullable().default(null),
+  leaseGeneration: external_exports.number().int().nonnegative().default(0),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime(),
+  completedAt: external_exports.iso.datetime().nullable()
+}).strict();
+var DurableExecutionEventSchema = external_exports.object({
+  id: uuid8,
+  ownerId: uuid8,
+  companyId: uuid8,
+  executionId: uuid8,
+  sequence: external_exports.number().int().positive(),
+  eventType: boundedKey3,
+  step: boundedKey3.nullable(),
+  summary: external_exports.string().trim().min(1).max(1e3),
+  metadata: external_exports.record(
+    external_exports.string().min(1).max(80),
+    external_exports.union([external_exports.string().max(240), external_exports.number(), external_exports.boolean(), external_exports.null()])
+  ),
+  createdAt: external_exports.iso.datetime()
+}).strict();
+var DurableActivityReceiptSchema = external_exports.object({
+  id: uuid8,
+  ownerId: uuid8,
+  companyId: uuid8,
+  executionId: uuid8,
+  step: boundedKey3,
+  idempotencyKey: external_exports.string().min(16).max(300),
+  status: external_exports.enum(["STARTED", "COMMITTED", "RECONCILIATION_REQUIRED", "FAILED"]),
+  externalCommitRef: reference2.nullable(),
+  resultSummary: external_exports.string().trim().max(2e3).nullable(),
+  requestDigest: external_exports.string().length(64).nullable().default(null),
+  commitEvidenceRef: reference2.nullable().default(null),
+  resultRef: reference2.nullable().default(null),
+  attempt: external_exports.number().int().positive().max(100),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var SandboxNetworkPolicySchema = external_exports.enum([
+  "DENY_ALL",
+  "ALLOWLIST",
+  "APPROVED_INTERNET"
+]);
+var SandboxLanguageSchema = external_exports.enum(["PYTHON", "NODE"]);
+var SandboxExecutionRequestSchema = external_exports.object({
+  ownerId: uuid8,
+  companyId: uuid8,
+  assignmentId: uuid8,
+  taskId: uuid8,
+  language: SandboxLanguageSchema,
+  codeArtifactRef: reference2,
+  inputArtifactRefs: external_exports.array(reference2).max(40),
+  networkPolicy: SandboxNetworkPolicySchema.default("DENY_ALL"),
+  networkAllowlist: external_exports.array(external_exports.string().trim().min(1).max(253)).max(40),
+  resourceLimits: external_exports.object({
+    cpuCores: external_exports.number().positive().max(2),
+    memoryMb: external_exports.number().int().min(64).max(2048),
+    diskMb: external_exports.number().int().min(16).max(4096),
+    processCount: external_exports.number().int().min(1).max(128)
+  }).strict(),
+  timeoutMs: external_exports.number().int().min(100).max(3e5),
+  allowedSecretRefs: external_exports.array(reference2).max(10),
+  expectedOutputs: external_exports.array(reference2).max(40),
+  traceId: external_exports.string().min(16).max(64)
+}).strict();
+var SandboxExecutionResultSchema = external_exports.object({
+  id: uuid8,
+  ownerId: uuid8,
+  companyId: uuid8,
+  assignmentId: uuid8,
+  taskId: uuid8,
+  provider: external_exports.enum(["LOCAL_DOCKER", "E2B"]),
+  status: external_exports.enum(["COMPLETED", "FAILED"]),
+  failureCode: external_exports.enum([
+    "CODE_ERROR",
+    "TIMEOUT",
+    "RESOURCE_LIMIT",
+    "NETWORK_DENIED",
+    "POLICY_DENIED",
+    "DEPENDENCY_FAILURE",
+    "SANDBOX_UNAVAILABLE"
+  ]).nullable(),
+  exitCode: external_exports.number().int().nullable(),
+  outputArtifactRefs: external_exports.array(reference2).max(40),
+  stdoutSummary: external_exports.string().max(4e3),
+  stderrSummary: external_exports.string().max(4e3),
+  durationMs: external_exports.number().int().nonnegative(),
+  destroyed: external_exports.literal(true),
+  traceId: external_exports.string().min(16).max(64),
+  createdAt: external_exports.iso.datetime()
+}).strict();
+var DurableExecutionDashboardSchema = external_exports.object({
+  requests: external_exports.array(CrossCompanyServiceRequestSchema).max(1e3),
+  executions: external_exports.array(DurableExecutionSchema).max(2e3),
+  sandboxResults: external_exports.array(SandboxExecutionResultSchema).max(1e3),
+  histories: external_exports.record(uuid8, external_exports.array(DurableExecutionEventSchema).max(1e4)),
+  operationalWarnings: external_exports.array(
+    external_exports.object({
+      executionId: uuid8.nullable(),
+      serviceRequestId: uuid8.nullable(),
+      code: external_exports.enum([
+        "LEASE_STUCK",
+        "WAITING_EXTERNAL_STALE",
+        "APPROVAL_DEADLINE_EXCEEDED",
+        "RETRY_EXHAUSTED"
+      ]),
+      message: external_exports.string().min(1).max(500)
+    }).strict()
+  ).max(1e3)
+}).strict();
+var CreateCrossCompanyPolicyRequestSchema = CrossCompanyCollaborationPolicySchema.pick({
+  allowedDestinationCompanyIds: true,
+  allowedServiceTypes: true,
+  allowedSharingScopes: true,
+  allowedCapabilities: true,
+  maxBudgetCredits: true,
+  approvalThresholdCredits: true,
+  maxConcurrentServices: true
+});
+var CreateCrossCompanyServiceRequestSchema = external_exports.object({
+  sourceCompanyId: CrossCompanyServiceRequestSchema.shape.sourceCompanyId,
+  destinationCompanyId: CrossCompanyServiceRequestSchema.shape.destinationCompanyId,
+  requesterAssignmentId: CrossCompanyServiceRequestSchema.shape.requesterAssignmentId,
+  serviceType: CrossCompanyServiceRequestSchema.shape.serviceType,
+  requestedOutcome: CrossCompanyServiceRequestSchema.shape.requestedOutcome,
+  objectiveId: CrossCompanyServiceRequestSchema.shape.objectiveId,
+  workflowId: CrossCompanyServiceRequestSchema.shape.workflowId,
+  requestedCapabilities: CrossCompanyServiceRequestSchema.shape.requestedCapabilities,
+  sharedInput: CrossCompanyServiceRequestSchema.shape.sharedInput,
+  permittedOutputTypes: CrossCompanyServiceRequestSchema.shape.permittedOutputTypes,
+  confidentiality: CrossCompanyServiceRequestSchema.shape.confidentiality,
+  budgetCredits: CrossCompanyServiceRequestSchema.shape.budgetCredits,
+  costAttribution: CrossCompanyServiceRequestSchema.shape.costAttribution,
+  deadline: CrossCompanyServiceRequestSchema.shape.deadline,
+  priority: CrossCompanyServiceRequestSchema.shape.priority
+}).strict().refine((value) => value.sourceCompanyId !== value.destinationCompanyId, {
+  message: "Cross-company services require different source and destination companies."
+});
+var CompleteCrossCompanyServiceRequestSchema = external_exports.object({
+  result: CrossCompanyServiceResultSchema,
+  actualCostCredits: external_exports.number().nonnegative()
 }).strict();
 
 // ../../packages/shared/src/infrastructure.ts
@@ -27043,6 +28504,11 @@ var AILocalityPreferenceSchema = external_exports.enum([
   "ALLOW_REMOTE"
 ]);
 var AILatencyPreferenceSchema = external_exports.enum(["FAST", "BALANCED", "QUALITY"]);
+var AIDataRoutingPolicySchema = external_exports.object({
+  sensitivity: external_exports.enum(["PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED"]),
+  routing: external_exports.enum(["ANY_APPROVED", "APPROVED_CLOUD", "LOCAL_ONLY"]),
+  approvedCloudProviderIds: external_exports.array(external_exports.string().min(1).max(80)).max(20).default([])
+}).strict();
 var AIRouterOutcomeSchema = external_exports.enum([
   "SUCCESS",
   "NO_AI",
@@ -27087,7 +28553,14 @@ var AIRouterRequestSchema = AIInferenceRequestSchema.extend({
   workflowId: external_exports.string().uuid().optional(),
   workflowRunId: external_exports.string().uuid().optional(),
   taskId: external_exports.string().uuid().optional(),
-  projectId: external_exports.string().uuid().optional()
+  objectiveId: external_exports.string().uuid().optional(),
+  companyAgentAssignmentId: external_exports.string().uuid().optional(),
+  agentDefinitionId: external_exports.string().min(1).max(160).optional(),
+  taskClass: external_exports.string().min(1).max(160).optional(),
+  promptVersion: external_exports.string().min(1).max(160).optional(),
+  policyVersion: external_exports.string().min(1).max(160).optional(),
+  projectId: external_exports.string().uuid().optional(),
+  dataPolicy: AIDataRoutingPolicySchema.optional()
 }).strict();
 var AIRouterAttemptSchema = external_exports.object({
   attemptId: external_exports.string().uuid().optional(),

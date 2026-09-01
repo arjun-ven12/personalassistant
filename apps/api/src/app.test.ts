@@ -10,6 +10,7 @@ import {
   RepositoryListResponseSchema,
   SessionListResponseSchema,
   ExperimentDashboardSchema,
+  OwnerPortfolioDashboardSchema,
   WorkforceGraphResponseSchema,
   WorkforceImportReportSchema,
   WorkforceRuntimeDashboardSchema,
@@ -166,6 +167,24 @@ describe("Phase 2.1 API", () => {
       },
       invariants: { oneBackendManyClients: true, nativeExecutionRemainsOnDevice: true },
     });
+  });
+
+  it("keeps owner portfolio intelligence behind the owner session boundary", async () => {
+    const unauthenticated = await app.inject({
+      method: "GET",
+      url: "/api/portfolio",
+    });
+    expect(unauthenticated.statusCode).toBe(401);
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/portfolio",
+      headers: { cookie, origin },
+    });
+    expect(response.statusCode).toBe(200);
+    const portfolio = OwnerPortfolioDashboardSchema.parse(response.json());
+    expect(portfolio.ownerId).toBeTruthy();
+    expect(portfolio.companies).toEqual([]);
   });
 
   it("protects workforce bootstrap and returns a bounded owner-scoped graph", async () => {
@@ -629,11 +648,15 @@ describe("Phase 2.1 API", () => {
       },
     });
     const cloudCookie = cookieFrom(registration);
-    const companyList = CompanyListResponseSchema.parse((await cloud.inject({
-      method: "GET",
-      url: "/api/companies",
-      headers: { cookie: cloudCookie },
-    })).json());
+    const companyList = CompanyListResponseSchema.parse(
+      (
+        await cloud.inject({
+          method: "GET",
+          url: "/api/companies",
+          headers: { cookie: cloudCookie },
+        })
+      ).json(),
+    );
     const cloudCompanyId = companyList.currentCompany.id;
     const csrfResponse = await cloud.inject({
       method: "GET",
@@ -823,11 +846,19 @@ describe("Phase 2.1 API", () => {
       }),
     });
     expect(recentAuthChallenge.statusCode).toBe(200);
-    const challenge = z.object({ challengeId: z.string().uuid(), challengeToken: z.string().min(32) }).parse(recentAuthChallenge.json());
+    const challenge = z
+      .object({ challengeId: z.string().uuid(), challengeToken: z.string().min(32) })
+      .parse(recentAuthChallenge.json());
     const biometricSignature = await webcrypto.subtle.sign(
       "Ed25519",
       biometricKeys.pair.privateKey,
-      new TextEncoder().encode(mobileRecentAuthSigningPayload(challenge.challengeId, challenge.challengeToken, androidDeviceId)),
+      new TextEncoder().encode(
+        mobileRecentAuthSigningPayload(
+          challenge.challengeId,
+          challenge.challengeToken,
+          androidDeviceId,
+        ),
+      ),
     );
     const recentAuthVerify = await cloud.inject({
       method: "POST",
@@ -841,43 +872,84 @@ describe("Phase 2.1 API", () => {
       }),
     });
     expect(recentAuthVerify.statusCode).toBe(200);
-    expect(recentAuthVerify.json()).toMatchObject({ active: true, purpose: "approve_high_risk_action" });
+    expect(recentAuthVerify.json()).toMatchObject({
+      active: true,
+      purpose: "approve_high_risk_action",
+    });
     const mobileApprovalEvaluation = await cloud.inject({
       method: "POST",
       url: "/api/policies/evaluate",
       headers: cloudMutationHeaders,
-      payload: { action: { actionId: crypto.randomUUID(), toolName: "security.modify", arguments: {} } },
+      payload: {
+        action: {
+          actionId: crypto.randomUUID(),
+          toolName: "security.modify",
+          arguments: {},
+        },
+      },
     });
-    const mobileApprovalResult = PolicyEvaluationResponseSchema.parse(mobileApprovalEvaluation.json());
-    expect(mobileApprovalResult.evaluation.approvalRequestId, JSON.stringify(mobileApprovalResult.evaluation)).toBeDefined();
+    const mobileApprovalResult = PolicyEvaluationResponseSchema.parse(
+      mobileApprovalEvaluation.json(),
+    );
+    expect(
+      mobileApprovalResult.evaluation.approvalRequestId,
+      JSON.stringify(mobileApprovalResult.evaluation),
+    ).toBeDefined();
     const mobileApprovalId = mobileApprovalResult.evaluation.approvalRequestId!;
-    const approveFromAndroid = async () => cloud.inject({
-      method: "POST",
-      url: `/api/v1/device/approvals/${mobileApprovalId}/decision`,
-      headers: { cookie: cloudCookie, "x-device-id": androidDeviceId },
-      payload: await signAndroid({ operation: "approval_decision", approvalId: mobileApprovalId, decision: "APPROVE" }),
-    });
+    const approveFromAndroid = async () =>
+      cloud.inject({
+        method: "POST",
+        url: `/api/v1/device/approvals/${mobileApprovalId}/decision`,
+        headers: { cookie: cloudCookie, "x-device-id": androidDeviceId },
+        payload: await signAndroid({
+          operation: "approval_decision",
+          approvalId: mobileApprovalId,
+          decision: "APPROVE",
+        }),
+      });
     const mobileApproved = await approveFromAndroid();
     expect(mobileApproved.statusCode).toBe(200);
-    expect(mobileApproved.json()).toMatchObject({ id: mobileApprovalId, status: "APPROVED" });
+    expect(mobileApproved.json()).toMatchObject({
+      id: mobileApprovalId,
+      status: "APPROVED",
+    });
     const duplicateMobileDecision = await approveFromAndroid();
     expect(duplicateMobileDecision.statusCode).toBe(409);
-    expect(duplicateMobileDecision.json()).toMatchObject({ error: { code: "APPROVAL_ALREADY_DECIDED" } });
+    expect(duplicateMobileDecision.json()).toMatchObject({
+      error: { code: "APPROVAL_ALREADY_DECIDED" },
+    });
     const rejectionEvaluation = await cloud.inject({
       method: "POST",
       url: "/api/policies/evaluate",
       headers: cloudMutationHeaders,
-      payload: { action: { actionId: crypto.randomUUID(), toolName: "security.modify", arguments: { requestedChange: "bounded-test" } } },
+      payload: {
+        action: {
+          actionId: crypto.randomUUID(),
+          toolName: "security.modify",
+          arguments: { requestedChange: "bounded-test" },
+        },
+      },
     });
-    const rejectionApprovalId = PolicyEvaluationResponseSchema.parse(rejectionEvaluation.json()).evaluation.approvalRequestId!;
+    const rejectionApprovalId = PolicyEvaluationResponseSchema.parse(
+      rejectionEvaluation.json(),
+    ).evaluation.approvalRequestId!;
     const rejectedFromAndroid = await cloud.inject({
       method: "POST",
       url: `/api/v1/device/approvals/${rejectionApprovalId}/decision`,
       headers: { cookie: cloudCookie, "x-device-id": androidDeviceId },
-      payload: await signAndroid({ operation: "approval_decision", approvalId: rejectionApprovalId, decision: "REJECT", reason: "Replan within the existing policy." }),
+      payload: await signAndroid({
+        operation: "approval_decision",
+        approvalId: rejectionApprovalId,
+        decision: "REJECT",
+        reason: "Replan within the existing policy.",
+      }),
     });
     expect(rejectedFromAndroid.statusCode).toBe(200);
-    expect(rejectedFromAndroid.json()).toMatchObject({ id: rejectionApprovalId, status: "REJECTED", rejectionReason: "Replan within the existing policy." });
+    expect(rejectedFromAndroid.json()).toMatchObject({
+      id: rejectionApprovalId,
+      status: "REJECTED",
+      rejectionReason: "Replan within the existing policy.",
+    });
     const nativeSummaryEnvelope = await signAndroid({ operation: "system_summary" });
     const nativeSummary = await cloud.inject({
       method: "POST",
@@ -956,7 +1028,11 @@ describe("Phase 2.1 API", () => {
     const androidTurn = await submitAndroidTurn();
     expect(androidTurn.statusCode).toBe(200);
     expect(androidTurn.json()).toMatchObject({
-      conversation: { id: turnId, transcript: "Hello Alexa", sessionId: voiceSessionId },
+      conversation: {
+        id: turnId,
+        transcript: "Hello Alexa",
+        sessionId: voiceSessionId,
+      },
     });
     const duplicateAndroidTurn = await submitAndroidTurn();
     expect(duplicateAndroidTurn.statusCode).toBe(200);
@@ -981,7 +1057,9 @@ describe("Phase 2.1 API", () => {
         continuity: z.array(
           z
             .object({
-              processedTurns: z.array(z.object({ turnId: z.string().uuid() }).passthrough()),
+              processedTurns: z.array(
+                z.object({ turnId: z.string().uuid() }).passthrough(),
+              ),
             })
             .passthrough(),
         ),
@@ -990,7 +1068,8 @@ describe("Phase 2.1 API", () => {
       .parse(sharedConversation.json());
     expect(
       sharedConversationBody.history.some(
-        (item) => item.transcript === "Hello Alexa" && item.sessionId === voiceSessionId,
+        (item) =>
+          item.transcript === "Hello Alexa" && item.sessionId === voiceSessionId,
       ),
     ).toBe(true);
     expect(
@@ -1012,16 +1091,24 @@ describe("Phase 2.1 API", () => {
       url: `/api/devices/${androidDeviceId}/revoke`,
       headers: cloudMutationHeaders,
     });
-    expect((await cloud.inject({
-      method: "GET",
-      url: "/api/auth/session",
-      headers: { cookie: androidCookie },
-    })).statusCode).toBe(401);
-    expect((await cloud.inject({
-      method: "GET",
-      url: "/api/auth/session",
-      headers: { cookie: cloudCookie },
-    })).statusCode).toBe(200);
+    expect(
+      (
+        await cloud.inject({
+          method: "GET",
+          url: "/api/auth/session",
+          headers: { cookie: androidCookie },
+        })
+      ).statusCode,
+    ).toBe(401);
+    expect(
+      (
+        await cloud.inject({
+          method: "GET",
+          url: "/api/auth/session",
+          headers: { cookie: cloudCookie },
+        })
+      ).statusCode,
+    ).toBe(200);
     const revokedClients = await cloud.inject({
       method: "GET",
       url: "/api/cross-device/clients",

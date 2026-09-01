@@ -80,6 +80,12 @@ export class AIRouterService {
     retries: 0,
     failed: 0,
   };
+  private aiTraceSink?: (input: {
+    request: z.infer<typeof AIRouterRequestSchema>;
+    response: AIRouterResponse;
+    startedAt: string;
+    endedAt: string;
+  }) => unknown;
 
   constructor(
     readonly runtime: AIRuntimeService,
@@ -88,9 +94,20 @@ export class AIRouterService {
     readonly activeRequests = new ActiveAIRequestRegistry(),
   ) {}
 
-  cancel(ownerId: string, requestId: string) { return this.activeRequests.cancel(ownerId, requestId); }
-  beginDraining() { this.activeRequests.beginDrain(); }
-  shutdown() { this.beginDraining(); this.activeRequests.cancelAll(); }
+  setAITraceSink(sink: NonNullable<AIRouterService["aiTraceSink"]>) {
+    this.aiTraceSink = sink;
+  }
+
+  cancel(ownerId: string, requestId: string) {
+    return this.activeRequests.cancel(ownerId, requestId);
+  }
+  beginDraining() {
+    this.activeRequests.beginDrain();
+  }
+  shutdown() {
+    this.beginDraining();
+    this.activeRequests.cancelAll();
+  }
 
   setEmergencyStopCheck(check: () => Promise<boolean>) {
     this.emergencyStopCheck = check;
@@ -111,8 +128,14 @@ export class AIRouterService {
     return { complexity, role, deterministicBypass: parsed.deterministicResolved };
   }
 
-  async execute(request: AIRouterRequest, options: AIRouterExecutionOptions = {}): Promise<AIRouterResponse> {
-    return this.run(request, undefined, undefined, undefined, options);
+  async execute(
+    request: AIRouterRequest,
+    options: AIRouterExecutionOptions = {},
+  ): Promise<AIRouterResponse> {
+    const startedAt = new Date().toISOString();
+    const response = await this.run(request, undefined, undefined, undefined, options);
+    await this.recordAITrace(AIRouterRequestSchema.parse(request), response, startedAt);
+    return response;
   }
 
   async executeStructured<T>(
@@ -123,12 +146,47 @@ export class AIRouterService {
     },
     options: AIRouterExecutionOptions = {},
   ): Promise<AIRouterResponse & { structuredOutput?: T }> {
-    return this.run(
+    const startedAt = new Date().toISOString();
+    const response = (await this.run(
       request,
       request.schema,
       request.schemaName,
-      request.jsonSchema, options,
-    ) as Promise<AIRouterResponse & { structuredOutput?: T }>;
+      request.jsonSchema,
+      options,
+    )) as AIRouterResponse & { structuredOutput?: T };
+    const {
+      schema: _schema,
+      schemaName: _schemaName,
+      jsonSchema: _jsonSchema,
+      ...routerFields
+    } = request;
+    void _schema;
+    void _schemaName;
+    void _jsonSchema;
+    await this.recordAITrace(
+      AIRouterRequestSchema.parse(routerFields),
+      response,
+      startedAt,
+    );
+    return response;
+  }
+
+  private async recordAITrace(
+    request: z.infer<typeof AIRouterRequestSchema>,
+    response: AIRouterResponse,
+    startedAt: string,
+  ) {
+    if (!this.aiTraceSink) return;
+    await Promise.resolve()
+      .then(() =>
+        this.aiTraceSink!({
+          request,
+          response,
+          startedAt,
+          endedAt: new Date().toISOString(),
+        }),
+      )
+      .catch(() => undefined);
   }
 
   metrics() {
@@ -169,36 +227,61 @@ export class AIRouterService {
       parsedRequest.economicContext?.companyId &&
       parsedRequest.economicContext.companyId !== activeCompanyId
     ) {
-      throw Object.assign(new Error("AI request company scope does not match the authenticated context."), {
-        code: "COMPANY_SCOPE_MISMATCH",
-      });
+      throw Object.assign(
+        new Error("AI request company scope does not match the authenticated context."),
+        {
+          code: "COMPANY_SCOPE_MISMATCH",
+        },
+      );
     }
-    const companyScopedRequest = activeCompanyId && parsedRequest.economicContext
-      ? AIRouterRequestSchema.parse({
-          ...parsedRequest,
-          economicContext: { ...parsedRequest.economicContext, companyId: activeCompanyId },
-        })
-      : parsedRequest;
-    const request = companyScopedRequest.dataPolicy?.routing === "LOCAL_ONLY" ||
+    const companyScopedRequest =
+      activeCompanyId && parsedRequest.economicContext
+        ? AIRouterRequestSchema.parse({
+            ...parsedRequest,
+            economicContext: {
+              ...parsedRequest.economicContext,
+              companyId: activeCompanyId,
+            },
+          })
+        : parsedRequest;
+    const request =
+      companyScopedRequest.dataPolicy?.routing === "LOCAL_ONLY" ||
       companyScopedRequest.dataPolicy?.sensitivity === "RESTRICTED"
-      ? AIRouterRequestSchema.parse({
-          ...companyScopedRequest,
-          privacy: "LOCAL_ONLY",
-          locality: "LOCAL_ONLY",
-          allowCloud: false,
-        })
-      : companyScopedRequest;
+        ? AIRouterRequestSchema.parse({
+            ...companyScopedRequest,
+            privacy: "LOCAL_ONLY",
+            locality: "LOCAL_ONLY",
+            allowCloud: false,
+          })
+        : companyScopedRequest;
     const canonicalRequestId = request.requestId ?? crypto.randomUUID();
     const routeId = crypto.randomUUID();
     let active;
     try {
-      active = this.activeRequests.begin({ requestId: canonicalRequestId, routeId, ...(request.economicContext ? { ownerId: request.economicContext.ownerId } : {}), state: "ROUTING" });
+      active = this.activeRequests.begin({
+        requestId: canonicalRequestId,
+        routeId,
+        ...(request.economicContext
+          ? { ownerId: request.economicContext.ownerId }
+          : {}),
+        state: "ROUTING",
+      });
     } catch (error) {
       if (error instanceof Error && error.message === "RUNTIME_DRAINING")
-        return this.failure(request, performance.now(), "LOW", request.requestedRole ?? roleForPurpose(request.purpose)!, false, "AI runtime is draining.", "RUNTIME_DRAINING");
+        return this.failure(
+          request,
+          performance.now(),
+          "LOW",
+          request.requestedRole ?? roleForPurpose(request.purpose)!,
+          false,
+          "AI runtime is draining.",
+          "RUNTIME_DRAINING",
+        );
       throw error;
     }
-    const signal = options.signal ? AbortSignal.any([options.signal, active.controller.signal]) : active.controller.signal;
+    const signal = options.signal
+      ? AbortSignal.any([options.signal, active.controller.signal])
+      : active.controller.signal;
     const started = performance.now();
     this.counters.total += 1;
     const { level: complexity, reason: complexityReason } = classifyComplexity(request);
@@ -268,7 +351,8 @@ export class AIRouterService {
     let usage: Record<string, number> | undefined;
     let economicTrace: AIRouteDecision["economic"];
     for (const candidate of candidates.slice(0, request.maxAttempts)) {
-      if (signal.aborted) return this.cancelled(request, started, complexity, role, structured);
+      if (signal.aborted)
+        return this.cancelled(request, started, complexity, role, structured);
       const attemptId = crypto.randomUUID();
       if (candidate.locality === "REMOTE") cloudEscalations += 1;
       if (cloudEscalations > request.maxCloudEscalations) continue;
@@ -279,47 +363,52 @@ export class AIRouterService {
       let inferenceRequest: AIInferenceRequest = canonicalBase;
       if (this.contextService && request.economicContext) {
         this.activeRequests.update(canonicalRequestId, { state: "CONTEXT" });
-        const contextPackage = await this.contextService.compose({
-          ownerId: request.economicContext.ownerId,
-          requestId: canonicalRequestId,
-          purpose: request.purpose,
-          taskText:
-            request.taskText ??
-            request.input
-              .flatMap((item) =>
-                item.content
-                  .filter((part) => part.type === "text")
-                  .map((part) => (part.type === "text" ? part.text : "")),
-              )
-              .join(" "),
-          requestedProfile: request.contextProfile ?? "GENERAL_CONVERSATION",
-          modelContextWindow: candidate.contextWindow,
-          maxContextTokens: request.maxContextTokens,
-          economicMaxInputTokens: request.economicMaxInputTokens,
-          maxOutputTokens: request.maxOutputTokens ?? candidate.maxOutputTokens,
-          reasoningReserveTokens:
-            request.reasoning === "HIGH"
-              ? 1_024
-              : request.reasoning === "MEDIUM"
-                ? 512
-                : 256,
-          providerOverheadTokens: 256,
-          safetyMarginTokens: 256,
-          providerId: candidate.providerId,
-          modelId: candidate.modelId,
-          locality: candidate.locality,
-          providerTrust: candidate.providerTrust,
-          privacy: request.privacy,
-          inputContext: request.context,
-          conversationId:
-            request.conversationId ?? request.economicContext.conversationId,
-          agentId: request.agentId ?? request.economicContext.agentId,
-          workflowId: request.workflowId ?? request.economicContext.workflowId,
-          workflowRunId: request.workflowRunId ?? request.economicContext.workflowRunId,
-          taskId: request.taskId ?? request.economicContext.taskId,
-          projectId: request.projectId,
-        }, { signal });
-        if (signal.aborted) return this.cancelled(request, started, complexity, role, structured);
+        const contextPackage = await this.contextService.compose(
+          {
+            ownerId: request.economicContext.ownerId,
+            requestId: canonicalRequestId,
+            purpose: request.purpose,
+            taskText:
+              request.taskText ??
+              request.input
+                .flatMap((item) =>
+                  item.content
+                    .filter((part) => part.type === "text")
+                    .map((part) => (part.type === "text" ? part.text : "")),
+                )
+                .join(" "),
+            requestedProfile: request.contextProfile ?? "GENERAL_CONVERSATION",
+            modelContextWindow: candidate.contextWindow,
+            maxContextTokens: request.maxContextTokens,
+            economicMaxInputTokens: request.economicMaxInputTokens,
+            maxOutputTokens: request.maxOutputTokens ?? candidate.maxOutputTokens,
+            reasoningReserveTokens:
+              request.reasoning === "HIGH"
+                ? 1_024
+                : request.reasoning === "MEDIUM"
+                  ? 512
+                  : 256,
+            providerOverheadTokens: 256,
+            safetyMarginTokens: 256,
+            providerId: candidate.providerId,
+            modelId: candidate.modelId,
+            locality: candidate.locality,
+            providerTrust: candidate.providerTrust,
+            privacy: request.privacy,
+            inputContext: request.context,
+            conversationId:
+              request.conversationId ?? request.economicContext.conversationId,
+            agentId: request.agentId ?? request.economicContext.agentId,
+            workflowId: request.workflowId ?? request.economicContext.workflowId,
+            workflowRunId:
+              request.workflowRunId ?? request.economicContext.workflowRunId,
+            taskId: request.taskId ?? request.economicContext.taskId,
+            projectId: request.projectId,
+          },
+          { signal },
+        );
+        if (signal.aborted)
+          return this.cancelled(request, started, complexity, role, structured);
         contextId = contextPackage.contextId;
         if (
           !contextPackage.sufficiency.sufficient &&
@@ -438,23 +527,40 @@ export class AIRouterService {
         if (!evaluation.allowed && !request.economicOverrideGrantId) {
           if (evaluation.action === "REQUIRE_APPROVAL") {
             try {
-              await this.economics.prepareOverrideApproval({
-                ownerId: request.economicContext.ownerId,
-                requestId: canonicalRequestId,
-                purpose: request.economicContext.purpose,
-                requestedAdditionalSpendUsd: estimate.estimatedMaxUsd,
-                maxAdditionalSpendUsd: estimate.estimatedMaxUsd,
-                expiresAt: new Date(Date.now() + 900_000).toISOString(),
-                ...(request.economicContext.agentId ? { agentId: request.economicContext.agentId } : {}),
-                ...(request.economicContext.workflowId ? { workflowId: request.economicContext.workflowId } : {}),
-                ...(request.economicContext.workflowRunId ? { workflowRunId: request.economicContext.workflowRunId } : {}),
-                ...(request.economicContext.taskId ? { taskId: request.economicContext.taskId } : {}),
-                ...(request.economicContext.costCenter ? { costCenter: request.economicContext.costCenter } : {}),
-                providerId: candidate.providerId,
-                modelId: candidate.modelId,
-              }, { ipAddress: "internal", requestId: canonicalRequestId });
+              await this.economics.prepareOverrideApproval(
+                {
+                  ownerId: request.economicContext.ownerId,
+                  requestId: canonicalRequestId,
+                  purpose: request.economicContext.purpose,
+                  requestedAdditionalSpendUsd: estimate.estimatedMaxUsd,
+                  maxAdditionalSpendUsd: estimate.estimatedMaxUsd,
+                  expiresAt: new Date(Date.now() + 900_000).toISOString(),
+                  ...(request.economicContext.agentId
+                    ? { agentId: request.economicContext.agentId }
+                    : {}),
+                  ...(request.economicContext.workflowId
+                    ? { workflowId: request.economicContext.workflowId }
+                    : {}),
+                  ...(request.economicContext.workflowRunId
+                    ? { workflowRunId: request.economicContext.workflowRunId }
+                    : {}),
+                  ...(request.economicContext.taskId
+                    ? { taskId: request.economicContext.taskId }
+                    : {}),
+                  ...(request.economicContext.costCenter
+                    ? { costCenter: request.economicContext.costCenter }
+                    : {}),
+                  providerId: candidate.providerId,
+                  modelId: candidate.modelId,
+                },
+                { ipAddress: "internal", requestId: canonicalRequestId },
+              );
             } catch (error) {
-              if (!(error instanceof AIEconomicError) || error.message !== "Approval runtime is unavailable.") throw error;
+              if (
+                !(error instanceof AIEconomicError) ||
+                error.message !== "Approval runtime is unavailable."
+              )
+                throw error;
             }
           }
           attempts.push({
@@ -470,7 +576,11 @@ export class AIRouterService {
           continue;
         }
         try {
-          this.activeRequests.update(canonicalRequestId, { state: "RESERVING", providerId: candidate.providerId, modelId: candidate.modelId });
+          this.activeRequests.update(canonicalRequestId, {
+            state: "RESERVING",
+            providerId: candidate.providerId,
+            modelId: candidate.modelId,
+          });
           reservationId = (
             await this.economics.reserve(
               economicCandidate,
@@ -510,7 +620,8 @@ export class AIRouterService {
               ? { estimatedCostUsd: economicTrace.estimatedCostUsd }
               : {}),
             estimatedTokens:
-              economicCandidate.estimatedInputTokens + economicCandidate.maxOutputTokens,
+              economicCandidate.estimatedInputTokens +
+              economicCandidate.maxOutputTokens,
             locality: candidate.locality,
             ...(request.economicContext.workflowId
               ? { workflowId: request.economicContext.workflowId }
@@ -542,7 +653,12 @@ export class AIRouterService {
         }
       }
       try {
-        this.activeRequests.update(canonicalRequestId, { state: "INFERENCE", providerId: candidate.providerId, modelId: candidate.modelId, ...(reservationId ? { reservationId } : {}) });
+        this.activeRequests.update(canonicalRequestId, {
+          state: "INFERENCE",
+          providerId: candidate.providerId,
+          modelId: candidate.modelId,
+          ...(reservationId ? { reservationId } : {}),
+        });
         const base = {
           ...inferenceRequest,
           requestId: canonicalRequestId,
@@ -847,7 +963,9 @@ export class AIRouterService {
         if (model.locality === "LOCAL" || !request.dataPolicy) return true;
         if (request.dataPolicy.routing === "LOCAL_ONLY") return false;
         if (request.dataPolicy.routing === "ANY_APPROVED") return true;
-        return (request.dataPolicy.approvedCloudProviderIds ?? []).includes(model.providerId);
+        return (request.dataPolicy.approvedCloudProviderIds ?? []).includes(
+          model.providerId,
+        );
       })
       .filter((model) => this.roleCompatible(model, role, complexity))
       .filter((model) => {
@@ -1030,10 +1148,19 @@ export class AIRouterService {
     return this.finish({
       requestId: request.requestId ?? crypto.randomUUID(),
       outcome: "CANCELLED",
-      decision: { complexity, requiredRole: role, requiredStructuredOutput: structured,
-        candidateModels: [], selectedModel: null, selectedProvider: null,
-        reason: "Request cancelled by caller.", escalated: false, clarified: false },
-      attempts: [], latencyMs: Math.round(performance.now() - started),
+      decision: {
+        complexity,
+        requiredRole: role,
+        requiredStructuredOutput: structured,
+        candidateModels: [],
+        selectedModel: null,
+        selectedProvider: null,
+        reason: "Request cancelled by caller.",
+        escalated: false,
+        clarified: false,
+      },
+      attempts: [],
+      latencyMs: Math.round(performance.now() - started),
     });
   }
   private finish(response: AIRouterResponse) {

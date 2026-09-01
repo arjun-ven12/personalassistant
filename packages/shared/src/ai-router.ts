@@ -74,6 +74,12 @@ export const AIRouterRequestSchema = AIInferenceRequestSchema.extend({
   workflowId: z.string().uuid().optional(),
   workflowRunId: z.string().uuid().optional(),
   taskId: z.string().uuid().optional(),
+  objectiveId: z.string().uuid().optional(),
+  companyAgentAssignmentId: z.string().uuid().optional(),
+  agentDefinitionId: z.string().min(1).max(160).optional(),
+  taskClass: z.string().min(1).max(160).optional(),
+  promptVersion: z.string().min(1).max(160).optional(),
+  policyVersion: z.string().min(1).max(160).optional(),
   projectId: z.string().uuid().optional(),
   dataPolicy: AIDataRoutingPolicySchema.optional(),
 }).strict();

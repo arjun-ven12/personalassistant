@@ -122,6 +122,11 @@ import type { CompanyService } from "../companies/service.js";
 import type { CompanyContextResolver } from "../companies/context.js";
 import type { CompanyDataService } from "../company-data/service.js";
 import type { CompanyDataStore } from "../company-data/store.js";
+import type { OwnerPortfolioObservabilityService } from "../observability/service.js";
+import type { ObservabilityStore } from "../observability/store.js";
+import type { CrossCompanyExecutionService } from "../durable-execution/service.js";
+import type { DurableExecutionStore } from "../durable-execution/store.js";
+import type { SandboxExecutionService } from "../durable-execution/sandbox.js";
 
 export interface ApiRouteContext {
   deploymentMode: "private" | "cloud";
@@ -131,6 +136,11 @@ export interface ApiRouteContext {
   companyContext: CompanyContextResolver;
   companyData: CompanyDataService;
   companyDataStore: CompanyDataStore;
+  portfolio: OwnerPortfolioObservabilityService;
+  observabilityStore: ObservabilityStore;
+  durableExecution: CrossCompanyExecutionService;
+  durableExecutionStore: DurableExecutionStore;
+  sandboxExecution: SandboxExecutionService;
   securityState: SecurityStateService;
   networkVerifier: NetworkVerifier;
   cookieName: string;

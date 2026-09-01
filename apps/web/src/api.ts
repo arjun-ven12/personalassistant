@@ -228,6 +228,12 @@ import {
   MacroRecordSchema,
   TaskCenterResponseSchema,
   ExecutiveDashboardSchema,
+  OwnerPortfolioDashboardSchema,
+  PortfolioMetricCompatibilitySchema,
+  PortfolioMetricComparisonRequestSchema,
+  SystemTelemetrySpanSchema,
+  AIObservabilityTraceSchema,
+  DurableExecutionDashboardSchema,
   ObjectiveDashboardSchema,
   ObjectiveDraftResponseSchema,
   CreateObjectiveRequestSchema,
@@ -2251,6 +2257,33 @@ export const createApiClient = (baseUrl: string) => {
       requestAndValidate(baseUrl, "/api/tasks", TaskCenterResponseSchema),
     getExecutiveDashboard: () =>
       requestAndValidate(baseUrl, "/api/executive", ExecutiveDashboardSchema),
+    getOwnerPortfolio: () =>
+      requestAndValidate(baseUrl, "/api/portfolio", OwnerPortfolioDashboardSchema),
+    comparePortfolioMetric: (input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/portfolio/compare",
+        PortfolioMetricCompatibilitySchema,
+        jsonBody(PortfolioMetricComparisonRequestSchema.parse(input)),
+      ),
+    getPortfolioTraces: () =>
+      requestAndValidate(
+        baseUrl,
+        "/api/portfolio/traces?limit=100",
+        z.array(SystemTelemetrySpanSchema).max(500),
+      ),
+    getPortfolioAITraces: () =>
+      requestAndValidate(
+        baseUrl,
+        "/api/portfolio/ai-traces?limit=100",
+        z.array(AIObservabilityTraceSchema).max(500),
+      ),
+    getCrossCompanyServices: () =>
+      requestAndValidate(
+        baseUrl,
+        "/api/cross-company-services",
+        DurableExecutionDashboardSchema,
+      ),
     getObjectives: () =>
       requestAndValidate(baseUrl, "/api/objectives", ObjectiveDashboardSchema),
     createObjective: (input: unknown) =>

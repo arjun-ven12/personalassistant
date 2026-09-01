@@ -84,6 +84,8 @@ export class ExecutiveBrainService {
   readonly contextComposer = new ExecutiveContextComposer();
   private reflectionProvider:
     { getRelevantReflectionEvidence(ownerId: string): Promise<unknown> } | undefined;
+  private portfolioProvider:
+    { executiveBrief(ownerId: string): Promise<unknown> } | undefined;
   constructor(
     readonly store: ExecutiveStore,
     readonly tasks: TaskStore,
@@ -95,6 +97,21 @@ export class ExecutiveBrainService {
     getRelevantReflectionEvidence(ownerId: string): Promise<unknown>;
   }) {
     this.reflectionProvider = provider;
+  }
+
+  setPortfolioEvidenceProvider(provider: {
+    executiveBrief(ownerId: string): Promise<unknown>;
+  }) {
+    this.portfolioProvider = provider;
+  }
+
+  async ownerPortfolioBrief(ownerId: string) {
+    if (!this.portfolioProvider)
+      throw Object.assign(new Error("Owner portfolio evidence is unavailable."), {
+        code: "PORTFOLIO_EVIDENCE_UNAVAILABLE",
+        statusCode: 503,
+      });
+    return this.portfolioProvider.executiveBrief(ownerId);
   }
 
   async query(

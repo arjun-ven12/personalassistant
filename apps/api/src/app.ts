@@ -52,6 +52,8 @@ import { registerExecutionRoutes } from "./routes/executions.js";
 import { registerCrossDeviceRoutes } from "./routes/cross-device.js";
 import { registerCompanyRoutes } from "./routes/companies.js";
 import { registerCompanyDataRoutes } from "./routes/company-data.js";
+import { registerPortfolioRoutes } from "./routes/portfolio.js";
+import { registerDurableExecutionRoutes } from "./routes/durable-execution.js";
 import { CompanyService, type CompanyProvisioningHook } from "./companies/service.js";
 import { CompanyContextResolver } from "./companies/context.js";
 import { companyScope } from "./companies/scope.js";
@@ -67,6 +69,33 @@ import {
   type CompanyDataStore,
 } from "./company-data/store.js";
 import { PostgresCompanyDataStore } from "./company-data/postgres-store.js";
+import { OwnerPortfolioObservabilityService } from "./observability/service.js";
+import {
+  InMemoryObservabilityStore,
+  PostgresObservabilityStore,
+  type ObservabilityStore,
+} from "./observability/store.js";
+import {
+  CrossCompanyExecutionService,
+  type CrossCompanyActivityExecutor,
+} from "./durable-execution/service.js";
+import {
+  InMemoryDurableExecutionStore,
+  PostgresDurableExecutionStore,
+  type DurableExecutionStore,
+} from "./durable-execution/store.js";
+import {
+  LocalDockerSandboxProvider,
+  SandboxExecutionService,
+  type SandboxArtifactResolver,
+} from "./durable-execution/sandbox.js";
+import {
+  AgentEconomyCrossCompanyAdapter,
+  AlexaWorkforceResolver,
+  CompanyArtifactReportAdapter,
+  DurableActivityRegistry,
+} from "./durable-execution/production.js";
+import { DurableExecutionScheduler } from "./durable-execution/scheduler.js";
 import { CrossDeviceService } from "./cross-device/service.js";
 import {
   InMemoryCrossDeviceStore,
@@ -371,6 +400,10 @@ export interface BuildApiOptions {
   identityStore?: IdentityStore;
   companyStore?: CompanyStore;
   companyDataStore?: CompanyDataStore;
+  observabilityStore?: ObservabilityStore;
+  durableExecutionStore?: DurableExecutionStore;
+  crossCompanyActivityExecutor?: CrossCompanyActivityExecutor;
+  sandboxArtifactResolver?: SandboxArtifactResolver;
   companyLimit?: number;
   companyProvisioningHook?: CompanyProvisioningHook;
   telemetry?: TelemetrySink;
@@ -472,6 +505,10 @@ export const buildApi = async ({
   identityStore = new InMemoryIdentityStore(),
   companyStore,
   companyDataStore,
+  observabilityStore,
+  durableExecutionStore,
+  crossCompanyActivityExecutor,
+  sandboxArtifactResolver,
   companyLimit = 100,
   companyProvisioningHook,
   telemetry = new NoopTelemetrySink(),
@@ -796,6 +833,74 @@ export const buildApi = async ({
     governanceAudit,
     now,
   );
+  const resolvedObservabilityStore =
+    observabilityStore ??
+    (database
+      ? new PostgresObservabilityStore(database.pool)
+      : new InMemoryObservabilityStore());
+  const portfolio = new OwnerPortfolioObservabilityService(
+    resolvedObservabilityStore,
+    resolvedCompanyStore,
+    resolvedCompanyDataStore,
+    agentStore,
+    governanceAudit,
+    now,
+  );
+  telemetry.setRecorder?.((span) => {
+    if (!span.ownerId) return;
+    return portfolio.recordSystemSpan(span);
+  });
+  canonicalRouter.setAITraceSink(async ({ request, response, startedAt, endedAt }) => {
+    const economic = request.economicContext;
+    if (
+      !economic?.ownerId ||
+      !economic.companyId ||
+      !response.providerId ||
+      !response.modelId
+    )
+      return;
+    const inputTokens = Math.round(response.usage?.inputTokens ?? 0);
+    const outputTokens = Math.round(response.usage?.outputTokens ?? 0);
+    const estimatedCostUsd = response.decision.economic?.estimatedCostUsd ?? null;
+    await portfolio.recordAITrace({
+      traceId:
+        request.trace?.traceId ?? response.decision.routeId ?? response.requestId,
+      ownerId: economic.ownerId,
+      companyId: economic.companyId,
+      assignmentId: request.companyAgentAssignmentId ?? null,
+      taskId: request.taskId ?? economic.taskId ?? null,
+      objectiveId: request.objectiveId ?? null,
+      workflowId: request.workflowId ?? economic.workflowId ?? null,
+      agentDefinitionId: request.agentDefinitionId ?? request.agentId ?? null,
+      provider: response.providerId,
+      model: response.modelId,
+      promptVersion: request.promptVersion ?? null,
+      policyVersion: request.policyVersion ?? null,
+      taskClass: request.taskClass ?? request.purpose,
+      reasoningType:
+        request.outputMode === "STRUCTURED"
+          ? "STRUCTURED"
+          : (request.reasoning ?? "NONE"),
+      locality:
+        response.attempts.find((attempt) => attempt.status === "SUCCESS")?.locality ??
+        "LOCAL",
+      latencyMs: response.latencyMs,
+      inputTokens,
+      outputTokens,
+      costCredits: estimatedCostUsd ? Math.max(0, Number(estimatedCostUsd) * 1_000) : 0,
+      costUsd: estimatedCostUsd,
+      success: response.outcome === "SUCCESS",
+      retries: Math.max(0, response.attempts.length - 1),
+      reviewOutcome: "NOT_REVIEWED",
+      verificationResult: response.outcome === "SUCCESS" ? "VERIFIED" : "FAILED",
+      evaluationScores: [],
+      dataSensitivity: request.dataPolicy?.sensitivity ?? "INTERNAL",
+      exportPolicy: "APPROVED_EXTERNAL",
+      retentionClass: response.outcome === "SUCCESS" ? "STANDARD" : "EXTENDED",
+      startedAt,
+      endedAt,
+    });
+  });
   const resolvedNotificationStore =
     notificationStore ??
     (persistenceMode === "postgresql" && database
@@ -813,6 +918,49 @@ export const buildApi = async ({
     governanceStore,
     governanceAudit,
     approvalTtlSeconds,
+  );
+  const resolvedDurableExecutionStore =
+    durableExecutionStore ??
+    (database
+      ? new PostgresDurableExecutionStore(database.pool)
+      : new InMemoryDurableExecutionStore());
+  const unavailableArtifacts: SandboxArtifactResolver = {
+    read: () =>
+      Promise.reject(
+        Object.assign(new Error("No approved sandbox artifact store is configured."), {
+          code: "SANDBOX_UNAVAILABLE",
+        }),
+      ),
+    write: () =>
+      Promise.reject(
+        Object.assign(new Error("No approved sandbox artifact store is configured."), {
+          code: "SANDBOX_UNAVAILABLE",
+        }),
+      ),
+  };
+  const resolvedArtifactResolver = sandboxArtifactResolver ?? unavailableArtifacts;
+  const durableActivities = new DurableActivityRegistry();
+  if (sandboxArtifactResolver)
+    durableActivities.register(
+      new CompanyArtifactReportAdapter(sandboxArtifactResolver),
+    );
+  const sandboxExecution = new SandboxExecutionService(
+    resolvedDurableExecutionStore,
+    agentStore,
+    new LocalDockerSandboxProvider(resolvedArtifactResolver),
+    governanceAudit,
+    now,
+  );
+  const durableExecution = new CrossCompanyExecutionService(
+    resolvedDurableExecutionStore,
+    resolvedCompanyStore,
+    resolvedCompanyDataStore,
+    agentStore,
+    approvals,
+    telemetry,
+    crossCompanyActivityExecutor ?? durableActivities,
+    governanceAudit,
+    now,
   );
   economicAuthority.setApprovalRuntime(approvals, governanceAudit);
   const policyEngine = new PolicyEngine(
@@ -968,6 +1116,22 @@ export const buildApi = async ({
     governanceAudit,
     now,
   );
+  durableExecution.setProductionRuntime({
+    activity: crossCompanyActivityExecutor ?? durableActivities,
+    economy: new AgentEconomyCrossCompanyAdapter(agentEconomy, agentStore),
+    workforce: new AlexaWorkforceResolver(agentStore, agentWorkforce, now),
+  });
+  const durableScheduler = new DurableExecutionScheduler(
+    resolvedDurableExecutionStore,
+    durableExecution,
+    undefined,
+    undefined,
+    now,
+  );
+  if (database && nodeEnvironment === "production") {
+    app.addHook("onReady", () => durableScheduler.start());
+    app.addHook("onClose", () => durableScheduler.stop());
+  }
   companies.setProvisioningHook(async (step, company) => {
     await companyProvisioningHook?.(step, company);
     if (step === "GOVERNOR_PLACEHOLDER_READY") {
@@ -1018,6 +1182,7 @@ export const buildApi = async ({
     now,
     canonicalRouter,
   );
+  executive.setPortfolioEvidenceProvider(portfolio);
   const reflection = new ReflectionEngineService(
     reflectionStore,
     executiveStore,
@@ -1477,6 +1642,11 @@ export const buildApi = async ({
     companyContext,
     companyData,
     companyDataStore: resolvedCompanyDataStore,
+    portfolio,
+    observabilityStore: resolvedObservabilityStore,
+    durableExecution,
+    durableExecutionStore: resolvedDurableExecutionStore,
+    sandboxExecution,
     securityState,
     networkVerifier,
     cookieName: sessionCookieName,
@@ -1738,6 +1908,8 @@ export const buildApi = async ({
   registerAuthRoutes(app, context);
   registerCompanyRoutes(app, context);
   registerCompanyDataRoutes(app, context);
+  registerPortfolioRoutes(app, context);
+  registerDurableExecutionRoutes(app, context);
   registerDeviceRoutes(app, context);
   registerAuditRoutes(app, context);
   registerSystemRoutes(app, context);

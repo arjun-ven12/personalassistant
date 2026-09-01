@@ -41,6 +41,8 @@ export * from "./business-os.js";
 export * from "./cloud-runtime.js";
 export * from "./companies.js";
 export * from "./company-data.js";
+export * from "./portfolio-observability.js";
+export * from "./durable-execution.js";
 export * from "./infrastructure.js";
 export * from "./intent.js";
 export * from "./intent-recording.js";
