@@ -63,11 +63,20 @@ const insertRecord = async (
   columns: Record<string, string | number | boolean | null>,
 ) => {
   const names = ["id", "owner_id", ...Object.keys(columns), "record", "company_id"];
-  const values = [record.id, record.ownerId, ...Object.values(columns), record, companyScope.companyId(record.ownerId) ?? null];
+  const values = [
+    record.id,
+    record.ownerId,
+    ...Object.values(columns),
+    record,
+    companyScope.companyId(record.ownerId) ?? null,
+  ];
   const placeholders = values.map((_, index) => `$${index + 1}`).join(",");
+  const updates = [...Object.keys(columns), "record", "company_id"]
+    .map((column) => `${column}=EXCLUDED.${column}`)
+    .join(",");
   await pool.query(
     `INSERT INTO ${table}(${names.join(",")}) VALUES (${placeholders})
-     ON CONFLICT (id) DO UPDATE SET record=EXCLUDED.record`,
+     ON CONFLICT (id) DO UPDATE SET ${updates}`,
     values,
   );
 };
@@ -98,6 +107,8 @@ export class PostgresAgentSocietyStore implements AgentSocietyStore {
     await insertRecord(this.pool, "departments", parsed, {
       organization_id: parsed.organizationId,
       lead_agent_id: parsed.leadAgentId,
+      parent_department_id: parsed.parentDepartmentId ?? null,
+      manager_assignment_id: parsed.managerAssignmentId ?? null,
       created_at: parsed.createdAt,
       updated_at: parsed.updatedAt,
     });

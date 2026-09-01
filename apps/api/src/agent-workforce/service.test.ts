@@ -139,6 +139,93 @@ describe("AgentWorkforceService", () => {
     });
   });
 
+  it("keeps company departments and unassigned specialists visible without duplicating catalog definitions", async () => {
+    const { workforce } = setup();
+    await companyScope.run(
+      { ownerId, companyId: atlasId, role: "OWNER", requestId: "atlas-bootstrap" },
+      () => workforce.bootstrap(ownerId, "atlas-bootstrap", "127.0.0.1"),
+    );
+    await companyScope.run(
+      { ownerId, companyId: novaId, role: "OWNER", requestId: "nova-setup" },
+      async () => {
+        await workforce.ensureCompanyGovernor(ownerId, novaId);
+        const skeleton = await workforce.graph(ownerId, { limit: 500 });
+        expect(skeleton.nodes.some((node) => node.kind === "GOVERNOR")).toBe(true);
+        expect(skeleton.departments.map((department) => department.name)).toEqual(
+          expect.arrayContaining([
+            "Operations",
+            "Finance",
+            "Sales & Growth",
+            "Quality / Review",
+          ]),
+        );
+
+        const sales = skeleton.departments.find(
+          (department) => department.name === "Sales & Growth",
+        )!;
+        await workforce.assignDefinition({
+          ownerId,
+          definitionId: "native_account_researcher",
+          departmentId: sales.id,
+          requestId: "assign-sales",
+          ipAddress: "127.0.0.1",
+        });
+        await workforce.moveAssignment(
+          ownerId,
+          "native_account_researcher",
+          null,
+          "unassign",
+          "127.0.0.1",
+        );
+        const graph = await workforce.graph(ownerId, { limit: 500 });
+        const agent = graph.nodes.find(
+          (node) => node.id === "native_account_researcher",
+        );
+        expect(agent?.status).toBe("DORMANT");
+        expect(graph.nodes.some((node) => node.label === "Unassigned")).toBe(true);
+        expect(agent?.parentId).toMatch(/^department:/);
+
+        const catalogBefore = await workforce.catalog(ownerId, { limit: 500 });
+        await workforce.createDepartment(
+          ownerId,
+          {
+            name: "Customer Success",
+            purpose: "Support onboarding and retention work.",
+            templateId: "customer-success",
+            initialDefinitionIds: [],
+          },
+          "create-customer-success",
+          "127.0.0.1",
+        );
+        const updated = await workforce.graph(ownerId, { limit: 500 });
+        const customerSuccess = updated.departments.find(
+          (department) => department.name === "Customer Success",
+        )!;
+        await workforce.moveAssignment(
+          ownerId,
+          "native_account_researcher",
+          customerSuccess.id,
+          "move-customer-success",
+          "127.0.0.1",
+        );
+        await workforce.archiveDepartment(
+          ownerId,
+          customerSuccess.id,
+          { relocateToDepartmentId: null },
+          "archive-customer-success",
+          "127.0.0.1",
+        );
+        const catalogAfter = await workforce.catalog(ownerId, { limit: 500 });
+        expect(catalogAfter.catalogCount).toBe(catalogBefore.catalogCount);
+        expect(
+          catalogAfter.items.find(
+            (item) => item.definition.id === "native_account_researcher",
+          )?.assignment?.departmentId,
+        ).toBeNull();
+      },
+    );
+  });
+
   it("bootstraps more than 100 meaningful dormant agents without runtime activation", async () => {
     const { agentStore, economy, workforce } = setup();
     const report = await workforce.bootstrap(ownerId, "request-1", "127.0.0.1");

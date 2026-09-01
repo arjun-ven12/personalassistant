@@ -126,6 +126,7 @@ import {
   AgentEconomyDashboardSchema,
   AgentEconomyAccountResponseSchema,
   WorkforceGraphResponseSchema,
+  DepartmentTemplateListResponseSchema,
   AgentCatalogResponseSchema,
   WorkforceAgentDetailSchema,
   WorkforceImportReportSchema,
@@ -150,6 +151,8 @@ import {
   type EnrollAgentEconomyRequest,
   type AllocateAgentCreditsRequest,
   type CreateWorkforceTaskRequest,
+  type CreateWorkforceDepartmentRequest,
+  type UpdateWorkforceDepartmentRequest,
   type CreateWorkforceMessageRequest,
   type CompleteWorkforceTaskRequest,
   type SubmitWorkforceReviewRequest,
@@ -1269,12 +1272,59 @@ export const createApiClient = (baseUrl: string) => {
         `/api/agent-workforce/catalog${query ? `?${query}` : ""}`,
         AgentCatalogResponseSchema,
       ),
+    getWorkforceDepartmentTemplates: () =>
+      requestAndValidate(
+        baseUrl,
+        "/api/agent-workforce/department-templates",
+        DepartmentTemplateListResponseSchema,
+      ),
+    createWorkforceDepartment: (input: CreateWorkforceDepartmentRequest) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/agent-workforce/departments",
+        WorkforceGraphResponseSchema,
+        jsonBody(input),
+      ),
+    updateWorkforceDepartment: (
+      departmentId: string,
+      input: UpdateWorkforceDepartmentRequest,
+    ) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/agent-workforce/departments/${encodeURIComponent(departmentId)}`,
+        WorkforceGraphResponseSchema,
+        jsonBody(input, "PATCH"),
+      ),
+    archiveWorkforceDepartment: (
+      departmentId: string,
+      relocateToDepartmentId: string | null,
+    ) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/agent-workforce/departments/${encodeURIComponent(departmentId)}/archive`,
+        WorkforceGraphResponseSchema,
+        jsonBody({ relocateToDepartmentId }),
+      ),
+    moveWorkforceAgent: (agentId: string, departmentId: string | null) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/agent-workforce/agents/${encodeURIComponent(agentId)}/department`,
+        WorkforceGraphResponseSchema,
+        jsonBody({ departmentId }, "PATCH"),
+      ),
     assignAgentFromCatalog: (definitionId: string) =>
       requestAndValidate(
         baseUrl,
         `/api/agent-workforce/catalog/${encodeURIComponent(definitionId)}/assign`,
         AgentCatalogResponseSchema,
         jsonBody({}),
+      ),
+    assignAgentFromCatalogToDepartment: (definitionId: string, departmentId: string) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/agent-workforce/catalog/${encodeURIComponent(definitionId)}/assign`,
+        AgentCatalogResponseSchema,
+        jsonBody({ departmentId }),
       ),
     removeAgentAssignment: (definitionId: string) =>
       requestAndValidate(

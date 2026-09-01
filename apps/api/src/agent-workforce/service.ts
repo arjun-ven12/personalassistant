@@ -5,8 +5,12 @@ import {
   AgentDefinitionSchema,
   CompanyAgentAssignmentSchema,
   AgentRecordSchema,
+  ArchiveWorkforceDepartmentRequestSchema,
+  CreateWorkforceDepartmentRequestSchema,
+  DepartmentTemplateListResponseSchema,
   DepartmentRecordSchema,
   OrganizationRecordSchema,
+  UpdateWorkforceDepartmentRequestSchema,
   WorkforceAgentDetailSchema,
   WorkforceGraphResponseSchema,
   WorkforceImportReportSchema,
@@ -35,6 +39,7 @@ import {
 } from "./catalog.js";
 import type { AgentWorkforceStore } from "./store.js";
 import { stableAssignmentId } from "../agents/catalog-model.js";
+import { DEPARTMENT_TEMPLATES } from "./department-templates.js";
 
 const uuidFrom = (value: string) => {
   const hash = createHash("sha256").update(value).digest("hex");
@@ -68,6 +73,13 @@ const departments = [
     "Independent testing, review, accessibility, and acceptance verification.",
   ],
   ["Security", "Security and privacy review without approval authority."],
+] as const;
+
+const defaultDepartmentTemplateIds = [
+  "operations",
+  "finance",
+  "sales-growth",
+  "quality-review",
 ] as const;
 
 const leadFor: Record<string, string> = {
@@ -283,8 +295,17 @@ export class AgentWorkforceService {
       definition.id,
       companyId,
     );
-    if (existing && existing.status !== "REVOKED")
+    if (existing && existing.status !== "REVOKED") {
+      if (input.departmentId && existing.departmentId !== input.departmentId)
+        await this.moveAssignment(
+          input.ownerId,
+          definition.id,
+          input.departmentId,
+          input.requestId,
+          input.ipAddress,
+        );
       return this.catalog(input.ownerId, {});
+    }
     const [organizations, companyDepartments] = await Promise.all([
       this.society.store.listOrganizations(input.ownerId),
       this.society.store.listDepartments(input.ownerId),
@@ -402,6 +423,354 @@ export class AgentWorkforceService {
     return this.catalog(ownerId, {});
   }
 
+  departmentTemplates() {
+    return DepartmentTemplateListResponseSchema.parse({
+      templates: DEPARTMENT_TEMPLATES,
+    });
+  }
+
+  private async activeOrganization(ownerId: string) {
+    const organization = (await this.society.store.listOrganizations(ownerId))[0];
+    if (!organization)
+      throw new ExecutionError(
+        409,
+        "ORGANIZATION_MISSING",
+        "Company organization is unavailable.",
+      );
+    return organization;
+  }
+
+  private async activeDepartment(ownerId: string, departmentId: string) {
+    const department = (await this.society.store.listDepartments(ownerId)).find(
+      (item) => item.id === departmentId && item.status !== "archived",
+    );
+    if (!department)
+      throw new ExecutionError(
+        404,
+        "DEPARTMENT_NOT_FOUND",
+        "Department is unavailable in this company.",
+      );
+    return department;
+  }
+
+  async createDepartment(
+    ownerId: string,
+    rawBody: unknown,
+    requestId: string,
+    ipAddress: string,
+  ) {
+    const body = CreateWorkforceDepartmentRequestSchema.parse(rawBody);
+    const companyId = this.requireCompanyId(ownerId);
+    const organization = await this.activeOrganization(ownerId);
+    const existing = await this.society.store.listDepartments(ownerId);
+    if (
+      existing.some(
+        (department) =>
+          department.name.toLowerCase() === body.name.toLowerCase() &&
+          department.status !== "archived",
+      )
+    )
+      throw new ExecutionError(
+        409,
+        "DEPARTMENT_EXISTS",
+        "A department with that name already exists in this company.",
+      );
+    if (body.parentDepartmentId)
+      await this.activeDepartment(ownerId, body.parentDepartmentId);
+    const template = body.templateId
+      ? DEPARTMENT_TEMPLATES.find(
+          (item) => item.id === body.templateId && item.status === "ACTIVE",
+        )
+      : null;
+    if (body.templateId && !template)
+      throw new ExecutionError(
+        404,
+        "DEPARTMENT_TEMPLATE_NOT_FOUND",
+        "Department template is unavailable.",
+      );
+    const at = this.now().toISOString();
+    const department = DepartmentRecordSchema.parse({
+      id: crypto.randomUUID(),
+      ownerId,
+      companyId,
+      organizationId: organization.id,
+      departmentTemplateId: template?.id ?? null,
+      name: body.name,
+      responsibility: body.purpose,
+      parentDepartmentId: body.parentDepartmentId ?? null,
+      managerAssignmentId: null,
+      leadAgentId: null,
+      status: "active",
+      createdAt: at,
+      updatedAt: at,
+    });
+    await this.society.store.saveDepartment(department);
+    for (const definitionId of body.initialDefinitionIds)
+      await this.assignDefinition({
+        ownerId,
+        definitionId,
+        departmentId: department.id,
+        requestId,
+        ipAddress,
+      });
+    if (body.managerDefinitionId)
+      await this.setDepartmentManager(
+        ownerId,
+        department.id,
+        body.managerDefinitionId,
+        requestId,
+        ipAddress,
+      );
+    await this.audit({
+      eventType: "WORKFORCE_DEPARTMENT_CREATED",
+      ownerId,
+      ipAddress,
+      outcome: "SUCCESS",
+      reason:
+        "Company-scoped department created without changing reusable catalog identities.",
+      requestId,
+      metadata: {
+        companyId,
+        departmentId: department.id,
+        templateId: template?.id ?? null,
+      },
+    });
+    return this.graph(ownerId, {});
+  }
+
+  async updateDepartment(
+    ownerId: string,
+    departmentId: string,
+    rawBody: unknown,
+    requestId: string,
+    ipAddress: string,
+  ) {
+    const body = UpdateWorkforceDepartmentRequestSchema.parse(rawBody);
+    const department = await this.activeDepartment(ownerId, departmentId);
+    if (body.parentDepartmentId === departmentId)
+      throw new ExecutionError(
+        409,
+        "DEPARTMENT_CYCLE",
+        "A department cannot be its own parent.",
+      );
+    if (body.parentDepartmentId) {
+      const parent = await this.activeDepartment(ownerId, body.parentDepartmentId);
+      if (parent.parentDepartmentId === departmentId)
+        throw new ExecutionError(
+          409,
+          "DEPARTMENT_CYCLE",
+          "Department hierarchy cannot contain a cycle.",
+        );
+    }
+    const at = this.now().toISOString();
+    await this.society.store.saveDepartment(
+      DepartmentRecordSchema.parse({
+        ...department,
+        ...(body.name ? { name: body.name } : {}),
+        ...(body.purpose ? { responsibility: body.purpose } : {}),
+        ...(body.parentDepartmentId !== undefined
+          ? { parentDepartmentId: body.parentDepartmentId }
+          : {}),
+        updatedAt: at,
+      }),
+    );
+    if (body.managerDefinitionId !== undefined)
+      await this.setDepartmentManager(
+        ownerId,
+        departmentId,
+        body.managerDefinitionId,
+        requestId,
+        ipAddress,
+      );
+    await this.audit({
+      eventType: "WORKFORCE_DEPARTMENT_UPDATED",
+      ownerId,
+      ipAddress,
+      outcome: "SUCCESS",
+      reason: "Company-scoped department metadata updated.",
+      requestId,
+      metadata: { companyId: this.requireCompanyId(ownerId), departmentId },
+    });
+    return this.graph(ownerId, {});
+  }
+
+  async setDepartmentManager(
+    ownerId: string,
+    departmentId: string,
+    managerDefinitionId: string | null,
+    requestId: string,
+    ipAddress: string,
+  ) {
+    const department = await this.activeDepartment(ownerId, departmentId);
+    let managerAssignment = null;
+    if (managerDefinitionId) {
+      await this.assignDefinition({
+        ownerId,
+        definitionId: managerDefinitionId,
+        departmentId,
+        requestId,
+        ipAddress,
+      });
+      managerAssignment = await this.agentStore.findAssignment(
+        ownerId,
+        managerDefinitionId,
+      );
+      if (!managerAssignment || managerAssignment.status === "REVOKED")
+        throw new ExecutionError(
+          409,
+          "MANAGER_ASSIGNMENT_MISSING",
+          "Manager assignment is unavailable.",
+        );
+    }
+    const at = this.now().toISOString();
+    await this.society.store.saveDepartment(
+      DepartmentRecordSchema.parse({
+        ...department,
+        managerAssignmentId: managerAssignment?.id ?? null,
+        leadAgentId: managerAssignment?.agentDefinitionId ?? null,
+        updatedAt: at,
+      }),
+    );
+    const members = (await this.agentStore.listAssignments(ownerId)).filter(
+      (assignment) =>
+        assignment.status !== "REVOKED" &&
+        !assignment.isGovernor &&
+        assignment.departmentId === departmentId &&
+        assignment.id !== managerAssignment?.id,
+    );
+    for (const member of members)
+      await this.agentStore.saveAssignment(
+        CompanyAgentAssignmentSchema.parse({
+          ...member,
+          managerAssignmentId: managerAssignment?.id ?? null,
+          managerAgentDefinitionId: managerAssignment?.agentDefinitionId ?? null,
+          updatedAt: at,
+        }),
+      );
+    await this.audit({
+      eventType: managerAssignment
+        ? "WORKFORCE_DEPARTMENT_MANAGER_ASSIGNED"
+        : "WORKFORCE_DEPARTMENT_MANAGER_REMOVED",
+      ownerId,
+      ipAddress,
+      outcome: "SUCCESS",
+      reason: "Department manager link updated within the active company.",
+      requestId,
+      metadata: {
+        companyId: this.requireCompanyId(ownerId),
+        departmentId,
+        managerAssignmentId: managerAssignment?.id ?? null,
+      },
+    });
+  }
+
+  async moveAssignment(
+    ownerId: string,
+    definitionId: string,
+    departmentId: string | null,
+    requestId: string,
+    ipAddress: string,
+  ) {
+    const assignment = await this.agentStore.findAssignment(ownerId, definitionId);
+    if (!assignment || assignment.status === "REVOKED")
+      throw new ExecutionError(
+        404,
+        "COMPANY_ASSIGNMENT_NOT_FOUND",
+        "Specialist is not assigned to this company.",
+      );
+    if (assignment.isGovernor)
+      throw new ExecutionError(
+        409,
+        "GOVERNOR_REQUIRED",
+        "The Company Governor cannot be moved.",
+      );
+    const department = departmentId
+      ? await this.activeDepartment(ownerId, departmentId)
+      : null;
+    const managerDefinitionId = department?.leadAgentId ?? null;
+    const at = this.now().toISOString();
+    await this.agentStore.saveAssignment(
+      CompanyAgentAssignmentSchema.parse({
+        ...assignment,
+        departmentId,
+        departmentMemoryScopeId: departmentId
+          ? `company:${assignment.companyId}:department:${departmentId}`
+          : null,
+        managerAssignmentId: department?.managerAssignmentId ?? null,
+        managerAgentDefinitionId: managerDefinitionId,
+        updatedAt: at,
+      }),
+    );
+    await this.audit({
+      eventType: "COMPANY_AGENT_ASSIGNMENT_MOVED",
+      ownerId,
+      ipAddress,
+      outcome: "SUCCESS",
+      reason: "Specialist placement changed only within the active company.",
+      requestId,
+      metadata: {
+        companyId: assignment.companyId,
+        assignmentId: assignment.id,
+        departmentId,
+      },
+    });
+  }
+
+  async archiveDepartment(
+    ownerId: string,
+    departmentId: string,
+    rawBody: unknown,
+    requestId: string,
+    ipAddress: string,
+  ) {
+    const body = ArchiveWorkforceDepartmentRequestSchema.parse(rawBody);
+    const department = await this.activeDepartment(ownerId, departmentId);
+    if (body.relocateToDepartmentId === departmentId)
+      throw new ExecutionError(
+        409,
+        "DEPARTMENT_ARCHIVE_TARGET",
+        "Choose another department or Unassigned.",
+      );
+    if (body.relocateToDepartmentId)
+      await this.activeDepartment(ownerId, body.relocateToDepartmentId);
+    const members = (await this.agentStore.listAssignments(ownerId)).filter(
+      (assignment) =>
+        assignment.status !== "REVOKED" && assignment.departmentId === departmentId,
+    );
+    for (const member of members)
+      await this.moveAssignment(
+        ownerId,
+        member.agentDefinitionId,
+        body.relocateToDepartmentId,
+        requestId,
+        ipAddress,
+      );
+    const at = this.now().toISOString();
+    await this.society.store.saveDepartment(
+      DepartmentRecordSchema.parse({
+        ...department,
+        status: "archived",
+        managerAssignmentId: null,
+        leadAgentId: null,
+        updatedAt: at,
+      }),
+    );
+    await this.audit({
+      eventType: "WORKFORCE_DEPARTMENT_ARCHIVED",
+      ownerId,
+      ipAddress,
+      outcome: "SUCCESS",
+      reason: "Department archived after safely relocating company assignments.",
+      requestId,
+      metadata: {
+        companyId: this.requireCompanyId(ownerId),
+        departmentId,
+        relocatedMemberCount: members.length,
+      },
+    });
+    return this.graph(ownerId, {});
+  }
+
   async ensureCompanyGovernor(ownerId: string, companyId: string) {
     return companyScope.run(
       { ownerId, companyId, role: "OWNER", requestId: "company-governor-bootstrap" },
@@ -439,12 +808,6 @@ export class AgentWorkforceService {
       updatedAt: at,
     });
     await this.agentStore.upsertDefinition(definition);
-    const existing = await this.agentStore.findAssignment(
-      ownerId,
-      definition.id,
-      companyId,
-    );
-    if (existing && existing.status !== "REVOKED") return existing;
     let organization = (await this.society.store.listOrganizations(ownerId))[0];
     if (!organization) {
       organization = OrganizationRecordSchema.parse({
@@ -459,32 +822,20 @@ export class AgentWorkforceService {
       });
       await this.society.store.saveOrganization(organization);
     }
-    let executive = (await this.society.store.listDepartments(ownerId)).find(
-      (department) => department.name === "Executive",
+    await this.ensureMinimalDepartments(ownerId, companyId, organization, at);
+    const existing = await this.agentStore.findAssignment(
+      ownerId,
+      definition.id,
+      companyId,
     );
-    if (!executive) {
-      executive = DepartmentRecordSchema.parse({
-        id: uuidFrom(`company:${companyId}:department:Executive`),
-        ownerId,
-        organizationId: organization.id,
-        name: "Executive",
-        responsibility:
-          "Company strategy, objective intake, and bounded workforce coordination.",
-        parentDepartmentId: null,
-        leadAgentId: "alexa_governor",
-        status: "active",
-        createdAt: at,
-        updatedAt: at,
-      });
-      await this.society.store.saveDepartment(executive);
-    }
+    if (existing && existing.status !== "REVOKED") return existing;
     const assignment = CompanyAgentAssignmentSchema.parse({
       id: stableAssignmentId(ownerId, companyId, definition.id),
       ownerId,
       companyId,
       agentDefinitionId: definition.id,
       organizationId: organization.id,
-      departmentId: executive.id,
+      departmentId: null,
       managerAssignmentId: null,
       managerAgentDefinitionId: null,
       governorAssignmentId: null,
@@ -505,6 +856,38 @@ export class AgentWorkforceService {
     });
     await this.agentStore.saveAssignment(assignment);
     return assignment;
+  }
+
+  private async ensureMinimalDepartments(
+    ownerId: string,
+    companyId: string,
+    organization: { id: string },
+    at: string,
+  ) {
+    const existing = await this.society.store.listDepartments(ownerId);
+    if (existing.length > 0) return existing;
+    const created: DepartmentRecord[] = [];
+    for (const templateId of defaultDepartmentTemplateIds) {
+      const template = DEPARTMENT_TEMPLATES.find((item) => item.id === templateId)!;
+      const department = DepartmentRecordSchema.parse({
+        id: uuidFrom(`company:${companyId}:department:${template.id}`),
+        ownerId,
+        companyId,
+        organizationId: organization.id,
+        departmentTemplateId: template.id,
+        name: template.name,
+        responsibility: template.genericPurpose,
+        parentDepartmentId: null,
+        managerAssignmentId: null,
+        leadAgentId: null,
+        status: "active",
+        createdAt: at,
+        updatedAt: at,
+      });
+      await this.society.store.saveDepartment(department);
+      created.push(department);
+    }
+    return created;
   }
 
   async assignBestCatalogMatch(input: {
@@ -659,21 +1042,31 @@ export class AgentWorkforceService {
         this.preview(ownerId),
       ]);
     const organization = organizations[0] ?? null;
-    const departmentById = new Map(
-      companyDepartments.map((department) => [department.id, department]),
+    const activeDepartments = companyDepartments.filter(
+      (department) => department.status !== "archived",
     );
-    const fallbackDepartment =
-      companyDepartments.find((department) => department.name === "Executive") ??
-      companyDepartments[0] ??
-      null;
+    const departmentById = new Map(
+      activeDepartments.map((department) => [department.id, department]),
+    );
+    const unassignedDepartmentId = uuidFrom(
+      `company:${this.requireCompanyId(ownerId)}:department:unassigned`,
+    );
     const projectedDepartmentId = (agent: AgentRecord) => {
       const departmentId = agent.workforce?.departmentId;
       if (departmentId && departmentById.has(departmentId)) return departmentId;
-      return fallbackDepartment?.id ?? null;
+      return agent.id === "alexa_governor" ? null : unassignedDepartmentId;
     };
     const accountByAgent = new Map(
       economyDashboard.accounts.map((account) => [account.agentId, account]),
     );
+    const statusFor = (agent: AgentRecord) => {
+      const account = accountByAgent.get(agent.id);
+      if (account?.economyStatus === "ACTIVE" || agent.status === "busy")
+        return "ACTIVE" as const;
+      if (account?.economyStatus === "SUSPENDED") return "SUSPENDED" as const;
+      if (agent.status === "unhealthy") return "FAILED" as const;
+      return "DORMANT" as const;
+    };
     const filtered = allAgents
       .filter((agent) => {
         const metadata = agent.workforce;
@@ -684,13 +1077,7 @@ export class AgentWorkforceService {
               .toLowerCase()
               .includes(query.q.toLowerCase())
           );
-        const account = accountByAgent.get(agent.id);
-        const status =
-          account?.economyStatus === "ACTIVE"
-            ? "ACTIVE"
-            : account?.economyStatus === "SUSPENDED"
-              ? "SUSPENDED"
-              : "DORMANT";
+        const status = statusFor(agent);
         return (
           (!query.q ||
             `${agent.id} ${agent.displayName} ${agent.role} ${metadata.specialization} ${metadata.skills.join(" ")} ${departmentById.get(metadata.departmentId)?.name ?? ""}`
@@ -707,6 +1094,8 @@ export class AgentWorkforceService {
     const visibleDepartmentIds = new Set(
       filtered.map(projectedDepartmentId).filter((id): id is string => Boolean(id)),
     );
+    const showOrganizationSkeleton =
+      !query.q && !query.departmentId && !query.status && !query.source;
     const nodes = [
       ...(organization
         ? [
@@ -726,13 +1115,19 @@ export class AgentWorkforceService {
           ]
         : []),
       ...companyDepartments
-        .filter((department) => visibleDepartmentIds.has(department.id))
+        .filter(
+          (department) =>
+            department.status !== "archived" &&
+            (showOrganizationSkeleton || visibleDepartmentIds.has(department.id)),
+        )
         .map((department) => ({
           id: `department:${department.id}`,
           kind: "DEPARTMENT" as const,
           label: department.name,
           subtitle: department.responsibility,
-          parentId: "alexa_governor",
+          parentId: department.parentDepartmentId
+            ? `department:${department.parentDepartmentId}`
+            : "alexa_governor",
           departmentId: department.id,
           status: "ACTIVE" as const,
           reputation: null,
@@ -744,6 +1139,28 @@ export class AgentWorkforceService {
               agent.id !== "alexa_governor",
           ).length,
         })),
+      ...(visibleDepartmentIds.has(unassignedDepartmentId)
+        ? [
+            {
+              id: `department:${unassignedDepartmentId}`,
+              kind: "DEPARTMENT" as const,
+              label: "Unassigned",
+              subtitle:
+                "Company-assigned specialists awaiting an organizational placement.",
+              parentId: "alexa_governor",
+              departmentId: unassignedDepartmentId,
+              status: "DORMANT" as const,
+              reputation: null,
+              credits: null,
+              source: "ALEXA_NATIVE" as const,
+              childCount: filtered.filter(
+                (agent) =>
+                  agent.id !== "alexa_governor" &&
+                  projectedDepartmentId(agent) === unassignedDepartmentId,
+              ).length,
+            },
+          ]
+        : []),
       ...filtered
         .filter((agent) => agent.id !== "alexa_governor")
         .map((agent) => {
@@ -762,14 +1179,7 @@ export class AgentWorkforceService {
                   ? `department:${departmentId}`
                   : "alexa_governor",
             departmentId,
-            status:
-              account?.economyStatus === "ACTIVE"
-                ? ("ACTIVE" as const)
-                : account?.economyStatus === "SUSPENDED"
-                  ? ("SUSPENDED" as const)
-                  : agent.status === "unhealthy"
-                    ? ("FAILED" as const)
-                    : ("DORMANT" as const),
+            status: statusFor(agent),
             reputation: account?.reputation ?? null,
             credits: account?.availableCredits ?? null,
             source: metadata?.source ?? ("ALEXA_NATIVE" as const),
@@ -791,17 +1201,18 @@ export class AgentWorkforceService {
     const reputations = economyDashboard.accounts.map((account) => account.reputation);
     return WorkforceGraphResponseSchema.parse({
       organization,
-      departments: companyDepartments.filter((department) =>
-        visibleDepartmentIds.has(department.id),
+      departments: activeDepartments.filter(
+        (department) =>
+          showOrganizationSkeleton || visibleDepartmentIds.has(department.id),
       ),
       nodes,
       edges,
       summary: {
         registered: allAgents.length,
-        active: economyDashboard.overview.activeAgents,
-        dormant: economyDashboard.overview.dormantAgents,
-        suspended: economyDashboard.overview.suspendedAgents,
-        departments: companyDepartments.length,
+        active: allAgents.filter((agent) => statusFor(agent) === "ACTIVE").length,
+        dormant: allAgents.filter((agent) => statusFor(agent) === "DORMANT").length,
+        suspended: allAgents.filter((agent) => statusFor(agent) === "SUSPENDED").length,
+        departments: activeDepartments.length,
         memoryScopes: new Set(
           allAgents.map((agent) => agent.workforce?.memoryScopeId).filter(Boolean),
         ).size,

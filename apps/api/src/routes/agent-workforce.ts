@@ -1,9 +1,11 @@
 import {
   AgentCatalogResponseSchema,
+  DepartmentTemplateListResponseSchema,
+  WorkforceGraphResponseSchema,
+  MoveWorkforceAgentRequestSchema,
   AssignCatalogAgentRequestSchema,
   UpdateWorkforceActivationRequestSchema,
   WorkforceAgentDetailSchema,
-  WorkforceGraphResponseSchema,
   WorkforceImportReportSchema,
 } from "@alexa-control/shared";
 import type { FastifyInstance } from "fastify";
@@ -16,6 +18,9 @@ const AgentParametersSchema = z
   .strict();
 const DefinitionParametersSchema = z
   .object({ definitionId: z.string().min(3).max(160) })
+  .strict();
+const DepartmentParametersSchema = z
+  .object({ departmentId: z.string().uuid() })
   .strict();
 
 const mutationGuards = (context: ApiRouteContext) => [
@@ -41,6 +46,92 @@ export const registerAgentWorkforceRoutes = (
       const identity = context.security.getIdentity(request);
       return AgentCatalogResponseSchema.parse(
         await context.agentWorkforce.catalog(identity.user.id, request.query),
+      );
+    },
+  );
+
+  app.get(
+    "/api/agent-workforce/department-templates",
+    {
+      preHandler: [
+        context.security.requireAuthentication,
+        context.companyContext.requireCompany,
+      ],
+    },
+    () =>
+      DepartmentTemplateListResponseSchema.parse(
+        context.agentWorkforce.departmentTemplates(),
+      ),
+  );
+
+  app.post(
+    "/api/agent-workforce/departments",
+    { preHandler: mutationGuards(context) },
+    async (request) => {
+      const identity = context.security.getIdentity(request);
+      return WorkforceGraphResponseSchema.parse(
+        await context.agentWorkforce.createDepartment(
+          identity.user.id,
+          request.body,
+          request.id,
+          request.ip,
+        ),
+      );
+    },
+  );
+
+  app.patch(
+    "/api/agent-workforce/departments/:departmentId",
+    { preHandler: mutationGuards(context) },
+    async (request) => {
+      const identity = context.security.getIdentity(request);
+      const { departmentId } = DepartmentParametersSchema.parse(request.params);
+      return WorkforceGraphResponseSchema.parse(
+        await context.agentWorkforce.updateDepartment(
+          identity.user.id,
+          departmentId,
+          request.body,
+          request.id,
+          request.ip,
+        ),
+      );
+    },
+  );
+
+  app.post(
+    "/api/agent-workforce/departments/:departmentId/archive",
+    { preHandler: mutationGuards(context) },
+    async (request) => {
+      const identity = context.security.getIdentity(request);
+      const { departmentId } = DepartmentParametersSchema.parse(request.params);
+      return WorkforceGraphResponseSchema.parse(
+        await context.agentWorkforce.archiveDepartment(
+          identity.user.id,
+          departmentId,
+          request.body,
+          request.id,
+          request.ip,
+        ),
+      );
+    },
+  );
+
+  app.patch(
+    "/api/agent-workforce/agents/:agentId/department",
+    { preHandler: mutationGuards(context) },
+    async (request) => {
+      const identity = context.security.getIdentity(request);
+      const { agentId } = AgentParametersSchema.parse(request.params);
+      const { departmentId } = MoveWorkforceAgentRequestSchema.parse(request.body);
+      await context.agentWorkforce.moveAssignment(
+        identity.user.id,
+        agentId,
+        departmentId,
+        request.id,
+        request.ip,
+      );
+      return WorkforceGraphResponseSchema.parse(
+        await context.agentWorkforce.graph(identity.user.id, {}),
       );
     },
   );

@@ -62,10 +62,13 @@ export const DepartmentRecordSchema = z
   .object({
     id: z.string().uuid(),
     ownerId: z.string().uuid(),
+    companyId: z.string().uuid().optional(),
     organizationId: z.string().uuid(),
+    departmentTemplateId: z.string().min(3).max(120).nullable().optional(),
     name: z.string().min(1).max(120),
     responsibility: z.string().min(1).max(1_000),
     parentDepartmentId: z.string().uuid().nullable().optional(),
+    managerAssignmentId: z.string().uuid().nullable().optional(),
     leadAgentId: z.string().min(3).max(120).nullable(),
     status: z.enum(["active", "archived"]).optional(),
     createdAt: z.iso.datetime(),

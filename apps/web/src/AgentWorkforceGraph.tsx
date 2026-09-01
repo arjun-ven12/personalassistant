@@ -14,6 +14,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type FormEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 
@@ -47,7 +48,9 @@ export const AgentWorkforceGraph = ({ apiClient }: { apiClient: ApiClient }) => 
   const [departmentId, setDepartmentId] = useState("");
   const [status, setStatus] = useState("");
   const [source, setSource] = useState("");
-  const [selectedId, setSelectedId] = useState(() => new URLSearchParams(window.location.search).get("selected") ?? "");
+  const [selectedId, setSelectedId] = useState(
+    () => new URLSearchParams(window.location.search).get("selected") ?? "",
+  );
   const [tab, setTab] = useState<InspectorTab>("overview");
   const [zoom, setZoom] = useState(0.78);
   const [offset, setOffset] = useState({ x: 20, y: 20 });
@@ -55,6 +58,11 @@ export const AgentWorkforceGraph = ({ apiClient }: { apiClient: ApiClient }) => 
   const [collapsedDepartments, setCollapsedDepartments] = useState<Set<string>>(
     new Set(),
   );
+  const [newDepartmentName, setNewDepartmentName] = useState("");
+  const [newDepartmentPurpose, setNewDepartmentPurpose] = useState("");
+  const [newDepartmentTemplateId, setNewDepartmentTemplateId] = useState("");
+  const [newDepartmentParentId, setNewDepartmentParentId] = useState("");
+  const [newDepartmentManagerId, setNewDepartmentManagerId] = useState("");
   const drag = useRef<{
     x: number;
     y: number;
@@ -82,6 +90,14 @@ export const AgentWorkforceGraph = ({ apiClient }: { apiClient: ApiClient }) => 
     queryFn: apiClient.getWorkforceRuntime,
     refetchInterval: 5_000,
   });
+  const catalog = useQuery({
+    queryKey: ["agent-catalog", "workforce-management"],
+    queryFn: () => apiClient.getAgentCatalog("limit=500"),
+  });
+  const departmentTemplates = useQuery({
+    queryKey: ["workforce-department-templates"],
+    queryFn: apiClient.getWorkforceDepartmentTemplates,
+  });
   const detail = useQuery({
     queryKey: ["agent-workforce-detail", selectedId],
     queryFn: () => apiClient.getAgentWorkforceDetail(selectedId),
@@ -100,6 +116,58 @@ export const AgentWorkforceGraph = ({ apiClient }: { apiClient: ApiClient }) => 
     mutationFn: apiClient.bootstrapAgentWorkforce,
     onSuccess: refresh,
   });
+  const createDepartment = useMutation({
+    mutationFn: apiClient.createWorkforceDepartment,
+    onSuccess: async () => {
+      setNewDepartmentName("");
+      setNewDepartmentPurpose("");
+      setNewDepartmentTemplateId("");
+      setNewDepartmentParentId("");
+      setNewDepartmentManagerId("");
+      await refresh();
+    },
+  });
+  const updateDepartment = useMutation({
+    mutationFn: ({
+      departmentId,
+      input,
+    }: {
+      departmentId: string;
+      input: Parameters<ApiClient["updateWorkforceDepartment"]>[1];
+    }) => apiClient.updateWorkforceDepartment(departmentId, input),
+    onSuccess: refresh,
+  });
+  const archiveDepartment = useMutation({
+    mutationFn: ({
+      departmentId,
+      relocateToDepartmentId,
+    }: {
+      departmentId: string;
+      relocateToDepartmentId: string | null;
+    }) => apiClient.archiveWorkforceDepartment(departmentId, relocateToDepartmentId),
+    onSuccess: refresh,
+  });
+  const moveAgent = useMutation({
+    mutationFn: ({
+      agentId,
+      departmentId: nextDepartmentId,
+    }: {
+      agentId: string;
+      departmentId: string | null;
+    }) => apiClient.moveWorkforceAgent(agentId, nextDepartmentId),
+    onSuccess: refresh,
+  });
+  const assignCatalogAgent = useMutation({
+    mutationFn: ({
+      definitionId,
+      departmentId: targetDepartmentId,
+    }: {
+      definitionId: string;
+      departmentId: string;
+    }) =>
+      apiClient.assignAgentFromCatalogToDepartment(definitionId, targetDepartmentId),
+    onSuccess: refresh,
+  });
   const activation = useMutation({
     mutationFn: ({
       agentId,
@@ -113,6 +181,10 @@ export const AgentWorkforceGraph = ({ apiClient }: { apiClient: ApiClient }) => 
 
   const graphData = graph.data;
   const selectedNode = graphData?.nodes.find((node) => node.id === selectedId) ?? null;
+  const selectedDepartment =
+    graphData?.departments.find(
+      (department) => department.id === selectedNode?.departmentId,
+    ) ?? null;
   const highlightedNodeIds = useMemo(() => {
     if (!graphData || !focusBranch || !selectedNode) return new Set<string>();
     const ids = new Set(["alexa_governor", selectedNode.id]);
@@ -267,7 +339,11 @@ export const AgentWorkforceGraph = ({ apiClient }: { apiClient: ApiClient }) => 
         aria-label="Workforce summary"
       >
         <span>
-          <small>Registered</small>
+          <small>Catalog</small>
+          <strong>{catalog.data?.catalogCount ?? 0}</strong>
+        </span>
+        <span>
+          <small>Assigned</small>
           <strong>{graphData.summary.registered}</strong>
         </span>
         <span>
@@ -277,6 +353,15 @@ export const AgentWorkforceGraph = ({ apiClient }: { apiClient: ApiClient }) => 
         <span>
           <small>Dormant</small>
           <strong>{graphData.summary.dormant}</strong>
+        </span>
+        <span>
+          <small>Available</small>
+          <strong>
+            {Math.max(
+              0,
+              (catalog.data?.catalogCount ?? 0) - (catalog.data?.assignedCount ?? 0),
+            )}
+          </strong>
         </span>
         <span>
           <small>Departments</small>
@@ -325,6 +410,107 @@ export const AgentWorkforceGraph = ({ apiClient }: { apiClient: ApiClient }) => 
           </button>
         </section>
       ) : null}
+
+      <section className="workforce-department-management">
+        <div>
+          <p className="eyebrow">Company departments</p>
+          <h2>Organize the assigned workforce</h2>
+          <p>
+            Create company-scoped departments, then assign reusable specialists without
+            duplicating their catalog identities.
+          </p>
+        </div>
+        <details>
+          <summary>New Department</summary>
+          <form
+            className="workforce-department-form"
+            onSubmit={(event: FormEvent<HTMLFormElement>) => {
+              event.preventDefault();
+              createDepartment.mutate({
+                name: newDepartmentName,
+                purpose: newDepartmentPurpose,
+                parentDepartmentId: newDepartmentParentId || null,
+                templateId: newDepartmentTemplateId || null,
+                managerDefinitionId: newDepartmentManagerId || null,
+                initialDefinitionIds: [],
+              });
+            }}
+          >
+            <label>
+              Name
+              <input
+                required
+                value={newDepartmentName}
+                onChange={(event) => setNewDepartmentName(event.target.value)}
+              />
+            </label>
+            <label>
+              Purpose
+              <input
+                required
+                value={newDepartmentPurpose}
+                onChange={(event) => setNewDepartmentPurpose(event.target.value)}
+              />
+            </label>
+            <label>
+              Template
+              <select
+                value={newDepartmentTemplateId}
+                onChange={(event) => {
+                  const template = departmentTemplates.data?.templates.find(
+                    (item) => item.id === event.target.value,
+                  );
+                  setNewDepartmentTemplateId(event.target.value);
+                  if (template && !newDepartmentPurpose)
+                    setNewDepartmentPurpose(template.genericPurpose);
+                  if (template && !newDepartmentName)
+                    setNewDepartmentName(template.name);
+                }}
+              >
+                <option value="">Custom department</option>
+                {departmentTemplates.data?.templates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Parent
+              <select
+                value={newDepartmentParentId}
+                onChange={(event) => setNewDepartmentParentId(event.target.value)}
+              >
+                <option value="">Governor</option>
+                {graphData.departments.map((department) => (
+                  <option key={department.id} value={department.id}>
+                    {department.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Manager
+              <select
+                value={newDepartmentManagerId}
+                onChange={(event) => setNewDepartmentManagerId(event.target.value)}
+              >
+                <option value="">Assign later</option>
+                {catalog.data?.items
+                  .filter((item) => item.definition.role === "engineering_manager")
+                  .map((item) => (
+                    <option key={item.definition.id} value={item.definition.id}>
+                      {item.definition.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <button disabled={createDepartment.isPending} type="submit">
+              {createDepartment.isPending ? "Creating..." : "Create department"}
+            </button>
+          </form>
+        </details>
+      </section>
 
       <section className="workforce-toolbar" aria-label="Workforce graph controls">
         <label className="workforce-search">
@@ -541,9 +727,27 @@ export const AgentWorkforceGraph = ({ apiClient }: { apiClient: ApiClient }) => 
               "Choose a department or specialist to inspect its bounded organizational state."}
           </p>
           {selectedNode?.kind === "DEPARTMENT" ? (
-            <button
-              className="secondary-button"
-              onClick={() =>
+            <DepartmentInspector
+              department={selectedDepartment}
+              node={selectedNode}
+              departments={graphData.departments}
+              catalog={catalog.data?.items ?? []}
+              members={graphData.nodes.filter(
+                (node) =>
+                  node.kind === "AGENT" &&
+                  node.departmentId === selectedNode.departmentId,
+              )}
+              busy={
+                updateDepartment.isPending ||
+                archiveDepartment.isPending ||
+                assignCatalogAgent.isPending ||
+                moveAgent.isPending
+              }
+              collapsed={Boolean(
+                selectedNode.departmentId &&
+                collapsedDepartments.has(selectedNode.departmentId),
+              )}
+              onToggle={() =>
                 setCollapsedDepartments((current) => {
                   const next = new Set(current);
                   if (selectedNode.departmentId && next.has(selectedNode.departmentId))
@@ -553,20 +757,28 @@ export const AgentWorkforceGraph = ({ apiClient }: { apiClient: ApiClient }) => 
                   return next;
                 })
               }
-              type="button"
-            >
-              {selectedNode.departmentId &&
-              collapsedDepartments.has(selectedNode.departmentId) ? (
-                <ChevronRight size={15} />
-              ) : (
-                <ChevronDown size={15} />
-              )}{" "}
-              {selectedNode.departmentId &&
-              collapsedDepartments.has(selectedNode.departmentId)
-                ? "Expand"
-                : "Collapse"}{" "}
-              department
-            </button>
+              onUpdate={(input) =>
+                selectedDepartment &&
+                updateDepartment.mutate({ departmentId: selectedDepartment.id, input })
+              }
+              onArchive={(relocateToDepartmentId) =>
+                selectedDepartment &&
+                archiveDepartment.mutate({
+                  departmentId: selectedDepartment.id,
+                  relocateToDepartmentId,
+                })
+              }
+              onAssign={(definitionId) =>
+                selectedDepartment &&
+                assignCatalogAgent.mutate({
+                  definitionId,
+                  departmentId: selectedDepartment.id,
+                })
+              }
+              onMove={(agentId, departmentId) =>
+                moveAgent.mutate({ agentId, departmentId })
+              }
+            />
           ) : null}
           {detail.data ? (
             <AgentInspector
@@ -576,6 +788,11 @@ export const AgentWorkforceGraph = ({ apiClient }: { apiClient: ApiClient }) => 
               activationPending={activation.isPending}
               onActivation={(state) =>
                 activation.mutate({ agentId: detail.data.agent.id, state })
+              }
+              departments={graphData.departments}
+              movePending={moveAgent.isPending}
+              onMove={(departmentId) =>
+                moveAgent.mutate({ agentId: detail.data.agent.id, departmentId })
               }
             />
           ) : selectedNode?.kind === "AGENT" ? (
@@ -651,18 +868,276 @@ export const AgentWorkforceGraph = ({ apiClient }: { apiClient: ApiClient }) => 
   );
 };
 
+const DepartmentInspector = ({
+  department,
+  node,
+  departments,
+  catalog,
+  members,
+  busy,
+  collapsed,
+  onToggle,
+  onUpdate,
+  onArchive,
+  onAssign,
+  onMove,
+}: {
+  department: WorkforceGraphResponse["departments"][number] | null;
+  node: WorkforceGraphResponse["nodes"][number];
+  departments: WorkforceGraphResponse["departments"];
+  catalog: Awaited<ReturnType<ApiClient["getAgentCatalog"]>>["items"];
+  members: WorkforceGraphResponse["nodes"];
+  busy: boolean;
+  collapsed: boolean;
+  onToggle: () => void;
+  onUpdate: (input: Parameters<ApiClient["updateWorkforceDepartment"]>[1]) => void;
+  onArchive: (relocateToDepartmentId: string | null) => void;
+  onAssign: (definitionId: string) => void;
+  onMove: (agentId: string, departmentId: string | null) => void;
+}) => {
+  const [name, setName] = useState(department?.name ?? "Unassigned");
+  const [purpose, setPurpose] = useState(department?.responsibility ?? node.subtitle);
+  const [managerDefinitionId, setManagerDefinitionId] = useState(
+    department?.leadAgentId ?? "",
+  );
+  const [parentDepartmentId, setParentDepartmentId] = useState(
+    department?.parentDepartmentId ?? "",
+  );
+  const [catalogDefinitionId, setCatalogDefinitionId] = useState("");
+  const [relocateToDepartmentId, setRelocateToDepartmentId] = useState("");
+  useEffect(() => {
+    setName(department?.name ?? "Unassigned");
+    setPurpose(department?.responsibility ?? node.subtitle);
+    setManagerDefinitionId(department?.leadAgentId ?? "");
+    setParentDepartmentId(department?.parentDepartmentId ?? "");
+  }, [
+    department?.id,
+    department?.leadAgentId,
+    department?.name,
+    department?.parentDepartmentId,
+    department?.responsibility,
+    node.subtitle,
+  ]);
+  if (!department)
+    return (
+      <>
+        <dl className="compact-definition-list">
+          <div>
+            <dt>Placement</dt>
+            <dd>Unassigned</dd>
+          </div>
+          <div>
+            <dt>Members</dt>
+            <dd>{members.length}</dd>
+          </div>
+        </dl>
+        <p className="mono-meta">
+          Move a specialist into a company department when its reporting line is known.
+        </p>
+        <MemberList
+          members={members}
+          departments={departments}
+          busy={busy}
+          onMove={onMove}
+        />
+      </>
+    );
+  return (
+    <>
+      <button className="secondary-button" onClick={onToggle} type="button">
+        {collapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
+        {collapsed ? "Expand" : "Collapse"} department
+      </button>
+      <form
+        className="workforce-inspector-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onUpdate({
+            name,
+            purpose,
+            parentDepartmentId: parentDepartmentId || null,
+            managerDefinitionId: managerDefinitionId || null,
+          });
+        }}
+      >
+        <label>
+          Name
+          <input
+            required
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+          />
+        </label>
+        <label>
+          Purpose
+          <input
+            required
+            value={purpose}
+            onChange={(event) => setPurpose(event.target.value)}
+          />
+        </label>
+        <label>
+          Manager
+          <select
+            value={managerDefinitionId}
+            onChange={(event) => setManagerDefinitionId(event.target.value)}
+          >
+            <option value="">Assign later</option>
+            {catalog
+              .filter((item) => item.definition.role === "engineering_manager")
+              .map((item) => (
+                <option key={item.definition.id} value={item.definition.id}>
+                  {item.definition.name}
+                </option>
+              ))}
+          </select>
+        </label>
+        <label>
+          Parent
+          <select
+            value={parentDepartmentId}
+            onChange={(event) => setParentDepartmentId(event.target.value)}
+          >
+            <option value="">Governor</option>
+            {departments
+              .filter((candidate) => candidate.id !== department.id)
+              .map((candidate) => (
+                <option key={candidate.id} value={candidate.id}>
+                  {candidate.name}
+                </option>
+              ))}
+          </select>
+        </label>
+        <button disabled={busy} type="submit">
+          Save department
+        </button>
+      </form>
+      <label className="workforce-inspector-field">
+        Add specialist
+        <select
+          value={catalogDefinitionId}
+          onChange={(event) => setCatalogDefinitionId(event.target.value)}
+        >
+          <option value="">Select catalog specialist</option>
+          {catalog
+            .filter((item) => item.currentCompanyStatus !== "UNAVAILABLE")
+            .map((item) => (
+              <option key={item.definition.id} value={item.definition.id}>
+                {item.definition.name}
+                {item.currentCompanyStatus === "ASSIGNED" ? " (move here)" : ""}
+              </option>
+            ))}
+        </select>
+      </label>
+      <button
+        disabled={busy || !catalogDefinitionId}
+        onClick={() => onAssign(catalogDefinitionId)}
+        type="button"
+      >
+        Add specialist
+      </button>
+      <MemberList
+        members={members}
+        departments={departments}
+        busy={busy}
+        onMove={onMove}
+      />
+      <label className="workforce-inspector-field">
+        Archive relocation
+        <select
+          value={relocateToDepartmentId}
+          onChange={(event) => setRelocateToDepartmentId(event.target.value)}
+        >
+          <option value="">Move members to Unassigned</option>
+          {departments
+            .filter((candidate) => candidate.id !== department.id)
+            .map((candidate) => (
+              <option key={candidate.id} value={candidate.id}>
+                Move members to {candidate.name}
+              </option>
+            ))}
+        </select>
+      </label>
+      <button
+        className="danger-button"
+        disabled={busy}
+        onClick={() => {
+          if (
+            window.confirm(
+              `Archive ${department.name}? Assigned specialists will be safely relocated.`,
+            )
+          )
+            onArchive(relocateToDepartmentId || null);
+        }}
+        type="button"
+      >
+        Archive department
+      </button>
+    </>
+  );
+};
+
+const MemberList = ({
+  members,
+  departments,
+  busy,
+  onMove,
+}: {
+  members: WorkforceGraphResponse["nodes"];
+  departments: WorkforceGraphResponse["departments"];
+  busy: boolean;
+  onMove: (agentId: string, departmentId: string | null) => void;
+}) => (
+  <div className="workforce-member-list">
+    <p className="eyebrow">Assigned specialists</p>
+    {members.map((member) => {
+      const currentDepartmentId = departments.some(
+        (department) => department.id === member.departmentId,
+      )
+        ? (member.departmentId ?? "")
+        : "";
+      return (
+        <label key={member.id}>
+          <span>{member.label}</span>
+          <select
+            disabled={busy}
+            value={currentDepartmentId}
+            onChange={(event) => onMove(member.id, event.target.value || null)}
+          >
+            <option value="">Unassigned</option>
+            {departments.map((department) => (
+              <option key={department.id} value={department.id}>
+                {department.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      );
+    })}
+    {!members.length ? (
+      <p className="mono-meta">No specialists assigned to this department.</p>
+    ) : null}
+  </div>
+);
+
 const AgentInspector = ({
   detail,
   tab,
   setTab,
   activationPending,
   onActivation,
+  departments,
+  movePending,
+  onMove,
 }: {
   detail: Awaited<ReturnType<ApiClient["getAgentWorkforceDetail"]>>;
   tab: InspectorTab;
   setTab: (tab: InspectorTab) => void;
   activationPending: boolean;
   onActivation: (state: "ACTIVE" | "DORMANT") => void;
+  departments: WorkforceGraphResponse["departments"];
+  movePending: boolean;
+  onMove: (departmentId: string | null) => void;
 }) => {
   const metadata = detail.agent.workforce;
   const tabs: InspectorTab[] = [
@@ -677,7 +1152,11 @@ const AgentInspector = ({
   ];
   return (
     <>
-      <ContextualAskAlexa kind="AGENT" id={detail.agent.id} label={detail.agent.displayName} />
+      <ContextualAskAlexa
+        kind="AGENT"
+        id={detail.agent.id}
+        label={detail.agent.displayName}
+      />
       <div className="inspector-tabs">
         {tabs.map((value) => (
           <button
@@ -736,6 +1215,21 @@ const AgentInspector = ({
               Return dormant
             </button>
           </div>
+          <label className="workforce-inspector-field">
+            Department
+            <select
+              disabled={movePending}
+              value={detail.department?.id ?? ""}
+              onChange={(event) => onMove(event.target.value || null)}
+            >
+              <option value="">Unassigned</option>
+              {departments.map((department) => (
+                <option key={department.id} value={department.id}>
+                  {department.name}
+                </option>
+              ))}
+            </select>
+          </label>
           <details>
             <summary>Advanced provenance</summary>
             <dl className="compact-definition-list">

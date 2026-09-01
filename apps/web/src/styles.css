@@ -5074,6 +5074,82 @@ pre {
   padding: 14px;
 }
 
+.workforce-department-management {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.workforce-department-management h2,
+.workforce-department-management p {
+  margin: 3px 0 0;
+}
+
+.workforce-department-management p:not(.eyebrow) {
+  color: var(--text-2);
+}
+
+.workforce-department-management summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.workforce-department-form,
+.workforce-inspector-form {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.workforce-department-form {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.workforce-department-form label,
+.workforce-inspector-form label,
+.workforce-inspector-field,
+.workforce-member-list label {
+  display: grid;
+  gap: 5px;
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.workforce-department-form input,
+.workforce-department-form select,
+.workforce-inspector-form input,
+.workforce-inspector-form select,
+.workforce-inspector-field select,
+.workforce-member-list select {
+  min-height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 0 8px;
+}
+
+.workforce-member-list {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.workforce-member-list label {
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.8fr);
+  align-items: center;
+}
+
+.workforce-member-list label > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
 .workforce-bootstrap h2,
 .workforce-bootstrap p {
   margin: 3px 0 0;
@@ -5549,6 +5625,9 @@ pre {
   .workforce-bootstrap {
     align-items: stretch;
     flex-direction: column;
+  }
+  .workforce-department-form {
+    grid-template-columns: 1fr;
   }
   .workforce-graph-viewport {
     height: 560px;
@@ -8609,10 +8688,9 @@ pre {
 }
 .agent-directory-row {
   display: grid;
-  grid-template-columns: minmax(160px, 1.2fr) minmax(160px, 1.4fr) minmax(
-      100px,
-      0.7fr
-    ) minmax(90px, 0.6fr) 58px;
+  grid-template-columns:
+    minmax(160px, 1.2fr) minmax(160px, 1.4fr) minmax(100px, 0.7fr)
+    minmax(90px, 0.6fr) 58px;
   align-items: center;
   width: 100%;
   min-height: 43px;
@@ -8661,10 +8739,9 @@ pre {
 }
 .agent-catalog-row {
   display: grid;
-  grid-template-columns: minmax(180px, 1.2fr) minmax(180px, 1.4fr) minmax(
-      110px,
-      0.7fr
-    ) minmax(90px, 0.6fr) 88px;
+  grid-template-columns:
+    minmax(180px, 1.2fr) minmax(180px, 1.4fr) minmax(110px, 0.7fr)
+    minmax(90px, 0.6fr) 88px;
   align-items: center;
   min-height: 48px;
   gap: 12px;
@@ -9057,10 +9134,9 @@ pre {
 .workflow-run-header,
 .workflow-run-row {
   display: grid;
-  grid-template-columns: minmax(190px, 1.55fr) minmax(130px, 0.8fr) minmax(
-      130px,
-      0.75fr
-    ) minmax(120px, 0.7fr) 138px;
+  grid-template-columns:
+    minmax(190px, 1.55fr) minmax(130px, 0.8fr) minmax(130px, 0.75fr)
+    minmax(120px, 0.7fr) 138px;
   align-items: center;
   gap: 12px;
 }
