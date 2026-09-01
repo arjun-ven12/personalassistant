@@ -89,6 +89,21 @@ describe("AgentWorkforceService", () => {
     expect(novaBefore.catalogCount).toBe(atlasCatalog.catalogCount);
     expect(novaBefore.assignedCount).toBeLessThan(atlasCatalog.assignedCount);
     expect(novaBefore.assignedCount).toBeLessThanOrEqual(9);
+    const novaGraph = await companyScope.run(
+      { ownerId, companyId: novaId, role: "OWNER", requestId: "nova-graph" },
+      () => workforce.graph(ownerId, { limit: 500 }),
+    );
+    expect(novaGraph.nodes.some((node) => node.kind === "GOVERNOR")).toBe(true);
+    expect(novaGraph.nodes.filter((node) => node.kind === "AGENT")).toHaveLength(
+      novaBefore.assignedCount - 1,
+    );
+    expect(
+      novaGraph.nodes
+        .filter((node) => node.kind === "AGENT")
+        .every((node) =>
+          novaGraph.nodes.some((candidate) => candidate.id === node.parentId),
+        ),
+    ).toBe(true);
     const available = novaBefore.items.find(
       (item) => item.currentCompanyStatus === "AVAILABLE",
     )!;

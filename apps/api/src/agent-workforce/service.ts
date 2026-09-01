@@ -157,22 +157,30 @@ export class AgentWorkforceService {
     const candidateIds = new Set(
       [...ECC_AGENT_SEEDS, ...ALEXA_NATIVE_WORKFORCE].map((seed) => seed.id),
     );
-    const additions = [...candidateIds].filter(
+    const definitionAdditions = [...candidateIds].filter(
       (id) => !current.some((agent) => agent.id === id),
+    ).length;
+    const assignedDefinitionIds = new Set(
+      assigned
+        .filter((item) => item.status !== "REVOKED")
+        .map((item) => item.agentDefinitionId),
+    );
+    const assignmentAdditions = [...candidateIds].filter(
+      (id) => !assignedDefinitionIds.has(id),
     ).length;
     return WorkforceImportReportSchema.parse({
       sourceDefinitionsScanned: EXTERNAL_CLASSIFICATION.scanned,
       importedAsAgents: EXTERNAL_CLASSIFICATION.importedAgents,
       alexaNativeAgentsAdded: ALEXA_NATIVE_WORKFORCE.length,
-      finalActualRegisteredAgents:
-        assigned.filter((item) => item.status !== "REVOKED").length + additions,
+      finalActualRegisteredAgents: assignedDefinitionIds.size + assignmentAdditions,
       convertedToSkills: EXTERNAL_CLASSIFICATION.convertedToSkills,
       convertedToWorkflows: EXTERNAL_CLASSIFICATION.convertedToWorkflows,
       convertedToReviewers: EXTERNAL_CLASSIFICATION.convertedToReviewers,
       duplicatesRejected: EXTERNAL_CLASSIFICATION.duplicatesRejected,
       activeDuringIdle: 0,
       dormantDuringIdle:
-        current.filter((agent) => candidateIds.has(agent.id)).length + additions,
+        current.filter((agent) => candidateIds.has(agent.id)).length +
+        definitionAdditions,
       sourceCommit: ECC_COMMIT,
       sourceLicense: ECC_LICENSE,
       externalRuntimeActive: false,
@@ -654,6 +662,15 @@ export class AgentWorkforceService {
     const departmentById = new Map(
       companyDepartments.map((department) => [department.id, department]),
     );
+    const fallbackDepartment =
+      companyDepartments.find((department) => department.name === "Executive") ??
+      companyDepartments[0] ??
+      null;
+    const projectedDepartmentId = (agent: AgentRecord) => {
+      const departmentId = agent.workforce?.departmentId;
+      if (departmentId && departmentById.has(departmentId)) return departmentId;
+      return fallbackDepartment?.id ?? null;
+    };
     const accountByAgent = new Map(
       economyDashboard.accounts.map((account) => [account.agentId, account]),
     );
@@ -679,7 +696,8 @@ export class AgentWorkforceService {
             `${agent.id} ${agent.displayName} ${agent.role} ${metadata.specialization} ${metadata.skills.join(" ")} ${departmentById.get(metadata.departmentId)?.name ?? ""}`
               .toLowerCase()
               .includes(query.q.toLowerCase())) &&
-          (!query.departmentId || metadata.departmentId === query.departmentId) &&
+          (!query.departmentId ||
+            projectedDepartmentId(agent) === query.departmentId) &&
           (!query.status || status === query.status) &&
           (!query.source || metadata.source === query.source)
         );
@@ -687,9 +705,7 @@ export class AgentWorkforceService {
       .slice(0, query.limit);
     const visibleAgentIds = new Set(filtered.map((agent) => agent.id));
     const visibleDepartmentIds = new Set(
-      filtered
-        .map((agent) => agent.workforce?.departmentId)
-        .filter((id): id is string => Boolean(id)),
+      filtered.map(projectedDepartmentId).filter((id): id is string => Boolean(id)),
     );
     const nodes = [
       ...(organization
@@ -724,7 +740,7 @@ export class AgentWorkforceService {
           source: "ALEXA_NATIVE" as const,
           childCount: filtered.filter(
             (agent) =>
-              agent.workforce?.departmentId === department.id &&
+              projectedDepartmentId(agent) === department.id &&
               agent.id !== "alexa_governor",
           ).length,
         })),
@@ -733,6 +749,7 @@ export class AgentWorkforceService {
         .map((agent) => {
           const metadata = agent.workforce;
           const account = accountByAgent.get(agent.id);
+          const departmentId = projectedDepartmentId(agent);
           return {
             id: agent.id,
             kind: "AGENT" as const,
@@ -741,10 +758,10 @@ export class AgentWorkforceService {
             parentId:
               metadata?.parentAgentId && visibleAgentIds.has(metadata.parentAgentId)
                 ? metadata.parentAgentId
-                : metadata
-                  ? `department:${metadata.departmentId}`
+                : departmentId
+                  ? `department:${departmentId}`
                   : "alexa_governor",
-            departmentId: metadata?.departmentId ?? null,
+            departmentId,
             status:
               account?.economyStatus === "ACTIVE"
                 ? ("ACTIVE" as const)
@@ -798,7 +815,9 @@ export class AgentWorkforceService {
           ? reputations.reduce((sum, value) => sum + value, 0) / reputations.length
           : 0,
       },
-      bootstrapAvailable: allAgents.length < 100,
+      bootstrapAvailable: [...ALEXA_NATIVE_WORKFORCE, ...ECC_AGENT_SEEDS].some(
+        (seed) => !allAgents.some((agent) => agent.id === seed.id),
+      ),
       importPreview: preview,
       runtime: {
         modelInstancesFromRegistration: 0,

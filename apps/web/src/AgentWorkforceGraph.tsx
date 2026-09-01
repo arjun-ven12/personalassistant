@@ -299,24 +299,29 @@ export const AgentWorkforceGraph = ({ apiClient }: { apiClient: ApiClient }) => 
       {graphData.bootstrapAvailable ? (
         <section className="workforce-bootstrap">
           <div>
-            <p className="eyebrow">Workforce bootstrap</p>
-            <h2>
-              {graphData.importPreview.finalActualRegisteredAgents} reviewed identities
-              ready
-            </h2>
+            <p className="eyebrow">Optional company setup</p>
+            <h2>Assign the standard workforce to this company</h2>
             <p>
-              {graphData.importPreview.importedAsAgents} normalized from Everything
-              Claude Code and {graphData.importPreview.alexaNativeAgentsAdded}{" "}
-              Alexa-native specialists. Registration activates no model, worker, or
-              external runtime.
+              This company currently has {graphData.summary.registered} assigned. The
+              standard workforce would bring it to{" "}
+              {graphData.importPreview.finalActualRegisteredAgents} company assignments.
+              Newly assigned specialists remain dormant; no model, worker, or external
+              runtime is started.
             </p>
           </div>
           <button
             disabled={bootstrap.isPending}
-            onClick={() => bootstrap.mutate()}
+            onClick={() => {
+              if (
+                window.confirm(
+                  "Assign the full standard workforce to this company? This creates dormant company assignments and does not start any runtime.",
+                )
+              )
+                bootstrap.mutate();
+            }}
             type="button"
           >
-            {bootstrap.isPending ? "Registering..." : "Bootstrap workforce"}
+            {bootstrap.isPending ? "Assigning..." : "Assign standard workforce"}
           </button>
         </section>
       ) : null}
