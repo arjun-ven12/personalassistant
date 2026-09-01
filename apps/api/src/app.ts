@@ -749,10 +749,13 @@ export const buildApi = async ({
   });
   const resolvedCompanyStore =
     companyStore ??
-    (database
-      ? new PostgresCompanyStore(database.pool)
-      : new InMemoryCompanyStore());
-  const companies = new CompanyService(resolvedCompanyStore, identityStore, now, companyLimit);
+    (database ? new PostgresCompanyStore(database.pool) : new InMemoryCompanyStore());
+  const companies = new CompanyService(
+    resolvedCompanyStore,
+    identityStore,
+    now,
+    companyLimit,
+  );
   companies.setProvisioningHook(companyProvisioningHook);
   const companyContext = new CompanyContextResolver(companies, security, telemetry);
   const governanceAudit = async (
@@ -943,6 +946,12 @@ export const buildApi = async ({
     governanceAudit,
     now,
   );
+  companies.setProvisioningHook(async (step, company) => {
+    await companyProvisioningHook?.(step, company);
+    if (step === "GOVERNOR_PLACEHOLDER_READY") {
+      await agentWorkforce.ensureCompanyGovernor(company.ownerId, company.id);
+    }
+  });
   canonicalRouter.setAgentEconomyAccounting(agentEconomy);
   const retrieval = new RetrievalService(
     memoryStore,
@@ -1680,16 +1689,18 @@ export const buildApi = async ({
         ? await identityStore.findDeviceById(envelope.data.deviceId)
         : undefined;
       if (device) {
-        void notifications.dispatch({
-          ownerId: device.ownerId,
-          eventId: `security:${request.id}:${code}`,
-          category: "SECURITY_EVENT",
-          severity: code === "INVALID_SIGNATURE" ? "CRITICAL" : "HIGH",
-          objectKind: "SYSTEM",
-          objectId: "mobile-request-security",
-          stateVersion: code,
-          title: "Alexa security event",
-        }).catch(() => undefined);
+        void notifications
+          .dispatch({
+            ownerId: device.ownerId,
+            eventId: `security:${request.id}:${code}`,
+            category: "SECURITY_EVENT",
+            severity: code === "INVALID_SIGNATURE" ? "CRITICAL" : "HIGH",
+            objectKind: "SYSTEM",
+            objectId: "mobile-request-security",
+            stateVersion: code,
+            title: "Alexa security event",
+          })
+          .catch(() => undefined);
       }
     }
 

@@ -1,5 +1,6 @@
 import {
   AgentDashboardResponseSchema,
+  AgentRecordSchema,
   ComposeTeamRequestSchema,
   type AgentRecord,
   type AgentTemplateRecord,
@@ -11,9 +12,11 @@ import {
 import { createHash } from "node:crypto";
 
 import { ExecutionError } from "../execution/errors.js";
+import { companyScope } from "../companies/scope.js";
 import type { GovernanceAuditWriter } from "../governance/approval-service.js";
 import type { RepositoryStore } from "../repositories/store.js";
 import type { AgentStore } from "./store.js";
+import { assignmentFromAgent, canonicalAgentKey } from "./catalog-model.js";
 
 type TemplateSeed = Omit<AgentTemplateRecord, "ownerId" | "createdAt" | "updatedAt">;
 
@@ -594,7 +597,12 @@ export class AgentFactoryService {
       version: "dynamic-1.0.0",
       status: "available",
       capabilities: agent.capabilities,
-      supportedTasks: workforce?.skills ?? ["planning", "review", "risk_analysis", "documentation"],
+      supportedTasks: workforce?.skills ?? [
+        "planning",
+        "review",
+        "risk_analysis",
+        "documentation",
+      ],
       configuration: {
         dynamic: true,
         templateId: agent.templateId,
@@ -603,10 +611,9 @@ export class AgentFactoryService {
       },
       createdAt: agent.createdAt,
       updatedAt: agent.updatedAt,
-      healthSummary:
-        workforce
-          ? "Generated workforce specialist. It inherits no new authority and uses shared AIRouter only when assigned."
-          : "Temporary dynamic specialist. It inherits existing agent permissions and cannot execute independently.",
+      healthSummary: workforce
+        ? "Generated workforce specialist. It inherits no new authority and uses shared AIRouter only when assigned."
+        : "Temporary dynamic specialist. It inherits existing agent permissions and cannot execute independently.",
       ...(workforce ? { workforce } : {}),
     });
     await this.store.saveHealth({
@@ -654,18 +661,29 @@ export class AgentFactoryService {
   async createObjectiveSpecialist(input: ObjectiveSpecialistInput) {
     await this.ensureTemplates(input.ownerId);
     const specialization = capabilityId(input.name);
-    const existing = (await this.store.listAgents(input.ownerId)).find((agent) =>
-      agent.configuration.dynamic === true &&
-      agent.displayName === input.name &&
-      agent.workforce?.organizationId === input.organizationId &&
-      agent.workforce.departmentId === input.departmentId,
+    const reusableDefinition = (await this.store.listDefinitions(input.ownerId)).find(
+      (definition) => definition.canonicalKey === canonicalAgentKey(input.name),
+    );
+    const existing = (await this.store.listAgents(input.ownerId)).find(
+      (agent) =>
+        agent.configuration.dynamic === true &&
+        agent.displayName === input.name &&
+        agent.workforce?.organizationId === input.organizationId &&
+        agent.workforce.departmentId === input.departmentId,
     );
     if (existing)
-      return { agent: existing, dynamicAgent: await this.store.findDynamicAgent(input.ownerId, existing.id) ?? null };
-    const template = this.bestTemplate(await this.store.listTemplates(input.ownerId), capabilityId(input.capability));
+      return {
+        agent: existing,
+        dynamicAgent:
+          (await this.store.findDynamicAgent(input.ownerId, existing.id)) ?? null,
+      };
+    const template = this.bestTemplate(
+      await this.store.listTemplates(input.ownerId),
+      capabilityId(input.capability),
+    );
     const at = this.now().toISOString();
     const scopeHash = createHash("sha256")
-      .update(`${input.ownerId}:${input.organizationId}:${input.departmentId}:${specialization}`)
+      .update(`${input.ownerId}:${specialization}`)
       .digest("hex")
       .slice(0, 12);
     const id = `dynamic_${specialization.slice(0, 90)}_${scopeHash}`;
@@ -718,25 +736,79 @@ export class AgentFactoryService {
       managerAgentId: input.managerAgentId,
       specialization: input.name,
       description: input.description,
-      skills: [...new Set(input.skills.length ? input.skills : [input.capability])].slice(0, 30),
+      skills: [
+        ...new Set(input.skills.length ? input.skills : [input.capability]),
+      ].slice(0, 30),
       memoryScopeId: `agent:${id}`,
       departmentMemoryScopeId: input.departmentMemoryScopeId,
       organizationMemoryScopeId: input.organizationMemoryScopeId,
       capabilityProfileId: `profile:dynamic:${specialization}`,
       missingCapabilities: [],
-      modelPolicyId: input.capabilities.some((capability) => capability.includes("security")) ? "SECURITY_REVIEW" : "BALANCED",
+      modelPolicyId: input.capabilities.some((capability) =>
+        capability.includes("security"),
+      )
+        ? "SECURITY_REVIEW"
+        : "BALANCED",
       activationPolicyId: "lazy_owner_or_task_activation_v1",
-      executionPlacement: input.capabilities.some((capability) => capability.includes("security")) ? "LOCAL_ONLY" : "REMOTE_ALLOWED",
-      evaluationProfile: ["verified_outcome", "quality", "cost_efficiency", "policy_compliance"],
+      executionPlacement: input.capabilities.some((capability) =>
+        capability.includes("security"),
+      )
+        ? "LOCAL_ONLY"
+        : "REMOTE_ALLOWED",
+      evaluationProfile: [
+        "verified_outcome",
+        "quality",
+        "cost_efficiency",
+        "policy_compliance",
+      ],
       source: "ALEXA_NATIVE",
       sourcePath: null,
       sourceVersion: "dynamic-workforce-gap-resolver",
       license: null,
       importedAt: at,
     };
-    await this.registerDynamicAgent(dynamicAgent, input.requestId, input.ipAddress, workforce);
+    if (reusableDefinition) {
+      const companyId = companyScope.companyId(input.ownerId) ?? input.ownerId;
+      const compatibility = AgentRecordSchema.parse({
+        schemaVersion: "1",
+        id: reusableDefinition.id,
+        ownerId: input.ownerId,
+        role: reusableDefinition.role,
+        displayName: reusableDefinition.name,
+        version: reusableDefinition.version,
+        status: "available",
+        capabilities: reusableDefinition.capabilityRequirements,
+        supportedTasks: reusableDefinition.supportedTasks,
+        configuration: { dynamic: true, reusableSpecialist: true },
+        createdAt: reusableDefinition.createdAt,
+        updatedAt: at,
+        healthSummary:
+          "Existing reusable catalog specialist assigned without creating another definition.",
+        workforce,
+      });
+      await this.store.saveAssignment(assignmentFromAgent(compatibility, companyId));
+      const assigned = await this.store.findAgent(input.ownerId, reusableDefinition.id);
+      if (!assigned)
+        throw new ExecutionError(
+          500,
+          "CATALOG_ASSIGNMENT_FAILED",
+          "Reusable specialist assignment did not complete.",
+        );
+      return { agent: assigned, dynamicAgent: null };
+    }
+    await this.registerDynamicAgent(
+      dynamicAgent,
+      input.requestId,
+      input.ipAddress,
+      workforce,
+    );
     const agent = await this.store.findAgent(input.ownerId, id);
-    if (!agent) throw new ExecutionError(500, "DYNAMIC_AGENT_REGISTRATION_FAILED", "Dynamic specialist registration did not produce a workforce agent.");
+    if (!agent)
+      throw new ExecutionError(
+        500,
+        "DYNAMIC_AGENT_REGISTRATION_FAILED",
+        "Dynamic specialist registration did not produce a workforce agent.",
+      );
     return { agent, dynamicAgent };
   }
 

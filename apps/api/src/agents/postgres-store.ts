@@ -13,6 +13,8 @@ import {
   CapabilityRecordSchema,
   DynamicAgentPerformanceRecordSchema,
   DynamicAgentRecordSchema,
+  AgentDefinitionSchema,
+  CompanyAgentAssignmentSchema,
   TeamCompositionRecordSchema,
   type AgentConsensusRecord,
   type AgentConflictRecord,
@@ -28,55 +30,188 @@ import {
   type CapabilityRecord,
   type DynamicAgentPerformanceRecord,
   type DynamicAgentRecord,
+  type AgentDefinition,
+  type CompanyAgentAssignment,
   type TeamCompositionRecord,
 } from "@alexa-control/shared";
 import type { Pool } from "pg";
 
 import type { AgentStore } from "./store.js";
 import { companyScope } from "../companies/scope.js";
+import {
+  assignmentFromAgent,
+  definitionFromAgent,
+  resolvedAgent,
+} from "./catalog-model.js";
 
 export class PostgresAgentStore implements AgentStore {
   constructor(readonly pool: Pool) {}
 
-  async upsertAgent(agent: AgentRecord) {
-    const parsed = AgentRecordSchema.parse(agent);
-    const result = await this.pool.query(
-      `INSERT INTO agents(id,owner_id,role,status,version,created_at,updated_at,record,company_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-       ON CONFLICT (owner_id,id) DO UPDATE
-       SET status=$4,version=$5,updated_at=$7,record=$8
-       WHERE agents.company_id=EXCLUDED.company_id`,
+  async upsertDefinition(definition: AgentDefinition) {
+    const parsed = AgentDefinitionSchema.parse(definition);
+    const compatibility = AgentRecordSchema.parse({
+      schemaVersion: "1",
+      id: parsed.id,
+      ownerId: parsed.ownerId,
+      role: parsed.role,
+      displayName: parsed.name,
+      version: parsed.version,
+      status: parsed.status === "RETIRED" ? "disabled" : "available",
+      capabilities: parsed.capabilityRequirements,
+      supportedTasks: parsed.supportedTasks,
+      configuration: { runtimeMode: "LAZY_SHARED_AI" },
+      createdAt: parsed.createdAt,
+      updatedAt: parsed.updatedAt,
+      healthSummary:
+        "Reusable catalog definition; runtime activates only through a company assignment.",
+    });
+    await this.pool.query(
+      `INSERT INTO agents(
+         id,owner_id,role,status,version,created_at,updated_at,record,company_id,
+         canonical_key,definition_record
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NULL,$9,$10)
+       ON CONFLICT (owner_id,id) DO UPDATE SET
+         role=EXCLUDED.role,status=EXCLUDED.status,version=EXCLUDED.version,
+         updated_at=EXCLUDED.updated_at,canonical_key=EXCLUDED.canonical_key,
+         definition_record=EXCLUDED.definition_record`,
       [
         parsed.id,
         parsed.ownerId,
         parsed.role,
-        parsed.status,
+        compatibility.status,
         parsed.version,
         parsed.createdAt,
         parsed.updatedAt,
+        compatibility,
+        parsed.canonicalKey,
         parsed,
-        companyScope.companyId(parsed.ownerId) ?? null,
       ],
     );
-    if (result.rowCount !== 1) {
-      throw new Error("Agent belongs to another company.");
-    }
+  }
+
+  async findDefinition(ownerId: string, definitionId: string) {
+    const result = await this.pool.query<{ definition_record: unknown }>(
+      "SELECT definition_record FROM agents WHERE owner_id=$1 AND id=$2",
+      [ownerId, definitionId],
+    );
+    return result.rows[0]
+      ? AgentDefinitionSchema.parse(result.rows[0].definition_record)
+      : undefined;
+  }
+
+  async listDefinitions(ownerId: string) {
+    const result = await this.pool.query<{ definition_record: unknown }>(
+      "SELECT definition_record FROM agents WHERE owner_id=$1 ORDER BY canonical_key,id",
+      [ownerId],
+    );
+    return result.rows.map((row) => AgentDefinitionSchema.parse(row.definition_record));
+  }
+
+  async saveAssignment(assignment: CompanyAgentAssignment) {
+    const parsed = CompanyAgentAssignmentSchema.parse(assignment);
+    await this.pool.query(
+      `INSERT INTO company_agent_assignments(
+         id,owner_id,company_id,agent_definition_id,status,department_id,
+         manager_assignment_id,is_governor,created_at,updated_at,record
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+       ON CONFLICT (owner_id,company_id,agent_definition_id) DO UPDATE SET
+         status=EXCLUDED.status,department_id=EXCLUDED.department_id,
+         manager_assignment_id=EXCLUDED.manager_assignment_id,
+         is_governor=EXCLUDED.is_governor,updated_at=EXCLUDED.updated_at,
+         record=EXCLUDED.record`,
+      [
+        parsed.id,
+        parsed.ownerId,
+        parsed.companyId,
+        parsed.agentDefinitionId,
+        parsed.status,
+        parsed.departmentId,
+        parsed.managerAssignmentId,
+        parsed.isGovernor,
+        parsed.createdAt,
+        parsed.updatedAt,
+        parsed,
+      ],
+    );
+  }
+
+  async findAssignment(ownerId: string, definitionId: string, companyId?: string) {
+    const selectedCompanyId = companyId ?? companyScope.companyId(ownerId) ?? null;
+    const result = await this.pool.query<{ record: unknown }>(
+      `SELECT record FROM company_agent_assignments
+       WHERE owner_id=$1 AND agent_definition_id=$2
+         AND company_id=COALESCE($3::uuid,(SELECT default_company_id FROM owners WHERE id=$1))`,
+      [ownerId, definitionId, selectedCompanyId],
+    );
+    return result.rows[0]
+      ? CompanyAgentAssignmentSchema.parse(result.rows[0].record)
+      : undefined;
+  }
+
+  async listAssignments(ownerId: string, companyId?: string) {
+    const selectedCompanyId = companyId ?? companyScope.companyId(ownerId) ?? null;
+    const result = await this.pool.query<{ record: unknown }>(
+      `SELECT record FROM company_agent_assignments
+       WHERE owner_id=$1
+         AND company_id=COALESCE($2::uuid,(SELECT default_company_id FROM owners WHERE id=$1))
+       ORDER BY agent_definition_id`,
+      [ownerId, selectedCompanyId],
+    );
+    return result.rows.map((row) => CompanyAgentAssignmentSchema.parse(row.record));
+  }
+
+  async countDefinitionAssignments(ownerId: string, definitionId: string) {
+    const result = await this.pool.query<{ count: string }>(
+      `SELECT count(*)::text AS count FROM company_agent_assignments
+       WHERE owner_id=$1 AND agent_definition_id=$2 AND status<>'REVOKED'`,
+      [ownerId, definitionId],
+    );
+    return Number(result.rows[0]?.count ?? 0);
+  }
+
+  async upsertAgent(agent: AgentRecord) {
+    const parsed = AgentRecordSchema.parse(agent);
+    const companyId =
+      companyScope.companyId(parsed.ownerId) ??
+      (await this.defaultCompanyId(parsed.ownerId));
+    if (!companyId)
+      throw new Error("Company context is required for an agent assignment.");
+    await this.upsertDefinition(definitionFromAgent(parsed));
+    await this.saveAssignment(assignmentFromAgent(parsed, companyId));
   }
 
   async findAgent(ownerId: string, agentId: string) {
-    const result = await this.pool.query<{ record: unknown }>(
-      "SELECT record FROM agents WHERE owner_id=$1 AND id=$2 AND ($3::uuid IS NULL OR company_id=$3)",
-      [ownerId, agentId, companyScope.companyId(ownerId) ?? null],
-    );
-    return result.rows[0] ? AgentRecordSchema.parse(result.rows[0].record) : undefined;
+    const [definition, assignment] = await Promise.all([
+      this.findDefinition(ownerId, agentId),
+      this.findAssignment(ownerId, agentId),
+    ]);
+    if (!definition || !assignment || assignment.status === "REVOKED") return undefined;
+    return resolvedAgent(definition, assignment);
   }
 
   async listAgents(ownerId: string) {
-    const result = await this.pool.query<{ record: unknown }>(
-      "SELECT record FROM agents WHERE owner_id=$1 AND ($2::uuid IS NULL OR company_id=$2) ORDER BY role ASC",
-      [ownerId, companyScope.companyId(ownerId) ?? null],
+    const assignments = await this.listAssignments(ownerId);
+    const definitions = new Map(
+      (await this.listDefinitions(ownerId)).map((definition) => [
+        definition.id,
+        definition,
+      ]),
     );
-    return result.rows.map((row) => AgentRecordSchema.parse(row.record));
+    return assignments
+      .filter((assignment) => assignment.status !== "REVOKED")
+      .map((assignment) => {
+        const definition = definitions.get(assignment.agentDefinitionId);
+        return definition ? resolvedAgent(definition, assignment) : null;
+      })
+      .filter((agent): agent is AgentRecord => Boolean(agent));
+  }
+
+  private async defaultCompanyId(ownerId: string) {
+    const result = await this.pool.query<{ default_company_id: string | null }>(
+      "SELECT default_company_id FROM owners WHERE id=$1",
+      [ownerId],
+    );
+    return result.rows[0]?.default_company_id ?? null;
   }
 
   async saveTask(task: AgentTaskRecord) {
@@ -238,7 +373,14 @@ export class PostgresAgentStore implements AgentStore {
       `INSERT INTO agent_health(owner_id,agent_id,state,checked_at,record,company_id)
        VALUES ($1,$2,$3,$4,$5,$6)
        ON CONFLICT (owner_id,agent_id) DO UPDATE SET state=$3,checked_at=$4,record=$5`,
-      [parsed.ownerId, parsed.agentId, parsed.state, parsed.checkedAt, parsed, companyScope.companyId(parsed.ownerId) ?? null],
+      [
+        parsed.ownerId,
+        parsed.agentId,
+        parsed.state,
+        parsed.checkedAt,
+        parsed,
+        companyScope.companyId(parsed.ownerId) ?? null,
+      ],
     );
   }
 
@@ -258,7 +400,13 @@ export class PostgresAgentStore implements AgentStore {
       `INSERT INTO agent_metrics(owner_id,agent_id,last_activity_at,record,company_id)
        VALUES ($1,$2,$3,$4,$5)
        ON CONFLICT (owner_id,agent_id) DO UPDATE SET last_activity_at=$3,record=$4`,
-      [parsed.ownerId, parsed.agentId, parsed.lastActivityAt, parsed, companyScope.companyId(parsed.ownerId) ?? null],
+      [
+        parsed.ownerId,
+        parsed.agentId,
+        parsed.lastActivityAt,
+        parsed,
+        companyScope.companyId(parsed.ownerId) ?? null,
+      ],
     );
   }
 

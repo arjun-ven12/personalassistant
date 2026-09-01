@@ -6,7 +6,6 @@ import {
   UserSchema,
 } from "@alexa-control/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { readFile } from "node:fs/promises";
 
 import { BUILT_IN_TOOLS } from "../governance/defaults.js";
 import { PostgresGovernanceStore } from "../governance/postgres-store.js";
@@ -42,12 +41,6 @@ describe.skipIf(!connectionString)("PostgreSQL store adapters", () => {
     isolatedUrl.searchParams.set("options", `-c search_path=${testSchema}`);
     database = new PostgresDatabase(isolatedUrl.toString());
     await database.migrate();
-    await database.pool.query(
-      await readFile(
-        new URL("../../migrations/0078_phase_25_1_multi_company_tenancy.sql", import.meta.url),
-        "utf8",
-      ),
-    );
     ownerId = crypto.randomUUID();
     identity = new PostgresIdentityStore(database.pool);
     governance = new PostgresGovernanceStore(database.pool, BUILT_IN_TOOLS);

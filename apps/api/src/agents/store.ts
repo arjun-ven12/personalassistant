@@ -13,6 +13,8 @@ import {
   CapabilityRecordSchema,
   DynamicAgentPerformanceRecordSchema,
   DynamicAgentRecordSchema,
+  AgentDefinitionSchema,
+  CompanyAgentAssignmentSchema,
   TeamCompositionRecordSchema,
   type AgentConsensusRecord,
   type AgentConflictRecord,
@@ -28,22 +30,52 @@ import {
   type CapabilityRecord,
   type DynamicAgentPerformanceRecord,
   type DynamicAgentRecord,
+  type AgentDefinition,
+  type CompanyAgentAssignment,
   type TeamCompositionRecord,
 } from "@alexa-control/shared";
 
 import type { Awaitable } from "../identity/store.js";
 import { companyScope } from "../companies/scope.js";
+import {
+  assignmentFromAgent,
+  definitionFromAgent,
+  resolvedAgent,
+} from "./catalog-model.js";
 
 const scopedKey = (ownerId: string, id: string) =>
   `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:${id}`;
 const scopedPrefix = (ownerId: string) =>
   `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:`;
-const scopedValues = <T extends { ownerId: string }>(values: Map<string, T>, ownerId: string) =>
+const scopedValues = <T extends { ownerId: string }>(
+  values: Map<string, T>,
+  ownerId: string,
+) =>
   [...values.entries()]
-    .filter(([key, value]) => key.startsWith(scopedPrefix(ownerId)) && value.ownerId === ownerId)
+    .filter(
+      ([key, value]) =>
+        key.startsWith(scopedPrefix(ownerId)) && value.ownerId === ownerId,
+    )
     .map(([, value]) => value);
 
 export interface AgentStore {
+  upsertDefinition(definition: AgentDefinition): Awaitable<void>;
+  findDefinition(
+    ownerId: string,
+    definitionId: string,
+  ): Awaitable<AgentDefinition | undefined>;
+  listDefinitions(ownerId: string): Awaitable<AgentDefinition[]>;
+  saveAssignment(assignment: CompanyAgentAssignment): Awaitable<void>;
+  findAssignment(
+    ownerId: string,
+    definitionId: string,
+    companyId?: string,
+  ): Awaitable<CompanyAgentAssignment | undefined>;
+  listAssignments(
+    ownerId: string,
+    companyId?: string,
+  ): Awaitable<CompanyAgentAssignment[]>;
+  countDefinitionAssignments(ownerId: string, definitionId: string): Awaitable<number>;
   upsertAgent(agent: AgentRecord): Awaitable<void>;
   findAgent(ownerId: string, agentId: string): Awaitable<AgentRecord | undefined>;
   listAgents(ownerId: string): Awaitable<AgentRecord[]>;
@@ -103,7 +135,9 @@ export interface AgentStore {
 }
 
 export class InMemoryAgentStore implements AgentStore {
-  readonly #agents = new Map<string, AgentRecord>();
+  readonly #definitions = new Map<string, AgentDefinition>();
+  readonly #assignments = new Map<string, CompanyAgentAssignment>();
+  readonly #definitionTemplates = new Map<string, AgentRecord>();
   readonly #tasks = new Map<string, AgentTaskRecord>();
   readonly #messages = new Map<string, AgentMessageRecord>();
   readonly #contexts = new Map<string, AgentContextRecord>();
@@ -119,28 +153,113 @@ export class InMemoryAgentStore implements AgentStore {
   readonly #teamCompositions = new Map<string, TeamCompositionRecord>();
   readonly #promotionCandidates = new Map<string, AgentPromotionCandidateRecord>();
 
+  upsertDefinition(definition: AgentDefinition) {
+    const parsed = AgentDefinitionSchema.parse(definition);
+    const duplicate = [...this.#definitions.values()].find(
+      (item) =>
+        item.ownerId === parsed.ownerId &&
+        item.canonicalKey === parsed.canonicalKey &&
+        item.id !== parsed.id,
+    );
+    if (duplicate)
+      throw new Error("A semantically equivalent agent definition already exists.");
+    this.#definitions.set(`${parsed.ownerId}:${parsed.id}`, structuredClone(parsed));
+  }
+
+  findDefinition(ownerId: string, definitionId: string) {
+    const definition = this.#definitions.get(`${ownerId}:${definitionId}`);
+    return definition ? structuredClone(definition) : undefined;
+  }
+
+  listDefinitions(ownerId: string) {
+    return [...this.#definitions.values()]
+      .filter((definition) => definition.ownerId === ownerId)
+      .sort((left, right) => left.name.localeCompare(right.name))
+      .map((definition) => structuredClone(definition));
+  }
+
+  saveAssignment(assignment: CompanyAgentAssignment) {
+    const parsed = CompanyAgentAssignmentSchema.parse(assignment);
+    const definition = this.#definitions.get(
+      `${parsed.ownerId}:${parsed.agentDefinitionId}`,
+    );
+    if (!definition) throw new Error("Agent definition does not exist.");
+    this.#assignments.set(
+      `${parsed.ownerId}:${parsed.companyId}:${parsed.agentDefinitionId}`,
+      structuredClone(parsed),
+    );
+  }
+
+  findAssignment(ownerId: string, definitionId: string, companyId?: string) {
+    const targetCompanyId = companyId ?? companyScope.companyId(ownerId) ?? ownerId;
+    const assignment = this.#assignments.get(
+      `${ownerId}:${targetCompanyId}:${definitionId}`,
+    );
+    return assignment ? structuredClone(assignment) : undefined;
+  }
+
+  listAssignments(ownerId: string, companyId?: string) {
+    const targetCompanyId = companyId ?? companyScope.companyId(ownerId) ?? ownerId;
+    return [...this.#assignments.values()]
+      .filter(
+        (assignment) =>
+          assignment.ownerId === ownerId && assignment.companyId === targetCompanyId,
+      )
+      .sort((left, right) =>
+        left.agentDefinitionId.localeCompare(right.agentDefinitionId),
+      )
+      .map((assignment) => structuredClone(assignment));
+  }
+
+  countDefinitionAssignments(ownerId: string, definitionId: string) {
+    return [...this.#assignments.values()].filter(
+      (assignment) =>
+        assignment.ownerId === ownerId &&
+        assignment.agentDefinitionId === definitionId &&
+        assignment.status !== "REVOKED",
+    ).length;
+  }
+
   upsertAgent(agent: AgentRecord) {
     const parsed = AgentRecordSchema.parse(agent);
-    const targetKey = scopedKey(parsed.ownerId, parsed.id);
-    const crossCompany = [...this.#agents.entries()].some(
-      ([existingKey, existing]) =>
-        existingKey !== targetKey &&
-        existing.ownerId === parsed.ownerId &&
-        existing.id === parsed.id,
+    const companyId = companyScope.companyId(parsed.ownerId) ?? parsed.ownerId;
+    this.upsertDefinition(definitionFromAgent(parsed));
+    this.saveAssignment(assignmentFromAgent(parsed, companyId));
+    this.#definitionTemplates.set(
+      `${parsed.ownerId}:${parsed.id}`,
+      structuredClone(parsed),
     );
-    if (crossCompany) throw new Error("Agent belongs to another company.");
-    this.#agents.set(targetKey, structuredClone(parsed));
   }
 
   findAgent(ownerId: string, agentId: string) {
-    const agent = this.#agents.get(scopedKey(ownerId, agentId));
-    return agent ? structuredClone(agent) : undefined;
+    const definition = this.#definitions.get(`${ownerId}:${agentId}`);
+    const assignment = this.findAssignment(ownerId, agentId);
+    if (!definition || !assignment || assignment.status === "REVOKED") return undefined;
+    return resolvedAgent(
+      definition,
+      assignment,
+      this.#definitionTemplates.get(`${ownerId}:${agentId}`),
+    );
   }
 
   listAgents(ownerId: string) {
-    return [...this.#agents.entries()]
-      .filter(([key, agent]) => key.startsWith(scopedPrefix(ownerId)) && agent.ownerId === ownerId)
-      .map(([, agent]) => agent)
+    return this.listAssignments(ownerId)
+      .filter((assignment) => assignment.status !== "REVOKED")
+      .map((assignment) => {
+        const definition = this.#definitions.get(
+          `${ownerId}:${assignment.agentDefinitionId}`,
+        );
+        return definition
+          ? resolvedAgent(
+              definition,
+              assignment,
+              this.#definitionTemplates.get(
+                `${ownerId}:${assignment.agentDefinitionId}`,
+              ),
+            )
+          : null;
+      })
+      .filter((agent): agent is AgentRecord => Boolean(agent))
       .sort((left, right) => left.displayName.localeCompare(right.displayName))
       .map((agent) => structuredClone(agent));
   }
@@ -152,7 +271,10 @@ export class InMemoryAgentStore implements AgentStore {
 
   listTasks(ownerId: string, limit: number) {
     return [...this.#tasks.entries()]
-      .filter(([key, task]) => key.startsWith(scopedPrefix(ownerId)) && task.ownerId === ownerId)
+      .filter(
+        ([key, task]) =>
+          key.startsWith(scopedPrefix(ownerId)) && task.ownerId === ownerId,
+      )
       .map(([, task]) => task)
       .sort((left, right) => right.assignedAt.localeCompare(left.assignedAt))
       .slice(0, limit)
@@ -214,22 +336,28 @@ export class InMemoryAgentStore implements AgentStore {
 
   saveHealth(health: AgentHealthRecord) {
     const parsed = AgentHealthRecordSchema.parse(health);
-    this.#health.set(scopedKey(parsed.ownerId, parsed.agentId), structuredClone(parsed));
+    this.#health.set(
+      scopedKey(parsed.ownerId, parsed.agentId),
+      structuredClone(parsed),
+    );
   }
 
   listHealth(ownerId: string) {
-    return scopedValues(this.#health, ownerId)
-      .map((health) => structuredClone(health));
+    return scopedValues(this.#health, ownerId).map((health) => structuredClone(health));
   }
 
   saveMetrics(metrics: AgentMetricsRecord) {
     const parsed = AgentMetricsRecordSchema.parse(metrics);
-    this.#metrics.set(scopedKey(parsed.ownerId, parsed.agentId), structuredClone(parsed));
+    this.#metrics.set(
+      scopedKey(parsed.ownerId, parsed.agentId),
+      structuredClone(parsed),
+    );
   }
 
   listMetrics(ownerId: string) {
-    return scopedValues(this.#metrics, ownerId)
-      .map((metrics) => structuredClone(metrics));
+    return scopedValues(this.#metrics, ownerId).map((metrics) =>
+      structuredClone(metrics),
+    );
   }
 
   saveTemplate(template: AgentTemplateRecord) {
@@ -245,12 +373,18 @@ export class InMemoryAgentStore implements AgentStore {
 
   saveCapability(capability: CapabilityRecord) {
     const parsed = CapabilityRecordSchema.parse(capability);
-    this.#capabilities.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
+    this.#capabilities.set(
+      scopedKey(parsed.ownerId, parsed.id),
+      structuredClone(parsed),
+    );
   }
 
   listCapabilities(ownerId: string) {
     return [...this.#capabilities.entries()]
-      .filter(([key, capability]) => key.startsWith(scopedPrefix(ownerId)) && capability.ownerId === ownerId)
+      .filter(
+        ([key, capability]) =>
+          key.startsWith(scopedPrefix(ownerId)) && capability.ownerId === ownerId,
+      )
       .map(([, capability]) => capability)
       .sort((left, right) => left.name.localeCompare(right.name))
       .map((capability) => structuredClone(capability));
@@ -259,7 +393,10 @@ export class InMemoryAgentStore implements AgentStore {
   searchCapabilities(ownerId: string, query: string, limit: number) {
     const needle = query.toLowerCase();
     return [...this.#capabilities.entries()]
-      .filter(([key, capability]) => key.startsWith(scopedPrefix(ownerId)) && capability.ownerId === ownerId)
+      .filter(
+        ([key, capability]) =>
+          key.startsWith(scopedPrefix(ownerId)) && capability.ownerId === ownerId,
+      )
       .map(([, capability]) => capability)
       .filter(
         (capability) =>
@@ -274,7 +411,10 @@ export class InMemoryAgentStore implements AgentStore {
 
   saveDynamicAgent(agent: DynamicAgentRecord) {
     const parsed = DynamicAgentRecordSchema.parse(agent);
-    this.#dynamicAgents.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
+    this.#dynamicAgents.set(
+      scopedKey(parsed.ownerId, parsed.id),
+      structuredClone(parsed),
+    );
   }
 
   findDynamicAgent(ownerId: string, agentId: string) {
@@ -284,7 +424,10 @@ export class InMemoryAgentStore implements AgentStore {
 
   listDynamicAgents(ownerId: string, includeArchived: boolean) {
     return [...this.#dynamicAgents.entries()]
-      .filter(([key, agent]) => key.startsWith(scopedPrefix(ownerId)) && agent.ownerId === ownerId)
+      .filter(
+        ([key, agent]) =>
+          key.startsWith(scopedPrefix(ownerId)) && agent.ownerId === ownerId,
+      )
       .map(([, agent]) => agent)
       .filter((agent) => includeArchived || agent.lifecycleStatus !== "archived")
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
@@ -305,7 +448,10 @@ export class InMemoryAgentStore implements AgentStore {
 
   saveDynamicPerformance(performance: DynamicAgentPerformanceRecord) {
     const parsed = DynamicAgentPerformanceRecordSchema.parse(performance);
-    this.#dynamicPerformance.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
+    this.#dynamicPerformance.set(
+      scopedKey(parsed.ownerId, parsed.id),
+      structuredClone(parsed),
+    );
   }
 
   listDynamicPerformance(ownerId: string, limit: number) {
@@ -317,7 +463,10 @@ export class InMemoryAgentStore implements AgentStore {
 
   saveTeamComposition(composition: TeamCompositionRecord) {
     const parsed = TeamCompositionRecordSchema.parse(composition);
-    this.#teamCompositions.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
+    this.#teamCompositions.set(
+      scopedKey(parsed.ownerId, parsed.id),
+      structuredClone(parsed),
+    );
   }
 
   listTeamCompositions(ownerId: string, limit: number) {
@@ -329,7 +478,10 @@ export class InMemoryAgentStore implements AgentStore {
 
   savePromotionCandidate(candidate: AgentPromotionCandidateRecord) {
     const parsed = AgentPromotionCandidateRecordSchema.parse(candidate);
-    this.#promotionCandidates.set(scopedKey(parsed.ownerId, parsed.id), structuredClone(parsed));
+    this.#promotionCandidates.set(
+      scopedKey(parsed.ownerId, parsed.id),
+      structuredClone(parsed),
+    );
   }
 
   listPromotionCandidates(ownerId: string, limit: number) {

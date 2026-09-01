@@ -1,5 +1,6 @@
 export * from "./api.js";
 export * from "./agents.js";
+export * from "./agent-catalog.js";
 export * from "./agent-os.js";
 export * from "./agent-cognition.js";
 export * from "./agent-evolution.js";

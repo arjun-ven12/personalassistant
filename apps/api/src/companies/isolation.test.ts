@@ -43,7 +43,7 @@ describe("company-scoped repositories", () => {
     expect(companyScope.run(context(companyB), () => store.findAccount(ownerId, "planning-agent"))?.availableCredits).toBe(90);
   });
 
-  it("does not enumerate an agent stored in another company", () => {
+  it("reuses one definition without enumerating another company's assignment", () => {
     const store = new InMemoryAgentStore();
     const agent = AgentRecordSchema.parse({
       schemaVersion: "1", id: "planning-agent", ownerId, role: "planning", displayName: "Planner",
@@ -62,9 +62,12 @@ describe("company-scoped repositories", () => {
     companyScope.run(context(companyB), () => store.upsertAgent(agent));
     expect(companyScope.run(context(companyA), () => store.findAgent(ownerId, agent.id))).toBeUndefined();
     expect(companyScope.run(context(companyA), () => store.listAgents(ownerId))).toEqual([]);
-    expect(() =>
-      companyScope.run(context(companyA), () => store.upsertAgent(agent)),
-    ).toThrow("Agent belongs to another company");
+    companyScope.run(context(companyA), () => store.upsertAgent(agent));
+    const companyAAgent = companyScope.run(context(companyA), () => store.findAgent(ownerId, agent.id));
+    const companyBAgent = companyScope.run(context(companyB), () => store.findAgent(ownerId, agent.id));
+    expect(store.listDefinitions(ownerId)).toHaveLength(1);
+    expect(store.countDefinitionAssignments(ownerId, agent.id)).toBe(2);
+    expect(companyAAgent?.workforce?.memoryScopeId).not.toBe(companyBAgent?.workforce?.memoryScopeId);
   });
 
   it("does not expose background tasks from another company", () => {

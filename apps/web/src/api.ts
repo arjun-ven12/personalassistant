@@ -126,6 +126,7 @@ import {
   AgentEconomyDashboardSchema,
   AgentEconomyAccountResponseSchema,
   WorkforceGraphResponseSchema,
+  AgentCatalogResponseSchema,
   WorkforceAgentDetailSchema,
   WorkforceImportReportSchema,
   WorkforceRuntimeDashboardSchema,
@@ -520,35 +521,61 @@ export const createApiClient = (baseUrl: string) => {
 
   return {
     getCompanies: async () => {
-      const response = await requestAndValidate(baseUrl, "/api/companies", CompanyListResponseSchema);
+      const response = await requestAndValidate(
+        baseUrl,
+        "/api/companies",
+        CompanyListResponseSchema,
+      );
       activeCompanyId = response.currentCompany.id;
       return response;
     },
     createCompany: async (input: CreateCompanyRequest) => {
-      const response = await requestAndValidate(baseUrl, "/api/companies", CompanyListResponseSchema, jsonBody(CreateCompanyRequestSchema.parse(input)));
+      const response = await requestAndValidate(
+        baseUrl,
+        "/api/companies",
+        CompanyListResponseSchema,
+        jsonBody(CreateCompanyRequestSchema.parse(input)),
+      );
       activeCompanyId = response.currentCompany.id;
       return response;
     },
     selectCompany: async (companyId: string) => {
-      const response = await requestAndValidate(baseUrl, "/api/companies/select", CompanyListResponseSchema, jsonBody(SelectCompanyRequestSchema.parse({ companyId })));
+      const response = await requestAndValidate(
+        baseUrl,
+        "/api/companies/select",
+        CompanyListResponseSchema,
+        jsonBody(SelectCompanyRequestSchema.parse({ companyId })),
+      );
       activeCompanyId = response.currentCompany.id;
       return response;
     },
-    getCompany: (companyId: string) => requestAndValidate(
-      baseUrl, `/api/companies/${encodeURIComponent(companyId)}`, CompanyDetailResponseSchema,
-    ),
-    updateCompany: (companyId: string, input: UpdateCompanyRequest) => requestAndValidate(
-      baseUrl, `/api/companies/${encodeURIComponent(companyId)}`, CompanyDetailResponseSchema,
-      jsonBody(UpdateCompanyRequestSchema.parse(input), "PATCH"),
-    ),
-    transitionCompany: (companyId: string, action: CompanyLifecycleAction) => requestAndValidate(
-      baseUrl, `/api/companies/${encodeURIComponent(companyId)}/${CompanyLifecycleActionSchema.parse(action)}`,
-      CompanyDetailResponseSchema, jsonBody({}),
-    ),
-    updateCompanyLimit: (companyLimit: number) => requestAndValidate(
-      baseUrl, "/api/companies/limit", CompanyListResponseSchema,
-      jsonBody(UpdateCompanyLimitRequestSchema.parse({ companyLimit }), "PATCH"),
-    ),
+    getCompany: (companyId: string) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/companies/${encodeURIComponent(companyId)}`,
+        CompanyDetailResponseSchema,
+      ),
+    updateCompany: (companyId: string, input: UpdateCompanyRequest) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/companies/${encodeURIComponent(companyId)}`,
+        CompanyDetailResponseSchema,
+        jsonBody(UpdateCompanyRequestSchema.parse(input), "PATCH"),
+      ),
+    transitionCompany: (companyId: string, action: CompanyLifecycleAction) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/companies/${encodeURIComponent(companyId)}/${CompanyLifecycleActionSchema.parse(action)}`,
+        CompanyDetailResponseSchema,
+        jsonBody({}),
+      ),
+    updateCompanyLimit: (companyLimit: number) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/companies/limit",
+        CompanyListResponseSchema,
+        jsonBody(UpdateCompanyLimitRequestSchema.parse({ companyLimit }), "PATCH"),
+      ),
     getHealth: (): Promise<HealthResponse> =>
       requestAndValidate(baseUrl, "/health", HealthResponseSchema),
     getAuthState: (): Promise<AuthStateResponse> =>
@@ -1172,13 +1199,31 @@ export const createApiClient = (baseUrl: string) => {
         jsonBody(input),
       ),
     getBusinessOperations: () =>
-      requestAndValidate(baseUrl, "/api/integrations/business/dashboard", BusinessOperationsDashboardSchema),
+      requestAndValidate(
+        baseUrl,
+        "/api/integrations/business/dashboard",
+        BusinessOperationsDashboardSchema,
+      ),
     getBusinessOSSummary: () =>
-      requestAndValidate(baseUrl, "/api/business-os/summary", BusinessOSExecutiveSummarySchema),
+      requestAndValidate(
+        baseUrl,
+        "/api/business-os/summary",
+        BusinessOSExecutiveSummarySchema,
+      ),
     requestBusinessAction: (input: BusinessActionRequest) =>
-      requestAndValidate(baseUrl, "/api/integrations/business/actions", BusinessExecutionRecordSchema, jsonBody(input)),
+      requestAndValidate(
+        baseUrl,
+        "/api/integrations/business/actions",
+        BusinessExecutionRecordSchema,
+        jsonBody(input),
+      ),
     reconcileBusinessAction: (executionId: string) =>
-      requestAndValidate(baseUrl, `/api/integrations/business/executions/${encodeURIComponent(executionId)}/reconcile`, BusinessExecutionRecordSchema, jsonBody({})),
+      requestAndValidate(
+        baseUrl,
+        `/api/integrations/business/executions/${encodeURIComponent(executionId)}/reconcile`,
+        BusinessExecutionRecordSchema,
+        jsonBody({}),
+      ),
     getAgentsDashboard: () =>
       requestAndValidate(
         baseUrl,
@@ -1218,26 +1263,101 @@ export const createApiClient = (baseUrl: string) => {
         `/api/agent-workforce/graph${query ? `?${query}` : ""}`,
         WorkforceGraphResponseSchema,
       ),
+    getAgentCatalog: (query = "") =>
+      requestAndValidate(
+        baseUrl,
+        `/api/agent-workforce/catalog${query ? `?${query}` : ""}`,
+        AgentCatalogResponseSchema,
+      ),
+    assignAgentFromCatalog: (definitionId: string) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/agent-workforce/catalog/${encodeURIComponent(definitionId)}/assign`,
+        AgentCatalogResponseSchema,
+        jsonBody({}),
+      ),
+    removeAgentAssignment: (definitionId: string) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/agent-workforce/catalog/${encodeURIComponent(definitionId)}/assignment`,
+        AgentCatalogResponseSchema,
+        { method: "DELETE" },
+      ),
     getWorkforceRuntime: () =>
-      requestAndValidate(baseUrl, "/api/workforce-runtime", WorkforceRuntimeDashboardSchema),
+      requestAndValidate(
+        baseUrl,
+        "/api/workforce-runtime",
+        WorkforceRuntimeDashboardSchema,
+      ),
     createWorkforceRuntimeTask: (input: CreateWorkforceTaskRequest) =>
-      requestAndValidate(baseUrl, "/api/workforce-runtime/tasks", WorkforceRuntimeTaskResponseSchema, jsonBody(input)),
+      requestAndValidate(
+        baseUrl,
+        "/api/workforce-runtime/tasks",
+        WorkforceRuntimeTaskResponseSchema,
+        jsonBody(input),
+      ),
     scheduleWorkforceRuntimeTask: (taskId: string) =>
-      requestAndValidate(baseUrl, `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/schedule`, WorkforceRuntimeTaskResponseSchema, jsonBody({})),
+      requestAndValidate(
+        baseUrl,
+        `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/schedule`,
+        WorkforceRuntimeTaskResponseSchema,
+        jsonBody({}),
+      ),
     executeWorkforceRuntimeTask: (taskId: string) =>
-      requestAndValidate(baseUrl, `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/execute`, WorkforceRuntimeTaskResponseSchema, jsonBody({})),
-    approveWorkforceSpecialist: (taskId: string, input: { approved: boolean; proposalId?: string }) =>
-      requestAndValidate(baseUrl, `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/specialist-approval`, WorkforceRuntimeTaskResponseSchema, jsonBody(input)),
-    completeWorkforceRuntimeTask: (taskId: string, input: CompleteWorkforceTaskRequest) =>
-      requestAndValidate(baseUrl, `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/complete`, WorkforceRuntimeTaskResponseSchema, jsonBody(input)),
+      requestAndValidate(
+        baseUrl,
+        `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/execute`,
+        WorkforceRuntimeTaskResponseSchema,
+        jsonBody({}),
+      ),
+    approveWorkforceSpecialist: (
+      taskId: string,
+      input: { approved: boolean; proposalId?: string },
+    ) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/specialist-approval`,
+        WorkforceRuntimeTaskResponseSchema,
+        jsonBody(input),
+      ),
+    completeWorkforceRuntimeTask: (
+      taskId: string,
+      input: CompleteWorkforceTaskRequest,
+    ) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/complete`,
+        WorkforceRuntimeTaskResponseSchema,
+        jsonBody(input),
+      ),
     reviewWorkforceRuntimeTask: (taskId: string, input: SubmitWorkforceReviewRequest) =>
-      requestAndValidate(baseUrl, `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/reviews`, WorkforceRuntimeReviewResponseSchema, jsonBody(input)),
+      requestAndValidate(
+        baseUrl,
+        `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/reviews`,
+        WorkforceRuntimeReviewResponseSchema,
+        jsonBody(input),
+      ),
     cancelWorkforceRuntimeTask: (taskId: string) =>
-      requestAndValidate(baseUrl, `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/cancel`, WorkforceRuntimeDashboardSchema, jsonBody({})),
+      requestAndValidate(
+        baseUrl,
+        `/api/workforce-runtime/tasks/${encodeURIComponent(taskId)}/cancel`,
+        WorkforceRuntimeDashboardSchema,
+        jsonBody({}),
+      ),
     recoverWorkforceRuntime: () =>
-      requestAndValidate(baseUrl, "/api/workforce-runtime/recover", WorkforceRuntimeDashboardSchema, jsonBody({})),
+      requestAndValidate(
+        baseUrl,
+        "/api/workforce-runtime/recover",
+        WorkforceRuntimeDashboardSchema,
+        jsonBody({}),
+      ),
     sendWorkforceRuntimeMessage: (input: CreateWorkforceMessageRequest) =>
-      requestAndValidate(baseUrl, "/api/workforce-runtime/messages", WorkforceRuntimeMessageResponseSchema, jsonBody(input)),
+      requestAndValidate(
+        baseUrl,
+        "/api/workforce-runtime/messages",
+        WorkforceRuntimeMessageResponseSchema,
+        jsonBody(input),
+      ),
     getAgentWorkforceDetail: (agentId: string) =>
       requestAndValidate(
         baseUrl,
@@ -1921,9 +2041,7 @@ export const createApiClient = (baseUrl: string) => {
         "/api/capability-studio",
         CapabilityStudioResponseSchema,
       ),
-    createCapabilityFromDescription: (
-      input: CreateCapabilityFromDescriptionRequest,
-    ) =>
+    createCapabilityFromDescription: (input: CreateCapabilityFromDescriptionRequest) =>
       requestAndValidate(
         baseUrl,
         "/api/capability-studio/candidates/describe",
@@ -2076,39 +2194,112 @@ export const createApiClient = (baseUrl: string) => {
     getObjectives: () =>
       requestAndValidate(baseUrl, "/api/objectives", ObjectiveDashboardSchema),
     createObjective: (input: unknown) =>
-      requestAndValidate(baseUrl, "/api/objectives", ObjectiveDraftResponseSchema, jsonBody(CreateObjectiveRequestSchema.parse(input))),
+      requestAndValidate(
+        baseUrl,
+        "/api/objectives",
+        ObjectiveDraftResponseSchema,
+        jsonBody(CreateObjectiveRequestSchema.parse(input)),
+      ),
     activateObjective: (objectiveId: string, idempotencyKey: string) =>
-      requestAndValidate(baseUrl, `/api/objectives/${objectiveId}/activate`, ObjectiveDashboardSchema, jsonBody({ idempotencyKey })),
+      requestAndValidate(
+        baseUrl,
+        `/api/objectives/${objectiveId}/activate`,
+        ObjectiveDashboardSchema,
+        jsonBody({ idempotencyKey }),
+      ),
     pauseObjective: (objectiveId: string, idempotencyKey: string) =>
-      requestAndValidate(baseUrl, `/api/objectives/${objectiveId}/pause`, ObjectiveDashboardSchema, jsonBody({ idempotencyKey })),
+      requestAndValidate(
+        baseUrl,
+        `/api/objectives/${objectiveId}/pause`,
+        ObjectiveDashboardSchema,
+        jsonBody({ idempotencyKey }),
+      ),
     replanObjective: (objectiveId: string, idempotencyKey: string) =>
-      requestAndValidate(baseUrl, `/api/objectives/${objectiveId}/replan`, ObjectiveDashboardSchema, jsonBody({ idempotencyKey })),
+      requestAndValidate(
+        baseUrl,
+        `/api/objectives/${objectiveId}/replan`,
+        ObjectiveDashboardSchema,
+        jsonBody({ idempotencyKey }),
+      ),
     cancelObjective: (objectiveId: string, idempotencyKey: string) =>
-      requestAndValidate(baseUrl, `/api/objectives/${objectiveId}/cancel`, ObjectiveDashboardSchema, jsonBody({ idempotencyKey })),
+      requestAndValidate(
+        baseUrl,
+        `/api/objectives/${objectiveId}/cancel`,
+        ObjectiveDashboardSchema,
+        jsonBody({ idempotencyKey }),
+      ),
     modifyObjective: (objectiveId: string, input: unknown) =>
-      requestAndValidate(baseUrl, `/api/objectives/${objectiveId}`, ObjectiveModificationResultSchema, jsonBody(ModifyObjectiveRequestSchema.parse(input), "PATCH")),
+      requestAndValidate(
+        baseUrl,
+        `/api/objectives/${objectiveId}`,
+        ObjectiveModificationResultSchema,
+        jsonBody(ModifyObjectiveRequestSchema.parse(input), "PATCH"),
+      ),
     observeObjectiveMetric: (objectiveId: string, input: unknown) =>
-      requestAndValidate(baseUrl, `/api/objectives/${objectiveId}/observations`, ObjectiveDashboardSchema, jsonBody(ObserveObjectiveMetricRequestSchema.parse(input))),
+      requestAndValidate(
+        baseUrl,
+        `/api/objectives/${objectiveId}/observations`,
+        ObjectiveDashboardSchema,
+        jsonBody(ObserveObjectiveMetricRequestSchema.parse(input)),
+      ),
     getObjectiveExperiments: (objectiveId: string) =>
-      requestAndValidate(baseUrl, `/api/objectives/${objectiveId}/experiments`, ExperimentDashboardSchema),
+      requestAndValidate(
+        baseUrl,
+        `/api/objectives/${objectiveId}/experiments`,
+        ExperimentDashboardSchema,
+      ),
     getExperiments: () =>
       requestAndValidate(baseUrl, "/api/experiments", ExperimentDashboardSchema),
     createExperiment: (objectiveId: string, input: unknown) =>
-      requestAndValidate(baseUrl, `/api/objectives/${objectiveId}/experiments`, ExperimentDashboardSchema, jsonBody(CreateExperimentRequestSchema.parse(input))),
+      requestAndValidate(
+        baseUrl,
+        `/api/objectives/${objectiveId}/experiments`,
+        ExperimentDashboardSchema,
+        jsonBody(CreateExperimentRequestSchema.parse(input)),
+      ),
     activateExperiment: (experimentId: string, idempotencyKey: string) =>
-      requestAndValidate(baseUrl, `/api/experiments/${experimentId}/activate`, ExperimentDashboardSchema, jsonBody({idempotencyKey})),
+      requestAndValidate(
+        baseUrl,
+        `/api/experiments/${experimentId}/activate`,
+        ExperimentDashboardSchema,
+        jsonBody({ idempotencyKey }),
+      ),
     pauseExperiment: (experimentId: string, idempotencyKey: string) =>
-      requestAndValidate(baseUrl, `/api/experiments/${experimentId}/pause`, ExperimentDashboardSchema, jsonBody({idempotencyKey})),
+      requestAndValidate(
+        baseUrl,
+        `/api/experiments/${experimentId}/pause`,
+        ExperimentDashboardSchema,
+        jsonBody({ idempotencyKey }),
+      ),
     stopExperiment: (experimentId: string, idempotencyKey: string) =>
-      requestAndValidate(baseUrl, `/api/experiments/${experimentId}/stop`, ExperimentDashboardSchema, jsonBody({idempotencyKey})),
+      requestAndValidate(
+        baseUrl,
+        `/api/experiments/${experimentId}/stop`,
+        ExperimentDashboardSchema,
+        jsonBody({ idempotencyKey }),
+      ),
     modifyExperiment: (experimentId: string, input: unknown) =>
-      requestAndValidate(baseUrl, `/api/experiments/${experimentId}`, ExperimentDashboardSchema, jsonBody(ModifyExperimentRequestSchema.parse(input),"PATCH")),
+      requestAndValidate(
+        baseUrl,
+        `/api/experiments/${experimentId}`,
+        ExperimentDashboardSchema,
+        jsonBody(ModifyExperimentRequestSchema.parse(input), "PATCH"),
+      ),
     recordExperimentObservation: (experimentId: string, input: unknown) =>
-      requestAndValidate(baseUrl, `/api/experiments/${experimentId}/observations`, ExperimentDashboardSchema, jsonBody(RecordExperimentObservationRequestSchema.parse(input))),
+      requestAndValidate(
+        baseUrl,
+        `/api/experiments/${experimentId}/observations`,
+        ExperimentDashboardSchema,
+        jsonBody(RecordExperimentObservationRequestSchema.parse(input)),
+      ),
     getReflectionDashboard: () =>
       requestAndValidate(baseUrl, "/api/reflections", ReflectionDashboardSchema),
     getSkillEvolutionDashboard: () =>
-      requestAndValidate(baseUrl, "/api/skill-evolution", SkillEvolutionDashboardSchema),
+      requestAndValidate(
+        baseUrl,
+        "/api/skill-evolution",
+        SkillEvolutionDashboardSchema,
+      ),
     buildSkillCandidate: (candidateId: string) =>
       requestAndValidate(
         baseUrl,
@@ -2163,14 +2354,24 @@ export const createApiClient = (baseUrl: string) => {
         baseUrl,
         "/api/skill-evolution/deprecate",
         SkillEvolutionDashboardSchema,
-        jsonBody(SkillVersionIdRequestSchema.parse({ skillId, reason: "Deprecated from dashboard" })),
+        jsonBody(
+          SkillVersionIdRequestSchema.parse({
+            skillId,
+            reason: "Deprecated from dashboard",
+          }),
+        ),
       ),
     disableSkill: (skillId: string) =>
       requestAndValidate(
         baseUrl,
         "/api/skill-evolution/disable",
         SkillEvolutionDashboardSchema,
-        jsonBody(SkillVersionIdRequestSchema.parse({ skillId, reason: "Disabled from dashboard" })),
+        jsonBody(
+          SkillVersionIdRequestSchema.parse({
+            skillId,
+            reason: "Disabled from dashboard",
+          }),
+        ),
       ),
     shadowSkillVersion: (skillId: string, versionId?: string) =>
       requestAndValidate(
