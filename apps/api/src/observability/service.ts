@@ -120,6 +120,7 @@ export interface SystemSpanInput {
 }
 
 export class OwnerPortfolioObservabilityService {
+  #managementProvider?: (ownerId: string, companyId: string) => Promise<PortfolioCompanySummary["management"]>;
   constructor(
     readonly store: ObservabilityStore,
     readonly companies: CompanyStore,
@@ -128,6 +129,10 @@ export class OwnerPortfolioObservabilityService {
     readonly audit?: GovernanceAuditWriter,
     readonly now = () => new Date(),
   ) {}
+
+  setManagementSummaryProvider(provider: (ownerId: string, companyId: string) => Promise<PortfolioCompanySummary["management"]>) {
+    this.#managementProvider = provider;
+  }
 
   async recordSystemSpan(raw: SystemSpanInput) {
     if (
@@ -543,13 +548,14 @@ export class OwnerPortfolioObservabilityService {
     spans: SystemTelemetrySpan[],
     aiTraces: AIObservabilityTrace[],
   ): Promise<PortfolioCompanySummary> {
-    const [metrics, datasets, pipelines, integrations, assignments] = await Promise.all(
+    const [metrics, datasets, pipelines, integrations, assignments, management] = await Promise.all(
       [
         this.metricViews(ownerId, company),
         this.companyData.listDatasets(ownerId, company.id),
         this.companyData.listPipelines(ownerId, company.id),
         this.companyData.listIntegrationBindings(ownerId, company.id),
         this.agents.listAssignments(ownerId, company.id),
+        this.#managementProvider?.(ownerId, company.id) ?? Promise.resolve({ topPriority: null, totalObjectives: 0, objectivesAtRisk: 0, decisionsRequiringOwner: 0, latestReviewAt: null, nextRecommendedFocus: "Open company management to establish priorities." }),
       ],
     );
     const stale = datasets.filter(
@@ -644,10 +650,10 @@ export class OwnerPortfolioObservabilityService {
       },
       {
         dimension: "OBJECTIVES" as const,
-        state: "UNKNOWN" as const,
-        confidence: 0.1,
+        state: management.objectivesAtRisk > 2 ? ("CRITICAL" as const) : management.objectivesAtRisk ? ("WARNING" as const) : management.totalObjectives ? ("HEALTHY" as const) : ("UNKNOWN" as const),
+        confidence: management.totalObjectives ? 0.9 : 0.2,
         evidence: [
-          "No cross-company objective read adapter is connected; objective health is not inferred from unrelated telemetry.",
+          management.totalObjectives ? `${management.objectivesAtRisk} of ${management.totalObjectives} objectives require attention.` : "No company-scoped objective evidence is available.",
         ],
       },
       {
@@ -676,6 +682,7 @@ export class OwnerPortfolioObservabilityService {
         : integrations.length
           ? "HEALTHY"
           : "UNAVAILABLE",
+      management,
     };
   }
 

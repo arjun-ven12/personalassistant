@@ -234,6 +234,15 @@ import {
   SystemTelemetrySpanSchema,
   AIObservabilityTraceSchema,
   DurableExecutionDashboardSchema,
+  CompanyManagementDashboardSchema,
+  CompanyManagementReviewSchema,
+  GenerateManagementReviewRequestSchema,
+  CompanyDataPolicySchema,
+  UpdateCompanyDataPolicyRequestSchema,
+  CreateCrossCompanyPolicyRequestSchema,
+  CreateCrossCompanyServiceRequestSchema,
+  CrossCompanyCollaborationPolicySchema,
+  CrossCompanyServiceRequestSchema,
   ObjectiveDashboardSchema,
   ObjectiveDraftResponseSchema,
   CreateObjectiveRequestSchema,
@@ -2283,6 +2292,58 @@ export const createApiClient = (baseUrl: string) => {
         baseUrl,
         "/api/cross-company-services",
         DurableExecutionDashboardSchema,
+      ),
+    getCompanyManagement: () =>
+      requestAndValidate(
+        baseUrl,
+        "/api/company-management",
+        CompanyManagementDashboardSchema,
+      ),
+    updateCompanyDataPolicy: (input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/company-data/policy",
+        CompanyDataPolicySchema,
+        jsonBody(UpdateCompanyDataPolicyRequestSchema.parse(input)),
+      ),
+    generateCompanyManagementReview: (input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/company-management/reviews",
+        CompanyManagementReviewSchema,
+        jsonBody(GenerateManagementReviewRequestSchema.parse(input)),
+      ),
+    upsertCrossCompanyPolicy: (input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/company-collaboration/policy",
+        CrossCompanyCollaborationPolicySchema,
+        jsonBody(CreateCrossCompanyPolicyRequestSchema.parse(input), "PUT"),
+      ),
+    createCrossCompanyService: (input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/cross-company-services",
+        CrossCompanyServiceRequestSchema,
+        jsonBody(CreateCrossCompanyServiceRequestSchema.parse(input)),
+      ),
+    decideCrossCompanyService: (
+      id: string,
+      decision: "ACCEPT" | "REJECT",
+      reason?: string,
+    ) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/cross-company-services/${id}/decision`,
+        CrossCompanyServiceRequestSchema,
+        jsonBody({ decision, ...(reason ? { reason } : {}) }),
+      ),
+    cancelCrossCompanyService: (id: string) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/cross-company-services/${id}/cancel`,
+        CrossCompanyServiceRequestSchema,
+        jsonBody({}),
       ),
     getObjectives: () =>
       requestAndValidate(baseUrl, "/api/objectives", ObjectiveDashboardSchema),

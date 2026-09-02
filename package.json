@@ -10,6 +10,7 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --parallel --filter @alexa-control/web --filter @alexa-control/api --filter @alexa-control/mac-agent dev",
+    "dev:durable": "ALEXA_DURABLE_WORKER=1 pnpm dev",
     "dev:web": "pnpm --filter @alexa-control/web dev",
     "dev:api": "pnpm --filter @alexa-control/api dev",
     "dev:mac-agent": "pnpm --filter @alexa-control/mac-agent dev",

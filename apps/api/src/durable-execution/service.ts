@@ -61,6 +61,7 @@ export type DurableReconciliation =
   | { state: "NOT_COMMITTED" }
   | { state: "UNKNOWN" };
 export interface CrossCompanyActivityExecutor {
+  capabilities?(): string[];
   execute(
     request: CrossCompanyServiceRequest,
     idempotencyKey: string,
@@ -75,6 +76,7 @@ export class CrossCompanyExecutionService {
   #activity: CrossCompanyActivityExecutor | undefined;
   #economy: CrossCompanyEconomyAdapter | undefined;
   #workforce: CrossCompanyWorkforceResolver | undefined;
+  #schedulerEnabled = false;
   constructor(
     readonly store: DurableExecutionStore,
     readonly companies: CompanyStore,
@@ -97,6 +99,10 @@ export class CrossCompanyExecutionService {
     this.#activity = input.activity;
     this.#economy = input.economy;
     this.#workforce = input.workforce;
+  }
+
+  setSchedulerEnabled(enabled: boolean) {
+    this.#schedulerEnabled = enabled;
   }
 
   async upsertPolicy(
@@ -576,6 +582,15 @@ export class CrossCompanyExecutionService {
   async dashboard(ownerId: string, companyId?: string) {
     const requests = await this.store.listServiceRequests(ownerId, companyId);
     const executions = await this.store.listExecutions(ownerId, companyId);
+    const companies = await this.companies.listCompanies(ownerId);
+    const externalTransferCompanyIds = (
+      await Promise.all(
+        companies.map(async (company) => ({
+          companyId: company.id,
+          policy: await this.companyData.findActivePolicy(ownerId, company.id),
+        })),
+      )
+    ).filter((item) => item.policy?.externalTransferAllowed).map((item) => item.companyId);
     const now = this.now().getTime();
     const requestById = new Map(requests.map((request) => [request.id, request]));
     const operationalWarnings = executions.flatMap((execution) => {
@@ -635,6 +650,12 @@ export class CrossCompanyExecutionService {
         });
     }
     return {
+      policies: await this.store.listPolicies(ownerId),
+      readiness: {
+        scheduler: this.#schedulerEnabled ? "CENTRALIZED_ENABLED" : "NOT_ENABLED",
+        activityCapabilities: this.#activity?.capabilities?.() ?? [],
+        externalTransferCompanyIds,
+      },
       requests,
       executions,
       sandboxResults: await this.store.listSandboxResults(ownerId, companyId),

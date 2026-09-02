@@ -358,6 +358,9 @@ export class DurableActivityRegistry implements CrossCompanyActivityExecutor {
       );
     this.#adapters.set(adapter.capabilityId, adapter);
   }
+  capabilities() {
+    return [...this.#adapters.keys()].sort();
+  }
   private adapter(request: CrossCompanyServiceRequest) {
     const matches = request.requestedCapabilities
       .map((item) => this.#adapters.get(item))

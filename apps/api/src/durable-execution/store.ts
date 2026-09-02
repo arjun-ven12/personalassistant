@@ -22,6 +22,7 @@ export interface DurableExecutionStore {
     ownerId: string,
     companyId: string,
   ): Awaitable<CrossCompanyCollaborationPolicy | undefined>;
+  listPolicies(ownerId: string): Awaitable<CrossCompanyCollaborationPolicy[]>;
   saveServiceRequest(value: CrossCompanyServiceRequest): Awaitable<void>;
   findServiceRequest(
     ownerId: string,
@@ -82,6 +83,12 @@ export class InMemoryDurableExecutionStore implements DurableExecutionStore {
   findPolicy(ownerId: string, companyId: string) {
     const item = this.#policies.get(`${ownerId}:${companyId}`);
     return item ? clone(item) : undefined;
+  }
+  listPolicies(ownerId: string) {
+    return [...this.#policies.values()]
+      .filter((item) => item.ownerId === ownerId)
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .map(clone);
   }
   saveServiceRequest(value: CrossCompanyServiceRequest) {
     const item = CrossCompanyServiceRequestSchema.parse(value);
@@ -269,6 +276,13 @@ export class PostgresDurableExecutionStore implements DurableExecutionStore {
         item.updatedAt,
       ],
     );
+  }
+  async listPolicies(ownerId: string) {
+    const result = await this.pool.query<Row>(
+      "SELECT record FROM cross_company_collaboration_policies WHERE owner_id=$1 ORDER BY updated_at DESC",
+      [ownerId],
+    );
+    return result.rows.map((row) => CrossCompanyCollaborationPolicySchema.parse(row.record));
   }
   async findPolicy(ownerId: string, companyId: string) {
     const result = await this.pool.query<Row>(

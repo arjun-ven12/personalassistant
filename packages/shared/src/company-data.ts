@@ -449,6 +449,7 @@ export const ResolvedCompanyAgentContextSchema = z
 
 export const CompanyDataDashboardSchema = z
   .object({
+    policy: CompanyDataPolicySchema.nullable().default(null),
     sources: z.array(CompanyDataSourceSchema).max(500),
     datasets: z.array(CompanyDatasetSchema).max(2_000),
     pipelines: z.array(CompanyDataPipelineSchema).max(2_000),

@@ -127,6 +127,7 @@ import type { ObservabilityStore } from "../observability/store.js";
 import type { CrossCompanyExecutionService } from "../durable-execution/service.js";
 import type { DurableExecutionStore } from "../durable-execution/store.js";
 import type { SandboxExecutionService } from "../durable-execution/sandbox.js";
+import type { CompanyManagementService } from "../company-management/service.js";
 
 export interface ApiRouteContext {
   deploymentMode: "private" | "cloud";
@@ -141,6 +142,7 @@ export interface ApiRouteContext {
   durableExecution: CrossCompanyExecutionService;
   durableExecutionStore: DurableExecutionStore;
   sandboxExecution: SandboxExecutionService;
+  companyManagement: CompanyManagementService;
   securityState: SecurityStateService;
   networkVerifier: NetworkVerifier;
   cookieName: string;

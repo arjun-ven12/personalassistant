@@ -54,6 +54,7 @@ import { registerCompanyRoutes } from "./routes/companies.js";
 import { registerCompanyDataRoutes } from "./routes/company-data.js";
 import { registerPortfolioRoutes } from "./routes/portfolio.js";
 import { registerDurableExecutionRoutes } from "./routes/durable-execution.js";
+import { registerCompanyManagementRoutes } from "./routes/company-management.js";
 import { CompanyService, type CompanyProvisioningHook } from "./companies/service.js";
 import { CompanyContextResolver } from "./companies/context.js";
 import { companyScope } from "./companies/scope.js";
@@ -96,6 +97,7 @@ import {
   DurableActivityRegistry,
 } from "./durable-execution/production.js";
 import { DurableExecutionScheduler } from "./durable-execution/scheduler.js";
+import { CompanyManagementService } from "./company-management/service.js";
 import { CrossDeviceService } from "./cross-device/service.js";
 import {
   InMemoryCrossDeviceStore,
@@ -403,6 +405,7 @@ export interface BuildApiOptions {
   observabilityStore?: ObservabilityStore;
   durableExecutionStore?: DurableExecutionStore;
   crossCompanyActivityExecutor?: CrossCompanyActivityExecutor;
+  durableSchedulerEnabled?: boolean;
   sandboxArtifactResolver?: SandboxArtifactResolver;
   companyLimit?: number;
   companyProvisioningHook?: CompanyProvisioningHook;
@@ -508,6 +511,7 @@ export const buildApi = async ({
   observabilityStore,
   durableExecutionStore,
   crossCompanyActivityExecutor,
+  durableSchedulerEnabled = nodeEnvironment === "production",
   sandboxArtifactResolver,
   companyLimit = 100,
   companyProvisioningHook,
@@ -1128,7 +1132,8 @@ export const buildApi = async ({
     undefined,
     now,
   );
-  if (database && nodeEnvironment === "production") {
+  durableExecution.setSchedulerEnabled(Boolean(database && durableSchedulerEnabled));
+  if (database && durableSchedulerEnabled) {
     app.addHook("onReady", () => durableScheduler.start());
     app.addHook("onClose", () => durableScheduler.stop());
   }
@@ -1547,6 +1552,41 @@ export const buildApi = async ({
     crossApplicationWorkflows,
     capabilityStudio,
   );
+  const companyManagement = new CompanyManagementService(
+    resolvedCompanyStore,
+    companyData,
+    objectives,
+    executiveStore,
+    agentWorkforce,
+    agentEconomy,
+    portfolio,
+    governanceAudit,
+    now,
+  );
+  portfolio.setManagementSummaryProvider((ownerId, companyId) =>
+    companyScope.run(
+      { ownerId, companyId, role: "OWNER", requestId: `portfolio-management:${companyId}` },
+      async () => {
+        const [objectiveDashboard, plans, decisions, history] = await Promise.all([
+          objectives.dashboard(ownerId),
+          executiveStore.listPlans(ownerId),
+          executiveStore.listDecisions(ownerId),
+          executiveStore.listHistory(ownerId),
+        ]);
+        const activePlan = plans.filter((item) => item.status === "ACTIVE").sort((a, b) => b.version - a.version)[0];
+        const objectivesAtRisk = objectiveDashboard.objectives.filter((item) => ["AT_RISK", "BLOCKED", "FAILED"].includes(item.status)).length;
+        const review = history.find((item) => item.metadata.kind === "MANAGEMENT_REVIEW");
+        return {
+          topPriority: activePlan?.milestones[0] ?? null,
+          totalObjectives: objectiveDashboard.objectives.length,
+          objectivesAtRisk,
+          decisionsRequiringOwner: decisions.filter((item) => item.status === "PROPOSED").length,
+          latestReviewAt: review?.createdAt ?? null,
+          nextRecommendedFocus: objectivesAtRisk ? "Review at-risk objectives and bounded replan options." : activePlan?.milestones[0] ?? "Establish an approved measurable objective.",
+        };
+      },
+    ),
+  );
   const experiments = new ExperimentService(
     executiveStore,
     governanceAudit,
@@ -1751,6 +1791,7 @@ export const buildApi = async ({
     executive,
     executiveStore,
     objectives,
+    companyManagement,
     experiments,
     businessOS,
     notifications,
@@ -1910,6 +1951,7 @@ export const buildApi = async ({
   registerCompanyDataRoutes(app, context);
   registerPortfolioRoutes(app, context);
   registerDurableExecutionRoutes(app, context);
+  registerCompanyManagementRoutes(app, context);
   registerDeviceRoutes(app, context);
   registerAuditRoutes(app, context);
   registerSystemRoutes(app, context);

@@ -18,7 +18,7 @@ import { portfolioCompanyState } from "./portfolio-state.js";
 type Tab = "Overview" | "Business" | "System" | "AI";
 const statusClass = (value: string) => `portfolio-${value.toLowerCase()}`;
 
-export const PortfolioPage = ({ apiClient }: { apiClient: ApiClient }) => {
+export const PortfolioPage = ({ apiClient, onOpenCompany }: { apiClient: ApiClient; onOpenCompany?: (companyId: string) => void }) => {
   const [tab, setTab] = useState<Tab>("Overview");
   const portfolio = useQuery({
     queryKey: ["owner-portfolio"],
@@ -172,6 +172,15 @@ export const PortfolioPage = ({ apiClient }: { apiClient: ApiClient }) => {
                       <dd>{company.systemIncidents}</dd>
                     </div>
                   </dl>
+                  <div className="portfolio-management-summary">
+                    <small>Top priority</small>
+                    <strong>{company.management.topPriority ?? "Not established"}</strong>
+                    <span>{company.management.objectivesAtRisk} objectives at risk · {company.management.decisionsRequiringOwner} decisions need owner</span>
+                    <small>{company.management.latestReviewAt ? `Review ${new Date(company.management.latestReviewAt).toLocaleDateString()}` : "No management review yet"} · {company.management.nextRecommendedFocus}</small>
+                  </div>
+                  <button onClick={() => onOpenCompany?.(company.companyId)} type="button">
+                    Open management
+                  </button>
                 </article>
               );
             })}
@@ -214,6 +223,9 @@ export const PortfolioPage = ({ apiClient }: { apiClient: ApiClient }) => {
                     {item.suggestedNextAction} · confidence{" "}
                     {Math.round(item.confidence * 100)}%
                   </small>
+                  <button onClick={() => onOpenCompany?.(item.companyId)} type="button">
+                    Review company evidence
+                  </button>
                 </div>
               ))}
               {!data.insights.length ? (

@@ -569,7 +569,14 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
                     />
                   ) : null}
                   {pathname === "/portfolio" ? (
-                    <PortfolioPage apiClient={apiClient} />
+                    <PortfolioPage
+                      apiClient={apiClient}
+                      onOpenCompany={(companyId) =>
+                        selectCompany.mutate(companyId, {
+                          onSuccess: () => navigate("/companies"),
+                        })
+                      }
+                    />
                   ) : null}
                   {pathname === "/services" ? (
                     <CrossCompanyServicesPage apiClient={apiClient} />

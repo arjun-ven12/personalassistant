@@ -1061,6 +1061,90 @@ textarea:focus-visible {
   border-top: 1px solid var(--border);
   padding-top: 16px;
 }
+
+.company-management-intelligence {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+}
+
+.management-tabs {
+  overflow-x: auto;
+}
+
+.management-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.management-overview-grid > article,
+.management-wide-card,
+.management-detail-card,
+.management-table > article {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.management-overview-grid > article {
+  display: grid;
+  gap: 5px;
+}
+
+.management-wide-card {
+  grid-column: span 2;
+}
+
+.management-wide-card h3,
+.management-detail-card h3,
+.management-detail-card h4 {
+  margin-top: 0;
+}
+
+.management-table {
+  display: grid;
+  gap: 9px;
+}
+
+.management-table > article {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto minmax(240px, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.management-table > article div,
+.management-table > article small {
+  display: grid;
+  gap: 3px;
+}
+
+[data-management-state="CRITICAL"],
+[data-management-state="AT_RISK"] {
+  color: var(--danger);
+}
+
+[data-management-state="WATCH"] {
+  color: var(--warning);
+}
+
+[data-management-state="HEALTHY"] {
+  color: var(--success);
+}
+
+@media (max-width: 900px) {
+  .management-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .management-table > article {
+    grid-template-columns: 1fr;
+  }
+}
 .company-data-tabs {
   display: flex;
   gap: 4px;
@@ -1216,6 +1300,15 @@ textarea:focus-visible {
   margin: 0;
   border-top: 1px solid var(--border);
 }
+
+.portfolio-management-summary {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
 .portfolio-company-card dl div {
   padding: 9px 4px;
 }
@@ -1288,6 +1381,141 @@ textarea:focus-visible {
   flex: none;
   font-family: var(--mono);
   font-size: 0.7rem;
+}
+
+.services-product-flow {
+  align-items: start;
+}
+
+.service-request-form,
+.service-policy-form {
+  display: grid;
+  gap: 14px;
+}
+
+.service-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.service-request-form label,
+.service-policy-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.service-request-form input,
+.service-request-form select,
+.service-request-form textarea,
+.service-policy-form input,
+.service-policy-form select {
+  width: 100%;
+}
+
+.service-readiness {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.service-readiness small {
+  display: block;
+}
+
+.service-readiness.ready {
+  border-color: color-mix(in srgb, var(--success) 45%, var(--border));
+}
+
+.service-readiness.blocked {
+  border-color: color-mix(in srgb, var(--warning) 45%, var(--border));
+}
+
+.service-policy-list,
+.services-contracts {
+  display: grid;
+  gap: 10px;
+}
+
+.service-policy-form .service-policy-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.service-policy-form .service-policy-toggle input {
+  width: auto;
+}
+
+.service-policy-list > div {
+  display: grid;
+  gap: 3px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.service-contract-card {
+  display: grid;
+  gap: 12px;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel) 90%, transparent);
+}
+
+.service-contract-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.service-contract-card header > div,
+.service-contract-card header small {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.service-contract-card header > div {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.service-contract-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.service-contract-card dl div {
+  padding: 9px;
+  border: 1px solid var(--border);
+}
+
+.service-contract-card dt {
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.service-contract-card dd {
+  margin: 4px 0 0;
+}
+
+.service-contract-card details {
+  color: var(--muted);
+}
+
+@media (max-width: 760px) {
+  .service-form-grid,
+  .service-contract-card dl {
+    grid-template-columns: 1fr;
+  }
 }
 .portfolio-fresh,
 .portfolio-healthy,

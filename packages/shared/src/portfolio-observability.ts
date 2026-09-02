@@ -210,6 +210,21 @@ export const PortfolioCompanySummarySchema = z
     aiSpendCredits: z.number().nonnegative(),
     aiSuccessRate: z.number().min(0).max(1).nullable(),
     integrationHealth: z.enum(["HEALTHY", "DEGRADED", "UNAVAILABLE"]),
+    management: z.object({
+      topPriority: z.string().min(1).max(500).nullable(),
+      totalObjectives: z.number().int().nonnegative(),
+      objectivesAtRisk: z.number().int().nonnegative(),
+      decisionsRequiringOwner: z.number().int().nonnegative(),
+      latestReviewAt: z.iso.datetime().nullable(),
+      nextRecommendedFocus: z.string().min(1).max(500),
+    }).strict().default({
+      topPriority: null,
+      totalObjectives: 0,
+      objectivesAtRisk: 0,
+      decisionsRequiringOwner: 0,
+      latestReviewAt: null,
+      nextRecommendedFocus: "Open company management to establish priorities.",
+    }),
   })
   .strict();
 export const PortfolioSystemOverviewSchema = z

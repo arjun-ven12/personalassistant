@@ -330,6 +330,12 @@ export const SandboxExecutionResultSchema = z
 
 export const DurableExecutionDashboardSchema = z
   .object({
+    policies: z.array(CrossCompanyCollaborationPolicySchema).max(100).default([]),
+    readiness: z.object({
+      scheduler: z.enum(["CENTRALIZED_ENABLED", "NOT_ENABLED"]),
+      activityCapabilities: z.array(boundedKey).max(100),
+      externalTransferCompanyIds: z.array(uuid).max(100),
+    }).strict().default({ scheduler: "NOT_ENABLED", activityCapabilities: [], externalTransferCompanyIds: [] }),
     requests: z.array(CrossCompanyServiceRequestSchema).max(1_000),
     executions: z.array(DurableExecutionSchema).max(2_000),
     sandboxResults: z.array(SandboxExecutionResultSchema).max(1_000),
@@ -396,6 +402,9 @@ export const CompleteCrossCompanyServiceRequestSchema = z
 
 export type CrossCompanyCollaborationPolicy = z.infer<
   typeof CrossCompanyCollaborationPolicySchema
+>;
+export type CrossCompanySharingScope = z.infer<
+  typeof CrossCompanySharingScopeSchema
 >;
 export type CrossCompanyServiceRequest = z.infer<
   typeof CrossCompanyServiceRequestSchema

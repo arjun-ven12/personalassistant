@@ -462,6 +462,8 @@ const app = await buildApi({
   trustedProxyMode: environment.TRUSTED_PROXY_MODE,
   persistenceMode:
     environment.STORE_MODE === "postgres" ? "postgresql" : "in_memory_development",
+  durableSchedulerEnabled:
+    environment.NODE_ENV === "production" || process.env.ALEXA_DURABLE_WORKER === "1",
   databaseReady: async () => {
     if (!database) return environment.NODE_ENV !== "production";
     try {

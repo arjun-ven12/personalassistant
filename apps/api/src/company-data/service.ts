@@ -129,6 +129,7 @@ export class CompanyDataService {
       definitions,
       integrations,
       documents,
+      policy,
     ] = await Promise.all([
       this.store.listSources(ownerId, companyId),
       this.store.listDatasets(ownerId, companyId),
@@ -139,6 +140,7 @@ export class CompanyDataService {
       this.store.listMetrics(ownerId, companyId),
       this.store.listIntegrationBindings(ownerId, companyId),
       this.store.listSemanticDocuments(ownerId, companyId),
+      this.store.findActivePolicy(ownerId, companyId),
     ]);
     const metrics = await Promise.all(
       definitions
@@ -160,6 +162,7 @@ export class CompanyDataService {
       ]),
     );
     return CompanyDataDashboardSchema.parse({
+      policy: policy ?? null,
       sources,
       datasets: refreshedDatasets,
       pipelines,
