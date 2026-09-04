@@ -6,6 +6,7 @@ export const CompanyStatusSchema = z.enum([
 export const CompanyRiskToleranceSchema = z.enum(["LOW", "BALANCED", "HIGH"]);
 export const CompanyAutonomyLevelSchema = z.enum(["SUPERVISED", "GUARDED"]);
 export const CompanyApprovalPolicySchema = z.enum(["SUPERVISED", "STANDARD"]);
+export const CompanyPortfolioPrioritySchema = z.enum(["CRITICAL", "HIGH", "NORMAL", "LOW"]);
 
 export const CompanySettingsSchema = z.object({
   description: z.string().trim().max(2_000).nullable().default(null),
@@ -16,6 +17,7 @@ export const CompanySettingsSchema = z.object({
   riskTolerance: CompanyRiskToleranceSchema.default("LOW"),
   autonomyLevel: CompanyAutonomyLevelSchema.default("SUPERVISED"),
   defaultApprovalPolicy: CompanyApprovalPolicySchema.default("SUPERVISED"),
+  portfolioPriority: CompanyPortfolioPrioritySchema.default("NORMAL"),
   starterCredits: z.literal(0).default(0),
 }).strict();
 
@@ -31,6 +33,7 @@ export const CompanySchema = z.object({
     description: null, industry: null, businessModel: null, jurisdiction: null,
     defaultLanguage: "en", riskTolerance: "LOW", autonomyLevel: "SUPERVISED",
     defaultApprovalPolicy: "SUPERVISED", starterCredits: 0,
+    portfolioPriority: "NORMAL",
   }),
   memoryScopeId: z.string().min(1).max(200).nullable().default(null),
   economyAccountId: z.string().min(1).max(200).nullable().default(null),
@@ -83,6 +86,7 @@ export const CreateCompanyRequestSchema = z.object({
   defaultLanguage: z.string().trim().min(2).max(16).optional(), timezone: z.string().trim().min(1).max(80).optional(),
   defaultCurrency: z.string().regex(/^[A-Z]{3}$/).optional(), riskTolerance: CompanyRiskToleranceSchema.optional(),
   autonomyLevel: CompanyAutonomyLevelSchema.optional(), defaultApprovalPolicy: CompanyApprovalPolicySchema.optional(),
+  portfolioPriority: CompanyPortfolioPrioritySchema.optional(),
   idempotencyKey: z.string().trim().min(8).max(200).optional(),
 }).strict();
 export const UpdateCompanyRequestSchema = CreateCompanyRequestSchema.omit({ idempotencyKey: true }).partial()

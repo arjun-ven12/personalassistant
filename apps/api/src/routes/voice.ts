@@ -303,7 +303,8 @@ export const registerVoiceRoutes = (app: FastifyInstance, context: ApiRouteConte
           governanceSessionId: identity.session.id,
           networkState: context.security.getNetworkState(request),
           responseOverride: body.isFinal && body.confidence >= 0.55
-            ? await context.companies.handleConversation(identity, body.transcript, { requestId: request.id, ipAddress: request.ip })
+            ? (await context.portfolio.handleConversation(identity.user.id, body.transcript))
+              ?? await context.companies.handleConversation(identity, body.transcript, { requestId: request.id, ipAddress: request.ip })
             : null,
         }),
       );

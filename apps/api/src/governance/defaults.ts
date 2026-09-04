@@ -45,6 +45,8 @@ const defineTool = (
 
 export const BUILT_IN_TOOLS: ToolDefinition[] = [
   defineTool("ai.economic_override", "high", "recent_authentication", []),
+  defineTool("portfolio.allocate_credits", "high", "recent_authentication", []),
+  defineTool("portfolio.fund_owner_reserve", "high", "recent_authentication", []),
   defineTool("security.view", "read_only", "none", ["security.view"]),
   defineTool("audit.list", "read_only", "none", ["security.view"]),
   defineTool("devices.list", "read_only", "none", ["security.view"]),

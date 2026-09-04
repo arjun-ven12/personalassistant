@@ -56,7 +56,7 @@ const departmentFor = (slug: string) => {
 export const ECC_AGENT_SEEDS: WorkforceSeed[] = eccSlugs.map((slug) => ({
   id: `ecc_${slug.replaceAll("-", "_")}`,
   displayName: title(slug),
-  description: `Bounded ${title(slug).toLowerCase()} specialist normalized into Alexa's governed Agent OS.`,
+  description: `Bounded ${title(slug).toLowerCase()} specialist normalized into Athena's governed Agent OS.`,
   department: departmentFor(slug),
   role: roleFor(slug),
   specialization: title(slug),
@@ -74,7 +74,7 @@ const native = (
 ): WorkforceSeed => ({
   id: `native_${id}`,
   displayName,
-  description: `${specialization} specialist designed for Alexa's bounded organizational workforce.`,
+  description: `${specialization} specialist designed for Athena's bounded organizational workforce.`,
   department,
   role,
   specialization,

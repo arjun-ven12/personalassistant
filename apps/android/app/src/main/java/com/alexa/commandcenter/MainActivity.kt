@@ -123,6 +123,8 @@ class MainActivity : FragmentActivity() {
         onRefreshApproval = model::refreshApproval,
         onRefresh = model::refresh,
         onCompanySelected = model::selectCompany,
+        onPortfolioSelected = model::enterPortfolioMode,
+        onPortfolioSearch = model::searchPortfolio,
         onCompanyCreated = model::createCompany,
         onCompanyAction = model::transitionCompany,
         onLock = model::lockNow,
@@ -197,7 +199,7 @@ class MainActivity : FragmentActivity() {
       override fun onAuthenticationError(errorCode: Int, errString: CharSequence) = model.onBiometricCancelled()
     })
     val info = BiometricPrompt.PromptInfo.Builder()
-        .setTitle(if (request.purpose == BiometricPurpose.APPROVAL_STEP_UP) "Confirm approval" else "Unlock Alexa")
+        .setTitle(if (request.purpose == BiometricPurpose.APPROVAL_STEP_UP) "Confirm approval" else "Unlock Athena")
         .setSubtitle(if (request.purpose == BiometricPurpose.APPROVAL_STEP_UP) "Authenticate to submit this governed decision" else "Confirm your identity to access the Command Center")
         .setAllowedAuthenticators(allowed)
         .build()

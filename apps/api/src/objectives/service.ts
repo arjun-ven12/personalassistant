@@ -429,7 +429,7 @@ export class ObjectiveEngineService {
 
   private clarifications(outcome:string,metricCount:number,deadline:string|null) {
     const questions:string[]=[]; const normalized=outcome.trim().toLowerCase();
-    if(outcome.trim().length<20||["grow business","make money","improve things","do better"].includes(normalized)) questions.push("What specific, observable outcome should Alexa optimize for?");
+    if(outcome.trim().length<20||["grow business","make money","improve things","do better"].includes(normalized)) questions.push("What specific, observable outcome should Athena optimize for?");
     if(metricCount===0) questions.push("What measurable result will determine whether this objective succeeded?");
     if(!deadline) questions.push("What deadline or review horizon should constrain the plan?");
     return questions;

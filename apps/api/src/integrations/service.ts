@@ -16,16 +16,22 @@ import { BUILT_IN_INTEGRATIONS, builtInCapabilities } from "./builtins.js";
 import type { IntegrationStore } from "./store.js";
 import { BusinessOperationsRuntime, type AgentBusinessAuthorityVerifier, type BusinessOutcomeSinks } from "./business-runtime.js";
 import type { ReviewedBusinessProvider } from "./business-providers.js";
+import type { CompanyDataStore } from "../company-data/store.js";
+import type { ReviewedSecretResolver } from "./secret-resolver.js";
+import { CommercialWorkflowCoordinator, type CommercialWorkflowTemplate } from "./commercial-workflows.js";
 
 export class IntegrationRegistryService {
   #business?:BusinessOperationsRuntime;
+  #commercialWorkflows?:CommercialWorkflowCoordinator;
   constructor(
     readonly store: IntegrationStore,
     readonly audit: GovernanceAuditWriter,
     readonly now: () => Date = () => new Date(),
+    readonly companyData?: Pick<CompanyDataStore, "listIntegrationBindings" | "findCredentialReference">,
+    readonly secrets?: ReviewedSecretResolver,
   ) {}
 
-  enableBusinessOperations(approvals:ApprovalService){this.#business=new BusinessOperationsRuntime(this.store,approvals,this.audit,this.now);return this.#business;}
+  enableBusinessOperations(approvals:ApprovalService){this.#business=new BusinessOperationsRuntime(this.store,approvals,this.audit,this.now,this.companyData,this.secrets);this.#commercialWorkflows=new CommercialWorkflowCoordinator(this.store,this.audit,this.now);return this.#business;}
   setBusinessProvider(provider:ReviewedBusinessProvider){this.requireBusiness().setProvider(provider);}
   setBusinessOutcomeSinks(sinks:BusinessOutcomeSinks){this.requireBusiness().setOutcomeSinks(sinks);}
   setAgentBusinessAuthorityVerifier(verifier:AgentBusinessAuthorityVerifier){this.requireBusiness().setAgentAuthorityVerifier(verifier);}
@@ -34,6 +40,9 @@ export class IntegrationRegistryService {
   async reconcileBusinessAction(input:{ownerId:string;executionId:string;requestId:string;ipAddress:string}){return this.requireBusiness().reconcile(input);}
   async ingestBusinessWebhook(input:{ownerId:string;body:unknown;signature:string;timestamp:string;secret:string;requestId:string;ipAddress:string}){await this.ensureBuiltIns(input.ownerId,input.requestId);return this.requireBusiness().ingestWebhook(input);}
   async saveBusinessCheckpoint(ownerId:string,integrationId:string,stream:string,cursor:string,sourceTimestamp:string|null){return this.requireBusiness().checkpoint(ownerId,integrationId,stream,cursor,sourceTimestamp);}
+  async startCommercialWorkflow(input:{ownerId:string;companyId:string;template:CommercialWorkflowTemplate;triggerKey:string;sourceRefs:string[]}){return this.requireCommercialWorkflows().start(input);}
+  async transitionCommercialWorkflow(input:unknown){return this.requireCommercialWorkflows().transition(input);}
+  async findCommercialWorkflow(ownerId:string,companyId:string,template:CommercialWorkflowTemplate,triggerKey:string){return this.requireCommercialWorkflows().find(ownerId,companyId,template,triggerKey);}
 
   async ensureBuiltIns(ownerId: string, requestId = "system") {
     const at = this.now().toISOString();
@@ -308,4 +317,5 @@ export class IntegrationRegistryService {
   }
 
   private requireBusiness(){if(!this.#business)throw new ExecutionError(503,"BUSINESS_OPERATIONS_NOT_CONFIGURED","The governed business operations runtime is not configured.");return this.#business;}
+  private requireCommercialWorkflows(){if(!this.#commercialWorkflows)throw new ExecutionError(503,"COMMERCIAL_WORKFLOWS_NOT_CONFIGURED","The bounded commercial workflow coordinator is not configured.");return this.#commercialWorkflows;}
 }

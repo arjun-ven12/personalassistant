@@ -30,8 +30,8 @@ class ExecutiveNotificationPolicyTest {
   }
 
   @Test fun `keeps lock screen copy generic and reserves high transport priority for critical`() {
-    assertEquals("Alexa executive update", ExecutiveNotificationPolicy.PUBLIC_TITLE)
-    assertEquals("Open Alexa to review securely.", ExecutiveNotificationPolicy.PUBLIC_TEXT)
+    assertEquals("Athena executive update", ExecutiveNotificationPolicy.PUBLIC_TITLE)
+    assertEquals("Open Athena to review securely.", ExecutiveNotificationPolicy.PUBLIC_TEXT)
     assertTrue(ExecutiveNotificationPolicy.usesHighTransportPriority("CRITICAL"))
     assertFalse(ExecutiveNotificationPolicy.usesHighTransportPriority("HIGH"))
   }

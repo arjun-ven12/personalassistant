@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PostgresDatabase } from "../../persistence/database.js";
-import { safeTestDatabaseUrl } from "../../persistence/test-database.js";
+import { provisionTestDefaultCompany, safeTestDatabaseUrl } from "../../persistence/test-database.js";
 import { PostgresAIEconomicsStore } from "./postgres-store.js";
 import { AIEconomicsService } from "./service.js";
 
@@ -46,6 +46,8 @@ describe.skipIf(!connectionString)("Phase 20R-B PostgreSQL economic authority", 
          ON CONFLICT(id) DO NOTHING`,
         [id, email, { id, email }],
       );
+    for (const id of [ownerA, ownerB])
+      await provisionTestDefaultCompany(database.pool, id);
   }, 60_000);
 
   afterAll(async () => {

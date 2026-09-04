@@ -200,6 +200,60 @@ data class CommandCenterSnapshot(
   val attention: ExecutiveAttention = ExecutiveAttention(),
 )
 
+data class PortfolioDashboard(
+  val generatedAt: String,
+  val health: PortfolioHealth = PortfolioHealth(),
+  val companies: List<PortfolioCompanySummary> = emptyList(),
+  val attentionQueue: List<PortfolioAttentionSignal> = emptyList(),
+  val evidenceQuality: String = "UNAVAILABLE",
+)
+data class PortfolioHealth(
+  val state: String = "UNKNOWN",
+  val score: Double? = null,
+  val companiesIncluded: Int = 0,
+  val companiesUnknown: Int = 0,
+)
+data class PortfolioCompanySummary(
+  val companyId: String,
+  val companyName: String,
+  val companyStatus: String,
+  val priority: String = "NORMAL",
+  val healthScore: Double? = null,
+  val healthState: String = "UNKNOWN",
+  val activeObjectives: Int = 0,
+  val blockedObjectives: Int = 0,
+  val activeAgents: Int = 0,
+  val totalSpendCredits: Double = 0.0,
+)
+data class PortfolioAttentionSignal(
+  val id: String,
+  val companyId: String,
+  val companyName: String,
+  val title: String,
+  val severity: String,
+  val status: String,
+)
+
+data class PortfolioEconomy(
+  val ownerReserveAvailable: Int = 0,
+  val allocatedAcrossCompanies: Int = 0,
+  val companyAccounts: List<PortfolioEconomyCompany> = emptyList(),
+)
+data class PortfolioEconomyCompany(
+  val companyId: String, val companyName: String, val allocatedCredits: Int = 0,
+  val spentCredits: Int = 0, val reservedCredits: Int = 0, val availableCredits: Int = 0,
+)
+data class PortfolioApproval(
+  val id: String, val companyId: String, val companyName: String, val action: String,
+  val risk: String, val requestingActor: String, val createdAt: String, val status: String,
+  val deepLink: String,
+)
+data class PortfolioSearchResponse(val query: String, val results: List<PortfolioSearchResult> = emptyList(), val truncated: Boolean = false)
+data class PortfolioSearchResult(
+  val type: String, val id: String, val title: String, val companyId: String,
+  val companyName: String, val subtitle: String, val status: String, val deepLink: String,
+)
+
 data class CreateObjectiveRequest(
   val title: String,
   val outcome: String,

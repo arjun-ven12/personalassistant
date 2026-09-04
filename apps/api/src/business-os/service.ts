@@ -132,7 +132,7 @@ export class BusinessOSService {
           currentResponse: objective.lastReplanTrigger
             ? `Strategy version ${objective.strategyVersion} reflects ${objective.lastReplanTrigger}.`
             : "Monitoring progress and bounded recovery options.",
-          ownerAction: "None unless Alexa requests a decision.",
+          ownerAction: "None unless Athena requests a decision.",
           entity: base,
           createdAt: objective.updatedAt,
         });

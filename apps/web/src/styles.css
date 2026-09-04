@@ -935,6 +935,8 @@ textarea:focus-visible {
 
 .company-management {
   max-width: 1400px;
+  display: grid;
+  gap: 16px;
 }
 .company-limit {
   display: flex;
@@ -954,7 +956,7 @@ textarea:focus-visible {
   display: grid;
   grid-template-columns: minmax(250px, 0.7fr) minmax(420px, 1.3fr);
   gap: 16px;
-  margin: 20px 0;
+  margin: 0;
 }
 .company-list,
 .company-detail,
@@ -1230,11 +1232,72 @@ textarea:focus-visible {
 }
 .portfolio-page {
   max-width: 1500px;
+  display: grid;
+  gap: 16px;
+}
+
+.portfolio-search-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.65rem;
+  margin: 0.75rem 0;
+}
+
+.portfolio-search-result {
+  display: grid;
+  gap: 0.2rem;
+  width: 100%;
+  margin-top: 0.55rem;
+  text-align: left;
+}
+
+.portfolio-search-result span,
+.portfolio-search-result small,
+.portfolio-reserve-summary span,
+.portfolio-reserve-summary small {
+  color: var(--text-muted);
+}
+
+.portfolio-reserve-summary {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.portfolio-reserve-summary strong {
+  font-size: 2rem;
+}
+
+.portfolio-approval-row,
+.portfolio-proposal-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.8rem 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.portfolio-approval-row p,
+.portfolio-proposal-row p {
+  margin: 0.25rem 0;
+}
+
+.portfolio-approval-row > span,
+.portfolio-proposal-row > span {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 720px) {
+  .portfolio-search-controls { grid-template-columns: 1fr; }
+  .portfolio-approval-row, .portfolio-proposal-row { flex-direction: column; }
 }
 .portfolio-tabs {
   display: flex;
   gap: 5px;
-  margin: 18px 0;
+  margin: 0;
 }
 .portfolio-tabs button[aria-selected="true"] {
   color: var(--accent);
@@ -1245,7 +1308,7 @@ textarea:focus-visible {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  margin: 18px 0;
+  margin: 0;
 }
 .portfolio-company-card {
   min-width: 0;
@@ -1385,6 +1448,22 @@ textarea:focus-visible {
 
 .services-product-flow {
   align-items: start;
+}
+
+/* Top-level operational surfaces are vertical stacks. Keep distinct cards and
+   grids apart instead of allowing consecutive bordered surfaces to touch. */
+.services-page {
+  display: grid;
+  gap: 16px;
+}
+
+.services-page > .notice,
+.portfolio-page > .notice,
+.company-management > .notice,
+.services-page > .error-banner,
+.portfolio-page > .error-banner,
+.company-management > .error-banner {
+  margin: 0;
 }
 
 .service-request-form,

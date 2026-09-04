@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import {
   CompanyManagementDashboardSchema,
   CompanyManagementKpiSchema,
@@ -17,6 +19,7 @@ import type { AgentEconomyService } from "../agent-economy/service.js";
 import type { AgentWorkforceService } from "../agent-workforce/service.js";
 import type { CompanyDataService } from "../company-data/service.js";
 import type { CompanyStore } from "../companies/store.js";
+import { companyScope } from "../companies/scope.js";
 import type { ExecutiveStore } from "../executive/store.js";
 import type { GovernanceAuditWriter } from "../governance/approval-service.js";
 import type { ObjectiveEngineService } from "../objectives/service.js";
@@ -24,6 +27,10 @@ import type { OwnerPortfolioObservabilityService } from "../observability/servic
 
 const normalize = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_|_$/g, "");
 const stateRank = { UNKNOWN: 0, HEALTHY: 1, WARNING: 2, CRITICAL: 3 } as const;
+const deterministicUuid = (value: string) => {
+  const hash = createHash("sha256").update(value).digest("hex");
+  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-8${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
+};
 
 export class CompanyManagementService {
   constructor(
@@ -41,17 +48,24 @@ export class CompanyManagementService {
   async dashboard(ownerId: string, companyId: string) {
     const company = await this.companies.findCompany(ownerId, companyId);
     if (!company) throw Object.assign(new Error("Company management scope is unavailable."), { statusCode: 404, code: "COMPANY_NOT_FOUND" });
-    const [data, objectiveData, plans, executiveKpis, decisions, history, graph, economy, portfolio] = await Promise.all([
-      this.companyData.dashboard(ownerId, companyId),
-      this.objectives.dashboard(ownerId),
-      this.executiveStore.listPlans(ownerId),
-      this.executiveStore.listKpis(ownerId),
-      this.executiveStore.listDecisions(ownerId),
-      this.executiveStore.listHistory(ownerId),
-      this.workforce.graph(ownerId, {}),
-      this.economy.dashboard(ownerId),
+    const currentScope = companyScope.current(ownerId);
+    const scope = currentScope?.companyId === companyId
+      ? currentScope
+      : { ownerId, companyId, role: "OWNER" as const, requestId: `company-management:${companyId}` };
+    const [scoped, portfolio] = await Promise.all([
+      companyScope.run(scope, () => Promise.all([
+        this.companyData.dashboard(ownerId, companyId),
+        this.objectives.dashboard(ownerId),
+        this.executiveStore.listPlans(ownerId),
+        this.executiveStore.listKpis(ownerId),
+        this.executiveStore.listDecisions(ownerId),
+        this.executiveStore.listHistory(ownerId),
+        this.workforce.graph(ownerId, {}),
+        this.economy.dashboard(ownerId),
+      ])),
       this.portfolio.dashboard(ownerId),
     ]);
+    const [data, objectiveData, plans, executiveKpis, decisions, history, graph, economy] = scoped;
     const companySummary = portfolio.companies.find((item) => item.companyId === companyId);
     const portfolioMetrics = portfolio.portfolioMetrics.filter((item) => item.companyId === companyId);
     const kpis = data.metrics.map((metric) => this.kpi(metric, portfolioMetrics, executiveKpis));
@@ -87,7 +101,12 @@ export class CompanyManagementService {
         risks: departmentObjectives.filter((item) => ["BLOCKED", "FAILED", "WAITING"].includes(item.status)).map((item) => `${item.title}: ${item.status}`).slice(0, 20),
       };
     });
-    const latestReview = history.map((item) => item.metadata.review).filter(Boolean).map((item) => CompanyManagementReviewSchema.safeParse(item)).find((item) => item.success)?.data ?? null;
+    const latestReview = [...history]
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+      .map((item) => item.metadata.review)
+      .filter(Boolean)
+      .map((item) => CompanyManagementReviewSchema.safeParse(item))
+      .find((item) => item.success)?.data ?? null;
     const health = this.companyHealth(companySummary, kpis, objectives);
     const economyAlerts = economy.overview.reservedCredits > economy.overview.availableCredits ? 1 : 0;
     return CompanyManagementDashboardSchema.parse({
@@ -130,9 +149,20 @@ export class CompanyManagementService {
 
   async generateReview(ownerId: string, companyId: string, raw: unknown, context: { requestId: string; ipAddress: string }) {
     const request = GenerateManagementReviewRequestSchema.parse(raw);
+    const scope = { ownerId, companyId, role: "OWNER" as const, requestId: context.requestId };
+    const history = await companyScope.run(scope, () => this.executiveStore.listHistory(ownerId));
+    const existing = history.find((item) =>
+      item.metadata.kind === "MANAGEMENT_REVIEW" &&
+      item.metadata.idempotencyKey === request.idempotencyKey,
+    );
+    if (existing) {
+      const parsed = CompanyManagementReviewSchema.safeParse(existing.metadata.review);
+      if (parsed.success && parsed.data.companyId === companyId) return parsed.data;
+    }
     const dashboard = await this.dashboard(ownerId, companyId);
+    const reviewId = deterministicUuid(`management-review:${ownerId}:${companyId}:${request.idempotencyKey}`);
     const review = CompanyManagementReviewSchema.parse({
-      id: crypto.randomUUID(), ownerId, companyId, period: request.period, cadence: request.cadence,
+      id: reviewId, ownerId, companyId, period: request.period, cadence: request.cadence,
       strategyVersion: dashboard.strategy?.version ?? null, companyState: dashboard.health,
       kpiStatus: dashboard.kpis, objectiveStatus: dashboard.objectives, risks: dashboard.diagnoses,
       opportunities: dashboard.kpis.filter((item) => item.status === "ON_TRACK" && item.trend === "UP").map((item) => `${item.name} is on track and improving; review whether bounded acceleration is justified.`),
@@ -141,11 +171,11 @@ export class CompanyManagementService {
       evidenceRefs: [...new Set([...dashboard.kpis.flatMap((item) => item.lineage.map((edge) => edge.id)), ...dashboard.objectives.flatMap((item) => item.evidence)])].slice(0, 200),
       generatedAt: this.now().toISOString(), executed: false,
     });
-    await this.executiveStore.saveHistory(ExecutiveHistorySchema.parse({
-      id: crypto.randomUUID(), ownerId, type: "HEALTH_EVALUATED", entityId: null,
+    await companyScope.run(scope, () => this.executiveStore.saveHistory(ExecutiveHistorySchema.parse({
+      id: deterministicUuid(`management-review-history:${ownerId}:${companyId}:${request.idempotencyKey}`), ownerId, type: "HEALTH_EVALUATED", entityId: null,
       summary: `${request.cadence} company management review generated from scoped evidence.`,
-      metadata: { kind: "MANAGEMENT_REVIEW", review }, createdAt: review.generatedAt,
-    }));
+      metadata: { kind: "MANAGEMENT_REVIEW", idempotencyKey: request.idempotencyKey, review }, createdAt: review.generatedAt,
+    })));
     await this.audit?.({ eventType: "MANAGEMENT_REVIEW_GENERATED", ownerId, companyId, outcome: "SUCCESS", reason: "Evidence-backed management review generated without executing recommendations.", metadata: { reviewId: review.id, cadence: review.cadence }, ...context });
     return review;
   }
@@ -211,7 +241,7 @@ export class CompanyManagementService {
     if (summary.health.some((item) => item.state === "CRITICAL") || objectives.some((item) => item.risk === "CRITICAL") || kpis.some((item) => item.status === "CRITICAL")) return "CRITICAL" as const;
     if (objectives.some((item) => item.risk === "HIGH") || kpis.some((item) => item.status === "AT_RISK")) return "AT_RISK" as const;
     if (summary.health.some((item) => item.state === "WARNING") || kpis.some((item) => item.status === "WATCH")) return "WATCH" as const;
-    if (!kpis.length || summary.health.some((item) => item.state === "UNKNOWN")) return "UNKNOWN" as const;
+    if (!kpis.length || kpis.some((item) => item.status === "UNKNOWN" || item.freshness !== "CURRENT") || summary.health.some((item) => item.state === "UNKNOWN")) return "UNKNOWN" as const;
     return "HEALTHY" as const;
   }
 }

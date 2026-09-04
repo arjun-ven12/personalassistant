@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 
 import type { CompanyLifecycleAction, CompanyStatus } from "@alexa-control/shared";
 import type { ApiClient } from "./api.js";
+import { retainQueryAcrossCompanySwitch } from "./companyQueryCache.js";
 
 const actionFor = (
   status: CompanyStatus,
@@ -99,8 +100,7 @@ export const CompaniesPage = ({
       }),
     onSuccess: async (response) => {
       queryClient.removeQueries({
-        predicate: (query) =>
-          !["auth-session", "companies"].includes(String(query.queryKey[0])),
+        predicate: (query) => !retainQueryAcrossCompanySwitch(query.queryKey),
       });
       queryClient.setQueryData(["companies"], response);
       setSelectedId(response.currentCompany.id);
@@ -126,7 +126,11 @@ export const CompaniesPage = ({
   });
   const generateReview = useMutation({
     mutationFn: () =>
-      apiClient.generateCompanyManagementReview({ cadence: "AD_HOC", period: "CURRENT" }),
+      apiClient.generateCompanyManagementReview({
+        idempotencyKey: crypto.randomUUID(),
+        cadence: "AD_HOC",
+        period: "CURRENT",
+      }),
     onSuccess: refresh,
   });
   const current = detail.data?.company;
@@ -296,7 +300,7 @@ export const CompaniesPage = ({
                     </div>
                   ) : null}
                   {managementTab === "Strategy" && companyManagement.data ? (
-                    <article className="management-detail-card">{companyManagement.data.strategy ? <><div className="panel-heading"><h3>{companyManagement.data.strategy.strategicIntent}</h3><strong>v{companyManagement.data.strategy.version} · {companyManagement.data.strategy.status}</strong></div><h4>Priorities</h4>{companyManagement.data.strategy.priorities.map((item) => <p key={item}>{item}</p>)}<h4>Assumptions</h4>{companyManagement.data.strategy.assumptions.map((item) => <p key={item}>{item}</p>)}<small>Budget envelope: {companyManagement.data.strategy.budgetEnvelope ?? "not bound"} · horizon {companyManagement.data.strategy.timeHorizon}</small></> : <div className="portfolio-empty"><strong>No approved strategy.</strong><p>Create a measurable Objective and activate its Executive plan. Alexa will not invent a binding strategy or KPI target.</p><a href="/objectives">Open Objectives</a></div>}</article>
+                    <article className="management-detail-card">{companyManagement.data.strategy ? <><div className="panel-heading"><h3>{companyManagement.data.strategy.strategicIntent}</h3><strong>v{companyManagement.data.strategy.version} · {companyManagement.data.strategy.status}</strong></div><h4>Priorities</h4>{companyManagement.data.strategy.priorities.map((item) => <p key={item}>{item}</p>)}<h4>Assumptions</h4>{companyManagement.data.strategy.assumptions.map((item) => <p key={item}>{item}</p>)}<small>Budget envelope: {companyManagement.data.strategy.budgetEnvelope ?? "not bound"} · horizon {companyManagement.data.strategy.timeHorizon}</small></> : <div className="portfolio-empty"><strong>No approved strategy.</strong><p>Create a measurable Objective and activate its Executive plan. Athena will not invent a binding strategy or KPI target.</p><a href="/objectives">Open Objectives</a></div>}</article>
                   ) : null}
                   {managementTab === "KPIs" && companyManagement.data ? (
                     <div className="management-table">{companyManagement.data.kpis.map((kpi) => <article key={kpi.metricId}><div><strong>{kpi.name}</strong><small>{kpi.canonicalKey} · definition v{kpi.definitionVersion} · {kpi.freshness}</small></div><b>{kpi.value ?? "—"} {kpi.unit}</b><span>{kpi.target === null ? "No approved target" : `Target ${kpi.target}`} · {kpi.status} · {kpi.trend}</span></article>)}{!companyManagement.data.kpis.length ? <p className="portfolio-empty">No canonical metrics are defined. Connect a source and define semantic metrics in Data.</p> : null}</div>

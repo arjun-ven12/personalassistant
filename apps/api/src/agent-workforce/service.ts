@@ -784,7 +784,7 @@ export class AgentWorkforceService {
       id: "alexa_governor",
       ownerId,
       canonicalKey: "alexa-company-governor",
-      name: "Alexa Company Governor",
+      name: "Athena Company Governor",
       role: "engineering_manager",
       description:
         "Coordinates company objectives and bounded workforce planning without cross-company authority.",
@@ -813,7 +813,7 @@ export class AgentWorkforceService {
       organization = OrganizationRecordSchema.parse({
         id: uuidFrom(`company:${companyId}:organization`),
         ownerId,
-        name: "Alexa Workforce",
+        name: "Athena Workforce",
         mission: "Coordinate governed company objectives under owner authority.",
         status: "active",
         governorAgentId: "alexa_governor",
@@ -1102,7 +1102,7 @@ export class AgentWorkforceService {
             {
               id: "alexa_governor",
               kind: "GOVERNOR" as const,
-              label: "Alexa Governor",
+              label: "Athena Governor",
               subtitle: organization.name,
               parentId: null,
               departmentId: null,
@@ -1391,7 +1391,7 @@ export class AgentWorkforceService {
       );
     const updated = OrganizationRecordSchema.parse({
       ...existing,
-      name: "Alexa Workforce",
+      name: "Athena Workforce",
       mission:
         "Coordinate a governed, resource-aware artificial organization under owner authority.",
       governorAgentId: "alexa_governor",

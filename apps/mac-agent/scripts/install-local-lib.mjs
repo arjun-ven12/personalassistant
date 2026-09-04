@@ -3,7 +3,7 @@ import { constants } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-export const APP_NAME = "Alexa Mac Agent.app";
+export const APP_NAME = "Athena Mac Agent.app";
 export const BUNDLE_ID = "com.alexacontrol.macagent";
 
 export const chooseInstallPath = async ({ home = os.homedir(), exists }) => {

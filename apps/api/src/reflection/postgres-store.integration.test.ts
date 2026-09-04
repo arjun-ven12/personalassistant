@@ -1,8 +1,8 @@
 import { ExecutivePlanSchema, TaskRecordSchema } from "@alexa-control/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PostgresExecutiveStore } from "../executive/postgres-store.js";
-import { PostgresDatabase } from "../persistence/database.js";
-import { safeTestDatabaseUrl } from "../persistence/test-database.js";
+import type { PostgresDatabase } from "../persistence/database.js";
+import { createIsolatedTestDatabase, provisionTestDefaultCompany, safeTestDatabaseUrl } from "../persistence/test-database.js";
 import { PostgresTaskStore } from "../tasks/postgres-store.js";
 import { PostgresReflectionStore } from "./postgres-store.js";
 import { ReflectionEngineService } from "./service.js";
@@ -13,10 +13,12 @@ const ownerA = crypto.randomUUID();
 const ownerB = crypto.randomUUID();
 const at = "2026-08-16T00:00:00.000Z";
 let database: PostgresDatabase | undefined;
+let cleanup: (() => Promise<void>) | undefined;
 describe.skipIf(!connectionString)("PostgreSQL reflection durability", () => {
   beforeAll(async () => {
-    database = new PostgresDatabase(connectionString!);
-    await database.migrate();
+    const isolated = await createIsolatedTestDatabase(connectionString!, "phase21c_reflection");
+    database = isolated.database;
+    cleanup = isolated.cleanup;
     for (const [id, email] of [
       [ownerA, "phase21c-a@example.test"],
       [ownerB, "phase21c-b@example.test"],
@@ -25,14 +27,10 @@ describe.skipIf(!connectionString)("PostgreSQL reflection durability", () => {
         "INSERT INTO owners(id,email,password_hash,record,created_at,updated_at) VALUES($1,$2,'test-only',$3,NOW(),NOW())",
         [id, email, { id }],
       );
+    for (const id of [ownerA, ownerB]) await provisionTestDefaultCompany(database.pool, id);
   });
   afterAll(async () => {
-    if (database) {
-      await database.pool.query("DELETE FROM owners WHERE id=ANY($1::uuid[])", [
-        [ownerA, ownerB],
-      ]);
-      await database.close();
-    }
+    await cleanup?.();
   });
   it("survives service reconstruction with exact results and owner isolation", async () => {
     const taskStore = new PostgresTaskStore(database!.pool);

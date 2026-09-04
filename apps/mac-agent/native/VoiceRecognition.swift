@@ -61,7 +61,7 @@ private final class NativeVoiceRecognition: NSObject {
     let request = SFSpeechAudioBufferRecognitionRequest()
     request.shouldReportPartialResults = true
     request.taskHint = .dictation
-    request.contextualStrings = ["Alexa", "Luna", "Gemma", "OpenAI", "Ollama"]
+    request.contextualStrings = ["Athena", "Alexa", "Luna", "Gemma", "OpenAI", "Ollama"]
     let usingOnDeviceRecognition =
       preferOnDeviceRecognition && recognizer.supportsOnDeviceRecognition
     request.requiresOnDeviceRecognition = usingOnDeviceRecognition

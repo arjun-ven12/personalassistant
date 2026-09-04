@@ -76,6 +76,8 @@ import {
   PostgresObservabilityStore,
   type ObservabilityStore,
 } from "./observability/store.js";
+import { InMemoryPortfolioEconomyStore, type PortfolioEconomyStore } from "./agent-economy/portfolio-store.js";
+import { PostgresPortfolioEconomyStore } from "./agent-economy/portfolio-postgres-store.js";
 import {
   CrossCompanyExecutionService,
   type CrossCompanyActivityExecutor,
@@ -97,6 +99,7 @@ import {
   DurableActivityRegistry,
 } from "./durable-execution/production.js";
 import { DurableExecutionScheduler } from "./durable-execution/scheduler.js";
+import { GovernorProposalWorker } from "./observability/governor-proposal-worker.js";
 import { CompanyManagementService } from "./company-management/service.js";
 import { CrossDeviceService } from "./cross-device/service.js";
 import {
@@ -121,6 +124,8 @@ import {
   type IntegrationStore,
 } from "./integrations/store.js";
 import { IntegrationRegistryService } from "./integrations/service.js";
+import type { ReviewedBusinessProvider } from "./integrations/business-providers.js";
+import type { ReviewedSecretResolver } from "./integrations/secret-resolver.js";
 import { registerIntegrationRoutes } from "./routes/integrations.js";
 import { InMemoryAgentStore, type AgentStore } from "./agents/store.js";
 import { AgentRegistryService } from "./agents/service.js";
@@ -384,6 +389,7 @@ export const LOG_REDACTION_PATHS = [
   "*.REDIS_PASSWORD",
   "*.OPENAI_API_KEY",
   "*.GOOGLE_CLIENT_SECRET",
+  "*.GMAIL_OAUTH_CREDENTIAL_JSON",
   "*.authorization",
 ] as const;
 
@@ -403,6 +409,7 @@ export interface BuildApiOptions {
   companyStore?: CompanyStore;
   companyDataStore?: CompanyDataStore;
   observabilityStore?: ObservabilityStore;
+  portfolioEconomyStore?: PortfolioEconomyStore;
   durableExecutionStore?: DurableExecutionStore;
   crossCompanyActivityExecutor?: CrossCompanyActivityExecutor;
   durableSchedulerEnabled?: boolean;
@@ -431,6 +438,8 @@ export interface BuildApiOptions {
   validationStore?: ValidationStore;
   workflowStore?: WorkflowStore;
   integrationStore?: IntegrationStore;
+  businessProviders?: ReviewedBusinessProvider[];
+  integrationSecretResolver?: ReviewedSecretResolver;
   agentStore?: AgentStore;
   agentOsStore?: AgentOsStore;
   agentCognitionStore?: AgentCognitionStore;
@@ -509,6 +518,7 @@ export const buildApi = async ({
   companyStore,
   companyDataStore,
   observabilityStore,
+  portfolioEconomyStore,
   durableExecutionStore,
   crossCompanyActivityExecutor,
   durableSchedulerEnabled = nodeEnvironment === "production",
@@ -537,6 +547,8 @@ export const buildApi = async ({
   validationStore = new InMemoryValidationStore(),
   workflowStore = new InMemoryWorkflowStore(),
   integrationStore = new InMemoryIntegrationStore(),
+  businessProviders = [],
+  integrationSecretResolver,
   agentStore = new InMemoryAgentStore(),
   agentOsStore = new InMemoryAgentOsStore(),
   agentCognitionStore = new InMemoryAgentCognitionStore(),
@@ -850,6 +862,9 @@ export const buildApi = async ({
     governanceAudit,
     now,
   );
+  const resolvedPortfolioEconomyStore =
+    portfolioEconomyStore ??
+    (database ? new PostgresPortfolioEconomyStore(database.pool) : new InMemoryPortfolioEconomyStore());
   telemetry.setRecorder?.((span) => {
     if (!span.ownerId) return;
     return portfolio.recordSystemSpan(span);
@@ -923,6 +938,7 @@ export const buildApi = async ({
     governanceAudit,
     approvalTtlSeconds,
   );
+  portfolio.setPortfolioEconomy(resolvedPortfolioEconomyStore, approvals);
   const resolvedDurableExecutionStore =
     durableExecutionStore ??
     (database
@@ -1031,8 +1047,11 @@ export const buildApi = async ({
     integrationStore,
     governanceAudit,
     now,
+    resolvedCompanyDataStore,
+    integrationSecretResolver,
   );
   integrations.enableBusinessOperations(approvals);
+  for (const provider of businessProviders) integrations.setBusinessProvider(provider);
   integrations.setAgentBusinessAuthorityVerifier(
     async ({ ownerId, agentId, organizationId, capability }) => {
       const agent = await agentStore.findAgent(ownerId, agentId);
@@ -1132,6 +1151,13 @@ export const buildApi = async ({
     undefined,
     now,
   );
+  durableScheduler.setGovernorProposalWorkload(new GovernorProposalWorker(
+    resolvedObservabilityStore,
+    portfolio,
+    `${durableScheduler.workerId}:governor-proposals`,
+    undefined,
+    now,
+  ));
   durableExecution.setSchedulerEnabled(Boolean(database && durableSchedulerEnabled));
   if (database && durableSchedulerEnabled) {
     app.addHook("onReady", () => durableScheduler.start());
@@ -1552,6 +1578,40 @@ export const buildApi = async ({
     crossApplicationWorkflows,
     capabilityStudio,
   );
+  portfolio.setCompanyObjectiveProvider(async ({
+    ownerId, companyId, proposal, title, canonicalMetricKey, requestId, ipAddress,
+  }) => companyScope.run(
+    { ownerId, companyId, role: "OWNER", requestId },
+    async () => {
+      const marker = `portfolio-proposal:${proposal.id}`;
+      const existing = await objectives.dashboard(ownerId);
+      const goal = existing.goals.find((item) => item.constraints.includes(marker));
+      if (goal) {
+        const objective = existing.objectives.find((item) => item.executiveGoalId === goal.id);
+        if (objective) return objective.id;
+      }
+      const terms = proposal.revisions.at(-1)!.terms;
+      const created = await objectives.create({
+        ownerId,
+        body: {
+          title: title.slice(0, 160), outcome: terms.requestedOutcome,
+          deadline: terms.deadline ?? proposal.expiresAt,
+          budgetCredits: terms.budgetCredits, priority: "HIGH",
+          organizationId: companyId, constraints: [...terms.constraints, marker],
+          metrics: [{
+            name: canonicalMetricKey ?? "PORTFOLIO_OUTCOME",
+            unit: terms.unit ?? "count",
+            target: terms.targetValue === null ? 1 : Number(terms.targetValue),
+            direction: "HIGHER_IS_BETTER",
+          }],
+        },
+        requestId, ipAddress,
+      });
+      if (!created.objective)
+        throw Object.assign(new Error("Accepted proposal did not produce a valid objective draft."), { code: "COMPANY_OBJECTIVE_CLARIFICATION_REQUIRED", statusCode: 409 });
+      return created.objective.id;
+    },
+  ));
   const companyManagement = new CompanyManagementService(
     resolvedCompanyStore,
     companyData,
@@ -1575,11 +1635,13 @@ export const buildApi = async ({
         ]);
         const activePlan = plans.filter((item) => item.status === "ACTIVE").sort((a, b) => b.version - a.version)[0];
         const objectivesAtRisk = objectiveDashboard.objectives.filter((item) => ["AT_RISK", "BLOCKED", "FAILED"].includes(item.status)).length;
+        const blockedObjectives = objectiveDashboard.objectives.filter((item) => ["BLOCKED", "FAILED"].includes(item.status)).length;
         const review = history.find((item) => item.metadata.kind === "MANAGEMENT_REVIEW");
         return {
           topPriority: activePlan?.milestones[0] ?? null,
           totalObjectives: objectiveDashboard.objectives.length,
           objectivesAtRisk,
+          blockedObjectives,
           decisionsRequiringOwner: decisions.filter((item) => item.status === "PROPOSED").length,
           latestReviewAt: review?.createdAt ?? null,
           nextRecommendedFocus: objectivesAtRisk ? "Review at-risk objectives and bounded replan options." : activePlan?.milestones[0] ?? "Establish an approved measurable objective.",
@@ -1643,6 +1705,17 @@ export const buildApi = async ({
         },
         requestId: `external-experiment:${evidenceRef}`,
         ipAddress: "system",
+      });
+    },
+    commercialEvent: async (event) => {
+      const template=event.eventType==="REFUND_REQUESTED"?"REFUND":event.eventType==="INVOICE_OVERDUE"||event.eventType==="PAYMENT_FAILED"?"ACCOUNTS_RECEIVABLE":event.eventType==="INVENTORY_LOW"?"INVENTORY":event.eventType==="CAMPAIGN_THRESHOLD_BREACHED"?"CAMPAIGN_OPTIMIZATION":null;
+      if(template)await integrations.startCommercialWorkflow({ownerId:event.ownerId,companyId:event.companyId,template,triggerKey:event.canonicalEventId,sourceRefs:[event.entityRef??event.canonicalEventId]});
+      await tasks.emitLifecycleEvent({
+        ownerId:event.ownerId,
+        eventType:`business.${event.eventType.toLowerCase()}`,
+        scopeId:event.companyId,
+        baselineVersion:event.sourceVersion??event.occurredAt,
+        sourceSnapshot:{companyId:event.companyId,eventType:event.eventType,canonicalEventId:event.canonicalEventId,entityRef:event.entityRef,objectiveId:event.objectiveId,amountMinor:event.amountMinor,currency:event.currency,occurredAt:event.occurredAt},
       });
     },
     verifiedReward: async ({ ownerId, agentId, taskId, evidenceRef }) => {
@@ -1933,7 +2006,7 @@ export const buildApi = async ({
             objectKind: "SYSTEM",
             objectId: "mobile-request-security",
             stateVersion: code,
-            title: "Alexa security event",
+            title: "Athena security event",
           })
           .catch(() => undefined);
       }

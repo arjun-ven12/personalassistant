@@ -1,7 +1,7 @@
-# Alexa Android
+# Athena Android
 
 Open this directory directly in Android Studio. It is a thin, trusted Kotlin/
-Compose client for the canonical Alexa API; it contains no backend credentials or
+Compose client for the canonical Athena API; it contains no backend credentials or
 business runtime.
 
 For an emulator connecting to a local API:

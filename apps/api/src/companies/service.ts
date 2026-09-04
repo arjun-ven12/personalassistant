@@ -174,7 +174,7 @@ export class CompanyService {
         description: input.description ?? null, industry: input.industry ?? null, businessModel: input.businessModel ?? null,
         jurisdiction: input.jurisdiction ?? null, defaultLanguage: input.defaultLanguage ?? "en",
         riskTolerance: input.riskTolerance ?? "LOW", autonomyLevel: input.autonomyLevel ?? "SUPERVISED",
-        defaultApprovalPolicy: input.defaultApprovalPolicy ?? "SUPERVISED", starterCredits: 0,
+        defaultApprovalPolicy: input.defaultApprovalPolicy ?? "SUPERVISED", portfolioPriority: input.portfolioPriority ?? "NORMAL", starterCredits: 0,
       }, createdAt: at, updatedAt: at,
     });
     const provisioning = CompanyProvisioningSchema.parse({
@@ -260,6 +260,7 @@ export class CompanyService {
         ...(input.riskTolerance !== undefined ? { riskTolerance: input.riskTolerance } : {}),
         ...(input.autonomyLevel !== undefined ? { autonomyLevel: input.autonomyLevel } : {}),
         ...(input.defaultApprovalPolicy !== undefined ? { defaultApprovalPolicy: input.defaultApprovalPolicy } : {}),
+        ...(input.portfolioPriority !== undefined ? { portfolioPriority: input.portfolioPriority } : {}),
       }, updatedAt: at,
     });
     await this.store.updateCompany(updated);

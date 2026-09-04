@@ -26,7 +26,7 @@ describe("local Mac Agent installer", () => {
   it("atomically replaces only the app bundle and can roll back", async () => {
     directory = await mkdtemp(path.join(os.tmpdir(), "mac-agent-install-"));
     const source = path.join(directory, "source.app");
-    const destination = path.join(directory, "Alexa Mac Agent.app");
+    const destination = path.join(directory, "Athena Mac Agent.app");
     await mkdir(source);
     await mkdir(destination);
     await writeFile(path.join(source, "version"), "new");

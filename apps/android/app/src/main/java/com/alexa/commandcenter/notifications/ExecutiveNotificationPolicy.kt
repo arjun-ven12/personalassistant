@@ -10,8 +10,8 @@ data class ValidatedExecutiveNotification(
 )
 
 object ExecutiveNotificationPolicy {
-  const val PUBLIC_TITLE = "Alexa executive update"
-  const val PUBLIC_TEXT = "Open Alexa to review securely."
+  const val PUBLIC_TITLE = "Athena executive update"
+  const val PUBLIC_TEXT = "Open Athena to review securely."
 
   fun parse(data: Map<String, String>): ValidatedExecutiveNotification? {
     val target = NotificationTarget(

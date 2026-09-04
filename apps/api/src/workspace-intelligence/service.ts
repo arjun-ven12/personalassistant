@@ -301,7 +301,7 @@ export class WorkspaceIntelligenceService {
       summary: "Current trusted browser tab semantic placeholder.",
       stableObjectId: `${applicationId}:tab:dashboard`,
       tags: ["browser", "dashboard"],
-      contentPreview: "Alexa Control dashboard",
+      contentPreview: "Athena Control dashboard",
       at,
     });
     await this.saveObject(tab);

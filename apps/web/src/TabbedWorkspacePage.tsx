@@ -45,7 +45,7 @@ export const TabbedWorkspacePage = ({
     <section className="tabbed-workspace" aria-labelledby="workspace-title">
       <header className="tabbed-workspace-header">
         <div>
-          <p className="eyebrow">Alexa workspace</p>
+          <p className="eyebrow">Athena workspace</p>
           <h2 id="workspace-title">{title}</h2>
           <p>{description}</p>
         </div>

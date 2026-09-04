@@ -108,7 +108,7 @@ const nativeSpeechMessage: Record<string, string> = {
   MIC_PERMISSION_DENIED: "Microphone access is required for desktop voice.",
   STT_PERMISSION_DENIED: "Speech recognition permission is required for desktop voice.",
   STT_PROVIDER_UNAVAILABLE: "Desktop speech recognition is unavailable right now.",
-  STT_AUDIO_CAPTURE_ERROR: "Alexa could not capture audio from the selected microphone.",
+  STT_AUDIO_CAPTURE_ERROR: "Athena could not capture audio from the selected microphone.",
   STT_DICTATION_DISABLED: "Turn on Dictation in System Settings → Keyboard, then try Start again.",
   STT_RECOGNITION_FAILED: "Desktop speech recognition stopped unexpectedly.",
   STT_TRANSCRIPTION_FAILED: "Local Whisper could not transcribe that utterance.",

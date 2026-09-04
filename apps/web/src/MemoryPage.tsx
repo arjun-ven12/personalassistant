@@ -146,7 +146,7 @@ export const MemoryPage = ({ apiClient }: { apiClient: ApiClient }) => {
         <div>
           <h1>Memory</h1>
           <p>
-            What Alexa remembers about you, your work, and how you like things done.
+            What Athena remembers about you, your work, and how you like things done.
           </p>
         </div>
         <button onClick={() => setShowAddMemory((value) => !value)} type="button">
@@ -156,7 +156,7 @@ export const MemoryPage = ({ apiClient }: { apiClient: ApiClient }) => {
 
       {showAddMemory ? (
         <form className="panel-list stacked-form" onSubmit={submitExplicitMemory}>
-          <h2>Teach Alexa</h2>
+          <h2>Teach Athena</h2>
           <div className="button-row">
             <select
               aria-label="Memory type"
@@ -188,7 +188,7 @@ export const MemoryPage = ({ apiClient }: { apiClient: ApiClient }) => {
             <div className="notice" role="alert">
               {teachMemory.error instanceof Error
                 ? teachMemory.error.message
-                : "Alexa could not save that memory."}
+                : "Athena could not save that memory."}
             </div>
           ) : null}
         </form>

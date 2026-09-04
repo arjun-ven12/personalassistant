@@ -49,7 +49,7 @@ class AlexaFirebaseMessagingService : FirebaseMessagingService() {
     val notification = NotificationCompat.Builder(this, channel)
       .setSmallIcon(android.R.drawable.ic_dialog_info)
       .setContentTitle(validated.title)
-      .setContentText("Open Alexa to review the current state.")
+      .setContentText("Open Athena to review the current state.")
       .setContentIntent(pendingIntent)
       .setAutoCancel(true)
       .setCategory(if (validated.type == "APPROVAL_REQUIRED") NotificationCompat.CATEGORY_REMINDER else NotificationCompat.CATEGORY_STATUS)

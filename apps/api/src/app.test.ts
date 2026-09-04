@@ -4,6 +4,8 @@ import {
   CanonicalRuntimeHealthSchema,
   CrossDeviceClientListResponseSchema,
   CompanyListResponseSchema,
+  CompanySchema,
+  CompanyMembershipSchema,
   CsrfTokenResponseSchema,
   PairingRequestResponseSchema,
   PolicyEvaluationResponseSchema,
@@ -11,6 +13,12 @@ import {
   SessionListResponseSchema,
   ExperimentDashboardSchema,
   OwnerPortfolioDashboardSchema,
+  PortfolioEconomySchema,
+  PortfolioResourceTransferSchema,
+  OwnerReserveFundingSchema,
+  PortfolioSearchResponseSchema,
+  PortfolioApprovalRowSchema,
+  ProposedActionSchema,
   WorkforceGraphResponseSchema,
   WorkforceImportReportSchema,
   WorkforceRuntimeDashboardSchema,
@@ -26,7 +34,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import { buildApi } from "./app.js";
+import { InMemoryCompanyStore } from "./companies/store.js";
+import { companyScope } from "./companies/scope.js";
 import { BUILT_IN_TOOLS } from "./governance/defaults.js";
+import { ApprovalService } from "./governance/approval-service.js";
 import { InMemoryGovernanceStore } from "./governance/store.js";
 import { StaticNetworkVerifier } from "./identity/network.js";
 
@@ -79,14 +90,20 @@ describe("Phase 2.1 API", () => {
   let app: FastifyInstance;
   let cookie: string;
   let csrf: string;
+  let companyStore: InMemoryCompanyStore;
+  let governanceStore: InMemoryGovernanceStore;
   const mutationHeaders = () => ({ cookie, origin, "x-csrf-token": csrf });
 
   beforeEach(async () => {
+    companyStore = new InMemoryCompanyStore();
+    governanceStore = new InMemoryGovernanceStore(BUILT_IN_TOOLS, false);
     app = await buildApi({
       corsOrigin: origin,
       privateNetworkRequired: true,
       nodeEnvironment: "test",
       logger: false,
+      companyStore,
+      governanceStore,
     });
     const response = await app.inject({
       method: "POST",
@@ -185,6 +202,110 @@ describe("Phase 2.1 API", () => {
     const portfolio = OwnerPortfolioDashboardSchema.parse(response.json());
     expect(portfolio.ownerId).toBeTruthy();
     expect(portfolio.companies).toEqual([]);
+  });
+
+  it("aggregates portfolio search, reserve requests, and approvals without bypassing company governance", async () => {
+    await app.inject({ method: "GET", url: "/api/companies", headers: { cookie, origin } });
+    const searchResponse = await app.inject({
+      method: "GET", url: "/api/portfolio/search?query=default&type=ALL&limit=30",
+      headers: { cookie, origin },
+    });
+    expect(searchResponse.statusCode).toBe(200);
+    const search = PortfolioSearchResponseSchema.parse(searchResponse.json());
+    expect(search.results.some((item) => item.type === "COMPANY" && item.companyName === "Default Company")).toBe(true);
+
+    const economyResponse = await app.inject({ method: "GET", url: "/api/portfolio/economy", headers: { cookie, origin } });
+    expect(economyResponse.statusCode).toBe(200);
+    const economy = PortfolioEconomySchema.parse(economyResponse.json());
+    expect(economy.ownerReserveAvailable).toBe(0);
+    expect(economy.companyAccounts).toHaveLength(1);
+
+    const unauthenticatedFunding = await app.inject({
+      method: "POST", url: "/api/portfolio/economy/funding",
+      payload: { amount: 100, reason: "Unauthorized", idempotencyKey: "unauthorized-reserve-funding-0001" },
+    });
+    expect(unauthenticatedFunding.statusCode).toBe(401);
+    const fundingResponse = await app.inject({
+      method: "POST", url: "/api/portfolio/economy/funding", headers: mutationHeaders(),
+      payload: { amount: 100, reason: "Administrative reserve funding", idempotencyKey: "administrative-reserve-funding-0001" },
+    });
+    expect(fundingResponse.statusCode).toBe(200);
+    expect(OwnerReserveFundingSchema.parse(fundingResponse.json())).toMatchObject({
+      amount: 100, authority: "OWNER_RESERVE_FUND", status: "APPROVAL_REQUIRED",
+    });
+
+    const transferResponse = await app.inject({
+      method: "POST", url: "/api/portfolio/economy/transfers", headers: mutationHeaders(),
+      payload: {
+        companyId: economy.companyAccounts[0]!.companyId, amount: 50,
+        reason: "Bounded operating allocation", idempotencyKey: "portfolio-allocation-test-0001",
+      },
+    });
+    expect(transferResponse.statusCode).toBe(200);
+    const transfer = PortfolioResourceTransferSchema.parse(transferResponse.json());
+    expect(transfer.status).toBe("APPROVAL_REQUIRED");
+    expect(transfer.approvalId).toBeTruthy();
+
+    const approvalsResponse = await app.inject({ method: "GET", url: "/api/portfolio/approvals?status=ALL", headers: { cookie, origin } });
+    expect(approvalsResponse.statusCode).toBe(200);
+    const approvals = z.array(PortfolioApprovalRowSchema).parse(approvalsResponse.json());
+    expect(approvals).toContainEqual(expect.objectContaining({ id: transfer.approvalId, companyName: "Default Company", risk: "high", status: "PENDING" }));
+    const rejected = await app.inject({ method: "POST", url: `/api/portfolio/approvals/${transfer.approvalId}/reject`, headers: mutationHeaders(), payload: { reason: "Not currently funded" } });
+    expect(rejected.statusCode).toBe(200);
+    const duplicate = await app.inject({ method: "POST", url: `/api/portfolio/approvals/${transfer.approvalId}/reject`, headers: mutationHeaders(), payload: { reason: "Duplicate client retry" } });
+    expect(duplicate.statusCode).toBe(200);
+    expect(duplicate.json()).toMatchObject({ id: transfer.approvalId, status: "REJECTED" });
+  });
+
+  it("keeps 100-company portfolio search and approval aggregation bounded", async () => {
+    const started = performance.now();
+    const ownerPortfolio = OwnerPortfolioDashboardSchema.parse((await app.inject({
+      method: "GET", url: "/api/portfolio", headers: { cookie, origin },
+    })).json());
+    await app.inject({ method: "GET", url: "/api/companies", headers: { cookie, origin } });
+    const createdAt = "2026-09-03T00:00:00.000Z";
+    for (let index = 0; index < 99; index += 1) {
+      const id = crypto.randomUUID();
+      const name = `Company ${index + 2}`;
+      companyStore.createCompany(CompanySchema.parse({
+        id, ownerId: ownerPortfolio.ownerId, slug: `company-${index + 2}`, name,
+        status: "ACTIVE", timezone: "UTC", defaultCurrency: "USD",
+        settings: {}, createdAt, updatedAt: createdAt,
+      }), CompanyMembershipSchema.parse({
+        companyId: id, principalId: ownerPortfolio.ownerId, principalType: "OWNER",
+        role: "OWNER", status: "ACTIVE", createdAt, updatedAt: createdAt,
+      }));
+    }
+    const companiesResponse = await app.inject({ method: "GET", url: "/api/companies", headers: { cookie, origin } });
+    expect(companiesResponse.statusCode, JSON.stringify(companiesResponse.json())).toBe(200);
+    const companies = CompanyListResponseSchema.parse(companiesResponse.json()).companies;
+    expect(companies).toHaveLength(100);
+    const searchResponse = await app.inject({
+      method: "GET", url: "/api/portfolio/search?query=company&type=COMPANIES&limit=100",
+      headers: { cookie, origin },
+    });
+    const search = PortfolioSearchResponseSchema.parse(searchResponse.json());
+    expect(search.results).toHaveLength(100);
+    expect(search.truncated).toBe(false);
+    const scaleApprovals = new ApprovalService(governanceStore, () => Promise.resolve());
+    await Promise.all(companies.map((company, index) => companyScope.run({
+      ownerId: ownerPortfolio.ownerId, companyId: company.id, role: "OWNER",
+      requestId: `scale-approval-${index}`,
+    }, () => scaleApprovals.create({
+      ownerId: ownerPortfolio.ownerId,
+      action: ProposedActionSchema.parse({
+        actionId: crypto.randomUUID(), toolName: "portfolio.allocate_credits",
+        arguments: { companyId: company.id, amount: 1 },
+      }),
+      riskLevel: "high", approvalRequirement: "recent_authentication",
+      ipAddress: "127.0.0.1", requestId: `scale-approval-${index}`,
+    }))));
+    const approvalsResponse = await app.inject({
+      method: "GET", url: "/api/portfolio/approvals?status=PENDING&limit=200",
+      headers: { cookie, origin },
+    });
+    expect(z.array(PortfolioApprovalRowSchema).parse(approvalsResponse.json())).toHaveLength(100);
+    expect(performance.now() - started).toBeLessThan(10_000);
   });
 
   it("protects workforce bootstrap and returns a bounded owner-scoped graph", async () => {

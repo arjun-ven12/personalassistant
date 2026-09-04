@@ -198,7 +198,7 @@ export class MacAgentUpdateRuntime {
         this.#set({
           phase: "UP_TO_DATE",
           lastCheckedAt: new Date().toISOString(),
-          message: "Alexa Mac Agent is up to date.",
+          message: "Athena Mac Agent is up to date.",
         });
         void this.#record("UPDATE_NOT_AVAILABLE");
         return;

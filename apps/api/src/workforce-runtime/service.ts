@@ -671,7 +671,7 @@ export class WorkforceRuntimeService {
           purpose: "REASONING",
           input: [{ role: "user", content: [{ type: "text", text: task.objective }] }],
           systemInstructions: [
-            "You are an Alexa workforce specialist. Return a bounded result only. Do not execute tools, grant authority, approve work, or expand task scope.",
+            "You are an Athena workforce specialist. Return a bounded result only. Do not execute tools, grant authority, approve work, or expand task scope.",
           ],
           context: [
             {

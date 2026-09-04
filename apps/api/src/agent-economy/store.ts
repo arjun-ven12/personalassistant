@@ -248,6 +248,7 @@ export class InMemoryAgentEconomyStore implements AgentEconomyStore {
       .map(([, record]) => structuredClone(record));
   }
 
+
   private requireAccount(ownerId: string, agentId: string) {
     const account = this.#accounts.get(keyFor(ownerId, agentId));
     if (!account) throw Object.assign(new Error("Economy account not found."), { code: "ECONOMY_ACCOUNT_NOT_FOUND" });

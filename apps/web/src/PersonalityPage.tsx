@@ -117,7 +117,7 @@ export const PersonalityPage = ({ apiClient }: { apiClient: ApiClient }) => {
         </article>
         <article className="hud-card">
           <p className="eyebrow">Identity</p>
-          <h3>{dashboard.data?.identity.assistantName ?? "Alexa"}</h3>
+          <h3>{dashboard.data?.identity.assistantName ?? "Athena"}</h3>
           <p>{dashboard.data?.identity.mission ?? "Owner-scoped model-independent assistant."}</p>
         </article>
         <article className="hud-card">
@@ -157,7 +157,7 @@ export const PersonalityPage = ({ apiClient }: { apiClient: ApiClient }) => {
           ))}
         </div>
         <div className="voice-actions">
-          {["Alexa Default", "Founder", "Developer", "Research", "Trading", "Presentation", "Focus", "Travel"].map(
+          {["Athena Default", "Founder", "Developer", "Research", "Trading", "Presentation", "Focus", "Travel"].map(
             (name) => (
               <button
                 disabled={profileSwitch.isPending || dashboard.data?.profile.name === name}

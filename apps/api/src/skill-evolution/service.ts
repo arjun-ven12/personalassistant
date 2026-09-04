@@ -1362,11 +1362,11 @@ const deterministicDraft = (prompt: string) =>
 
 const draftInstruction = (prompt: string) =>
   [
-    "You convert a proposed Alexa skill into compact structured data.",
+    "You convert a proposed Athena skill into compact structured data.",
     "Return ONLY JSON matching the provided schema.",
     "Use short plain phrases. No markdown. No numbering inside text.",
     "Do not invent permissions, approve anything, execute anything, change policies, change security settings, or use arbitrary shell commands.",
-    "Describe reviewed Alexa capabilities conceptually; capability hints are suggestions only.",
+    "Describe reviewed Athena capabilities conceptually; capability hints are suggestions only.",
     "Relevant reviewed capability hints: semantic_registry, state_inspection, navigation, searching, selection, event_subscription.",
     "If the request needs an unsafe capability, describe the workflow safely; validation decides whether it is allowed.",
     "Example input: Create a skill that summarizes my current project.",

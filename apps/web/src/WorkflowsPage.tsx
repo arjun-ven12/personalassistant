@@ -118,7 +118,7 @@ export const WorkflowsPage = ({ apiClient }: { apiClient: ApiClient }) => {
       } else {
         setComposeStatus({
           tone: "error",
-          message: "Alexa did not return a workflow graph. No workflow was started.",
+          message: "Athena did not return a workflow graph. No workflow was started.",
         });
       }
       await refresh();
@@ -285,7 +285,7 @@ export const WorkflowsPage = ({ apiClient }: { apiClient: ApiClient }) => {
           <p className="eyebrow">Workflow operations</p>
           <h1>Workflows</h1>
           <p>
-            Run repeatable processes, see their progress, and review the work Alexa has
+            Run repeatable processes, see their progress, and review the work Athena has
             completed.
           </p>
         </div>
@@ -343,7 +343,7 @@ export const WorkflowsPage = ({ apiClient }: { apiClient: ApiClient }) => {
               <div className="workflow-section-heading">
                 <div>
                   <p className="eyebrow">Active work</p>
-                  <h2>What Alexa is running</h2>
+                  <h2>What Athena is running</h2>
                 </div>
                 <button
                   className="secondary-button"
@@ -407,7 +407,7 @@ export const WorkflowsPage = ({ apiClient }: { apiClient: ApiClient }) => {
               {waitingForApproval === 0 && failedRuns === 0 ? (
                 <>
                   <h2>Nothing is blocked</h2>
-                  <p>Alexa has no workflow approvals or failures needing review.</p>
+                  <p>Athena has no workflow approvals or failures needing review.</p>
                 </>
               ) : null}
               {failedRuns > 0 ? (
@@ -565,7 +565,7 @@ export const WorkflowsPage = ({ apiClient }: { apiClient: ApiClient }) => {
               </div>
             </div>
             <label>
-              What should Alexa accomplish?
+              What should Athena accomplish?
               <textarea
                 rows={3}
                 required
@@ -603,11 +603,11 @@ export const WorkflowsPage = ({ apiClient }: { apiClient: ApiClient }) => {
               {selectedTemplateId ? (
                 <p>
                   The selected reusable workflow will provide its existing governed
-                  steps. Alexa keeps approvals and capability controls in place.
+                  steps. Athena keeps approvals and capability controls in place.
                 </p>
               ) : (
                 <p>
-                  Alexa will compose a bounded, repeatable sequence from registered
+                  Athena will compose a bounded, repeatable sequence from registered
                   workflow capabilities. Each step remains subject to its existing
                   policy and approval checks.
                 </p>

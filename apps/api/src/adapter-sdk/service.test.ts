@@ -171,7 +171,7 @@ describe("AdapterRegistryService", () => {
       requestId: crypto.randomUUID(),
       ipAddress: "127.0.0.1",
     });
-    const original = (await applicationAdapterStore.listApplicationCapabilities(ownerId, 100))[0]!;
+    const original = applicationAdapterStore.listApplicationCapabilities(ownerId, 100)[0]!;
     for (let index = 0; index < 100; index += 1) {
       applicationAdapterStore.saveApplicationCapability(
         ApplicationCapabilityRecordSchema.parse({ ...original, id: crypto.randomUUID() }),
@@ -184,7 +184,7 @@ describe("AdapterRegistryService", () => {
       expect.arrayContaining([original.capability]),
     );
     expect(dashboard.contracts[0]?.capabilities).toHaveLength(
-      new Set((await applicationAdapterStore.listApplicationCapabilities(ownerId, 200)).map((record) => record.capability)).size,
+      new Set(applicationAdapterStore.listApplicationCapabilities(ownerId, 200).map((record) => record.capability)).size,
     );
   });
 });

@@ -1,6 +1,6 @@
-# Alexa Control
+# Athena Control
 
-Alexa Control is a private, owner-operated engineering assistant platform. It
+Athena Control is a private, owner-operated engineering assistant platform. It
 combines identity, governance, constrained execution, repository intelligence,
 human-approved code editing, validation workflows, autonomous workflow
 coordination, and governed engineering-tool integrations. It authenticates one
@@ -168,7 +168,7 @@ consequential work behind explicit approvals.
   not a raw mouse, keyboard, camera, audio, or pixel macro recorder.
 - Phase 16A deterministic voice navigation: the persistent Voice Runtime now
   handles common dashboard commands locally through semantic page metadata and
-  the existing Spatial UI registry. “Alexa” opens a continuous navigation
+  the existing Spatial UI registry. “Athena” or the legacy “Alexa” alias opens a continuous navigation
   session, commands such as “Open Commands,” “Create command,” “Scroll down,”
   and “Click Save” avoid AI escalation when confidently matched, and misses fall
   back to the Intent Engine.

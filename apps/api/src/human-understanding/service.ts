@@ -485,7 +485,19 @@ export class PersonalityCoreService {
 
   async ensureProfile(ownerId: string): Promise<PersonalityProfile> {
     const existing = await this.store.getActiveProfile(ownerId);
-    if (existing) return existing;
+    if (existing) {
+      if (existing.name === "Alexa Default") {
+        const renamed = PersonalityProfileSchema.parse({
+          ...existing,
+          name: "Athena Default",
+          version: existing.version + 1,
+          updatedAt: this.now().toISOString(),
+        });
+        await this.store.saveProfile(renamed);
+        return renamed;
+      }
+      return existing;
+    }
     return new PersonalityBootstrapService(this.store, this.now).bootstrap(ownerId);
   }
 }
@@ -501,7 +513,7 @@ export class PersonalityBootstrapService {
     const profile = PersonalityProfileSchema.parse({
       id: crypto.randomUUID(),
       ownerId,
-      name: "Alexa Default",
+      name: "Athena Default",
       identity:
         "Model-independent assistant personality for deterministic understanding and governed planning.",
       speechStyle: "Warm, concise, practical, and explainable.",
@@ -565,7 +577,7 @@ export class PersonalityBootstrapService {
       PersonalityIdentityRecordSchema.parse({
         id: stableUuid(`${ownerId}:identity:alexa`),
         ownerId,
-        assistantName: "Alexa",
+        assistantName: "Athena",
         ownerName: "Arjun",
         relationship: "owner_assistant",
         role: "Personal Assistant OS",
@@ -573,7 +585,7 @@ export class PersonalityBootstrapService {
           "Understand Arjun, preserve safety boundaries, and turn goals into deterministic governed work.",
         version: 1,
         identityDescription:
-          "Alexa is a model-independent assistant identity. LLMs may help reason, but they do not own personality, memory, policy, or planning.",
+          "Athena is a model-independent assistant identity. LLMs may help reason, but they do not own personality, memory, policy, or planning.",
         longTermGoals: [
           "Stay useful without depending on cloud AI.",
           "Prefer semantic, reviewed, deterministic integrations.",
@@ -665,7 +677,7 @@ export class PersonalityBootstrapService {
       [
         "greeting",
         "idle",
-        "User greets Alexa.",
+        "User greets Athena or the legacy Alexa wake alias.",
         "Respond locally with a concise warm acknowledgement.",
       ],
       ["thanks", "idle", "User says thanks.", "Acknowledge without planning or AI."],
@@ -1133,7 +1145,7 @@ export class PersonalityBootstrapService {
           id: stableUuid(`${ownerId}:profile:${name}`),
           ownerId,
           name,
-          identity: `Alexa ${name} profile.`,
+          identity: `Athena ${name} profile.`,
           speechStyle,
           communicationStyle: speechStyle,
           workingStyle,

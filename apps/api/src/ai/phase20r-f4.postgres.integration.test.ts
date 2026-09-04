@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/require-await */
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   AIProviderHealthSchema,
   type AIEconomicContext,
@@ -11,7 +11,10 @@ import {
 import { z } from "zod";
 import { buildApi } from "../app.js";
 import { PostgresDatabase } from "../persistence/database.js";
-import { safeTestDatabaseUrl } from "../persistence/test-database.js";
+import {
+  provisionTestDefaultCompany,
+  safeTestDatabaseUrl,
+} from "../persistence/test-database.js";
 import { CognitiveContextService } from "./context/service.js";
 import { AIEconomicsService } from "./economics/service.js";
 import { PostgresAIEconomicsStore } from "./economics/postgres-store.js";
@@ -245,6 +248,8 @@ describe.skipIf(!connectionString)("Phase 20R-F4 closure gates", () => {
         { id: ownerB },
       ],
     );
+    for (const id of [ownerA, ownerB])
+      await provisionTestDefaultCompany(database.pool, id);
   }, 60_000);
 
   afterAll(async () => {
@@ -537,15 +542,13 @@ describe.skipIf(!connectionString)("Phase 20R-F4 closure gates", () => {
   it("fails paid inference closed during a controlled PostgreSQL connection fault and recovers without reseeding", async () => {
     const { economics, router, cloud } = await makePath();
     const beforeLedger = await economics.listLedger(ownerA);
-    await database.pool.query(
-      `ALTER TABLE ai_budget_policies RENAME TO ai_budget_policies_faulted`,
-    );
+    const databaseFault = vi
+      .spyOn(database.pool, "query")
+      .mockRejectedValueOnce(new Error("controlled PostgreSQL connection fault"));
     const denied = await router.execute(request(ownerA, "db outage"));
+    databaseFault.mockRestore();
     expect(denied.outcome).toBe("ROUTING_FAILED");
     expect(cloud.calls).toBe(0);
-    await database.pool.query(
-      `ALTER TABLE ai_budget_policies_faulted RENAME TO ai_budget_policies`,
-    );
     expect((await economics.health(ownerA)).status).toBe("READY");
     const recovered = await router.execute(request(ownerA, "db recovered"));
     expect(recovered.outcome).toBe("SUCCESS");

@@ -31,6 +31,10 @@ class AlexaRepository(
   }
 
   suspend fun companies(): Result<CompanyListResponse> = api.companies().onSuccess { activeCompanyId = it.currentCompany.id }
+  suspend fun portfolio(): Result<PortfolioDashboard> = api.portfolio()
+  suspend fun portfolioEconomy(): Result<PortfolioEconomy> = api.portfolioEconomy()
+  suspend fun portfolioApprovals(): Result<List<PortfolioApproval>> = api.portfolioApprovals()
+  suspend fun portfolioSearch(query: String, type: String = "ALL"): Result<PortfolioSearchResponse> = api.portfolioSearch(query, type)
   suspend fun selectCompany(companyId: String): Result<CompanyListResponse> = api.csrf().fold(
     onSuccess = { api.selectCompany(it.token, companyId).onSuccess { selected -> activeCompanyId = selected.currentCompany.id } },
     onFailure = Result<CompanyListResponse>::failure,

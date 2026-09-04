@@ -1649,7 +1649,7 @@ export class VoiceRuntimeService {
     return {
       deviceId: null,
       applicationId: "alexa-control.web",
-      applicationName: "Alexa Control",
+      applicationName: "Athena Control",
       windowId: null,
       windowTitle: page.title,
       documentTitle: page.title,
@@ -1961,19 +1961,31 @@ export class VoiceRuntimeService {
         }),
       );
     }
-    if ((await this.store.listWakeWordSettings(ownerId, 1)).length === 0) {
+    const wakeWordSettings = await this.store.listWakeWordSettings(ownerId, 1);
+    if (wakeWordSettings.length === 0) {
       await this.store.saveWakeWordSettings(
         WakeWordSettingsRecordSchema.parse({
           id: crypto.randomUUID(),
           ownerId,
           enabled: true,
-          wakeWords: ["Alexa"],
+          wakeWords: ["Athena", "Alexa"],
           sensitivity: 0.7,
           cooldownMs: 1_500,
           createdAt: at,
           updatedAt: at,
         }),
       );
+    } else {
+      const current = wakeWordSettings[0];
+      if (current && (!current.wakeWords.includes("Athena") || !current.wakeWords.includes("Alexa"))) {
+        await this.store.saveWakeWordSettings(
+          WakeWordSettingsRecordSchema.parse({
+            ...current,
+            wakeWords: [...new Set(["Athena", "Alexa", ...current.wakeWords])],
+            updatedAt: at,
+          }),
+        );
+      }
     }
     if ((await this.store.listShortcuts(ownerId, 1)).length === 0) {
       for (const [phrase, intentTemplate] of [

@@ -240,7 +240,7 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
         <p className="eyebrow">Organizational intelligence</p>
         <h1>Agent Workforce</h1>
         <p>
-          Inspect the Alexa-governed organization, dormant specialist registry, scoped
+          Inspect the Athena-governed organization, dormant specialist registry, scoped
           memory, finite capabilities, and lazy runtime participation.
         </p>
         {workspaceTabs}
@@ -312,7 +312,7 @@ export const AgentsPage = ({ apiClient }: { apiClient: ApiClient }) => {
   return (
     <section className="placeholder-page wide-page governance-page agents-control-page">
       <p className="eyebrow">Agent operations</p>
-      <h1>Alexa Workforce</h1>
+      <h1>Athena Workforce</h1>
       <p>
         Specialist agents coordinate through structured tasks, immutable messages,
         shared context, consensus records, and workflow checkpoints. No agent receives

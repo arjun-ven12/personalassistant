@@ -21,7 +21,7 @@ export const ContextualAskAlexa = ({
   });
   return (
     <a className="contextual-ask" href={`/conversation?${query.toString()}`}>
-      <MessageCircle size={14} /> Ask Alexa
+      <MessageCircle size={14} /> Ask Athena
     </a>
   );
 };
@@ -50,7 +50,7 @@ export const NeedsAttentionFeed = ({
         <div className="business-empty">
           <strong>Nothing needs intervention</strong>
           <span>
-            Alexa has no unresolved owner actions or system-handled incidents.
+            Athena has no unresolved owner actions or system-handled incidents.
           </span>
         </div>
       ) : null}

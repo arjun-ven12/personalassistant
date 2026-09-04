@@ -460,7 +460,7 @@ export class CorpusRuntimeService {
           id: stableUuid(`${entry.ownerId}:corpus-profile:${entry.id}`),
           ownerId: entry.ownerId,
           name: safeRawString(entry.raw.name, entry.id),
-          identity: "Corpus-imported Alexa personality profile.",
+          identity: "Corpus-imported Athena personality profile.",
           speechStyle: safeRawString(
             entry.raw.communication_style ?? entry.raw.speechStyle,
             "Model-independent and deterministic.",
@@ -567,7 +567,7 @@ const blockToEntries = (
   const raw = block.raw;
   const corpusVersion = "v4-coverage-safety";
   if (raw.assistant && typeof raw.assistant === "object") {
-    return [entryFrom(block, at, { entryType: "identity", id: "identity.alexa", domain: "identity", utterance: "Alexa", corpusVersion })];
+    return [entryFrom(block, at, { entryType: "identity", id: "identity.alexa", domain: "identity", utterance: "Athena", corpusVersion })];
   }
   if (raw.traits && typeof raw.traits === "object") {
     return Object.entries(raw.traits).map(([key, value]) =>

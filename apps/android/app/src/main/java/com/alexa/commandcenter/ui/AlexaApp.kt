@@ -30,6 +30,8 @@ fun AlexaApp(
   onRefreshApproval: () -> Unit,
   onRefresh: () -> Unit,
   onCompanySelected: (String) -> Unit,
+  onPortfolioSelected: () -> Unit,
+  onPortfolioSearch: (String, String) -> Unit,
   onCompanyCreated: (String, String?, String?) -> Unit,
   onCompanyAction: (String, String) -> Unit,
   onLock: () -> Unit,
@@ -66,12 +68,14 @@ fun AlexaApp(
         AlexaScreenState.Checking -> CenterMessage("Checking secure session")
         AlexaScreenState.Login -> LoginScreen(state.error, onLogin)
         is AlexaScreenState.Registration -> RegistrationScreen(screen, state.error, onCreatePairing, onRegister, onRefreshApproval)
-        AlexaScreenState.BiometricLocked -> CenterMessage("Unlock Alexa with biometrics")
+        AlexaScreenState.BiometricLocked -> CenterMessage("Unlock Athena with biometrics")
         AlexaScreenState.Shell -> CommandCenterShell(
           state = state,
           environment = environment,
           onRefresh = onRefresh,
           onCompanySelected = onCompanySelected,
+          onPortfolioSelected = onPortfolioSelected,
+          onPortfolioSearch = onPortfolioSearch,
           onCompanyCreated = onCompanyCreated,
           onCompanyAction = onCompanyAction,
           onLock = onLock,
@@ -131,7 +135,7 @@ fun AlexaApp(
   Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center) {
     Text("Trust this phone", style = MaterialTheme.typography.headlineSmall)
     Spacer(Modifier.height(10.dp))
-    Text("This device creates a non-exportable key in Android Keystore. Alexa Control must approve it before it can access command-center state.", color = AlexaMutedContent)
+    Text("This device creates a non-exportable key in Android Keystore. Athena Control must approve it before it can access command-center state.", color = AlexaMutedContent)
     Spacer(Modifier.height(18.dp))
     if (screen.status == DeviceTrustStatus.PENDING) {
       StatusPill("Awaiting owner approval", AlexaPrimary)

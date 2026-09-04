@@ -133,7 +133,7 @@ export class ApprovalService {
       objectKind: "APPROVAL",
       objectId: created.id,
       stateVersion: `PENDING:${created.requestedAt}`,
-      title: "Alexa approval required",
+      title: "Athena approval required",
     }).catch(() => undefined);
     return this.toPublic(created);
   }

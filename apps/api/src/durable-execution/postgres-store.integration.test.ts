@@ -276,7 +276,7 @@ describe.skipIf(!connectionString)(
       );
       const claimStarted = performance.now();
       const batches: ReturnType<typeof DurableExecutionSchema.parse>[][] = [];
-      for (let round = 0; round < 4; round += 1)
+      for (let round = 0; round < 8 && batches.flat().length < 64; round += 1)
         batches.push(
           ...(await Promise.all(
             Array.from({ length: 8 }, (_, worker) =>

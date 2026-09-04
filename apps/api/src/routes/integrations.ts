@@ -16,6 +16,7 @@ import { z } from "zod";
 
 import type { ApiRouteContext } from "./context.js";
 import { installCompanyRouteGuard } from "./company-guard.js";
+import { companyScope } from "../companies/scope.js";
 
 const IntegrationParametersSchema = z
   .object({ integrationId: z.string().min(3).max(120) })
@@ -29,7 +30,7 @@ const PermissionRequestSchema = z
   })
   .strict();
 const BusinessExecutionParametersSchema = z.object({ executionId: z.string().uuid() }).strict();
-const BusinessWebhookParametersSchema = z.object({ ownerId: z.string().uuid(), integrationId: z.enum(["gmail", "crm", "analytics", "github"]) }).strict();
+const BusinessWebhookParametersSchema = z.object({ ownerId: z.string().uuid(), companyId: z.string().uuid(), integrationId: z.enum(["gmail", "crm", "support", "documents", "projects", "analytics", "github", "accounting", "payments", "ads", "commerce"]) }).strict();
 
 export const registerIntegrationRoutes = (
   app: FastifyInstance,
@@ -69,15 +70,15 @@ export const registerIntegrationRoutes = (
     },
   );
 
-  app.post("/api/integrations/business/webhooks/:ownerId/:integrationId", async (request, reply) => {
-    const { ownerId, integrationId } = BusinessWebhookParametersSchema.parse(request.params);
+  app.post("/api/integrations/business/webhooks/:ownerId/:companyId/:integrationId", async (request, reply) => {
+    const { ownerId, companyId, integrationId } = BusinessWebhookParametersSchema.parse(request.params);
     const secret = process.env.BUSINESS_WEBHOOK_SECRET;
     if (!secret) return reply.code(503).send({ code: "WEBHOOK_VERIFIER_NOT_CONFIGURED", message: "Business webhook verification is not configured." });
     const body = BusinessExternalEventInputSchema.parse(request.body);
-    if (body.integrationId !== integrationId) return reply.code(400).send({ code: "WEBHOOK_INTEGRATION_MISMATCH", message: "The signed event does not match the integration route." });
+    if (body.integrationId !== integrationId || body.companyId !== companyId) return reply.code(400).send({ code: "WEBHOOK_INTEGRATION_MISMATCH", message: "The signed event does not match the company integration route." });
     const signature = z.string().regex(/^[a-f0-9]{64}$/).parse(request.headers["x-alexa-signature"]);
     const timestamp = z.string().regex(/^\d{10,16}$/).parse(request.headers["x-alexa-timestamp"]);
-    return context.integrations.ingestBusinessWebhook({ ownerId, body, signature, timestamp, secret, requestId: request.id, ipAddress: request.ip });
+    return companyScope.run({ownerId,companyId,role:"OWNER",requestId:request.id},()=>context.integrations.ingestBusinessWebhook({ ownerId, body: {...body,companyId}, signature, timestamp, secret, requestId: request.id, ipAddress: request.ip }));
   });
 
   app.get(

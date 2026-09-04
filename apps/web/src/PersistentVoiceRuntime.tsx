@@ -42,6 +42,7 @@ import {
   webClientInstanceId,
 } from "./crossDeviceClient.js";
 import {
+  commandTextFromWakeWord,
   memoryTextFromVoiceCommand,
   ordinalVoiceSelectionIndex,
   voiceRouteFailureMessage,
@@ -194,11 +195,6 @@ const statusClass = (state: VoiceRuntimeState, paused: boolean) => {
   if (["interrupted", "recovering", "stopped"].includes(state))
     return "persistent-spatial-waiting";
   return "persistent-spatial-bad";
-};
-
-const commandTextFromWakeWord = (transcript: string) => {
-  const match = transcript.match(/\balexa\b[\s,.:;-]*(.*)$/i);
-  return match ? (match[1]?.trim() ?? "") : null;
 };
 
 const normalizeVoiceLabel = (value: string) =>
@@ -998,7 +994,7 @@ export const PersistentVoiceRuntimeProvider = ({
       if (lease.status !== "ACQUIRED") {
         throw new Error(
           lease.owner === "OVERLAY"
-            ? "Alexa voice is active in the desktop overlay."
+            ? "Athena voice is active in the desktop overlay."
             : "Voice capture is already active.",
         );
       }
@@ -1027,7 +1023,7 @@ export const PersistentVoiceRuntimeProvider = ({
             ...current,
             state: "listening",
             microphonePermission: "granted",
-            message: 'Listening locally. Say "Alexa" followed by a command.',
+            message: 'Listening locally. Say "Athena" or "Alexa" followed by a command.',
           }));
           return;
         }
@@ -1046,7 +1042,7 @@ export const PersistentVoiceRuntimeProvider = ({
           ...current,
           state: "listening",
           microphonePermission: "granted",
-          message: 'Listening locally. Say "Alexa" followed by a command.',
+          message: 'Listening locally. Say "Athena" or "Alexa" followed by a command.',
         }));
         window.setTimeout(() => {
           try {
@@ -1070,7 +1066,7 @@ export const PersistentVoiceRuntimeProvider = ({
         state: "listening",
         sessionId,
         microphonePermission: "granted",
-        message: 'Listening locally. Say "Alexa" followed by a command.',
+        message: 'Listening locally. Say "Athena" or "Alexa" followed by a command.',
       }));
     } catch (error) {
       stopRecognition();
@@ -1111,7 +1107,7 @@ export const PersistentVoiceRuntimeProvider = ({
       setFrame((current) => ({
         ...current,
         state: "listening",
-        message: 'Listening locally. Say "Alexa" followed by a command.',
+        message: 'Listening locally. Say "Athena" or "Alexa" followed by a command.',
       }));
       return;
     }
@@ -1430,7 +1426,7 @@ export const PersistentVoiceRuntimeProvider = ({
                 {approvalError ? <small className="form-error">{approvalError}</small> : null}
               </section>
             ) : null}
-            <p>Say “Alexa” then a command. Voice cannot approve risky actions.</p>
+            <p>Say “Athena” or “Alexa” then a command. Voice cannot approve risky actions.</p>
             <button
               className="persistent-spatial-lab-link"
               onClick={() => onNavigate("/voice")}

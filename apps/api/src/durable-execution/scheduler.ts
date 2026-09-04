@@ -11,6 +11,10 @@ export interface DurableSchedulerMetrics {
   totalSchedulingDelayMs: number;
 }
 
+export interface BoundedSchedulerWorkload {
+  tick(): Promise<unknown>;
+}
+
 /** One bounded scheduler coordinates all companies; PostgreSQL leases provide authority. */
 export class DurableExecutionScheduler {
   readonly metrics: DurableSchedulerMetrics = {
@@ -24,6 +28,7 @@ export class DurableExecutionScheduler {
   };
   #timer: NodeJS.Timeout | undefined;
   #running = false;
+  #governorProposalWorkload: BoundedSchedulerWorkload | undefined;
 
   constructor(
     readonly store: DurableExecutionStore,
@@ -37,6 +42,10 @@ export class DurableExecutionScheduler {
     },
     readonly now = () => new Date(),
   ) {}
+
+  setGovernorProposalWorkload(workload: BoundedSchedulerWorkload) {
+    this.#governorProposalWorkload = workload;
+  }
 
   start() {
     if (this.#timer) return;
@@ -71,9 +80,12 @@ export class DurableExecutionScheduler {
           0,
           this.now().getTime() - new Date(item.nextRunAt ?? item.updatedAt).getTime(),
         );
-      const results = await Promise.allSettled(
+      const [results] = await Promise.all([
+        Promise.allSettled(
         claimed.map((item) => this.runWithHeartbeat(item)),
-      );
+        ),
+        this.#governorProposalWorkload?.tick() ?? Promise.resolve(),
+      ]);
       this.metrics.completedSteps += results.filter(
         (result) => result.status === "fulfilled",
       ).length;

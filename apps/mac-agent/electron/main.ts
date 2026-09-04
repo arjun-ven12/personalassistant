@@ -90,7 +90,7 @@ import {
   type MacAgentConnectionState,
 } from "./product-runtime.js";
 
-app.setName("Alexa Mac Agent");
+app.setName("Athena Mac Agent");
 const environment = loadMacAgentConfiguration({
   isPackaged: app.isPackaged,
   packagedConfigPath: path.join(process.resourcesPath, "mac-agent.config.json"),
@@ -392,19 +392,19 @@ const showMainWindow = async () => {
 const rebuildTrayMenu = () => {
   if (!tray) return;
   const status = productStatus();
-  tray.setToolTip(`Alexa Mac Agent — ${connectionLabel[status.connectionState]}`);
+  tray.setToolTip(`Athena Mac Agent — ${connectionLabel[status.connectionState]}`);
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: "Alexa Mac Agent", enabled: false },
+      { label: "Athena Mac Agent", enabled: false },
       { label: `Status: ${connectionLabel[status.connectionState]}`, enabled: false },
       {
-        label: `Connected to: ${status.environment === "production" ? "Alexa Production" : "Alexa Development"}`,
+        label: `Connected to: ${status.environment === "production" ? "Athena Production" : "Athena Development"}`,
         enabled: false,
       },
       { label: `Device: ${status.deviceName}`, enabled: false },
       { type: "separator" },
       {
-        label: "Open Alexa",
+        label: "Open Athena",
         click: () => void shell.openExternal(environment.ALEXA_WEB_BASE_URL),
       },
       { label: "Diagnostics", click: () => void showMainWindow() },
@@ -441,7 +441,7 @@ const rebuildTrayMenu = () => {
         click: () => void updateRuntime?.restartAndInstall(),
       },
       { type: "separator" },
-      { label: "Quit Alexa Mac Agent", click: () => app.quit() },
+      { label: "Quit Athena Mac Agent", click: () => app.quit() },
     ]),
   );
 };
@@ -636,8 +636,8 @@ const registerIpc = () => {
   ipcMain.handle(IPC_CHANNELS.exportDiagnostics, async (_event, payload) => {
     EmptyIpcPayloadSchema.parse(payload);
     const options = {
-      title: "Export Alexa Mac Agent Diagnostics",
-      defaultPath: `Alexa-Mac-Agent-Diagnostics-${new Date().toISOString().slice(0, 10)}.json`,
+      title: "Export Athena Mac Agent Diagnostics",
+      defaultPath: `Athena-Mac-Agent-Diagnostics-${new Date().toISOString().slice(0, 10)}.json`,
       filters: [{ name: "JSON", extensions: ["json"] }],
     };
     const result = mainWindow
@@ -1047,7 +1047,7 @@ const registerIpc = () => {
     EmptyIpcPayloadSchema.parse(payload);
     const url = new URL("/approvals", environment.ALEXA_WEB_BASE_URL);
     if (url.protocol !== "http:" && url.protocol !== "https:")
-      throw new Error("Configured Alexa Control URL must use HTTP or HTTPS.");
+      throw new Error("Configured Athena Control URL must use HTTP or HTTPS.");
     await shell.openExternal(url.toString());
   });
 

@@ -287,7 +287,7 @@ export const CapabilityStudioPage = ({ apiClient }: { apiClient: ApiClient }) =>
             </form>
           ) : (
             <div className="capability-recording">
-              <p className="notice">Recording captures governed semantic provider actions only. Run the action through Alexa while recording; raw mouse, keyboard, pixels, audio, and secure text are not captured.</p>
+              <p className="notice">Recording captures governed semantic provider actions only. Run the action through Athena while recording; raw mouse, keyboard, pixels, audio, and secure text are not captured.</p>
               {activeRecording ? (
                 <>
                   <div className="recording-indicator"><span /> Recording {selectedProvider?.name.replace("Provider", "")} · {recordedEvents?.length ?? 0} semantic event(s)</div>

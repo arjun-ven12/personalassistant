@@ -17,6 +17,11 @@ export const IntegrationsPage = ({ apiClient }: { apiClient: ApiClient }) => {
     queryFn: apiClient.getIntegrationsDashboard,
     refetchInterval: 10_000,
   });
+  const business = useQuery({
+    queryKey: ["business-operations-dashboard"],
+    queryFn: apiClient.getBusinessOperations,
+    refetchInterval: 10_000,
+  });
   const permissions = useMemo(
     () => dashboard.data?.permissions ?? [],
     [dashboard.data?.permissions],
@@ -60,12 +65,12 @@ export const IntegrationsPage = ({ apiClient }: { apiClient: ApiClient }) => {
 
   return (
     <section className="placeholder-page wide-page governance-page">
-      <p className="eyebrow">Phase 6</p>
-      <h1>Integration Manager</h1>
+      <p className="eyebrow">Phase 26.2</p>
+      <h1>Business Integrations</h1>
       <p>
-        External engineering tools are treated as governed capabilities. Connector
-        operations are authenticated, permission-scoped, audited, rate-limitable, and
-        approval-gated before any live third-party mutation can happen.
+        Company-scoped customer, finance, payments, ads, analytics, and commerce adapters expose
+        finite capabilities. External communication, money, spend, and record changes remain
+        permission-scoped, approval-gated, idempotent, and audited.
       </p>
 
       <section className="status-grid">
@@ -80,9 +85,24 @@ export const IntegrationsPage = ({ apiClient }: { apiClient: ApiClient }) => {
           <small>Deny-by-default permissions</small>
         </article>
         <article className="status-card">
-          <span>Operations</span>
-          <strong>{dashboard.data?.operations.length ?? 0}</strong>
-          <small>Audited request history</small>
+          <span>Verified external actions</span>
+          <strong>{business.data?.summary.verifiedActions ?? 0}</strong>
+          <small>{business.data?.summary.waitingApproval ?? 0} waiting approval</small>
+        </article>
+      </section>
+
+      <section className="panel-list">
+        <h2>Commercial summary</h2>
+        <article className="panel">
+          <p className="eyebrow">Provider-grounded facts</p>
+          <h3>Recognized revenue</h3>
+          <p>{(business.data?.summary.bookRevenueByCurrency.length ?? 0) > 0 ? business.data?.summary.bookRevenueByCurrency.map(({currency,amountMinor})=>`${amountMinor} ${currency} minor units`).join(" · ") : "Unavailable — no accounting book-revenue facts."}</p>
+          <small>Currencies remain separate. Orders, payment status, and attribution facts are never added to recognized revenue.</small>
+        </article>
+        <article className="panel">
+          <p className="eyebrow">Commercial alerts</p>
+          <h3>{business.data?.events.filter((event)=>event.type==="PAYMENT_FAILED"||event.type==="INVOICE_OVERDUE"||event.type==="CAMPAIGN_THRESHOLD_BREACHED").length ?? 0} verified alert(s)</h3>
+          <small>Signed, deduplicated provider events only.</small>
         </article>
       </section>
 
@@ -114,6 +134,14 @@ export const IntegrationsPage = ({ apiClient }: { apiClient: ApiClient }) => {
                 <div>
                   <dt>Usage</dt>
                   <dd>{usage?.operationCount ?? 0} operation(s)</dd>
+                </div>
+                <div>
+                  <dt>Available capabilities</dt>
+                  <dd>{capabilities.filter((item) => item.integrationId === integration.id && grantState(item.integrationId, item.id) === "granted").length}</dd>
+                </div>
+                <div>
+                  <dt>Last external action</dt>
+                  <dd>{business.data?.executions.find((item) => item.integrationId === integration.id)?.updatedAt ?? "Never"}</dd>
                 </div>
               </dl>
             </article>
@@ -172,9 +200,9 @@ export const IntegrationsPage = ({ apiClient }: { apiClient: ApiClient }) => {
       <form className="policy-form" onSubmit={submit}>
         <h2>Operation request</h2>
         <p>
-          This creates an audited dry-run integration request. Live third-party
-          execution remains disabled until a connector has credentials and approval
-          wiring.
+          This creates an audited capability probe. Live provider actions use the
+          separate reviewed business-action route and require a ready company credential
+          binding plus exact-action approval where policy requires it.
         </p>
         <label>
           Integration

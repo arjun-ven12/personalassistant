@@ -46,7 +46,7 @@ export const AuthPage = ({ apiClient }: { apiClient: ApiClient }) => {
       <section className="auth-card" aria-labelledby="auth-heading">
         <div>
           <p className="product-kicker">Private owner console</p>
-          <span className="product-name">Alexa Control</span>
+          <span className="product-name">Athena Control</span>
         </div>
         <div className="auth-copy">
           <p className="eyebrow">Phase 2.1 identity boundary</p>

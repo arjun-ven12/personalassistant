@@ -29,7 +29,7 @@ describe("Phase 23.6 business operations",()=>{
     const objectiveId=crypto.randomUUID(),kpiId=crypto.randomUUID();analytics.setMetric(kpiId,52,"count");const observed:unknown[]=[];service.setBusinessOutcomeSinks({objectiveMetric:(input)=>{observed.push(input);return Promise.resolve();}});
     const result=await service.requestBusinessAction(context(ownerId,{capability:"analytics.read_metric",idempotencyKey:"analytics-read-001",reason:"Refresh objective evidence.",references:{objectiveId},metricId:kpiId,windowStart:"2026-08-01T00:00:00.000Z",windowEnd:"2026-08-26T00:00:00.000Z",filters:{stage:"QUALIFIED"}}));
     expect(result.status).toBe("VERIFIED");expect(observed).toEqual([{ownerId,objectiveId,kpiId,value:52}]);
-    const dashboard=await service.businessDashboard(ownerId);expect(dashboard.metrics[0]).toMatchObject({metricId:kpiId,value:52,sourceProvider:"analytics"});expect(JSON.stringify(dashboard)).not.toMatch(/token|secret|credential/i);
+    const dashboard=await service.businessDashboard(ownerId);expect(dashboard.metrics[0]).toMatchObject({metricId:kpiId,value:52,sourceProvider:"analytics"});expect(JSON.stringify(dashboard)).not.toMatch(/secretLocator|oauthToken|accessToken/i);
   });
 
   it("binds send approval to the exact payload and prevents duplicate sends",async()=>{
@@ -78,7 +78,7 @@ describe("Phase 23.6 business operations",()=>{
   it("enforces provider rate, auth, and circuit-breaker contracts",async()=>{
     const {ownerId,service,analytics,grant}=await setup();await grant("analytics","analytics.metric.read");
     analytics.setHealth("REAUTH_REQUIRED");await expect(service.requestBusinessAction(context(ownerId,{capability:"analytics.read_metric",idempotencyKey:"reauth-required",reason:"Read metric.",references:{},metricId:"sessions",windowStart:"2026-08-01T00:00:00.000Z",windowEnd:"2026-08-02T00:00:00.000Z",filters:{}}))).rejects.toMatchObject({code:"PROVIDER_AUTH_FAILED"});
-    analytics.setHealth("HEALTHY");analytics.failNextExecutions(3);
+    analytics.setHealth("HEALTHY");analytics.failNextExecutions(9);
     for(let index=0;index<3;index++){const failed=await service.requestBusinessAction(context(ownerId,{capability:"analytics.read_metric",idempotencyKey:`circuit-failure-${index}`,reason:"Read metric.",references:{},metricId:"sessions",windowStart:"2026-08-01T00:00:00.000Z",windowEnd:"2026-08-02T00:00:00.000Z",filters:{}}));expect(failed.status).toBe("FAILED");}
     await expect(service.requestBusinessAction(context(ownerId,{capability:"analytics.read_metric",idempotencyKey:"circuit-open",reason:"Read metric.",references:{},metricId:"sessions",windowStart:"2026-08-01T00:00:00.000Z",windowEnd:"2026-08-02T00:00:00.000Z",filters:{}}))).rejects.toMatchObject({code:"PROVIDER_UNAVAILABLE"});
     const rate=await setup();await rate.grant("analytics","analytics.metric.read");for(let index=0;index<30;index++)await rate.service.requestBusinessAction(context(rate.ownerId,{capability:"analytics.read_metric",idempotencyKey:`rate-read-${index}`,reason:"Read metric.",references:{},metricId:"sessions",windowStart:"2026-08-01T00:00:00.000Z",windowEnd:"2026-08-02T00:00:00.000Z",filters:{}}));

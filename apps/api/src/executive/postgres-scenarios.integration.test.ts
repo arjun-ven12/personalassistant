@@ -5,8 +5,8 @@ import {
   TaskRecordSchema,
 } from "@alexa-control/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { PostgresDatabase } from "../persistence/database.js";
-import { safeTestDatabaseUrl } from "../persistence/test-database.js";
+import type { PostgresDatabase } from "../persistence/database.js";
+import { createIsolatedTestDatabase, provisionTestDefaultCompany, safeTestDatabaseUrl } from "../persistence/test-database.js";
 import { PostgresTaskStore } from "../tasks/postgres-store.js";
 import { PostgresExecutiveStore } from "./postgres-store.js";
 import { ExecutiveBrainService, parseExecutiveQuery } from "./service.js";
@@ -15,20 +15,20 @@ const connectionString = safeTestDatabaseUrl();
 const owner = crypto.randomUUID();
 const at = "2026-08-16T00:00:00.000Z";
 let database: PostgresDatabase | undefined;
+let cleanup: (() => Promise<void>) | undefined;
 describe.skipIf(!connectionString)("PostgreSQL-backed Phase 21B scenarios", () => {
   beforeAll(async () => {
-    database = new PostgresDatabase(connectionString!);
-    await database.migrate();
+    const isolated = await createIsolatedTestDatabase(connectionString!, "phase21b_scenarios");
+    database = isolated.database;
+    cleanup = isolated.cleanup;
     await database.pool.query(
       "INSERT INTO owners(id,email,password_hash,record,created_at,updated_at) VALUES($1,$2,'test-only',$3,NOW(),NOW())",
       [owner, "phase21b-scenarios@example.test", { id: owner }],
     );
+    await provisionTestDefaultCompany(database.pool, owner);
   });
   afterAll(async () => {
-    if (database) {
-      await database.pool.query("DELETE FROM owners WHERE id=$1", [owner]);
-      await database.close();
-    }
+    await cleanup?.();
   });
   it("runs priority, constrained planning, KPI, simulation, brief, and change detection on durable state", async () => {
     const tasks = new PostgresTaskStore(database!.pool);

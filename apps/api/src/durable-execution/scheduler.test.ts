@@ -42,6 +42,22 @@ const execution = (id: string, companyId = companyA) =>
   });
 
 describe("centralized durable scheduler", () => {
+  it("runs Governor proposal claims inside the existing bounded scheduler tick", async () => {
+    const store = new InMemoryDurableExecutionStore();
+    const scheduler = new DurableExecutionScheduler(
+      store,
+      { runClaimed: vi.fn() } as unknown as CrossCompanyExecutionService,
+      "shared-worker",
+      undefined,
+      () => new Date(at),
+    );
+    const tick = vi.fn(async () => []);
+    scheduler.setGovernorProposalWorkload({ tick });
+    await scheduler.tick();
+    expect(tick).toHaveBeenCalledOnce();
+    expect(scheduler.metrics.emptyTicks).toBe(1);
+  });
+
   it("allows exactly one winner in a multi-worker race and reclaims after expiry", async () => {
     const store = new InMemoryDurableExecutionStore();
     const item = execution("30000000-0000-4000-8000-000000000001");
@@ -70,6 +86,37 @@ describe("centralized durable scheduler", () => {
     });
     expect(reclaimed).toHaveLength(1);
     expect(reclaimed[0]?.leaseGeneration).toBe(2);
+  });
+
+  it("recovers an expired claim after scheduler reconstruction without a duplicate claim", async () => {
+    const store = new InMemoryDurableExecutionStore();
+    const item = execution("30000000-0000-4000-8000-000000000010");
+    await store.saveExecution(item);
+    const abandoned = await store.claimRunnable({
+      workerId: "stopped-worker",
+      now: at,
+      leaseMs: 1_000,
+      limit: 1,
+      maxPerCompany: 1,
+    });
+    expect(abandoned).toHaveLength(1);
+
+    const runClaimed = vi.fn(async (claimed: ReturnType<typeof execution>) => claimed);
+    const restarted = new DurableExecutionScheduler(
+      store,
+      { runClaimed } as unknown as CrossCompanyExecutionService,
+      "restarted-worker",
+      { pollIntervalMs: 1_000, leaseMs: 1_000, globalConcurrency: 2, perCompanyConcurrency: 1 },
+      () => new Date("2026-09-01T00:00:02.000Z"),
+    );
+    await restarted.tick();
+    expect(runClaimed).toHaveBeenCalledOnce();
+    expect(runClaimed.mock.calls[0]?.[0]).toMatchObject({
+      id: item.id,
+      leaseOwner: "restarted-worker",
+      leaseGeneration: 2,
+    });
+    expect(restarted.metrics.claimed).toBe(1);
   });
 
   it("bounds global and per-company concurrency while scheduling one shared loop", async () => {

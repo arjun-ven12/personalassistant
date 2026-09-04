@@ -38,6 +38,10 @@ import {
   type IntegrationStore,
 } from "./integrations/store.js";
 import { PostgresIntegrationStore } from "./integrations/postgres-store.js";
+import { GmailBusinessProvider } from "./integrations/gmail-provider.js";
+import { StripeTestPaymentsProvider } from "./integrations/stripe-provider.js";
+import { GoogleAdsTestProvider,GoogleAnalytics4Provider,ShopifyDevelopmentStoreProvider,XeroSandboxAccountingProvider } from "./integrations/commercial-read-providers.js";
+import { AllowlistedEnvironmentSecretResolver } from "./integrations/secret-resolver.js";
 import { InMemoryAgentStore, type AgentStore } from "./agents/store.js";
 import { PostgresAgentStore } from "./agents/postgres-store.js";
 import { InMemoryAgentOsStore, type AgentOsStore } from "./agents/os-store.js";
@@ -174,6 +178,14 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 const environment = parseApiEnvironment(process.env);
+const integrationSecretResolver = new AllowlistedEnvironmentSecretResolver({
+  "gmail:gmail-primary": environment.GMAIL_OAUTH_CREDENTIAL_JSON,
+  "payments:stripe-test": environment.STRIPE_TEST_CREDENTIAL_JSON,
+  "accounting:xero-sandbox": environment.XERO_SANDBOX_CREDENTIAL_JSON,
+  "ads:google-ads-test": environment.GOOGLE_ADS_TEST_CREDENTIAL_JSON,
+  "analytics:ga4": environment.GOOGLE_ANALYTICS_CREDENTIAL_JSON,
+  "commerce:shopify-development": environment.SHOPIFY_DEVELOPMENT_CREDENTIAL_JSON,
+});
 let database: PostgresDatabase | undefined;
 let identityStore: IdentityStore;
 let governanceStore: GovernanceStore;
@@ -484,6 +496,15 @@ const app = await buildApi({
   validationStore,
   workflowStore,
   integrationStore,
+  integrationSecretResolver,
+  businessProviders: [
+    ...(environment.GMAIL_OAUTH_CREDENTIAL_JSON?[new GmailBusinessProvider()]:[]),
+    ...(environment.STRIPE_TEST_CREDENTIAL_JSON?[new StripeTestPaymentsProvider()]:[]),
+    ...(environment.XERO_SANDBOX_CREDENTIAL_JSON?[new XeroSandboxAccountingProvider()]:[]),
+    ...(environment.GOOGLE_ADS_TEST_CREDENTIAL_JSON?[new GoogleAdsTestProvider()]:[]),
+    ...(environment.GOOGLE_ANALYTICS_CREDENTIAL_JSON?[new GoogleAnalytics4Provider()]:[]),
+    ...(environment.SHOPIFY_DEVELOPMENT_CREDENTIAL_JSON?[new ShopifyDevelopmentStoreProvider()]:[]),
+  ],
   agentStore,
   agentOsStore,
   agentCognitionStore,

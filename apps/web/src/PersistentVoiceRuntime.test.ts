@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  commandTextFromWakeWord,
   memoryTextFromVoiceCommand,
   ordinalVoiceSelectionIndex,
   voiceRouteFailureMessage,
@@ -8,6 +9,12 @@ import {
 import { ApiClientError } from "./api.js";
 
 describe("PersistentVoiceRuntime helpers", () => {
+  it("accepts Athena as the primary wake name and Alexa as a legacy alias", () => {
+    expect(commandTextFromWakeWord("Hi Athena, open companies")).toBe("open companies");
+    expect(commandTextFromWakeWord("Hey Alexa: show approvals")).toBe("show approvals");
+    expect(commandTextFromWakeWord("open companies")).toBeNull();
+  });
+
   it("extracts bounded owner teaching memories from voice commands", () => {
     expect(memoryTextFromVoiceCommand("remember that your name is Alexa")).toBe(
       "your name is Alexa",

@@ -313,7 +313,20 @@ describe("VoiceRuntimeService", () => {
     expect(dashboard.runtime.rawAudioPersisted).toBe(false);
     expect(dashboard.runtime.voiceCanApproveHighRisk).toBe(false);
     expect(dashboard.profiles).toHaveLength(1);
-    expect(dashboard.wakeWordSettings[0]?.wakeWords).toContain("Alexa");
+    expect(dashboard.wakeWordSettings[0]?.wakeWords).toEqual(
+      expect.arrayContaining(["Athena", "Alexa"]),
+    );
+  });
+
+  it("upgrades legacy wake settings without dropping Alexa compatibility", async () => {
+    const { ownerId, voice, voiceStore } = setup();
+    const initial = await voice.dashboard(ownerId);
+    const setting = initial.wakeWordSettings[0]!;
+    voiceStore.saveWakeWordSettings({ ...setting, wakeWords: ["Alexa"] });
+
+    const dashboard = await voice.dashboard(ownerId);
+
+    expect(dashboard.wakeWordSettings[0]?.wakeWords).toEqual(["Athena", "Alexa"]);
   });
 
   it("cancels only the explicit voice turn through AIRouter", async () => {

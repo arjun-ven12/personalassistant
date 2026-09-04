@@ -139,6 +139,7 @@ export const CompanyManagementDashboardSchema = z.object({
 }).strict();
 
 export const GenerateManagementReviewRequestSchema = z.object({
+  idempotencyKey: z.string().trim().min(16).max(200),
   cadence: CompanyManagementReviewSchema.shape.cadence.default("AD_HOC"),
   period: z.string().trim().min(1).max(120).default("CURRENT"),
 }).strict();

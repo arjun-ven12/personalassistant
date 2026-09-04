@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PostgresDatabase } from "../../persistence/database.js";
-import { safeTestDatabaseUrl } from "../../persistence/test-database.js";
+import { provisionTestDefaultCompany, safeTestDatabaseUrl } from "../../persistence/test-database.js";
 import { PostgresAIEconomicsStore } from "./postgres-store.js";
 import { digestEconomicOverride } from "./override-digest.js";
 
@@ -50,6 +50,8 @@ describe.skipIf(!connectionString)(
           { id: otherOwnerId },
         ],
       );
+      for (const id of [ownerId, otherOwnerId])
+        await provisionTestDefaultCompany(database.pool, id);
     }, 60_000);
 
     afterAll(async () => {

@@ -10,6 +10,37 @@ export const AgentEconomyStatusSchema = z.enum([
   "SUSPENDED",
 ]);
 
+export const EconomyScopeAccountSchema = z.object({
+  id: z.string().uuid(),
+  ownerId: z.string().uuid(),
+  accountType: z.enum(["OWNER_RESERVE", "COMPANY"]),
+  companyId: z.string().uuid().nullable(),
+  availableCredits: credits,
+  reservedCredits: credits,
+  lifetimeAllocated: credits,
+  lifetimeSpent: credits,
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+}).strict().superRefine((value, context) => {
+  if ((value.accountType === "OWNER_RESERVE") === (value.companyId !== null))
+    context.addIssue({ code: "custom", path: ["companyId"], message: "Owner reserve must be owner-scoped and company accounts must be company-scoped." });
+});
+
+export const EconomyScopeTransferSchema = z.object({
+  id: z.string().uuid(),
+  ownerId: z.string().uuid(),
+  sourceAccountId: z.string().uuid(),
+  destinationAccountId: z.string().uuid(),
+  companyId: z.string().uuid(),
+  amount: credits.positive(),
+  reason: z.string().trim().min(1).max(240),
+  idempotencyKey: z.string().min(16).max(200),
+  approvalId: z.string().uuid().nullable(),
+  status: z.literal("SETTLED"),
+  createdAt: z.iso.datetime(),
+  settledAt: z.iso.datetime(),
+}).strict();
+
 export const AgentEconomyLedgerTypeSchema = z.enum([
   "CREDIT_GRANTED",
   "REWARD_EARNED",
@@ -190,6 +221,8 @@ export const AgentEconomyAccountResponseSchema = z
   .strict();
 
 export type AgentEconomyStatus = z.infer<typeof AgentEconomyStatusSchema>;
+export type EconomyScopeAccount = z.infer<typeof EconomyScopeAccountSchema>;
+export type EconomyScopeTransfer = z.infer<typeof EconomyScopeTransferSchema>;
 export type AgentEconomyAccount = z.infer<typeof AgentEconomyAccountSchema>;
 export type AgentEconomyLedgerEntry = z.infer<typeof AgentEconomyLedgerEntrySchema>;
 export type AgentEconomyReservation = z.infer<typeof AgentEconomyReservationSchema>;

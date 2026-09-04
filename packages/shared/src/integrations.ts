@@ -10,7 +10,14 @@ export const IntegrationProviderSchema = z.enum([
   "vercel",
   "gmail",
   "crm",
+  "support",
+  "documents",
+  "projects",
   "analytics",
+  "accounting",
+  "payments",
+  "ads",
+  "commerce",
 ]);
 
 export const IntegrationCategorySchema = z.enum([
@@ -22,7 +29,13 @@ export const IntegrationCategorySchema = z.enum([
   "ci_cd",
   "deployment",
   "crm",
+  "support",
+  "project_management",
   "analytics",
+  "accounting",
+  "payments",
+  "ads",
+  "commerce",
 ]);
 
 export const IntegrationStatusSchema = z.enum([

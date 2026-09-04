@@ -508,92 +508,109 @@ export class AIRouterService {
         this.economics &&
         request.economicContext
       ) {
-        const estimate = await this.economics.estimate(
-          economicCandidate,
-          request.economicContext,
-        );
-        const evaluation = await this.economics.evaluate(
-          economicCandidate,
-          request.economicContext,
-          estimate.estimatedMaxUsd,
-        );
-        economicTrace = {
-          budgetHealth: evaluation.state,
-          applicableBudgetIds: evaluation.applicablePolicies.map((item) => item.id),
-          estimatedCostUsd: estimate.estimatedMaxUsd,
-          economicAction: evaluation.action,
-          reasons: evaluation.reasons,
-        };
-        if (!evaluation.allowed && !request.economicOverrideGrantId) {
-          if (evaluation.action === "REQUIRE_APPROVAL") {
-            try {
-              await this.economics.prepareOverrideApproval(
-                {
-                  ownerId: request.economicContext.ownerId,
-                  requestId: canonicalRequestId,
-                  purpose: request.economicContext.purpose,
-                  requestedAdditionalSpendUsd: estimate.estimatedMaxUsd,
-                  maxAdditionalSpendUsd: estimate.estimatedMaxUsd,
-                  expiresAt: new Date(Date.now() + 900_000).toISOString(),
-                  ...(request.economicContext.agentId
-                    ? { agentId: request.economicContext.agentId }
-                    : {}),
-                  ...(request.economicContext.workflowId
-                    ? { workflowId: request.economicContext.workflowId }
-                    : {}),
-                  ...(request.economicContext.workflowRunId
-                    ? { workflowRunId: request.economicContext.workflowRunId }
-                    : {}),
-                  ...(request.economicContext.taskId
-                    ? { taskId: request.economicContext.taskId }
-                    : {}),
-                  ...(request.economicContext.costCenter
-                    ? { costCenter: request.economicContext.costCenter }
-                    : {}),
-                  providerId: candidate.providerId,
-                  modelId: candidate.modelId,
-                },
-                { ipAddress: "internal", requestId: canonicalRequestId },
-              );
-            } catch (error) {
-              if (
-                !(error instanceof AIEconomicError) ||
-                error.message !== "Approval runtime is unavailable."
-              )
-                throw error;
-            }
-          }
-          attempts.push({
-            attemptId,
-            ...(contextId ? { contextId } : {}),
-            providerId: candidate.providerId,
-            modelId: candidate.modelId,
-            locality: candidate.locality,
-            status: "SKIPPED",
-            reason: evaluation.reasons.join(" "),
-            errorCode: "ECONOMIC_POLICY",
-          });
-          continue;
-        }
         try {
-          this.activeRequests.update(canonicalRequestId, {
-            state: "RESERVING",
-            providerId: candidate.providerId,
-            modelId: candidate.modelId,
-          });
-          reservationId = (
-            await this.economics.reserve(
-              economicCandidate,
-              request.economicContext,
-              canonicalRequestId,
-              { routeId, attemptId, ...(contextId ? { contextId } : {}) },
-              request.economicOverrideGrantId
-                ? { grantId: request.economicOverrideGrantId }
-                : undefined,
-            )
-          ).id;
-          this.activeRequests.update(canonicalRequestId, { reservationId });
-        } catch (error) {
+          const estimate = await this.economics.estimate(
+            economicCandidate,
+            request.economicContext,
+          );
+          const evaluation = await this.economics.evaluate(
+            economicCandidate,
+            request.economicContext,
+            estimate.estimatedMaxUsd,
+          );
+          economicTrace = {
+            budgetHealth: evaluation.state,
+            applicableBudgetIds: evaluation.applicablePolicies.map((item) => item.id),
+            estimatedCostUsd: estimate.estimatedMaxUsd,
+            economicAction: evaluation.action,
+            reasons: evaluation.reasons,
+          };
+          if (!evaluation.allowed && !request.economicOverrideGrantId) {
+            if (evaluation.action === "REQUIRE_APPROVAL") {
+              try {
+                await this.economics.prepareOverrideApproval(
+                  {
+                    ownerId: request.economicContext.ownerId,
+                    requestId: canonicalRequestId,
+                    purpose: request.economicContext.purpose,
+                    requestedAdditionalSpendUsd: estimate.estimatedMaxUsd,
+                    maxAdditionalSpendUsd: estimate.estimatedMaxUsd,
+                    expiresAt: new Date(Date.now() + 900_000).toISOString(),
+                    ...(request.economicContext.agentId
+                      ? { agentId: request.economicContext.agentId }
+                      : {}),
+                    ...(request.economicContext.workflowId
+                      ? { workflowId: request.economicContext.workflowId }
+                      : {}),
+                    ...(request.economicContext.workflowRunId
+                      ? { workflowRunId: request.economicContext.workflowRunId }
+                      : {}),
+                    ...(request.economicContext.taskId
+                      ? { taskId: request.economicContext.taskId }
+                      : {}),
+                    ...(request.economicContext.costCenter
+                      ? { costCenter: request.economicContext.costCenter }
+                      : {}),
+                    providerId: candidate.providerId,
+                    modelId: candidate.modelId,
+                  },
+                  { ipAddress: "internal", requestId: canonicalRequestId },
+                );
+              } catch (error) {
+                if (
+                  !(error instanceof AIEconomicError) ||
+                  error.message !== "Approval runtime is unavailable."
+                )
+                  throw error;
+              }
+            }
+            attempts.push({
+              attemptId,
+              ...(contextId ? { contextId } : {}),
+              providerId: candidate.providerId,
+              modelId: candidate.modelId,
+              locality: candidate.locality,
+              status: "SKIPPED",
+              reason: evaluation.reasons.join(" "),
+              errorCode: "ECONOMIC_POLICY",
+            });
+            continue;
+          }
+          try {
+            this.activeRequests.update(canonicalRequestId, {
+              state: "RESERVING",
+              providerId: candidate.providerId,
+              modelId: candidate.modelId,
+            });
+            reservationId = (
+              await this.economics.reserve(
+                economicCandidate,
+                request.economicContext,
+                canonicalRequestId,
+                { routeId, attemptId, ...(contextId ? { contextId } : {}) },
+                request.economicOverrideGrantId
+                  ? { grantId: request.economicOverrideGrantId }
+                  : undefined,
+              )
+            ).id;
+            this.activeRequests.update(canonicalRequestId, { reservationId });
+          } catch (error) {
+            attempts.push({
+              attemptId,
+              ...(contextId ? { contextId } : {}),
+              providerId: candidate.providerId,
+              modelId: candidate.modelId,
+              locality: candidate.locality,
+              status: "SKIPPED",
+              reason:
+                error instanceof Error
+                  ? error.message.slice(0, 300)
+                  : "Economic reservation failed.",
+              errorCode: "RESERVATION_FAILED",
+            });
+            continue;
+          }
+        } catch {
           attempts.push({
             attemptId,
             ...(contextId ? { contextId } : {}),
@@ -601,11 +618,8 @@ export class AIRouterService {
             modelId: candidate.modelId,
             locality: candidate.locality,
             status: "SKIPPED",
-            reason:
-              error instanceof Error
-                ? error.message.slice(0, 300)
-                : "Economic reservation failed.",
-            errorCode: "RESERVATION_FAILED",
+            reason: "Economic policy evidence is unavailable; paid inference denied.",
+            errorCode: "ECONOMICS_UNAVAILABLE",
           });
           continue;
         }

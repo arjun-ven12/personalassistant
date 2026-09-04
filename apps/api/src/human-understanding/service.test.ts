@@ -56,16 +56,27 @@ describe("HumanUnderstandingService", () => {
     const { ownerId, service } = setup();
     const dashboard = await service.dashboard(ownerId);
 
-    expect(dashboard.profile.name).toBe("Alexa Default");
+    expect(dashboard.profile.name).toBe("Athena Default");
     expect(dashboard.deterministicFirst).toBe(true);
     expect(dashboard.usesExistingVectorDatabase).toBe(true);
     expect(dashboard.llmIsCapabilityProviderOnly).toBe(true);
     expect(dashboard.aliases.some((alias) => alias.phrase === "launch")).toBe(true);
     expect(dashboard.patterns.some((pattern) => pattern.intentId === "LaunchApplication")).toBe(true);
-    expect(dashboard.identity.assistantName).toBe("Alexa");
+    expect(dashboard.identity.assistantName).toBe("Athena");
     expect(dashboard.traits.some((trait) => trait.key === "verification_level")).toBe(true);
     expect(dashboard.interactionPolicies.some((policy) => policy.policyKey === "confirm_destructive_actions")).toBe(true);
     expect(dashboard.decisionPreferences.some((preference) => preference.preferenceKey === "semantic_integrations")).toBe(true);
+  });
+
+  it("renames an existing default Alexa profile without changing custom profiles", async () => {
+    const { ownerId, service } = setup();
+    const initial = await service.dashboard(ownerId);
+    await service.store.saveProfile({ ...initial.profile, name: "Alexa Default" });
+
+    const dashboard = await service.dashboard(ownerId);
+
+    expect(dashboard.profile.name).toBe("Athena Default");
+    expect(dashboard.identity.assistantName).toBe("Athena");
   });
 
   it("understands app launch through vocabulary, aliases, patterns, and confidence", async () => {

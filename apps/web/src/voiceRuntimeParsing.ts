@@ -7,6 +7,11 @@ const normalizeVoiceLabel = (value: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+export const commandTextFromWakeWord = (transcript: string) => {
+  const match = transcript.match(/\b(?:athena|alexa)\b[\s,.:;-]*(.*)$/i);
+  return match ? (match[1]?.trim() ?? "") : null;
+};
+
 export const memoryTextFromVoiceCommand = (transcript: string) => {
   const match = transcript.match(
     /^(?:please\s+)?(?:remember|remember that|remember this|note that|save this memory)\s+(?:that\s+)?(.+)$/i,

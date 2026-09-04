@@ -122,7 +122,7 @@ class AndroidVoiceController(context: Context) : RecognitionListener, TextToSpee
     val result = tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, UUID.randomUUID().toString())
     if (result == TextToSpeech.ERROR) {
       releaseSpeechFocus()
-      listener(false, "Alexa could not start speech output.")
+      listener(false, "Athena could not start speech output.")
     }
   }
 

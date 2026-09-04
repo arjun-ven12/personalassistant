@@ -1,5 +1,6 @@
 import {
   AIObservabilityTraceSchema,
+  GovernorProposalSchema,
   SystemTelemetrySpanSchema,
 } from "@alexa-control/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -123,6 +124,40 @@ describe.skipIf(!connectionString)(
       expect(await store.listAITraces(ownerId, { companyId, limit: 10 })).toEqual([ai]);
       expect(await store.listSystemSpans(otherOwner, { limit: 10 })).toEqual([]);
       expect(await store.listAITraces(otherOwner, { limit: 10 })).toEqual([]);
+    });
+    it("atomically claims Governor proposals across workers and recovers stale leases", async () => {
+      for (let index = 1; index <= 20; index += 1) {
+        await store.saveGovernorProposal(GovernorProposalSchema.parse({
+          id: crypto.randomUUID(), ownerId, companyId, portfolioObjectiveId: null,
+          sourceGovernorId: "portfolio_coordinator", targetGovernorAssignmentId: crypto.randomUUID(),
+          proposalType: "RESOURCE_REQUEST", status: "DELIVERED",
+          revisions: [{ version: 1, proposedBy: "PORTFOLIO", terms: {
+            requestedOutcome: `Bounded outcome ${index}`, targetValue: null, unit: null,
+            budgetCredits: 0, deadline: null, constraints: [],
+          }, reasonCode: "PORTFOLIO_PROPOSED", explanation: null, createdAt: at }],
+          maxCounterproposalRounds: 2, idempotencyKey: `postgres-governor-proposal-${String(index).padStart(4, "0")}`,
+          companyObjectiveId: null, createdAt: at, updatedAt: at,
+          expiresAt: "2026-09-05T00:00:00.000Z", decisionIdempotencyKeys: [],
+        }));
+      }
+      const [workerA, workerB] = await Promise.all([
+        store.claimGovernorProposals({ workerId: "worker-a", now: "2026-09-03T00:00:00.000Z", leaseMs: 1_000, limit: 10 }),
+        store.claimGovernorProposals({ workerId: "worker-b", now: "2026-09-03T00:00:00.000Z", leaseMs: 1_000, limit: 10 }),
+      ]);
+      expect(workerA).toHaveLength(10);
+      expect(workerB).toHaveLength(10);
+      expect(new Set([...workerA, ...workerB].map((item) => item.id)).size).toBe(20);
+      expect(await store.claimGovernorProposals({ workerId: "worker-c", now: "2026-09-03T00:00:00.500Z", leaseMs: 1_000, limit: 20 })).toHaveLength(0);
+      const recovered = await store.claimGovernorProposals({ workerId: "worker-c", now: "2026-09-03T00:00:01.001Z", leaseMs: 1_000, limit: 20 });
+      expect(recovered).toHaveLength(20);
+      expect(recovered.every((item) => item.leaseGeneration === 2 && item.attemptCount === 2)).toBe(true);
+      const canonical = recovered[0]!;
+      await store.saveGovernorProposal(GovernorProposalSchema.parse({ ...canonical, id: crypto.randomUUID() }));
+      expect((await store.listGovernorProposals(ownerId)).filter((item) => item.idempotencyKey === canonical.idempotencyKey)).toEqual([canonical]);
+      await expect(store.saveGovernorProposal(GovernorProposalSchema.parse({
+        ...recovered[0], id: crypto.randomUUID(), ownerId: otherOwner,
+        idempotencyKey: "cross-owner-governor-proposal-denied-0001",
+      }))).rejects.toBeTruthy();
     });
   },
 );

@@ -73,9 +73,9 @@ export const EXTERNAL_HARVEST_MANIFEST = ExternalHarvestManifestSchema.parse({
       classification: "ADAPT_INTO_ALEXA",
       normalizedId: "alexa_memory_sufficiency_policy",
       rationale:
-        "Use bounded Alexa Memory retrieval before external retrieval when relevant.",
+        "Use bounded Athena Memory retrieval before external retrieval when relevant.",
       authorityNotes:
-        "Alexa Memory and AIRouter remain authoritative; no GBrain runtime is loaded.",
+        "Athena Memory and AIRouter remain authoritative; no GBrain runtime is loaded.",
       provenance: {
         ...sources.gbrain,
         sourcePath: "src/core/context/retrieval-reflex.ts",
@@ -113,7 +113,7 @@ export const EXTERNAL_HARVEST_MANIFEST = ExternalHarvestManifestSchema.parse({
       classification: "ALREADY_HAVE",
       normalizedId: "memory_studio_health",
       rationale:
-        "Alexa already detects conflicts, duplicates, stale records, health, and embeddings.",
+        "Athena already detects conflicts, duplicates, stale records, health, and embeddings.",
       authorityNotes:
         "No second maintenance service or destructive repair loop was added.",
       provenance: { ...sources.gbrain, sourcePath: "skills/maintain/SKILL.md" },
@@ -125,7 +125,7 @@ export const EXTERNAL_HARVEST_MANIFEST = ExternalHarvestManifestSchema.parse({
       classification: "USE_AS_REFERENCE",
       normalizedId: null,
       rationale:
-        "Alexa already stores timeline events; deeper business trajectories are deferred.",
+        "Athena already stores timeline events; deeper business trajectories are deferred.",
       authorityNotes: "No duplicate event store was introduced.",
       provenance: { ...sources.gbrain, sourcePath: "src/core/trajectory.ts" },
     }),
@@ -138,7 +138,7 @@ export const EXTERNAL_HARVEST_MANIFEST = ExternalHarvestManifestSchema.parse({
       rationale:
         "Prepares a fresh bounded specialist context and structured result contract.",
       authorityNotes:
-        "Requested scope is intersected with Alexa-owned manifests and does not execute.",
+        "Requested scope is intersected with Athena-owned manifests and does not execute.",
       provenance: { ...sources.hermes, sourcePath: "tools/delegate_tool.py" },
     }),
     artifact({
@@ -163,7 +163,7 @@ export const EXTERNAL_HARVEST_MANIFEST = ExternalHarvestManifestSchema.parse({
       classification: "ADAPT_INTO_ALEXA",
       normalizedId: "registered_validation_readonly",
       rationale:
-        "Defines one deny-by-default profile backed by Alexa validation infrastructure.",
+        "Defines one deny-by-default profile backed by Athena validation infrastructure.",
       authorityNotes:
         "No Hermes backend, host shell, arbitrary command, or network authority is imported.",
       provenance: {
@@ -178,7 +178,7 @@ export const EXTERNAL_HARVEST_MANIFEST = ExternalHarvestManifestSchema.parse({
       classification: "REJECT",
       normalizedId: null,
       rationale:
-        "Automatic approval conflicts with Alexa policy and recent-authentication boundaries.",
+        "Automatic approval conflicts with Athena policy and recent-authentication boundaries.",
       authorityNotes: "Imported agents can never approve themselves or mutate policy.",
       provenance: { ...sources.hermes, sourcePath: "tools/delegate_tool.py" },
     }),
@@ -189,7 +189,7 @@ export const EXTERNAL_HARVEST_MANIFEST = ExternalHarvestManifestSchema.parse({
       classification: "ADAPT_INTO_ALEXA",
       normalizedId: "software_architect",
       rationale:
-        "Adds a missing architecture specialist using Alexa advisory capabilities.",
+        "Adds a missing architecture specialist using Athena advisory capabilities.",
       authorityNotes:
         "Vendor models and Bash tools are replaced by governed-default AIRouter policy.",
       provenance: { ...sources.ecc, sourcePath: "agents/architect.md" },
@@ -202,7 +202,7 @@ export const EXTERNAL_HARVEST_MANIFEST = ExternalHarvestManifestSchema.parse({
       normalizedId: "qa_engineer",
       rationale: "Consolidates testing and TDD guidance into one QA specialist.",
       authorityNotes:
-        "Tests run only through registered Alexa validation capabilities.",
+        "Tests run only through registered Athena validation capabilities.",
       provenance: { ...sources.ecc, sourcePath: "agents/tdd-guide.md" },
     }),
     artifact({
@@ -245,7 +245,7 @@ export const EXTERNAL_HARVEST_MANIFEST = ExternalHarvestManifestSchema.parse({
       rationale:
         "Normalizes plan, implement, test, review, security review, verify, and report.",
       authorityNotes:
-        "Each step remains an Alexa workflow action subject to governance.",
+        "Each step remains an Athena workflow action subject to governance.",
       provenance: {
         ...sources.ecc,
         sourcePath: "rules/common/development-workflow.md",
@@ -260,7 +260,7 @@ export const EXTERNAL_HARVEST_MANIFEST = ExternalHarvestManifestSchema.parse({
       rationale:
         "Hard-coded Claude models, unrestricted Bash, duplicate roles, and vendor hooks are not imported.",
       authorityNotes:
-        "No external SDK, hook runtime, MCP authority, or shell permission enters Alexa.",
+        "No external SDK, hook runtime, MCP authority, or shell permission enters Athena.",
       provenance: {
         ...sources.ecc,
         sourcePath: "agents/**; skills/**; commands/**; rules/**; hooks/**",

@@ -32,7 +32,7 @@
       android:layout_width="42dp"
       android:layout_height="42dp"
       android:background="@drawable/widget_mic_background"
-      android:contentDescription="Open Alexa Voice"
+      android:contentDescription="Open Athena Voice"
       android:padding="10dp"
       android:src="@drawable/widget_mic" />
   </LinearLayout>

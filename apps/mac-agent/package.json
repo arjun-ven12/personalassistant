@@ -1,9 +1,9 @@
 {
   "name": "@alexa-control/mac-agent",
   "version": "0.1.1",
-  "productName": "Alexa Mac Agent",
-  "description": "Trusted governed macOS execution endpoint for Alexa Control.",
-  "author": "Alexa Control",
+  "productName": "Athena Mac Agent",
+  "description": "Trusted governed macOS execution endpoint for Athena Control.",
+  "author": "Athena Control",
   "private": true,
   "type": "module",
   "main": "dist-electron/main.cjs",
@@ -47,7 +47,7 @@
   },
   "build": {
     "appId": "com.alexacontrol.macagent",
-    "productName": "Alexa Mac Agent",
+    "productName": "Athena Mac Agent",
     "buildVersion": "2456",
     "asar": true,
     "directories": {
@@ -97,14 +97,14 @@
       ],
       "extendInfo": {
         "LSUIElement": true,
-        "NSCameraUsageDescription": "Alexa Mac Agent uses the camera only when you start the local governed gesture runtime.",
-        "NSMicrophoneUsageDescription": "Alexa Mac Agent uses the microphone only when you start local voice input.",
-        "NSSpeechRecognitionUsageDescription": "Alexa Mac Agent uses on-device speech recognition only when explicitly enabled."
+        "NSCameraUsageDescription": "Athena Mac Agent uses the camera only when you start the local governed gesture runtime.",
+        "NSMicrophoneUsageDescription": "Athena Mac Agent uses the microphone only when you start local voice input.",
+        "NSSpeechRecognitionUsageDescription": "Athena Mac Agent uses on-device speech recognition only when explicitly enabled."
       }
     },
     "dmg": {
-      "title": "Alexa Mac Agent ${version}",
-      "artifactName": "Alexa-Mac-Agent-${version}-${arch}.${ext}"
+      "title": "Athena Mac Agent ${version}",
+      "artifactName": "Athena-Mac-Agent-${version}-${arch}.${ext}"
     }
   }
 }

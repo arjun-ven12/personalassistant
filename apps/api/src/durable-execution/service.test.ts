@@ -304,6 +304,45 @@ describe("Phase 25.6 durable cross-company execution", () => {
     expect(execute).not.toHaveBeenCalled();
   });
 
+  it("fails closed when bilateral policy is absent and keeps destination rejection non-executable", async () => {
+    await service.upsertPolicy(ownerId, atlas, {
+      allowedDestinationCompanyIds: [],
+      allowedServiceTypes: ["FINANCIAL_BENCHMARK"],
+      allowedSharingScopes: ["SUMMARY_ONLY"],
+      allowedCapabilities: ["finance.benchmark"],
+      maxBudgetCredits: 100,
+      approvalThresholdCredits: 40,
+      maxConcurrentServices: 5,
+    }, context);
+    await expect(create()).rejects.toMatchObject({ code: "COLLABORATION_PEER_DENIED" });
+
+    await allowCollaboration();
+    companyData.savePolicy(
+      CompanyDataPolicySchema.parse({
+        ...(await companyData.findActivePolicy(ownerId, nova))!,
+        id: crypto.randomUUID(),
+        externalTransferAllowed: false,
+        version: 2,
+        updatedAt: "2026-09-01T00:01:00.000Z",
+      }),
+    );
+    await expect(create()).rejects.toMatchObject({ code: "EXTERNAL_TRANSFER_DENIED" });
+    companyData.savePolicy(
+      CompanyDataPolicySchema.parse({
+        ...(await companyData.findActivePolicy(ownerId, nova))!,
+        id: crypto.randomUUID(),
+        externalTransferAllowed: true,
+        version: 3,
+        updatedAt: "2026-09-01T00:02:00.000Z",
+      }),
+    );
+    const request = await create();
+    const rejected = await service.destinationDecision(ownerId, request.id, "REJECT", "Destination declined the bounded contract.", context);
+    expect(rejected.status).toBe("REJECTED");
+    expect(await store.listExecutions(ownerId, atlas)).toEqual([]);
+    expect(execute).not.toHaveBeenCalled();
+  });
+
   it("parks on pause, cancels on archive, and never exposes sibling-owner records", async () => {
     const request = await create();
     await service.destinationDecision(

@@ -91,7 +91,7 @@ fun AlexaConversationScreen(
               color = AlexaContent,
             )
             Text(
-              if (state.connection == ConnectionState.ONLINE) "Shared Alexa conversation" else "Offline · cached history",
+              if (state.connection == ConnectionState.ONLINE) "Shared Athena conversation" else "Offline · cached history",
               style = MaterialTheme.typography.labelSmall,
               color = if (state.connection == ConnectionState.ONLINE) ConversationGreen else ConversationBlue,
             )
@@ -125,13 +125,13 @@ fun AlexaConversationScreen(
       }
       IconButton(onClick = onRefresh) { Icon(Icons.Outlined.Refresh, "Refresh shared conversation") }
       Box {
-        IconButton(onClick = { operationsMenu = true }) { Icon(Icons.Outlined.MoreVert, "Open Alexa operations") }
+        IconButton(onClick = { operationsMenu = true }) { Icon(Icons.Outlined.MoreVert, "Open Athena operations") }
         DropdownMenu(expanded = operationsMenu, onDismissRequest = { operationsMenu = false }) {
           listOf("Activity", "Workflows", "Economy", "Experiments", "System").forEach { destination ->
             DropdownMenuItem(text = { Text(destination) }, onClick = { operationsMenu = false; onOpenSecondary(destination) })
           }
           HorizontalDivider()
-          DropdownMenuItem(text = { Text("Lock Alexa") }, onClick = { operationsMenu = false; onLock() })
+          DropdownMenuItem(text = { Text("Lock Athena") }, onClick = { operationsMenu = false; onLock() })
           DropdownMenuItem(
             text = { Text("Sign out and forget device", color = ConversationRed) },
             onClick = { operationsMenu = false; onForgetDevice() },
@@ -173,7 +173,7 @@ fun AlexaConversationScreen(
           Column(Modifier.fillParentMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(Icons.Outlined.AutoAwesome, null, tint = ConversationBlue, modifier = Modifier.size(30.dp))
             Spacer(Modifier.height(10.dp))
-            Text("Talk to the same Alexa", fontWeight = FontWeight.SemiBold)
+            Text("Talk to the same Athena", fontWeight = FontWeight.SemiBold)
             Text("Text or hold the microphone. Context stays in the canonical conversation.", color = AlexaMutedContent, style = MaterialTheme.typography.bodySmall)
           }
         }
@@ -190,10 +190,10 @@ fun AlexaConversationScreen(
         }
       }
       if (state.voiceState in setOf(MobileVoiceState.SUBMITTING, MobileVoiceState.THINKING)) {
-        item("thinking") { RuntimeStateRow("Alexa is thinking", showStop = true, onStop = onStopResponse) }
+        item("thinking") { RuntimeStateRow("Athena is thinking", showStop = true, onStop = onStopResponse) }
       }
       if (state.voiceState == MobileVoiceState.SPEAKING) {
-        item("speaking") { RuntimeStateRow("Alexa is speaking", showStop = true, onStop = onStopSpeaking) }
+        item("speaking") { RuntimeStateRow("Athena is speaking", showStop = true, onStop = onStopSpeaking) }
       }
     }
 
@@ -219,7 +219,7 @@ fun AlexaConversationScreen(
         value = draft,
         onValueChange = { draft = it.take(4_000) },
         modifier = Modifier.weight(1f),
-        placeholder = { Text(if (state.connection == ConnectionState.ONLINE) "Ask Alexa" else "Draft while offline") },
+        placeholder = { Text(if (state.connection == ConnectionState.ONLINE) "Ask Athena" else "Draft while offline") },
         maxLines = 4,
         shape = RoundedCornerShape(10.dp),
         trailingIcon = {

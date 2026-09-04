@@ -550,7 +550,7 @@ export const AgentWorkforceGraph = ({ apiClient }: { apiClient: ApiClient }) => 
           onChange={(event) => setSource(event.target.value)}
         >
           <option value="">All sources</option>
-          <option value="ALEXA_NATIVE">Alexa native</option>
+          <option value="ALEXA_NATIVE">Athena native</option>
           <option value="EVERYTHING_CLAUDE_CODE">External-derived</option>
         </select>
         {focusBranch ? (
@@ -576,7 +576,7 @@ export const AgentWorkforceGraph = ({ apiClient }: { apiClient: ApiClient }) => 
               <h2>
                 {focusBranch && selectedNode
                   ? `${selectedNode.label} connections`
-                  : (graphData.organization?.name ?? "Alexa Workforce")}
+                  : (graphData.organization?.name ?? "Athena Workforce")}
               </h2>
             </div>
             <span className="mono-meta">{layout.nodes.length} visible nodes</span>
@@ -616,7 +616,7 @@ export const AgentWorkforceGraph = ({ apiClient }: { apiClient: ApiClient }) => 
             ref={viewportRef}
           >
             <svg
-              aria-label="Alexa agent organization graph"
+              aria-label="Athena agent organization graph"
               height={layout.height}
               style={{
                 transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
@@ -1178,7 +1178,7 @@ const AgentInspector = ({
             </div>
             <div>
               <dt>Manager</dt>
-              <dd>{detail.manager?.displayName ?? "Alexa Governor"}</dd>
+              <dd>{detail.manager?.displayName ?? "Athena Governor"}</dd>
             </div>
             <div>
               <dt>State</dt>
@@ -1235,7 +1235,7 @@ const AgentInspector = ({
             <dl className="compact-definition-list">
               <div>
                 <dt>Source</dt>
-                <dd>{metadata?.source ?? "Alexa native"}</dd>
+                <dd>{metadata?.source ?? "Athena native"}</dd>
               </div>
               <div>
                 <dt>Path</dt>
@@ -1247,7 +1247,7 @@ const AgentInspector = ({
               </div>
               <div>
                 <dt>License</dt>
-                <dd>{metadata?.license ?? "Alexa-owned"}</dd>
+                <dd>{metadata?.license ?? "Athena-owned"}</dd>
               </div>
             </dl>
           </details>

@@ -250,7 +250,7 @@ const AgentControlApp = () => {
       <header className="agent-header">
         <div>
           <p className="eyebrow">Local secure shell</p>
-          <h1>{diagnostics?.agentName ?? "Alexa Control Mac Agent"}</h1>
+          <h1>{diagnostics?.agentName.replace(/^Alexa/, "Athena") ?? "Athena Control Mac Agent"}</h1>
           <p>
             Trusted applications can be launched or focused through finite signed
             provider capabilities. Generic operating-system control remains unavailable.

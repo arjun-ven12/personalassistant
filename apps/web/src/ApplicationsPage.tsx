@@ -292,7 +292,7 @@ export const ApplicationsPage = ({ apiClient }: { apiClient: ApiClient }) => {
         <section className="business-capability-overview">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">What can Alexa do?</p>
+              <p className="eyebrow">What can Athena do?</p>
               <h3>Current business capability</h3>
             </div>
           </div>

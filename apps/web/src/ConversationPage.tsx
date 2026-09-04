@@ -153,7 +153,7 @@ export const ConversationPage = ({ apiClient }: { apiClient: ApiClient }) => {
             </span>
           </div>
           <div>
-            <strong>Ask Alexa</strong>
+            <strong>Ask Athena</strong>
             <span>Try: Why is this behind? What is blocked? What happens next?</span>
           </div>
         </section>

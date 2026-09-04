@@ -212,7 +212,7 @@ export const VoicePage = ({ apiClient }: { apiClient: ApiClient }) => {
         </article>
         <article className="hud-card">
           <p className="eyebrow">Wake word</p>
-          <h3>{voice.data?.wakeWordSettings[0]?.wakeWords.join(", ") ?? "Alexa"}</h3>
+          <h3>{voice.data?.wakeWordSettings[0]?.wakeWords.join(", ") ?? "Athena, Alexa"}</h3>
           <p>Wake word activates listening only; commands still route to Intent.</p>
         </article>
         <article className="hud-card">

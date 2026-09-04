@@ -23,6 +23,7 @@ import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.PATCH
 import retrofit2.http.Path
+import retrofit2.http.Query
 import retrofit2.http.HTTP
 import java.io.IOException
 import java.net.SocketTimeoutException
@@ -35,6 +36,10 @@ interface AlexaApiService {
   @GET("api/auth/session") suspend fun session(): Response<SessionResponse>
   @GET("api/security/csrf") suspend fun csrf(): Response<CsrfResponse>
   @GET("api/companies") suspend fun companies(): Response<CompanyListResponse>
+  @GET("api/portfolio") suspend fun portfolio(): Response<PortfolioDashboard>
+  @GET("api/portfolio/economy") suspend fun portfolioEconomy(): Response<PortfolioEconomy>
+  @GET("api/portfolio/approvals?status=ALL&limit=100") suspend fun portfolioApprovals(): Response<List<PortfolioApproval>>
+  @GET("api/portfolio/search") suspend fun portfolioSearch(@Query("query") query: String, @Query("type") type: String = "ALL", @Query("limit") limit: Int = 30): Response<PortfolioSearchResponse>
   @POST("api/companies/select") suspend fun selectCompany(@Header("X-CSRF-Token") csrf: String, @Body request: SelectCompanyRequest): Response<CompanyListResponse>
   @POST("api/companies") suspend fun createCompany(@Header("X-CSRF-Token") csrf: String, @Body request: CreateCompanyRequest): Response<CompanyListResponse>
   @POST("api/companies/{companyId}/{action}") suspend fun transitionCompany(@Path("companyId") companyId: String, @Path("action") action: String, @Header("X-CSRF-Token") csrf: String, @Body body: Map<String, String> = emptyMap()): Response<CompanyDetailResponse>
@@ -86,6 +91,10 @@ class AlexaApiClient private constructor(
   suspend fun session() = call { service.session() }
   suspend fun csrf() = call { service.csrf() }
   suspend fun companies() = call { service.companies() }.onSuccess { activeCompanyId.set(it.currentCompany.id) }
+  suspend fun portfolio() = call { service.portfolio() }
+  suspend fun portfolioEconomy() = call { service.portfolioEconomy() }
+  suspend fun portfolioApprovals() = call { service.portfolioApprovals() }
+  suspend fun portfolioSearch(query: String, type: String = "ALL") = call { service.portfolioSearch(query, type) }
   suspend fun selectCompany(csrf: String, companyId: String) = call { service.selectCompany(csrf, SelectCompanyRequest(companyId)) }.onSuccess { activeCompanyId.set(it.currentCompany.id) }
   suspend fun createCompany(csrf: String, request: CreateCompanyRequest) = call { service.createCompany(csrf, request) }.onSuccess { activeCompanyId.set(it.currentCompany.id) }
   suspend fun transitionCompany(csrf: String, companyId: String, action: String) = call { service.transitionCompany(companyId, action, csrf) }

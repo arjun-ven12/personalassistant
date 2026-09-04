@@ -129,13 +129,13 @@ const BrainConstellation = ({
             label: "Agents",
             status: "IDLE",
             value: "Synchronizing",
-            detail: ["Awaiting Alexa brain state"],
+            detail: ["Awaiting Athena brain state"],
             active: false,
             category: "SYSTEM",
           } satisfies ConstellationNode,
         ];
   return (
-    <div className="agent-constellation brain-constellation" aria-label="Alexa cognitive systems">
+    <div className="agent-constellation brain-constellation" aria-label="Athena cognitive systems">
       {displayNodes.map((node) => {
         const categoryNodes = displayNodes.filter((candidate) => candidate.category === node.category);
         const categoryIndex = categoryNodes.findIndex((candidate) => candidate.id === node.id);
@@ -182,7 +182,7 @@ const SelectedBrainNodeCard = ({ node }: { node: ConstellationNode | null }) => 
     node ??
     ({
       id: "agents",
-      label: "Alexa Brain",
+      label: "Athena Brain",
       status: "IDLE",
       value: "Select a cognitive system",
       detail: ["Live bounded runtime state appears here."],
@@ -456,9 +456,9 @@ export const HomeCommandCenter = ({ apiClient }: { apiClient: ApiClient }) => {
       <header className="home-page-header">
         <div>
           <span className="home-header-kicker">Live system overview</span>
-          <h1 id="home-command-heading">Alexa Command Center</h1>
+          <h1 id="home-command-heading">Athena Command Center</h1>
           <p>
-            See what is active, what needs attention, and what Alexa can safely do next.
+            See what is active, what needs attention, and what Athena can safely do next.
           </p>
         </div>
       </header>
@@ -468,7 +468,7 @@ export const HomeCommandCenter = ({ apiClient }: { apiClient: ApiClient }) => {
       <div className="command-hero-card">
         <div className="command-core-stage" aria-label="Interactive AI ecosystem core">
           <div className="mesh-stage-heading">
-            <span>Alexa brain</span>
+            <span>Athena brain</span>
             <small>{numericStatus(brain.data?.nodes.length)} cognitive systems · {numericStatus(workforce.data?.summary.departments)} departments · select a node</small>
           </div>
           <div className="scene-canvas command-core-canvas">
@@ -494,7 +494,7 @@ export const HomeCommandCenter = ({ apiClient }: { apiClient: ApiClient }) => {
           </div>
           <div className="ai-core-label command-core-tag">
             <Sparkles size={15} />
-            Alexa core online
+            Athena core online
           </div>
           <BrainConstellation
             nodes={constellationNodes}
@@ -539,7 +539,7 @@ export const HomeCommandCenter = ({ apiClient }: { apiClient: ApiClient }) => {
             <span>Live routing</span>
             <h2 id="cognitive-path-title">Current cognitive path</h2>
           </div>
-          <small>Only stages used by the current Alexa runtime are illuminated.</small>
+          <small>Only stages used by the current Athena runtime are illuminated.</small>
         </div>
         <div className="cognitive-path-track">
           {(brain.data?.cognitivePath ?? []).map((stage) => (
@@ -552,7 +552,7 @@ export const HomeCommandCenter = ({ apiClient }: { apiClient: ApiClient }) => {
         </div>
       </section>
 
-      <section className="brain-summary-grid" aria-label="Alexa brain summary">
+      <section className="brain-summary-grid" aria-label="Athena brain summary">
         <article className="brain-operational-card current-cognition-card">
           <div className="holo-heading"><BrainCircuit size={16} /><span>Current cognition</span></div>
           <dl>
@@ -604,11 +604,11 @@ export const HomeCommandCenter = ({ apiClient }: { apiClient: ApiClient }) => {
         </article>
       </section>
 
-      <section className="brain-workforce-grid" aria-label="Alexa organization and delegation">
+      <section className="brain-workforce-grid" aria-label="Athena organization and delegation">
         <article className="brain-operational-card organization-card">
           <div className="brain-section-heading">
             <div><span>Organization</span><h2>Development department</h2></div>
-            <small>{numericStatus(brain.data?.organization.length)} Alexa AgentDefinitions</small>
+            <small>{numericStatus(brain.data?.organization.length)} Athena AgentDefinitions</small>
           </div>
           <div className="organization-tree">
             {(brain.data?.organization ?? []).map((agent) => (
@@ -742,7 +742,7 @@ export const HomeCommandCenter = ({ apiClient }: { apiClient: ApiClient }) => {
           <HolographicPanel className="command-info-card" delay={0.62}>
             <div className="holo-heading">
               <Radio size={16} />
-              <span>Alexa now</span>
+              <span>Athena now</span>
             </div>
             <strong>{voiceRuntime.frame.message || "Standing by"}</strong>
             <small>

@@ -37,6 +37,7 @@ const deterministic = cases("deterministic", "INTENT_CLASSIFICATION", [
   { input: "hi", expected: { expectedIntent: "Behaviour.greeting_response" } },
   { input: "hello", expected: { expectedIntent: "Behaviour.greeting_response" } },
   { input: "hey Alexa", expected: { expectedIntent: "Behaviour.greeting_response" } },
+  { input: "hey Athena", expected: { expectedIntent: "Behaviour.greeting_response" } },
   { input: "thanks", expected: { mustNotExecute: true } },
   { input: "thank you", expected: { mustNotExecute: true } },
   { input: "stop talking", expected: { expectedIntent: "Behaviour.stop_speaking" } },

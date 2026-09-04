@@ -27,7 +27,7 @@ export const CommandStudioPage = ({ apiClient }: { apiClient: ApiClient }) => {
   const queryClient = useQueryClient();
   const [name, setName] = useState("New demonstrated command");
   const [description, setDescription] = useState(
-    "Teach Alexa a reusable semantic workflow.",
+    "Teach Athena a reusable semantic workflow.",
   );
   const [objective, setObjective] = useState("");
   const [recorderOpen, setRecorderOpen] = useState(false);

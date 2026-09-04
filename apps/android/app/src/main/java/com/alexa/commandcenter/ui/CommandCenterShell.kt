@@ -58,6 +58,8 @@ fun CommandCenterShell(
   environment: AlexaEnvironmentConfig,
   onRefresh: () -> Unit,
   onCompanySelected: (String) -> Unit,
+  onPortfolioSelected: () -> Unit,
+  onPortfolioSearch: (String, String) -> Unit,
   onCompanyCreated: (String, String?, String?) -> Unit,
   onCompanyAction: (String, String) -> Unit,
   onLock: () -> Unit,
@@ -107,12 +109,12 @@ fun CommandCenterShell(
         command.arguments.objectId?.let(onAgentSelected)
       }
       "OPEN_WORKFLOW" -> {
-        destination = "Alexa"
+        destination = "Athena"
         secondaryDestination = "Workflows"
         command.arguments.objectId?.let(onWorkflowSelected)
       }
       "OPEN_CONVERSATION" -> {
-        destination = "Alexa"
+        destination = "Athena"
         secondaryDestination = null
         command.arguments.objectId?.let(onSelectConversation)
       }
@@ -121,8 +123,8 @@ fun CommandCenterShell(
         "/objectives" -> destination = "Objectives"
         "/agents" -> destination = "Workforce"
         "/approvals" -> destination = "Approvals"
-        "/conversation" -> { destination = "Alexa"; secondaryDestination = null }
-        "/workflows" -> { destination = "Alexa"; secondaryDestination = "Workflows" }
+        "/conversation" -> { destination = "Athena"; secondaryDestination = null }
+        "/workflows" -> { destination = "Athena"; secondaryDestination = "Workflows" }
         else -> supported = false
       }
       else -> supported = false
@@ -139,17 +141,17 @@ fun CommandCenterShell(
     when (target.kind) {
       "APPROVAL" -> { destination = "Approvals"; selectedApprovalId = target.objectId; onApprovalSelected(target.objectId) }
       "OBJECTIVE" -> destination = "Objectives"
-      "WORKFLOW" -> { destination = "Alexa"; secondaryDestination = "Workflows" }
+      "WORKFLOW" -> { destination = "Athena"; secondaryDestination = "Workflows" }
       "AGENT" -> { destination = "Workforce"; onAgentSelected(target.objectId) }
-      "ECONOMY" -> { destination = "Alexa"; secondaryDestination = "Economy" }
-      "EXPERIMENT" -> { destination = "Alexa"; secondaryDestination = "Experiments"; onExperimentsSelected("__all__") }
-      "SYSTEM", "DEVICE" -> { destination = "Alexa"; secondaryDestination = "System" }
+      "ECONOMY" -> { destination = "Athena"; secondaryDestination = "Economy" }
+      "EXPERIMENT" -> { destination = "Athena"; secondaryDestination = "Experiments"; onExperimentsSelected("__all__") }
+      "SYSTEM", "DEVICE" -> { destination = "Athena"; secondaryDestination = "System" }
     }
     if (state.connection == ConnectionState.ONLINE) onNotificationTargetConsumed()
   }
   LaunchedEffect(state.externalDestination, state.screen) {
     when (state.externalDestination) {
-      "VOICE" -> { destination = "Alexa"; secondaryDestination = null }
+      "VOICE" -> { destination = "Athena"; secondaryDestination = null }
       "APPROVALS" -> { destination = "Approvals"; secondaryDestination = null }
       else -> return@LaunchedEffect
     }
@@ -187,7 +189,7 @@ fun CommandCenterShell(
             }
           }
           FloatingActionButton(
-            onClick = { destination = "Alexa"; secondaryDestination = null },
+            onClick = { destination = "Athena"; secondaryDestination = null },
             modifier = Modifier
               .align(Alignment.TopCenter)
               .offset(y = (-14).dp)
@@ -197,7 +199,7 @@ fun CommandCenterShell(
             containerColor = CcBlue,
             contentColor = CcBg,
           ) {
-            Icon(Icons.Outlined.GraphicEq, "Open Alexa Voice", Modifier.size(28.dp))
+            Icon(Icons.Outlined.GraphicEq, "Open Athena Voice", Modifier.size(28.dp))
           }
         }
       },
@@ -210,11 +212,13 @@ fun CommandCenterShell(
             OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
               Icon(Icons.Outlined.Business, null)
               Spacer(Modifier.width(8.dp))
-              Text(companies.currentCompany.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+              Text(if (state.portfolioMode) "All Companies" else companies.currentCompany.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
               Spacer(Modifier.weight(1f))
               Icon(Icons.Outlined.ExpandMore, "Switch company")
             }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+              DropdownMenuItem(text = { Text("All Companies") }, leadingIcon = { Icon(Icons.Outlined.Domain, null) }, onClick = { expanded = false; onPortfolioSelected(); destination = "Home" })
+              HorizontalDivider()
               companies.companies.filter { it.status == "ACTIVE" }.forEach { company ->
                 DropdownMenuItem(text = { Text(company.name) }, onClick = { expanded = false; onCompanySelected(company.id) })
               }
@@ -227,7 +231,7 @@ fun CommandCenterShell(
           CompanyManagementDialog(companies, { manageCompanies = false }, onCompanySelected, onCompanyCreated, onCompanyAction)
         }
         Box(Modifier.weight(1f)) { when (destination) {
-          "Home" -> ExecutiveHome(state, onRefresh, onObjectiveAction, onApprovalDecision)
+          "Home" -> if (state.portfolioMode) PortfolioHome(state, onCompanySelected, onPortfolioSearch) else ExecutiveHome(state, onRefresh, onObjectiveAction, onApprovalDecision)
           "Objectives" -> ObjectivesScreen(state, onCreateObjective, onObjectiveAction, onModifyObjective)
           "Workforce" -> WorkforceScreen(state.commandCenter?.workforce, state.agentDetails, onAgentSelected)
           "Approvals" -> ApprovalsScreen(state, selectedApprovalId, { selectedApprovalId = it; if (it.isNotBlank()) onApprovalSelected(it) }, onApprovalDecisionWithReason)
@@ -264,6 +268,92 @@ fun CommandCenterShell(
   }
 }
 
+@Composable private fun PortfolioHome(
+  state: AlexaUiState,
+  onCompanySelected: (String) -> Unit,
+  onPortfolioSearch: (String, String) -> Unit,
+) {
+  val portfolio = state.portfolio
+  var searchQuery by rememberSaveable { mutableStateOf("") }
+  var searchType by rememberSaveable { mutableStateOf("ALL") }
+  LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    item {
+      Column(Modifier.padding(top = 18.dp)) {
+        Text("Portfolio", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold)
+        Text("Owner command center", color = CcBlue, style = MaterialTheme.typography.labelLarge)
+      }
+    }
+    item {
+      Surface(shape = RoundedCornerShape(12.dp), color = CcElevated, border = BorderStroke(1.dp, CcBorder)) {
+        Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+          Column { Text("Portfolio health", color = CcMuted); Text(portfolio?.health?.score?.roundToInt()?.toString() ?: "—", style = MaterialTheme.typography.headlineLarge) }
+          Column(horizontalAlignment = Alignment.End) { StatusPill(portfolio?.health?.state ?: "UNKNOWN"); Text("${portfolio?.health?.companiesIncluded ?: 0} companies", color = CcMuted) }
+        }
+      }
+    }
+    item {
+      Surface(shape = RoundedCornerShape(12.dp), color = CcSurface, border = BorderStroke(1.dp, CcBorder)) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+          Text("Owner reserve", fontWeight = FontWeight.SemiBold)
+          Text("${state.portfolioEconomy?.ownerReserveAvailable ?: 0} credits available", style = MaterialTheme.typography.headlineSmall)
+          Text("${state.portfolioEconomy?.allocatedAcrossCompanies ?: 0} allocated across companies", color = CcMuted)
+        }
+      }
+    }
+    item {
+      Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SectionTitle("Search all companies")
+        OutlinedTextField(value = searchQuery, onValueChange = { searchQuery = it }, label = { Text("Search") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+          Box {
+            var expanded by remember { mutableStateOf(false) }
+            OutlinedButton(onClick = { expanded = true }) { Text(searchType) }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+              listOf("ALL", "COMPANIES", "OBJECTIVES", "AGENTS", "WORKFLOWS", "APPROVALS", "EXPERIMENTS").forEach { type ->
+                DropdownMenuItem(text = { Text(type) }, onClick = { searchType = type; expanded = false })
+              }
+            }
+          }
+          Button(onClick = { onPortfolioSearch(searchQuery, searchType) }, enabled = searchQuery.isNotBlank()) { Text("Search") }
+        }
+      }
+    }
+    items(state.portfolioSearch?.results.orEmpty(), key = { "${it.type}:${it.id}" }) { result ->
+      Surface(Modifier.fillMaxWidth().clickable { onCompanySelected(result.companyId) }, shape = RoundedCornerShape(10.dp), color = CcSurface, border = BorderStroke(1.dp, CcBorder)) {
+        Column(Modifier.padding(12.dp)) { Text(result.title, fontWeight = FontWeight.SemiBold); Text("${result.companyName} · ${result.type} · ${result.status}", color = CcBlue); Text(result.subtitle, color = CcMuted, maxLines = 2) }
+      }
+    }
+    item { SectionTitle("All Companies approvals", state.portfolioApprovals.count { it.status == "PENDING" }.toString()) }
+    items(state.portfolioApprovals.take(10), key = { it.id }) { approval ->
+      Surface(Modifier.fillMaxWidth().clickable { onCompanySelected(approval.companyId) }, shape = RoundedCornerShape(10.dp), color = CcSurface, border = BorderStroke(1.dp, CcBorder)) {
+        Column(Modifier.padding(12.dp)) { Text(approval.companyName, fontWeight = FontWeight.SemiBold); Text(approval.action); Text("${approval.risk} risk · ${approval.status} · open company to decide", color = CcMuted, style = MaterialTheme.typography.bodySmall) }
+      }
+    }
+    item { SectionTitle("Needs your attention", portfolio?.attentionQueue?.count { it.status == "OPEN" }?.toString()) }
+    items(portfolio?.attentionQueue?.filter { it.status == "OPEN" }?.take(10).orEmpty(), key = { it.id }) { signal ->
+      Surface(shape = RoundedCornerShape(10.dp), color = CcSurface, border = BorderStroke(1.dp, CcBorder)) {
+        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+          Column(Modifier.weight(1f)) { Text(signal.companyName, fontWeight = FontWeight.SemiBold); Text(signal.title, color = CcMuted) }
+          StatusPill(signal.severity)
+        }
+      }
+    }
+    item { SectionTitle("Companies", portfolio?.companies?.size?.toString()) }
+    items(portfolio?.companies.orEmpty(), key = { it.companyId }) { company ->
+      Surface(
+        modifier = Modifier.fillMaxWidth().clickable { if (company.companyStatus == "ACTIVE") onCompanySelected(company.companyId) },
+        shape = RoundedCornerShape(10.dp), color = CcSurface, border = BorderStroke(1.dp, CcBorder),
+      ) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+          Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(company.companyName, fontWeight = FontWeight.SemiBold); StatusPill(company.healthState) }
+          Text("${company.priority} priority · ${company.activeObjectives} active objectives · ${company.blockedObjectives} blocked", color = CcMuted)
+          Text("${company.activeAgents} active agents · ${company.totalSpendCredits.roundToInt()} AI credits", color = CcMuted, style = MaterialTheme.typography.bodySmall)
+        }
+      }
+    }
+  }
+}
+
 @Composable private fun ExecutiveHome(
   state: AlexaUiState,
   onRefresh: () -> Unit,
@@ -275,7 +365,7 @@ fun CommandCenterShell(
     item {
       Row(Modifier.fillMaxWidth().padding(top = 18.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-          Text("Alexa", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold)
+          Text("Athena", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold)
           Text("CEO Command Center", color = CcBlue, style = MaterialTheme.typography.labelLarge)
         }
         IconButton(onClick = onRefresh) { Icon(Icons.Outlined.Refresh, "Refresh command center") }
@@ -547,7 +637,7 @@ private fun AlexaCoreMap(workforce: WorkforceGraph?, connection: ConnectionState
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
       OutlinedTextField(budget, { budget = it.filter(Char::isDigit) }, label = { Text("Budget credits") })
       FilterRow(listOf("LOW", "NORMAL", "HIGH", "URGENT"), priority) { priority = it }
-      Text("Alexa will validate current commitments and return a governed result.", style = MaterialTheme.typography.bodySmall, color = Color.LightGray)
+      Text("Athena will validate current commitments and return a governed result.", style = MaterialTheme.typography.bodySmall, color = Color.LightGray)
     }
   }, confirmButton = { Button(onClick = { onSave(budget.toIntOrNull(), priority) }) { Text("Apply") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
 }
@@ -556,7 +646,7 @@ private fun AlexaCoreMap(workforce: WorkforceGraph?, connection: ConnectionState
   var title by remember { mutableStateOf("") }; var outcome by remember { mutableStateOf("") }; var budget by remember { mutableStateOf("100") }; var priority by remember { mutableStateOf("NORMAL") }
   AlertDialog(onDismissRequest = onDismiss, title = { Text("Create objective") }, text = {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-      OutlinedTextField(title, { title = it }, label = { Text("What should Alexa achieve?") })
+      OutlinedTextField(title, { title = it }, label = { Text("What should Athena achieve?") })
       OutlinedTextField(outcome, { outcome = it }, label = { Text("Success criteria") })
       OutlinedTextField(budget, { budget = it.filter(Char::isDigit) }, label = { Text("Budget credits") })
       FilterRow(listOf("LOW", "NORMAL", "HIGH", "URGENT"), priority) { priority = it }
@@ -674,7 +764,7 @@ private fun AlexaCoreMap(workforce: WorkforceGraph?, connection: ConnectionState
 }
 
 @Composable private fun AlexaPlaceholder(state: AlexaUiState, environment: AlexaEnvironmentConfig, onLock: () -> Unit, onForgetDevice: () -> Unit, onOpen: (String) -> Unit) = LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-  item { Header("Alexa", "Executive operations and device controls.") }
+  item { Header("Athena", "Executive operations and device controls.") }
   item { ConnectionStateBanner(state.connection, state.lastUpdatedAt) }
   items(listOf("Activity" to "Meaningful organization events", "Workflows" to "Operational execution", "Economy" to "Credits, spending, and efficiency", "Experiments" to "Evidence-backed learning", "System" to "Cloud, data, AI, and device health")) { (title, subtitle) ->
     Surface(Modifier.fillMaxWidth().clickable { onOpen(title) }, shape = RoundedCornerShape(8.dp), color = CcSurface, border = BorderStroke(1.dp, CcBorder)) { Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) { Column(Modifier.weight(1f)) { Text(title, fontWeight = FontWeight.SemiBold); Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.LightGray) }; Icon(Icons.Outlined.ChevronRight, "Open $title") } }

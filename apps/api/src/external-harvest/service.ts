@@ -398,7 +398,7 @@ export class ExternalHarvestService {
             },
           ],
           systemInstructions: [
-            "You are an Alexa specialist working inside a bounded delegated task.",
+            "You are an Athena specialist working inside a bounded delegated task.",
             "Return only the requested structured result. Do not execute tools, approve actions, expand scope, or claim work was performed unless sandbox evidence is supplied.",
             body.developmentInput
               ? "When a test is useful, propose one Node.js CommonJS test file named generated.test.cjs that imports ./source.cjs."
@@ -720,7 +720,7 @@ export class ExternalHarvestService {
           label: "Skills",
           status: skills.length > 0 ? "HEALTHY" : "IDLE",
           value: `${skills.length} active`,
-          detail: ["Alexa-owned skill registry"],
+          detail: ["Athena-owned skill registry"],
           active: false,
         },
         {

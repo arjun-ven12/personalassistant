@@ -41,6 +41,11 @@ data class AlexaUiState(
   val summary: AlexaSummary? = null,
   val commandCenter: CommandCenterSnapshot? = null,
   val companies: CompanyListResponse? = null,
+  val portfolio: PortfolioDashboard? = null,
+  val portfolioEconomy: PortfolioEconomy? = null,
+  val portfolioApprovals: List<PortfolioApproval> = emptyList(),
+  val portfolioSearch: PortfolioSearchResponse? = null,
+  val portfolioMode: Boolean = false,
   val agentDetails: Map<String, WorkforceAgentDetail> = emptyMap(),
   val workflowDetails: Map<String, WorkflowDetail> = emptyMap(),
   val experimentDashboards: Map<String, ExperimentDashboard> = emptyMap(),
@@ -172,7 +177,7 @@ class AlexaViewModel(
   fun onBiometricCancelled() {
     val wasStepUp = pendingApprovalStepUp != null
     pendingApprovalStepUp = null
-    mutableState.value = mutableState.value.copy(error = if (wasStepUp) "Approval was not submitted." else "Alexa remains locked.")
+    mutableState.value = mutableState.value.copy(error = if (wasStepUp) "Approval was not submitted." else "Athena remains locked.")
   }
 
   fun refresh() = viewModelScope.launch {
@@ -180,6 +185,9 @@ class AlexaViewModel(
     val healthy = foregroundSync.boundedReconnect {
       val health = repository.refreshHealth().getOrNull() ?: return@boundedReconnect false
       val companies = repository.companies().getOrNull() ?: return@boundedReconnect false
+      val portfolio = repository.portfolio().getOrNull()
+      val portfolioEconomy = repository.portfolioEconomy().getOrNull()
+      val portfolioApprovals = repository.portfolioApprovals().getOrNull().orEmpty()
       val summary = repository.refreshSummary().getOrNull() ?: return@boundedReconnect false
       val commandCenter = repository.commandCenter().getOrNull()
       val conversations = repository.conversations().getOrNull()
@@ -190,6 +198,9 @@ class AlexaViewModel(
         summary = summary,
         commandCenter = commandCenter,
         companies = companies,
+        portfolio = portfolio,
+        portfolioEconomy = portfolioEconomy,
+        portfolioApprovals = portfolioApprovals,
         notificationPreferences = notificationPreferences,
         crossDeviceCommand = crossDevice?.commands?.firstOrNull() ?: mutableState.value.crossDeviceCommand,
         connection = ConnectionState.ONLINE,
@@ -209,7 +220,30 @@ class AlexaViewModel(
       selectedConversationId = null, activeVoiceSessionId = null, notificationTarget = null,
     )
     repository.selectCompany(companyId).fold(
-      onSuccess = { mutableState.value = mutableState.value.copy(companies = it, error = null); refresh() },
+      onSuccess = { mutableState.value = mutableState.value.copy(companies = it, portfolioMode = false, error = null); refresh() },
+      onFailure = ::showFailure,
+    )
+  }
+
+  fun enterPortfolioMode() = viewModelScope.launch {
+    repository.portfolio().fold(
+      onSuccess = { portfolio -> mutableState.value = mutableState.value.copy(
+        portfolio = portfolio,
+        portfolioEconomy = repository.portfolioEconomy().getOrNull(),
+        portfolioApprovals = repository.portfolioApprovals().getOrNull().orEmpty(),
+        portfolioMode = true, error = null,
+      ) },
+      onFailure = ::showFailure,
+    )
+  }
+
+  fun searchPortfolio(query: String, type: String = "ALL") = viewModelScope.launch {
+    if (query.isBlank()) {
+      mutableState.value = mutableState.value.copy(portfolioSearch = null)
+      return@launch
+    }
+    repository.portfolioSearch(query.trim(), type).fold(
+      onSuccess = { mutableState.value = mutableState.value.copy(portfolioSearch = it, error = null) },
       onFailure = ::showFailure,
     )
   }
@@ -400,7 +434,7 @@ class AlexaViewModel(
   }
 
   fun startRecording() {
-    if (mutableState.value.connection != ConnectionState.ONLINE) return showVoiceError("Reconnect to Alexa before using voice.")
+    if (mutableState.value.connection != ConnectionState.ONLINE) return showVoiceError("Reconnect to Athena before using voice.")
     if (mutableState.value.microphoneAccess != MicrophoneAccess.GRANTED) return showVoiceError("Allow microphone access, then press and hold again.")
     stopSpeaking()
     mutableState.value = mutableState.value.copy(voiceState = MobileVoiceState.RECORDING, voiceError = null)
@@ -545,7 +579,7 @@ class AlexaViewModel(
   }
 
   private fun showOfflineActionError() {
-    mutableState.value = mutableState.value.copy(error = "Reconnect to Alexa before making this change.")
+    mutableState.value = mutableState.value.copy(error = "Reconnect to Athena before making this change.")
   }
 
   private fun showFailure(error: Throwable) {
@@ -557,13 +591,13 @@ class AlexaViewModel(
     }
     if (failure == AlexaFailure.DeviceNotEligible) {
       mutableState.value = mutableState.value.copy(
-        error = "This trusted device is not enabled for that Alexa feature yet.",
+        error = "This trusted device is not enabled for that Athena feature yet.",
       )
       return
     }
     if (failure == AlexaFailure.SignedRequestRejected) {
       mutableState.value = mutableState.value.copy(
-        error = "Alexa could not verify this device request. Your session and device pairing remain intact.",
+        error = "Athena could not verify this device request. Your session and device pairing remain intact.",
       )
       return
     }
@@ -581,9 +615,9 @@ class AlexaViewModel(
       AlexaFailure.NetworkUnavailable -> "Network unavailable."
       AlexaFailure.Timeout -> "The server did not respond in time."
       AlexaFailure.RateLimited -> "Too many requests. Try again shortly."
-      AlexaFailure.ServerUnavailable -> "Alexa is temporarily unavailable."
-      AlexaFailure.DeviceNotEligible -> "This trusted device is not enabled for that Alexa feature yet."
-      AlexaFailure.SignedRequestRejected -> "Alexa could not verify this device request. Your session and device pairing remain intact."
+      AlexaFailure.ServerUnavailable -> "Athena is temporarily unavailable."
+      AlexaFailure.DeviceNotEligible -> "This trusted device is not enabled for that Athena feature yet."
+      AlexaFailure.SignedRequestRejected -> "Athena could not verify this device request. Your session and device pairing remain intact."
       AlexaFailure.RecentAuthRequired -> "Biometric confirmation is required for this approval."
       AlexaFailure.ApprovalConflict -> "This approval is no longer pending."
       else -> "The request could not be completed."
@@ -633,7 +667,7 @@ class AlexaViewModel(
         }
         voiceSessionId = dashboard.sessions.maxByOrNull { it.updatedAt }?.id
       }
-      val sessionId = voiceSessionId ?: return@launch showVoiceError("Alexa could not create a conversation session.")
+      val sessionId = voiceSessionId ?: return@launch showVoiceError("Athena could not create a conversation session.")
       submitPendingTurn(PendingConversationTurn(UUID.randomUUID().toString(), sessionId, transcript, confidence, language))
     }
   }
@@ -730,7 +764,7 @@ class AlexaViewModel(
           if (mutableState.value.screen is AlexaScreenState.Shell) {
             mutableState.value = mutableState.value.copy(
               voiceState = MobileVoiceState.ERROR,
-              voiceError = "Alexa could not complete this turn. It was not submitted again automatically.",
+              voiceError = "Athena could not complete this turn. It was not submitted again automatically.",
             )
           }
         }

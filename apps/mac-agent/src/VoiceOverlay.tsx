@@ -392,7 +392,7 @@ export const VoiceOverlay = () => {
       className={`voice-overlay voice-overlay-${state} ${expanded ? "voice-overlay-expanded" : ""}`}
     >
       <header className="voice-overlay-header">
-        <div className="voice-overlay-drag" aria-label="Move Alexa overlay">
+        <div className="voice-overlay-drag" aria-label="Move Athena overlay">
           <span className="voice-overlay-accent" aria-hidden="true" />
           <strong>Voice Runtime</strong>
         </div>
@@ -418,14 +418,14 @@ export const VoiceOverlay = () => {
                   ? "Hearing audio..."
                   : state === "collapsed"
                     ? "Voice OS"
-                    : "Alexa")}
+                    : "Athena")}
             </strong>
             <p>
               {error ??
                 response ??
                 (speechActivity && state === "listening"
                   ? "Waiting for speech recognition words."
-                  : "Say “Alexa” then a command.")}
+                  : "Say “Athena” or “Alexa” then a command.")}
             </p>
           </section>
           <div className="voice-overlay-metrics" aria-label="Voice runtime status">
@@ -478,7 +478,7 @@ export const VoiceOverlay = () => {
             </strong>
             {activeContext?.status === "DEGRADED" ? (
               <small>
-                Identity only. Grant Alexa Active Context macOS Accessibility access and trust this app with Semantic read access to include content.
+                Identity only. Grant Athena Active Context macOS Accessibility access and trust this app with Semantic read access to include content.
               </small>
             ) : activeContext?.status === "DENIED" ? (
               <small>Context is unavailable for this application.</small>
@@ -487,7 +487,7 @@ export const VoiceOverlay = () => {
           {pendingApprovalId ? (
             <section className="voice-overlay-approval" aria-live="polite">
               <span>Approval required</span>
-              <strong>Review the exact action in Alexa Control.</strong>
+              <strong>Review the exact action in Athena Control.</strong>
               <small>
                 Voice and the desktop overlay cannot approve actions. The authenticated
                 approval screen preserves the required owner and recent-auth checks.
@@ -511,7 +511,7 @@ export const VoiceOverlay = () => {
             <button onClick={() => void hideOverlay()} type="button">
               Hide overlay
             </button>
-            <span>Voice settings remain in Alexa Control.</span>
+            <span>Voice settings remain in Athena Control.</span>
           </div>
         </>
       ) : null}

@@ -40,9 +40,9 @@ export const CrossDeviceRuntime = ({
       processing.current.add(command.id);
       try {
         if (command.status === "DISPATCHED")
-          await receipt(command, "ACKNOWLEDGED", "Alexa Web acknowledged the command.");
+          await receipt(command, "ACKNOWLEDGED", "Athena Web acknowledged the command.");
         if (command.status !== "EXECUTING")
-          await receipt(command, "EXECUTING", "Alexa Web is applying the finite navigation command.");
+          await receipt(command, "EXECUTING", "Athena Web is applying the finite navigation command.");
         if (command.capability === "REFRESH_VIEW") {
           window.location.reload();
           return;
@@ -54,16 +54,16 @@ export const CrossDeviceRuntime = ({
             return;
           }
           search.focus();
-          await receipt(command, "SUCCEEDED", "Alexa Web focused the registered search control.");
+          await receipt(command, "SUCCEEDED", "Athena Web focused the registered search control.");
           return;
         }
         const path = crossDeviceCommandPath(command);
         if (!path) {
-          await receipt(command, "REJECTED", "Alexa Web rejected an unsupported command capability.", "CAPABILITY_UNAVAILABLE");
+          await receipt(command, "REJECTED", "Athena Web rejected an unsupported command capability.", "CAPABILITY_UNAVAILABLE");
           return;
         }
         navigate(path);
-        await receipt(command, "SUCCEEDED", "Alexa Web opened the requested registered view.");
+        await receipt(command, "SUCCEEDED", "Athena Web opened the requested registered view.");
       } catch {
         // The same command remains server-side and will be returned again until
         // its bounded lease expires; never claim success after a network error.

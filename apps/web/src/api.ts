@@ -229,8 +229,21 @@ import {
   TaskCenterResponseSchema,
   ExecutiveDashboardSchema,
   OwnerPortfolioDashboardSchema,
+  PortfolioExecutiveBriefSchema,
+  PortfolioCompanyComparisonSchema,
+  PortfolioCompanyComparisonRequestSchema,
   PortfolioMetricCompatibilitySchema,
   PortfolioMetricComparisonRequestSchema,
+  PortfolioObjectiveSchema,
+  CreatePortfolioObjectiveRequestSchema,
+  PortfolioEconomySchema,
+  PortfolioResourceTransferRequestSchema,
+  PortfolioResourceTransferSchema,
+  PortfolioSearchRequestSchema,
+  PortfolioSearchResponseSchema,
+  PortfolioApprovalRowSchema,
+  GovernorProposalSchema,
+  GovernorProposalDecisionRequestSchema,
   SystemTelemetrySpanSchema,
   AIObservabilityTraceSchema,
   DurableExecutionDashboardSchema,
@@ -2268,6 +2281,50 @@ export const createApiClient = (baseUrl: string) => {
       requestAndValidate(baseUrl, "/api/executive", ExecutiveDashboardSchema),
     getOwnerPortfolio: () =>
       requestAndValidate(baseUrl, "/api/portfolio", OwnerPortfolioDashboardSchema),
+    getPortfolioBrief: () =>
+      requestAndValidate(baseUrl, "/api/portfolio/brief", PortfolioExecutiveBriefSchema),
+    comparePortfolioCompanies: (input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/portfolio/compare-companies",
+        PortfolioCompanyComparisonSchema,
+        jsonBody(PortfolioCompanyComparisonRequestSchema.parse(input)),
+      ),
+    getPortfolioObjectives: () =>
+      requestAndValidate(
+        baseUrl,
+        "/api/portfolio/objectives",
+        z.array(PortfolioObjectiveSchema).max(500),
+      ),
+    createPortfolioObjective: (input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/portfolio/objectives",
+        PortfolioObjectiveSchema,
+        jsonBody(CreatePortfolioObjectiveRequestSchema.parse(input)),
+      ),
+    getPortfolioEconomy: () =>
+      requestAndValidate(baseUrl, "/api/portfolio/economy", PortfolioEconomySchema),
+    transferPortfolioResources: (input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/portfolio/economy/transfers",
+        PortfolioResourceTransferSchema,
+        jsonBody(PortfolioResourceTransferRequestSchema.parse(input)),
+      ),
+    searchPortfolio: (input: unknown) => {
+      const query = PortfolioSearchRequestSchema.parse(input);
+      const params = new URLSearchParams({ query: query.query, type: query.type, limit: String(query.limit) });
+      return requestAndValidate(baseUrl, `/api/portfolio/search?${params}`, PortfolioSearchResponseSchema);
+    },
+    getPortfolioApprovals: () =>
+      requestAndValidate(baseUrl, "/api/portfolio/approvals?status=ALL&limit=100", z.array(PortfolioApprovalRowSchema).max(200)),
+    decidePortfolioApproval: (approvalId: string, decision: "approve" | "reject", reason?: string) =>
+      requestAndValidate(baseUrl, `/api/portfolio/approvals/${encodeURIComponent(approvalId)}/${decision}`, ApprovalResponseSchema, jsonBody(reason ? { reason } : {})),
+    getGovernorProposals: () =>
+      requestAndValidate(baseUrl, "/api/portfolio/governor-proposals", z.array(GovernorProposalSchema).max(1_000)),
+    decideGovernorProposal: (proposalId: string, input: unknown) =>
+      requestAndValidate(baseUrl, `/api/portfolio/governor-proposals/${encodeURIComponent(proposalId)}/decision`, GovernorProposalSchema, jsonBody(GovernorProposalDecisionRequestSchema.parse(input))),
     comparePortfolioMetric: (input: unknown) =>
       requestAndValidate(
         baseUrl,

@@ -4,8 +4,8 @@ import {
   ConversationTurnFeedbackRecordSchema,
 } from "@alexa-control/shared";
 
-import { PostgresDatabase } from "../persistence/database.js";
-import { safeTestDatabaseUrl } from "../persistence/test-database.js";
+import type { PostgresDatabase } from "../persistence/database.js";
+import { createIsolatedTestDatabase, provisionTestDefaultCompany, safeTestDatabaseUrl } from "../persistence/test-database.js";
 import { ConversationContinuityService } from "../conversation-continuity/service.js";
 import { PostgresVoiceStore } from "./postgres-store.js";
 
@@ -13,29 +13,28 @@ const connectionString = safeTestDatabaseUrl();
 const ownerA = crypto.randomUUID();
 const ownerB = crypto.randomUUID();
 let database: PostgresDatabase | undefined;
+let cleanup: (() => Promise<void>) | undefined;
 
 describe.skipIf(!connectionString)("PostgreSQL conversation persistence", () => {
   beforeAll(async () => {
-    database = new PostgresDatabase(connectionString!);
-    await database.migrate();
+    const isolated = await createIsolatedTestDatabase(connectionString!, "phase21a_voice");
+    database = isolated.database;
+    cleanup = isolated.cleanup;
     for (const [id, email] of [
       [ownerA, "phase21a-owner-a@example.test"],
       [ownerB, "phase21a-owner-b@example.test"],
-    ]) {
+    ] as const) {
       await database.pool.query(
         `INSERT INTO owners(id,email,password_hash,record,created_at,updated_at)
          VALUES($1,$2,'test-only',$3,NOW(),NOW())`,
         [id, email, { id }],
       );
+      await provisionTestDefaultCompany(database.pool, id);
     }
   });
 
   afterAll(async () => {
-    if (!database) return;
-    await database.pool.query("DELETE FROM owners WHERE id = ANY($1::uuid[])", [
-      [ownerA, ownerB],
-    ]);
-    await database.close();
+    await cleanup?.();
   });
 
   it("survives reconstruction with route/context data and owner-scoped feedback", async () => {

@@ -47,7 +47,7 @@ const isRunning = async () => {
   try {
     await exec("/usr/bin/pgrep", [
       "-f",
-      `${installPath}/Contents/MacOS/Alexa Mac Agent`,
+      `${installPath}/Contents/MacOS/Athena Mac Agent`,
     ]);
     return true;
   } catch {
@@ -60,7 +60,7 @@ const stopExisting = async () => {
   await exec("/usr/bin/pkill", [
     "-TERM",
     "-f",
-    `${installPath}/Contents/MacOS/Alexa Mac Agent`,
+    `${installPath}/Contents/MacOS/Athena Mac Agent`,
   ]);
   for (let attempt = 0; attempt < 20; attempt += 1) {
     if (!(await isRunning())) return;

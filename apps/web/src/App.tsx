@@ -69,6 +69,7 @@ import { TabbedWorkspacePage, type WorkspaceTab } from "./TabbedWorkspacePage.js
 import { OperationalPage } from "./OperationalPage.js";
 import { legacyRoute } from "./appRouting.js";
 import { ApiClientError, type ApiClient } from "./api.js";
+import { retainQueryAcrossCompanySwitch } from "./companyQueryCache.js";
 import { CrossDeviceRuntime } from "./CrossDeviceRuntime.js";
 import {
   Spatial,
@@ -178,8 +179,7 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
     mutationFn: apiClient.selectCompany,
     onSuccess: async (data) => {
       queryClient.removeQueries({
-        predicate: (query) =>
-          !["auth-session", "companies"].includes(String(query.queryKey[0])),
+        predicate: (query) => !retainQueryAcrossCompanySwitch(query.queryKey),
       });
       queryClient.setQueryData(["companies"], data);
       navigate("/");
@@ -448,7 +448,7 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
                     </span>
                     <div>
                       <p className="product-kicker">AI command operating system</p>
-                      <span className="product-name">Alexa Control</span>
+                      <span className="product-name">Athena Control</span>
                     </div>
                   </div>
                   <div className="command-palette" role="search">
@@ -467,9 +467,13 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
                       <select
                         aria-label="Active company"
                         disabled={companies.isPending || selectCompany.isPending}
-                        onChange={(event) => selectCompany.mutate(event.target.value)}
-                        value={companies.data?.currentCompany.id ?? ""}
+                        onChange={(event) => {
+                          if (event.target.value === "__portfolio__") navigate("/portfolio");
+                          else selectCompany.mutate(event.target.value);
+                        }}
+                        value={pathname === "/portfolio" ? "__portfolio__" : companies.data?.currentCompany.id ?? ""}
                       >
+                        <option value="__portfolio__">All Companies</option>
                         {companies.data?.companies
                           .filter((company) => company.status === "ACTIVE")
                           .map((company) => (
@@ -604,7 +608,7 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
                   {pathname === "/memory" ? (
                     <TabbedWorkspacePage
                       activeTab={activeTab || "memories"}
-                      description="Search what Alexa remembers, inspect knowledge, and review retrieval."
+                      description="Search what Athena remembers, inspect knowledge, and review retrieval."
                       onTabChange={(tab) => selectTab("/memory", tab)}
                       tabs={memoryTabs}
                       title="Memory"
@@ -613,7 +617,7 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
                   {pathname === "/automation" ? (
                     <TabbedWorkspacePage
                       activeTab={activeTab || "tasks"}
-                      description="Manage the work Alexa is tracking, scheduling, and routing."
+                      description="Manage the work Athena is tracking, scheduling, and routing."
                       onTabChange={(tab) => selectTab("/automation", tab)}
                       tabs={automationTabs}
                       title="Automation"
@@ -633,7 +637,7 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
                   ) : null}
                   {pathname === "/skills" ? (
                     <OperationalPage
-                      description="Review Alexa's learned capabilities, health, and evolution."
+                      description="Review Athena's learned capabilities, health, and evolution."
                       title="Skills"
                     >
                       <ExecutivePage apiClient={apiClient} />
@@ -642,7 +646,7 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
                   {pathname === "/applications" ? (
                     <TabbedWorkspacePage
                       activeTab={activeTab || "workspaces"}
-                      description="See the applications Alexa can understand, integrate with, and control."
+                      description="See the applications Athena can understand, integrate with, and control."
                       onTabChange={(tab) => selectTab("/applications", tab)}
                       tabs={applicationTabs}
                       title="Applications"
@@ -651,7 +655,7 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
                   {pathname === "/workspace" ? (
                     <TabbedWorkspacePage
                       activeTab={activeTab || "applications"}
-                      description="Manage trusted projects, folders, and the context Alexa can use."
+                      description="Manage trusted projects, folders, and the context Athena can use."
                       onTabChange={(tab) => selectTab("/workspace", tab)}
                       tabs={workspaceTabs}
                       title="Workspace"
@@ -660,7 +664,7 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
                   {pathname === "/ai" ? (
                     <TabbedWorkspacePage
                       activeTab={activeTab || "models"}
-                      description="See the models powering Alexa, how requests are routed, and governed spend."
+                      description="See the models powering Athena, how requests are routed, and governed spend."
                       onTabChange={(tab) => selectTab("/ai", tab)}
                       tabs={aiTabs}
                       title="AI"
@@ -669,7 +673,7 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
                   {pathname === "/security" ? (
                     <TabbedWorkspacePage
                       activeTab={activeTab || "overview"}
-                      description="Review Alexa's safety posture, approvals, policies, sessions, and evidence."
+                      description="Review Athena's safety posture, approvals, policies, sessions, and evidence."
                       onTabChange={(tab) => selectTab("/security", tab)}
                       tabs={securityTabs}
                       title="Security"
@@ -686,7 +690,7 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
                   {pathname === "/engineering" ? (
                     <TabbedWorkspacePage
                       activeTab={activeTab || "repositories"}
-                      description="Developer tooling for inspecting and maintaining Alexa itself."
+                      description="Developer tooling for inspecting and maintaining Athena itself."
                       onTabChange={(tab) => selectTab("/engineering", tab)}
                       tabs={engineeringTabs}
                       title="Engineering"
