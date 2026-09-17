@@ -128,6 +128,12 @@ import type { CrossCompanyExecutionService } from "../durable-execution/service.
 import type { DurableExecutionStore } from "../durable-execution/store.js";
 import type { SandboxExecutionService } from "../durable-execution/sandbox.js";
 import type { CompanyManagementService } from "../company-management/service.js";
+import type { EngineeringManagerService } from "../engineering-orchestration/service.js";
+import type { EngineeringOrchestrationStore } from "../engineering-orchestration/store.js";
+import type { EngineeringIntegrationService } from "../engineering-integration/service.js";
+import type { EngineeringIntegrationStore } from "../engineering-integration/store.js";
+import type { EngineeringDeliveryService } from "../engineering-delivery/service.js";
+import type { EngineeringDeliveryStore } from "../engineering-delivery/store.js";
 
 export interface ApiRouteContext {
   deploymentMode: "private" | "cloud";
@@ -167,6 +173,12 @@ export interface ApiRouteContext {
   csrfProtection: true;
   executions: ExecutionService;
   executionStore: ExecutionStore;
+  engineeringManager: EngineeringManagerService;
+  engineeringOrchestrationStore: EngineeringOrchestrationStore;
+  engineeringIntegration: EngineeringIntegrationService;
+  engineeringIntegrationStore: EngineeringIntegrationStore;
+  engineeringDelivery: EngineeringDeliveryService;
+  engineeringDeliveryStore: EngineeringDeliveryStore;
   repositories: RepositoryService;
   repositoryStore: RepositoryStore;
   patches: PatchService;

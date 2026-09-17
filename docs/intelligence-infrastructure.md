@@ -98,6 +98,13 @@ In that mode, hybrid retrieval falls back to deterministic lexical similarity.
 
 ## Hybrid retrieval
 
+Audit hardening (2026-09-05): the legacy `RetrievalService` currently reports a
+keyword fallback for hybrid requests and rejects vector-only requests. It does
+not purchase embeddings without a compatible document-vector query. See
+`audit-hardening-2026-09-05.md` for the remaining scoped-retrieval work. The list
+below describes the intended combined ranking, not proof that the legacy route
+uses pgvector today.
+
 `RetrievalService` ranks memories by:
 
 - keyword match

@@ -20,6 +20,7 @@ import {
 
 import type { GovernanceAuditWriter } from "../governance/approval-service.js";
 import type { AgentStore } from "../agents/store.js";
+import { companyScope } from "../companies/scope.js";
 import type { RepositoryStore } from "../repositories/store.js";
 import type { WorkflowStore } from "../workflows/store.js";
 import type { MemoryStore } from "./store.js";
@@ -56,6 +57,138 @@ export class MemoryIndexerService {
       });
     }
     return MemorySearchResponseSchema.parse({ query: parsed, memories });
+  }
+
+  async retrieveEngineeringContext(input: {
+    ownerId: string;
+    companyId: string;
+    repositoryId: string;
+    agentId: string;
+    taskId: string;
+  }) {
+    if (companyScope.companyId(input.ownerId) !== input.companyId) return { refs: [], summaries: [] };
+    const companyTag = `engineering-company:${input.companyId}`;
+    const memories = (
+      await this.store.searchMemories(input.ownerId, {
+        q: "",
+        repositoryId: input.repositoryId,
+        limit: 20,
+      })
+    )
+      .filter((memory) => memory.tags.includes(companyTag))
+      .filter((memory) =>
+        ["repository", "semantic", "procedural", "agent"].includes(
+          memory.memoryType,
+        ),
+      )
+      .filter((memory) => !memory.expiresAt || memory.expiresAt > this.now().toISOString())
+      .slice(0, 12);
+    for (const memory of memories)
+      await this.store.saveMemory({
+        ...memory,
+        lastAccessedAt: this.now().toISOString(),
+      });
+    return {
+      refs: memories.map((memory) => memory.id),
+      summaries: memories.map((memory) =>
+        `${memory.title}: ${memory.summary}`.slice(0, 1_000),
+      ),
+    };
+  }
+
+  async promoteEngineeringFacts(input: {
+    ownerId: string;
+    companyId: string;
+    repositoryId: string;
+    agentId: string;
+    taskId: string;
+    resultId: string;
+    artifacts: Array<{ type: string; title: string; summary: string }>;
+    requestId: string;
+    ipAddress: string;
+  }) {
+    if (companyScope.companyId(input.ownerId) !== input.companyId)
+      throw new Error("Engineering memory company scope mismatch.");
+    const stable = new Set([
+      "ARCHITECTURE_DECISION",
+      "API_CONTRACT",
+      "SCHEMA_CHANGE",
+      "TEST_EXPECTATIONS",
+      "MIGRATION_NOTES",
+    ]);
+    const promoted: string[] = [];
+    for (const artifact of input.artifacts
+      .filter((item) => stable.has(item.type))
+      .slice(0, 5)) {
+      const title = `Engineering: ${artifact.title}`.slice(0, 255);
+      const duplicate = (
+        await this.store.searchMemories(input.ownerId, {
+          q: title,
+          repositoryId: input.repositoryId,
+          limit: 10,
+        })
+      ).find(
+        (memory) =>
+          memory.title === title &&
+          memory.tags.includes(`engineering-company:${input.companyId}`),
+      );
+      if (duplicate) continue;
+      const at = this.now().toISOString();
+      const memory = MemoryRecordSchema.parse({
+        schemaVersion: "1",
+        id: crypto.randomUUID(),
+        ownerId: input.ownerId,
+        repositoryId: input.repositoryId,
+        agentId: input.agentId,
+        workflowId: null,
+        memoryType:
+          artifact.type === "ARCHITECTURE_DECISION" ? "semantic" : "repository",
+        source: "validation",
+        title,
+        summary: artifact.summary.slice(0, 2_000),
+        content: "Validated bounded engineering artifact; no transcript or hidden reasoning retained.",
+        tags: [
+          "engineering-stable",
+          `engineering-company:${input.companyId}`,
+          `engineering-task:${input.taskId}`,
+          artifact.type.toLowerCase(),
+        ],
+        importance: 75,
+        confidence: 0.9,
+        evidence: [
+          {
+            sourceType: "validation",
+            reference: input.resultId,
+            excerpt: null,
+            observedAt: at,
+          },
+        ],
+        version: 1,
+        createdAt: at,
+        updatedAt: at,
+        lastAccessedAt: null,
+        expiresAt: null,
+      });
+      await this.store.saveMemory(memory);
+      await this.saveNodeForMemory(memory);
+      promoted.push(memory.id);
+    }
+    if (promoted.length)
+      await this.audit({
+        eventType: "ENGINEERING_MEMORY_PROMOTED",
+        ownerId: input.ownerId,
+        ipAddress: input.ipAddress,
+        outcome: "SUCCESS",
+        reason: "Validated stable engineering facts promoted into scoped memory.",
+        requestId: input.requestId,
+        metadata: {
+          companyId: input.companyId,
+          repositoryId: input.repositoryId,
+          taskId: input.taskId,
+          promotedMemoryCount: promoted.length,
+        },
+      });
+    return { promotedMemoryIds: promoted };
   }
 
   async graph(ownerId: string, nodeLimit = 500, edgeLimit = 1_000) {

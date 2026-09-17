@@ -140,6 +140,15 @@ describe("Phase 25.5 owner portfolio intelligence and observability", () => {
     expect((await service.portfolioEconomy(otherOwner)).ownerReserveAvailable).toBe(0);
   });
 
+  it("does not present stale runtime evidence or cost-only evidence as healthy", async () => {
+    await service.recordSystemSpan({ traceId: "stale-health-fixture", spanId: "stale-health-span", ownerId, companyId: nova, service: "api", operation: "read", status: "OK", durationMs: 1, startedAt: "2026-09-01T10:00:00.000Z", endedAt: "2026-09-01T10:00:00.001Z" });
+    const dashboard = await service.dashboard(ownerId);
+    const company = dashboard.companies.find((item) => item.companyId === nova)!;
+    expect(company.health.find((item) => item.dimension === "SYSTEM")?.state).toBe("UNKNOWN");
+    expect(company.health.find((item) => item.dimension === "ECONOMY")?.state).toBe("UNKNOWN");
+    expect(dashboard.systemHealth.serviceHealth[0]?.state).toBe("UNKNOWN");
+  });
+
   const seedMetric = (
     companyId: string,
     key: string,
@@ -338,8 +347,8 @@ describe("Phase 25.5 owner portfolio intelligence and observability", () => {
         operation: "workflow.execute",
         status: "OK",
         durationMs: 20,
-        startedAt: "2026-09-01T11:00:00.000Z",
-        endedAt: "2026-09-01T11:00:00.020Z",
+        startedAt: "2026-09-01T11:59:00.000Z",
+        endedAt: "2026-09-01T11:59:00.020Z",
       });
     await aiTrace(nova, 1, 1);
     for (const [index, cost] of [1, 1, 3, 3].entries())

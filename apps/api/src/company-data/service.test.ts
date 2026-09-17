@@ -4,7 +4,7 @@ import {
   CompanyMembershipSchema,
   CompanySchema,
 } from "@alexa-control/shared";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { InMemoryAgentStore } from "../agents/store.js";
 import { InMemoryCompanyStore } from "../companies/store.js";
@@ -231,6 +231,25 @@ describe("Phase 25.4 company information plane", () => {
       expect.arrayContaining(["DATA_SOURCE", "PIPELINE", "DATASET"]),
     );
     expect(dashboard.recentRuns.every((run) => run.companyId === nova)).toBe(true);
+  });
+
+  it("uses version-compatible vectors only after company authorization and blocks cloud export by default", async () => {
+    const embed = vi.fn(() => Promise.resolve(Array.from({ length: 1536 }, (_, i) => i === 0 ? 1 : 0)));
+    service.setSemanticEmbeddingProvider({ version: "fixture-local-v1", providerId: "fixture", locality: "LOCAL", embed });
+    const doc = await service.indexSemanticDocument(request(nova), {
+      entityType: "DOCUMENT", scopeType: "COMPANY", scopeId: `company:${nova}`,
+      sourceEntityId: "evidence", title: "Revenue explanation", summary: "Verified scoped evidence", sensitivity: "INTERNAL", embeddingVersion: null,
+    });
+    const results = await service.semanticSearch(ownerId, nova, { query: "earnings", mode: "vector" });
+    expect(results[0]).toMatchObject({ document: { id: doc.id, sourceEntityId: "evidence" }, retrievalMode: "vector", score: 1 });
+    expect(await service.semanticSearch(ownerId, atlas, { query: "earnings", mode: "vector" })).toEqual([]);
+    embed.mockClear();
+    await expect(service.semanticSearch(ownerId, nova, { query: "private", mode: "vector", assignmentId: crypto.randomUUID() })).rejects.toMatchObject({ code: "MEMORY_ASSIGNMENT_DENIED" });
+    expect(embed).not.toHaveBeenCalled();
+    service.setSemanticEmbeddingProvider({ version: "fixture-cloud", providerId: "cloud", locality: "CLOUD", embed });
+    await expect(service.semanticSearch(ownerId, nova, { query: "private", mode: "vector" })).rejects.toMatchObject({ code: "EMBEDDING_DATA_POLICY_DENIED" });
+    expect(embed).not.toHaveBeenCalled();
+    expect((await service.semanticSearch(ownerId, nova, { query: "Revenue", mode: "hybrid" }))[0]?.retrievalMode).toBe("lexical");
   });
 
   it("fails closed across datasets, vectors, lineage, metrics, and credentials", async () => {

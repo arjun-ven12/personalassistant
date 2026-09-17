@@ -1,5 +1,5 @@
-import net from "node:net";
-import tls from "node:tls";
+import { createClient } from "redis";
+import { z } from "zod";
 
 export type RedisMode = "upstash" | "standard" | "disabled";
 
@@ -20,7 +20,21 @@ export interface RedisHealth {
   latencyMs: number | null;
 }
 
+interface RedisConnection {
+  readonly isOpen: boolean;
+  readonly isReady: boolean;
+  connect(): Promise<unknown>;
+  sendCommand(
+    command: string[],
+    options: { abortSignal: AbortSignal },
+  ): Promise<unknown>;
+  destroy(): void;
+}
+
 export class RedisService {
+  #client: RedisConnection | undefined;
+  #connecting: Promise<unknown> | undefined;
+  #closed = false;
   readonly namespace: string;
   readonly mode: RedisMode;
 
@@ -60,11 +74,13 @@ export class RedisService {
 
   async ping() {
     if (this.mode === "upstash") {
-      await this.upstash(["PING"]);
+      if ((await this.upstash(["PING"])) !== "PONG")
+        throw new Error("REDIS_INVALID_PING");
       return;
     }
     if (this.mode === "standard") {
-      await this.standard(["PING"]);
+      if ((await this.standard(["PING"])) !== "PONG")
+        throw new Error("REDIS_INVALID_PING");
     }
   }
 
@@ -146,76 +162,72 @@ export class RedisService {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(command),
+      signal: AbortSignal.timeout(5_000),
     });
     if (!response.ok) throw new Error("REDIS_UPSTASH_REQUEST_FAILED");
-    const body = (await response.json()) as { result?: unknown; error?: string };
+    const body = z
+      .object({ result: z.unknown().optional(), error: z.string().optional() })
+      .parse(await response.json());
     if (body.error) throw new Error("REDIS_UPSTASH_ERROR");
     return body.result;
   }
 
-  async standard(command: string[]) {
-    if (!this.options.host || !this.options.password) {
+  async standard(command: string[]): Promise<unknown> {
+    if (this.#closed || !this.options.host || !this.options.password) {
       throw new Error("REDIS_NOT_CONFIGURED");
     }
-    const authCommand = this.options.username
-      ? ["AUTH", this.options.username, this.options.password]
-      : ["AUTH", this.options.password];
-    const commands = [authCommand, command];
-    const payload = commands.map(encodeRespArray).join("");
-    const port = this.options.port ?? 6379;
-    const socket = this.options.tls
-      ? tls.connect({ host: this.options.host, port })
-      : net.connect({ host: this.options.host, port });
-    socket.setTimeout(5_000);
-    const response = await new Promise<string>((resolve, reject) => {
-      let data = "";
-      socket.on("connect", () => socket.write(payload));
-      socket.on("data", (chunk: Buffer | string) => {
-        data += typeof chunk === "string" ? chunk : chunk.toString("utf8");
-        if (data.includes("\r\n")) socket.end();
+    const client = (this.#client ??= createClient({
+      RESP: 2,
+      maintNotifications: "disabled",
+      socket: {
+        host: this.options.host,
+        port: this.options.port ?? 6379,
+        ...(this.options.tls ? { tls: true as const, rejectUnauthorized: true } : {}),
+        connectTimeout: 5_000,
+        reconnectStrategy: false,
+      },
+      ...(this.options.username ? { username: this.options.username } : {}),
+      password: this.options.password,
+      disableOfflineQueue: true,
+      commandsQueueMaxLength: 100,
+      disableClientInfo: true,
+    }).on("error", () => {
+      /* Commands fail closed; never log credential-bearing transport errors. */
+    }));
+    try {
+      if (!client.isReady) {
+        this.#connecting ??= (async () => {
+          let timer: NodeJS.Timeout | undefined;
+          try {
+            await Promise.race([
+              client.connect(),
+              new Promise<never>((_resolve, reject) => {
+                timer = setTimeout(
+                  () => reject(new Error("REDIS_CONNECT_TIMEOUT")),
+                  5_000,
+                );
+              }),
+            ]);
+          } finally {
+            clearTimeout(timer);
+            this.#connecting = undefined;
+          }
+        })();
+        await this.#connecting;
+      }
+      return await client.sendCommand(command, {
+        abortSignal: AbortSignal.timeout(5_000),
       });
-      socket.on("end", () => resolve(data));
-      socket.on("timeout", () => {
-        socket.destroy();
-        reject(new Error("REDIS_TIMEOUT"));
-      });
-      socket.on("error", reject);
-    });
-    const parsed = parseRespResponses(response);
-    const last = parsed.at(-1);
-    if (last instanceof Error) throw last;
-    return last ?? null;
+    } catch {
+      if (client.isOpen) client.destroy();
+      if (this.#client === client) this.#client = undefined;
+      throw new Error("REDIS_COMMAND_FAILED");
+    }
+  }
+
+  close() {
+    this.#closed = true;
+    if (this.#client?.isOpen) this.#client.destroy();
+    this.#client = undefined;
   }
 }
-
-const encodeRespArray = (items: string[]) =>
-  `*${items.length}\r\n${items
-    .map((item) => `$${Buffer.byteLength(item)}\r\n${item}\r\n`)
-    .join("")}`;
-
-const parseRespResponses = (input: string): unknown[] => {
-  const responses: unknown[] = [];
-  let offset = 0;
-  while (offset < input.length) {
-    const parsed = parseResp(input, offset);
-    responses.push(parsed.value);
-    offset = parsed.next;
-  }
-  return responses;
-};
-
-const parseResp = (input: string, offset: number): { value: unknown; next: number } => {
-  const type = input[offset];
-  const end = input.indexOf("\r\n", offset);
-  const line = input.slice(offset + 1, end);
-  if (type === "+") return { value: line, next: end + 2 };
-  if (type === "-") return { value: new Error(line), next: end + 2 };
-  if (type === ":") return { value: Number(line), next: end + 2 };
-  if (type === "$") {
-    const length = Number(line);
-    if (length < 0) return { value: null, next: end + 2 };
-    const start = end + 2;
-    return { value: input.slice(start, start + length), next: start + length + 2 };
-  }
-  return { value: null, next: input.length };
-};

@@ -73,10 +73,12 @@ const scopedKey = (ownerId: string, id: string) =>
   `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:${id}`;
 const scopedPrefix = (ownerId: string) =>
   `${ownerId}:${companyScope.companyId(ownerId) ?? "owner-default"}:`;
-const scopedValues = <T extends { ownerId: string }>(values: Map<string, T>, ownerId: string) =>
-  [...values.entries()]
-    .filter(([key, value]) => key.startsWith(scopedPrefix(ownerId)) && value.ownerId === ownerId)
+const scopedValues = <T extends { ownerId: string }>(values: Map<string, T>, ownerId: string) => {
+  const prefix = scopedPrefix(ownerId);
+  return [...values.entries()]
+    .filter(([key, value]) => key.startsWith(prefix) && value.ownerId === ownerId)
     .map(([, value]) => value);
+};
 
 export class InMemoryMemoryStore implements MemoryStore {
   readonly #memories = new Map<string, MemoryRecord>();

@@ -14,6 +14,8 @@ import {
   ExecutionProvenanceSchema,
   ValidationExecutionResultSchema,
   NativeProviderExecutionTransportResultSchema,
+  EngineeringTransportRequestSchema,
+  EngineeringTransportResultSchema,
   BLOCKED_WORKSPACE_PATTERNS,
   AllowedWorkspaceSchema,
   canonicalizeExecutionPayload,
@@ -25,6 +27,7 @@ import {
   WorkspaceApplyPatchInputSchema,
   WorkspaceValidateProfileInputSchema,
   type AllowedApplication,
+  type EngineeringTransportRequest,
 } from "@alexa-control/shared";
 import { createHash } from "node:crypto";
 
@@ -47,6 +50,7 @@ const supported = new Set<ReadOnlyToolName>([
   "repository.scan_metadata",
   "workspace.apply_patch",
   "workspace.validate_profile",
+  "engineering.repository_capability",
 ]);
 const blockedByPattern = (relativePath: string, patterns: string[]) => {
   const segments = relativePath.split("/");
@@ -156,6 +160,13 @@ export interface ExecutionLimits {
   maxRepositoryScanResultBytes: number;
 }
 
+export interface EngineeringExecutionScopeVerifier {
+  verify(input: {
+    ownerId: string;
+    request: EngineeringTransportRequest;
+  }): Promise<boolean>;
+}
+
 export class ExecutionService {
   constructor(
     readonly store: ExecutionStore,
@@ -173,6 +184,7 @@ export class ExecutionService {
       status: "SUCCEEDED" | "FAILED" | "CANCELLED" | "TIMED_OUT";
     }) => Promise<void>,
     readonly privateNetworkRequired = true,
+    readonly engineeringScopeVerifier?: EngineeringExecutionScopeVerifier,
   ) {}
 
   async create(input: {
@@ -184,6 +196,7 @@ export class ExecutionService {
     requestId: string;
     allowPatchExecution?: boolean;
     allowValidationExecution?: boolean;
+    allowEngineeringExecution?: boolean;
   }) {
     if (!this.enabled || !this.signer)
       throw new ExecutionError(
@@ -197,6 +210,29 @@ export class ExecutionService {
         403,
         "NATIVE_PROVIDER_SERVICE_REQUIRED",
         "Native provider execution must be requested through the native provider dispatcher.",
+      );
+    const engineeringInput =
+      parsed.toolName === "engineering.repository_capability"
+        ? EngineeringTransportRequestSchema.parse(parsed.arguments)
+        : null;
+    if (engineeringInput && !input.allowEngineeringExecution)
+      throw new ExecutionError(
+        403,
+        "ENGINEERING_RUNTIME_SERVICE_REQUIRED",
+        "Engineering execution must be requested through the governed engineering runtime.",
+      );
+    if (
+      engineeringInput &&
+      (!this.engineeringScopeVerifier ||
+        !(await this.engineeringScopeVerifier.verify({
+          ownerId: input.ownerId,
+          request: engineeringInput,
+        })))
+    )
+      throw new ExecutionError(
+        403,
+        "ENGINEERING_SCOPE_DENIED",
+        "The company, repository, workspace, agent, or capability scope is invalid.",
       );
     if (!supported.has(parsed.toolName))
       throw new ExecutionError(
@@ -225,12 +261,96 @@ export class ExecutionService {
         "PRIVATE_NETWORK_REQUIRED",
         "Private-network verification is required.",
       );
+    const requestedWorkspaceId =
+      parsed.toolName === "engineering.repository_capability"
+        ? parsed.arguments.workspaceLocatorId
+        : parsed.arguments.workspaceId;
     const workspace = await this.governance.registry.getWorkspace(
       input.ownerId,
-      parsed.arguments.workspaceId,
+      requestedWorkspaceId,
     );
     if (!workspace.enabled)
       throw new ExecutionError(403, "WORKSPACE_DISABLED", "The workspace is disabled.");
+    if (engineeringInput) {
+      const readCapabilities = new Set([
+        "repository.inspect",
+        "repository.search",
+        "repository.file_read",
+        "repository.git_status",
+        "repository.git_diff",
+        "repository.integration_diff",
+      ]);
+      const writeCapabilities = new Set([
+        "repository.initialize_project",
+        "repository.file_create",
+        "repository.file_patch",
+        "repository.file_delete",
+        "repository.worktree_create",
+        "repository.worktree_inspect",
+        "repository.worktree_remove",
+        "repository.prepare_commit",
+        "repository.integrate_commit",
+        "repository.resolve_additive_docs_conflict",
+        "repository.merge_candidate",
+      ]);
+      const scriptCapabilities = new Set([
+        "repository.run_command",
+        "repository.install_dependencies",
+        "repository.add_dependency",
+        "repository.remove_dependency",
+        "repository.dev_server_start",
+        "repository.dev_server_status",
+        "repository.dev_server_stop",
+        "repository.dev_server_restart",
+      ]);
+      if (
+        readCapabilities.has(engineeringInput.capability) &&
+        !workspace.permissions.read
+      )
+        throw new ExecutionError(
+          403,
+          "WORKSPACE_READ_NOT_ALLOWED",
+          "Workspace read permission is required.",
+        );
+      if (
+        writeCapabilities.has(engineeringInput.capability) &&
+        (!workspace.permissions.write || !workspace.permissions.modifyFile)
+      )
+        throw new ExecutionError(
+          403,
+          "WORKSPACE_WRITE_NOT_ALLOWED",
+          "Workspace write and modify-file permissions are required.",
+        );
+      if (
+        scriptCapabilities.has(engineeringInput.capability) &&
+        !workspace.permissions.runScripts
+      )
+        throw new ExecutionError(
+          403,
+          "WORKSPACE_SCRIPT_NOT_ALLOWED",
+          "Registered script permission is required.",
+        );
+      if (
+        engineeringInput.capability === "repository.worktree_create" &&
+        !workspace.gitPermissions.createBranch
+      )
+        throw new ExecutionError(
+          403,
+          "WORKSPACE_GIT_BRANCH_NOT_ALLOWED",
+          "Git branch creation permission is required.",
+        );
+      if (
+        engineeringInput.capability === "repository.initialize_project" &&
+        (!workspace.permissions.createFile ||
+          !workspace.gitPermissions.createBranch ||
+          !workspace.gitPermissions.commit)
+      )
+        throw new ExecutionError(
+          403,
+          "WORKSPACE_PROJECT_INITIALIZATION_NOT_ALLOWED",
+          "Project initialization requires create-file, branch, and commit permissions on the derived workspace.",
+        );
+    }
     if (
       (parsed.toolName.startsWith("workspace.") ||
         parsed.toolName === "repository.scan_metadata") &&
@@ -306,14 +426,52 @@ export class ExecutionService {
         ? WorkspaceValidateProfileInputSchema.parse(parsed.arguments)
         : null;
     const actionId =
-      patchInput?.patchId ?? validationInput?.validationRunId ?? crypto.randomUUID();
+      engineeringInput?.operationId ??
+      patchInput?.patchId ??
+      validationInput?.validationRunId ??
+      crypto.randomUUID();
     const action = ProposedActionSchema.parse({
       actionId,
-      toolName: parsed.toolName,
+      toolName: engineeringInput?.capability ?? parsed.toolName,
       workspaceId: workspace.id,
       arguments: effectiveArguments,
     });
-    const tool = await this.governance.store.findToolByName(parsed.toolName);
+    const mergePolicyAction =
+      engineeringInput?.capability === "repository.merge_candidate"
+        ? ProposedActionSchema.parse({
+            actionId: engineeringInput.input.candidateId,
+            toolName: "engineering.merge_candidate",
+            workspaceId: workspace.id,
+            arguments: {
+              companyId: engineeringInput.companyId,
+              repositoryId: engineeringInput.repositoryId,
+              runId: engineeringInput.input.integrationRunId,
+              candidateId: engineeringInput.input.candidateId,
+              baseCommit: engineeringInput.input.expectedBase,
+              headCommit: engineeringInput.input.candidateHead,
+              targetBranch: engineeringInput.input.targetBranch,
+              idempotencyKey: engineeringInput.input.mergeIdempotencyKey,
+            },
+            requestedCapabilities: ["repository.merge_candidate"],
+          })
+        : null;
+    const actionDigest = digestProposedAction(action);
+    const existing = await this.store.findByActionId(input.ownerId, actionId);
+    if (existing) {
+      if (
+        existing.toolName !== parsed.toolName ||
+        existing.actionDigest !== actionDigest
+      )
+        throw new ExecutionError(
+          409,
+          "EXECUTION_IDEMPOTENCY_CONFLICT",
+          "The operation ID is already bound to a different engineering action.",
+        );
+      return existing;
+    }
+    const tool = await this.governance.store.findToolByName(
+      mergePolicyAction?.toolName ?? engineeringInput?.capability ?? parsed.toolName,
+    );
     const securityState = await this.governance.store.getSecurityState();
     const evaluation = await this.governance.policyEngine.evaluate({
       ownerId: input.ownerId,
@@ -325,7 +483,7 @@ export class ExecutionService {
       recentAuthentication: false,
       ipAddress: input.ipAddress,
       requestId: input.requestId,
-      action,
+      action: mergePolicyAction ?? action,
       ...(tool ? { tool } : {}),
       workspace,
       emergencyStopActive: securityState.emergencyStopActive,
@@ -366,7 +524,7 @@ export class ExecutionService {
       arguments: effectiveArguments,
       workspaceRootPath: workspace.rootPath,
       blockedPatterns: workspace.blockedPatterns,
-      actionDigest: digestProposedAction(action),
+      actionDigest,
       status: "PENDING",
       createdAt: createdAt.toISOString(),
       expiresAt: new Date(
@@ -398,6 +556,37 @@ export class ExecutionService {
       },
     });
     return request;
+  }
+
+  /** Internal Agent OS integration point; no generic engineering HTTP executor. */
+  createEngineeringExecution(input: {
+    ownerId: string;
+    sessionId: string;
+    request: EngineeringTransportRequest;
+    networkState: NetworkVerificationState;
+    ipAddress: string;
+    requestId: string;
+    deviceId?: string;
+  }) {
+    if (input.request.requestId !== input.requestId)
+      throw new ExecutionError(
+        409,
+        "ENGINEERING_REQUEST_ID_MISMATCH",
+        "The engineering payload must remain bound to its originating request ID.",
+      );
+    return this.create({
+      ownerId: input.ownerId,
+      sessionId: input.sessionId,
+      request: {
+        toolName: "engineering.repository_capability",
+        arguments: input.request,
+        ...(input.deviceId ? { deviceId: input.deviceId } : {}),
+      },
+      networkState: input.networkState,
+      ipAddress: input.ipAddress,
+      requestId: input.requestId,
+      allowEngineeringExecution: true,
+    });
   }
 
   async createNativeProviderExecution(input: {
@@ -660,7 +849,9 @@ export class ExecutionService {
                       ? ValidationExecutionResultSchema
                       : result.toolName === "native.provider_capability"
                         ? NativeProviderExecutionTransportResultSchema
-                        : RepositoryScanResultSchema;
+                        : result.toolName === "engineering.repository_capability"
+                          ? EngineeringTransportResultSchema
+                          : RepositoryScanResultSchema;
       if (!schema.safeParse(result.result).success)
         throw new ExecutionError(
           400,

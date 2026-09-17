@@ -4,10 +4,12 @@ import { useState, type FormEvent } from "react";
 import type { CreateExecutionRequest } from "@alexa-control/shared";
 import type { ApiClient } from "./api.js";
 
-type DashboardReadOnlyTool = Exclude<
-  CreateExecutionRequest["toolName"],
-  "workspace.apply_patch" | "workspace.validate_profile" | "native.provider_capability"
->;
+type DashboardReadOnlyTool =
+  | "workspace.inspect_metadata"
+  | "workspace.read_file"
+  | "git.status"
+  | "git.diff"
+  | "git.current_branch";
 
 const terminal = new Set([
   "SUCCEEDED",

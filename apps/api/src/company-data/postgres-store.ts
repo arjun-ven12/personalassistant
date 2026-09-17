@@ -8,6 +8,7 @@ import {
   CompanyIntegrationBindingSchema,
   CompanyPipelineRunSchema,
   CompanySemanticDocumentSchema,
+  CompanyEmbeddingSchema,
   MetadataEntitySchema,
   MetadataLineageEdgeSchema,
   SemanticMetricObservationSchema,
@@ -36,7 +37,7 @@ import {
 
 type RecordRow = { record: unknown };
 const vectorLiteral = (value: number[]) =>
-  `[${value.map((item) => Number(item).toString()).join(",")}]`;
+  `[${CompanyEmbeddingSchema.parse(value).map((item) => item.toString()).join(",")}]`;
 const lexicalScore = (query: string, document: CompanySemanticDocument) => {
   const terms = new Set(
     query
@@ -437,12 +438,15 @@ export class PostgresCompanyDataStore implements CompanyDataStore {
     entityTypes: CompanySemanticDocument["entityType"][];
     query: string;
     queryEmbedding?: number[];
+    embeddingVersion?: string;
+    sensitivities?: CompanySemanticDocument["sensitivity"][];
     limit: number;
   }) {
     if (input.scopeIds.length === 0) return [];
     if (input.queryEmbedding) {
+      if (!input.embeddingVersion) throw new Error("EMBEDDING_VERSION_REQUIRED");
       const result = await this.pool.query<RecordRow & { score: number }>(
-        `WITH authorized AS MATERIALIZED (SELECT record,embedding FROM company_semantic_documents WHERE owner_id=$1 AND company_id=$2 AND scope_id=ANY($3::text[]) AND (cardinality($4::text[])=0 OR entity_type=ANY($4::text[])) AND embedding IS NOT NULL) SELECT record,1-(embedding <=> $5::vector) AS score FROM authorized ORDER BY embedding <=> $5::vector LIMIT $6`,
+        `WITH authorized AS MATERIALIZED (SELECT record,embedding FROM company_semantic_documents WHERE owner_id=$1 AND company_id=$2 AND scope_id=ANY($3::text[]) AND (cardinality($4::text[])=0 OR entity_type=ANY($4::text[])) AND embedding IS NOT NULL AND record->>'embeddingVersion'=$7 AND sensitivity=ANY($8::text[])) SELECT record,1-(embedding <=> $5::vector) AS score FROM authorized WHERE 1-(embedding <=> $5::vector)>0 ORDER BY embedding <=> $5::vector LIMIT $6`,
         [
           input.ownerId,
           input.companyId,
@@ -450,6 +454,8 @@ export class PostgresCompanyDataStore implements CompanyDataStore {
           input.entityTypes,
           vectorLiteral(input.queryEmbedding),
           input.limit,
+          input.embeddingVersion,
+          input.sensitivities ?? ["PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED"],
         ],
       );
       return result.rows.map((row) => ({
@@ -458,13 +464,14 @@ export class PostgresCompanyDataStore implements CompanyDataStore {
       }));
     }
     const rows = await this.pool.query<RecordRow>(
-      `SELECT record FROM company_semantic_documents WHERE owner_id=$1 AND company_id=$2 AND scope_id=ANY($3::text[]) AND (cardinality($4::text[])=0 OR entity_type=ANY($4::text[])) ORDER BY updated_at DESC LIMIT $5`,
+      `SELECT record FROM company_semantic_documents WHERE owner_id=$1 AND company_id=$2 AND scope_id=ANY($3::text[]) AND (cardinality($4::text[])=0 OR entity_type=ANY($4::text[])) AND sensitivity=ANY($6::text[]) ORDER BY updated_at DESC LIMIT $5`,
       [
         input.ownerId,
         input.companyId,
         input.scopeIds,
         input.entityTypes,
         Math.min(500, input.limit * 20),
+        input.sensitivities ?? ["PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED"],
       ],
     );
     return rows.rows

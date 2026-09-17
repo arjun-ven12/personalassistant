@@ -429,6 +429,26 @@ describe("ApprovalService and PolicyEngine", () => {
     expect(events.some((event) => event.eventType === "POLICY_EVALUATED")).toBe(true);
   });
 
+  it("uses the existing recent-auth decision only for the exact action and session", async () => {
+    const { store, approvals, policy } = setup();
+    store.createWorkspace(workspace);
+    const mergeDecision = action("engineering.merge_candidate", { workspaceId: workspace.id,
+      requestedCapabilities: ["repository.merge_candidate"], arguments: { candidateId: crypto.randomUUID() } });
+    const trustedMerge = async (proposal: ProposedAction, selectedSessionId = sessionId) => ({
+      ...await trustedInput(proposal, store), sessionId: selectedSessionId,
+      deviceTrusted: true, signedEnvelopeVerified: true,
+    });
+    const pending = await policy.evaluate(await trustedMerge(mergeDecision));
+    expect(pending).toMatchObject({ decision: "require_approval", approvalRequirement: "recent_authentication" });
+    await approvals.approve(ownerId, pending.approvalRequestId!, sessionId,
+      { ipAddress: "127.0.0.1", requestId: "recent-auth" }, true);
+    expect((await policy.evaluate(await trustedMerge(mergeDecision))).decision).toBe("allow");
+    expect((await policy.evaluate(await trustedMerge(mergeDecision, crypto.randomUUID()))).decision)
+      .toBe("require_approval");
+    expect((await policy.evaluate(await trustedMerge({ ...mergeDecision, arguments: { candidateId: crypto.randomUUID() } }))).decision)
+      .toBe("require_approval");
+  });
+
   it("fails closed for unknown network, emergency stop, disabled, and prohibited tools", async () => {
     const { store, policy } = setup();
     const read = action("security.view");

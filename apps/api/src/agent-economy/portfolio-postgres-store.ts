@@ -5,9 +5,11 @@ import {
   type EconomyScopeAccount,
 } from "@alexa-control/shared";
 import type { Pool, PoolClient } from "pg";
+import type { UnitOfWork } from "../persistence/unit-of-work.js";
 
 import {
   ownerReserveAccountId,
+  assertEconomyReplay,
   portfolioCompanyEconomyAccountId,
   type PortfolioEconomyStore,
 } from "./portfolio-store.js";
@@ -15,7 +17,7 @@ import {
 type RecordRow = { record: unknown };
 
 export class PostgresPortfolioEconomyStore implements PortfolioEconomyStore {
-  constructor(readonly pool: Pool) {}
+  constructor(readonly pool: Pool, readonly transaction?: UnitOfWork) {}
 
   async ensureAccounts(ownerId: string, companyIds: string[], at: string) {
     const reserve = EconomyScopeAccountSchema.parse({
@@ -52,16 +54,15 @@ export class PostgresPortfolioEconomyStore implements PortfolioEconomyStore {
   async transfer(input: { ownerId: string; companyId: string; amount: number; reason: string; idempotencyKey: string; approvalId: string | null; at: string }) {
     if (!Number.isSafeInteger(input.amount) || input.amount <= 0 || input.amount > 1_000_000_000)
       throw this.error("INVALID_PORTFOLIO_TRANSFER_AMOUNT", "Transfer amount must be a positive bounded integer.");
-    const client = await this.pool.connect();
-    try {
-      await client.query("BEGIN");
+    return this.transact(input.ownerId, async (client) => {
       const duplicate = await client.query<RecordRow>(
         "SELECT record FROM agent_economy_scope_transfers WHERE owner_id=$1 AND idempotency_key=$2",
         [input.ownerId, input.idempotencyKey],
       );
       if (duplicate.rows[0]) {
-        await client.query("COMMIT");
-        return EconomyScopeTransferSchema.parse(duplicate.rows[0].record);
+        const canonical = EconomyScopeTransferSchema.parse(duplicate.rows[0].record);
+        assertEconomyReplay(canonical, input, ["companyId", "amount", "reason", "approvalId"]);
+        return canonical;
       }
       const accountIds = [ownerReserveAccountId(input.ownerId), portfolioCompanyEconomyAccountId(input.ownerId, input.companyId)].sort();
       const locked = await client.query<RecordRow>(
@@ -88,14 +89,8 @@ export class PostgresPortfolioEconomyStore implements PortfolioEconomyStore {
          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
         [transfer.id, transfer.ownerId, transfer.sourceAccountId, transfer.destinationAccountId, transfer.companyId, transfer.amount, transfer.idempotencyKey, transfer.status, transfer.createdAt, transfer.settledAt, transfer],
       );
-      await client.query("COMMIT");
       return transfer;
-    } catch (error) {
-      await client.query("ROLLBACK");
-      throw error;
-    } finally {
-      client.release();
-    }
+    });
   }
 
   async findFunding(ownerId: string, idempotencyKey: string) {
@@ -111,13 +106,15 @@ export class PostgresPortfolioEconomyStore implements PortfolioEconomyStore {
       throw this.error("INVALID_OWNER_RESERVE_FUNDING_AMOUNT", "Funding amount must be a positive bounded integer.");
     if (!input.authorityRef.trim()) throw this.error("OWNER_RESERVE_AUTHORITY_REQUIRED", "Funding authority is required.");
     await this.ensureAccounts(input.ownerId, [], input.at);
-    const client = await this.pool.connect();
-    try {
-      await client.query("BEGIN");
+    return this.transact(input.ownerId, async (client) => {
       const existing = await client.query<RecordRow>("SELECT record FROM agent_economy_scope_funding WHERE owner_id=$1 AND idempotency_key=$2", [input.ownerId, input.idempotencyKey]);
       const accountResult = await client.query<RecordRow>("SELECT record FROM agent_economy_scope_accounts WHERE owner_id=$1 AND id=$2 FOR UPDATE", [input.ownerId, ownerReserveAccountId(input.ownerId)]);
       const account = EconomyScopeAccountSchema.parse(accountResult.rows[0]!.record);
-      if (existing.rows[0]) { await client.query("COMMIT"); return OwnerReserveFundingSchema.parse(existing.rows[0].record); }
+      if (existing.rows[0]) {
+        const canonical = OwnerReserveFundingSchema.parse(existing.rows[0].record);
+        assertEconomyReplay(canonical, input, ["amount", "reason", "authorityRef", "approvalId"]);
+        return canonical;
+      }
       const updated = EconomyScopeAccountSchema.parse({ ...account, availableCredits: account.availableCredits + input.amount, updatedAt: input.at });
       const funding = OwnerReserveFundingSchema.parse({
         fundingId: crypto.randomUUID(), ownerId: input.ownerId, amount: input.amount,
@@ -127,8 +124,19 @@ export class PostgresPortfolioEconomyStore implements PortfolioEconomyStore {
       });
       await this.updateAccount(client, updated);
       await client.query("INSERT INTO agent_economy_scope_funding(id,owner_id,idempotency_key,amount,authority_ref,approval_id,created_at,record) VALUES($1,$2,$3,$4,$5,$6,$7,$8)", [funding.fundingId, input.ownerId, input.idempotencyKey, input.amount, input.authorityRef, input.approvalId, input.at, funding]);
-      await client.query("COMMIT");
       return funding;
+    });
+  }
+
+  private async transact<T>(ownerId: string, work: (client: Pick<PoolClient, "query">) => Promise<T>): Promise<T> {
+    if (this.transaction) return this.transaction(`portfolio:${ownerId}`, () => work(this.pool));
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [`portfolio:${ownerId}`]);
+      const result = await work(client);
+      await client.query("COMMIT");
+      return result;
     } catch (error) { await client.query("ROLLBACK"); throw error; }
     finally { client.release(); }
   }
@@ -140,7 +148,7 @@ export class PostgresPortfolioEconomyStore implements PortfolioEconomyStore {
       [account.id, account.ownerId, account.accountType, account.companyId, account.availableCredits, account.reservedCredits, account.lifetimeAllocated, account.lifetimeSpent, account.createdAt, account.updatedAt, account],
     );
   }
-  private updateAccount(client: PoolClient, account: EconomyScopeAccount) {
+  private updateAccount(client: Pick<PoolClient, "query">, account: EconomyScopeAccount) {
     return client.query("UPDATE agent_economy_scope_accounts SET available_credits=$3,reserved_credits=$4,lifetime_allocated=$5,lifetime_spent=$6,updated_at=$7,record=$8 WHERE id=$1 AND owner_id=$2", [account.id, account.ownerId, account.availableCredits, account.reservedCredits, account.lifetimeAllocated, account.lifetimeSpent, account.updatedAt, account]);
   }
   private error(code: string, message: string) { return Object.assign(new Error(message), { code }); }

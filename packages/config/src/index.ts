@@ -54,7 +54,9 @@ export const ApiEnvironmentSchema = z
     STORE_MODE: z.enum(["memory", "postgres"]).default("memory"),
     DATABASE_URL: z.string().trim().min(1).optional(),
     DATABASE_POOL_SIZE: z.coerce.number().int().min(1).max(100).default(20),
-    DATABASE_SSL_MODE: z.enum(["disable", "require", "verify-full"]).default("require"),
+    DATABASE_SSL_MODE: z
+      .enum(["disable", "require", "verify-full"])
+      .default("verify-full"),
     REDIS_URL: z.string().url().optional(),
     REDIS_TOKEN: optionalSecret,
     REDIS_HOST: z.string().trim().min(1).max(255).optional(),
@@ -304,6 +306,11 @@ export const ApiEnvironmentSchema = z
 
     const productionRequirements: Array<[boolean, keyof typeof environment, string]> = [
       [
+        environment.DATABASE_SSL_MODE !== "disable",
+        "DATABASE_SSL_MODE",
+        "Production database transport must verify TLS.",
+      ],
+      [
         environment.STORE_MODE === "postgres" && Boolean(environment.DATABASE_URL),
         "DATABASE_URL",
         "Production requires PostgreSQL persistence and DATABASE_URL.",
@@ -483,6 +490,7 @@ export const MacAgentEnvironmentSchema = z
       .default(0.25),
     ALEXA_REQUIRE_PRIVATE_NETWORK: booleanValue.default(true),
     ALEXA_READ_ONLY_EXECUTION_ENABLED: booleanValue.default(false),
+    ALEXA_ENGINEERING_RUNTIME_ENABLED: booleanValue.default(false),
     ALEXA_SERVER_EXECUTION_PUBLIC_KEY: z.string().trim().min(32).optional(),
     ALEXA_EXECUTION_POLL_INTERVAL_MS: z.coerce
       .number()

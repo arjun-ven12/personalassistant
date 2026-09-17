@@ -196,33 +196,36 @@ const setup = (aiRouter?: VoiceRuntimeService["aiRouter"]) => {
     activeContext,
   );
   const applicationInteractions = {
-    planFromUtterance: vi.fn((input: { utterance: string; currentApplicationId?: string | null }) => {
-      const applicationId = input.currentApplicationId ?? "chatgpt";
-      return /^type/i.test(input.utterance)
-        ? {
-            request: {
-              applicationId,
-              capability: "insert_text",
-              target: {
-                type: applicationId === "chrome" ? "TEXT_FIELD" : "COMPOSER",
-                role: applicationId === "chrome" ? "AXTextField" : "AXTextArea",
-                label: applicationId === "chrome" ? "Search" : "Message ChatGPT",
-                identifier: applicationId === "chrome" ? "chrome.search" : "chatgpt.composer",
-                semanticId: "a".repeat(64),
-                source: "EXPLICIT",
-                confidence: 0.98,
-                capturedAt: "2026-08-21T00:00:00.000Z",
-                expiresAt: "2026-08-21T00:01:00.000Z",
+    planFromUtterance: vi.fn(
+      (input: { utterance: string; currentApplicationId?: string | null }) => {
+        const applicationId = input.currentApplicationId ?? "chatgpt";
+        return /^type/i.test(input.utterance)
+          ? {
+              request: {
+                applicationId,
+                capability: "insert_text",
+                target: {
+                  type: applicationId === "chrome" ? "TEXT_FIELD" : "COMPOSER",
+                  role: applicationId === "chrome" ? "AXTextField" : "AXTextArea",
+                  label: applicationId === "chrome" ? "Search" : "Message ChatGPT",
+                  identifier:
+                    applicationId === "chrome" ? "chrome.search" : "chatgpt.composer",
+                  semanticId: "a".repeat(64),
+                  source: "EXPLICIT",
+                  confidence: 0.98,
+                  capturedAt: "2026-08-21T00:00:00.000Z",
+                  expiresAt: "2026-08-21T00:01:00.000Z",
+                },
+                text: "hello",
+                origin: "voice",
+                conversationId: null,
+                proposalId: null,
               },
-              text: "hello",
-              origin: "voice",
-              conversationId: null,
-              proposalId: null,
-            },
-            clarification: null,
-          }
-        : { request: null, clarification: null };
-    }),
+              clarification: null,
+            }
+          : { request: null, clarification: null };
+      },
+    ),
     execute: vi.fn((input: { requestId: string }) =>
       Promise.resolve({
         requestId: input.requestId,
@@ -304,6 +307,144 @@ const setup = (aiRouter?: VoiceRuntimeService["aiRouter"]) => {
 };
 
 describe("VoiceRuntimeService", () => {
+  it("routes natural software delivery, live status, and follow-up instructions through the engineering gateway", async () => {
+    const { ownerId, voice } = setup();
+    const start = vi.fn(() =>
+      Promise.resolve({
+        deliveryId: crypto.randomUUID(),
+        projectName: "Customer Portal",
+        status: "EXECUTING",
+      }),
+    );
+    const status = vi.fn(() =>
+      Promise.resolve({
+        projectName: "Customer Portal",
+        status: "EXECUTING",
+        progress: 64,
+        completed: 3,
+        total: 5,
+        activeAgents: 2,
+        costUsd: "0.0420",
+        previewUrl: null,
+      }),
+    );
+    const addInstruction = vi.fn(() =>
+      Promise.resolve({
+        projectName: "Customer Portal",
+        status: "EXECUTING",
+        newObjective: false,
+      }),
+    );
+    voice.setEngineeringDelivery({ start, status, addInstruction });
+    const dashboard = await voice.createSession({
+      ownerId,
+      body: { wakeWordEnabled: true },
+      requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1",
+    });
+    const sessionId = dashboard.sessions[0]!.id;
+    const governed = {
+      ownerId,
+      governanceSessionId: crypto.randomUUID(),
+      networkState: "PRIVATE_NETWORK" as const,
+      ipAddress: "127.0.0.1",
+    };
+
+    const created = await voice.recordTranscript({
+      ...governed,
+      body: {
+        sessionId,
+        transcript: "Build a customer portal website",
+        isFinal: true,
+        confidence: 0.98,
+        wakeWordDetected: true,
+        source: "browser",
+      },
+      requestId: crypto.randomUUID(),
+    });
+    const progress = await voice.recordTranscript({
+      ...governed,
+      body: {
+        sessionId,
+        transcript: "How is the website build going?",
+        isFinal: true,
+        confidence: 0.98,
+        wakeWordDetected: true,
+        source: "browser",
+      },
+      requestId: crypto.randomUUID(),
+    });
+    const updated = await voice.recordTranscript({
+      ...governed,
+      body: {
+        sessionId,
+        transcript: "Also add a compact navigation bar",
+        isFinal: true,
+        confidence: 0.98,
+        wakeWordDetected: true,
+        source: "browser",
+      },
+      requestId: crypto.randomUUID(),
+    });
+
+    expect(start).toHaveBeenCalledWith(expect.objectContaining({ ownerId }));
+    expect(created.conversation.responseText).toContain("I'm building Customer Portal");
+    expect(status).toHaveBeenCalledWith({ ownerId });
+    expect(progress.conversation.responseText).toContain("64 percent");
+    expect(addInstruction).toHaveBeenCalledWith(
+      expect.objectContaining({ ownerId, text: "Also add a compact navigation bar" }),
+    );
+    expect(updated.conversation.responseText).toContain("without restarting");
+  });
+
+  it("routes a completed-project fix as a new governed modification objective", async () => {
+    const { ownerId, voice } = setup();
+    const addInstruction = vi.fn(() =>
+      Promise.resolve({
+        projectName: "Customer Portal",
+        status: "PLANNING",
+        newObjective: true,
+      }),
+    );
+    voice.setEngineeringDelivery({
+      start: vi.fn(() =>
+        Promise.resolve({
+          deliveryId: crypto.randomUUID(),
+          projectName: "Customer Portal",
+          status: "PLANNING",
+        }),
+      ),
+      status: vi.fn(() => Promise.resolve(null)),
+      addInstruction,
+    });
+    const dashboard = await voice.createSession({
+      ownerId,
+      body: { wakeWordEnabled: true },
+      requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1",
+    });
+    const response = await voice.recordTranscript({
+      ownerId,
+      governanceSessionId: crypto.randomUUID(),
+      networkState: "PRIVATE_NETWORK",
+      ipAddress: "127.0.0.1",
+      body: {
+        sessionId: dashboard.sessions[0]!.id,
+        transcript: "Fix the mobile navigation",
+        isFinal: true,
+        confidence: 0.98,
+        wakeWordDetected: true,
+        source: "browser",
+      },
+      requestId: crypto.randomUUID(),
+    });
+
+    expect(addInstruction).toHaveBeenCalledOnce();
+    expect(response.conversation.responseText).toBe(
+      "I started a governed modification objective for Customer Portal.",
+    );
+  });
+
   it("initializes governed voice metadata without raw audio persistence", async () => {
     const { ownerId, voice } = setup();
     const dashboard = await voice.dashboard(ownerId);
@@ -604,8 +745,7 @@ describe("VoiceRuntimeService", () => {
           conversationId: request.conversationId,
           matches: (proposal) => {
             const frozen = proposal.parameters.request as
-              | Record<string, unknown>
-              | undefined;
+              Record<string, unknown> | undefined;
             return (
               proposal.id === request.proposalId &&
               proposal.canonicalIntent ===
@@ -729,46 +869,49 @@ describe("VoiceRuntimeService", () => {
         capturedAt: new Date().toISOString(),
       },
     });
-    const dashboard = await voiceWithApplicationInteractionsAndActiveContext.createSession({
-      ownerId,
-      body: { wakeWordEnabled: true },
-      requestId: crypto.randomUUID(),
-      ipAddress: "127.0.0.1",
-    });
+    const dashboard =
+      await voiceWithApplicationInteractionsAndActiveContext.createSession({
+        ownerId,
+        body: { wakeWordEnabled: true },
+        requestId: crypto.randomUUID(),
+        ipAddress: "127.0.0.1",
+      });
     const sessionId = dashboard.sessions[0]!.id;
 
-    const first = await voiceWithApplicationInteractionsAndActiveContext.recordTranscript({
-      ownerId,
-      deviceId,
-      body: {
-        sessionId,
-        transcript: "Type in hello",
-        isFinal: true,
-        confidence: 0.99,
-        wakeWordDetected: true,
-        source: "electron",
-      },
-      requestId: crypto.randomUUID(),
-      ipAddress: "127.0.0.1",
-    });
+    const first =
+      await voiceWithApplicationInteractionsAndActiveContext.recordTranscript({
+        ownerId,
+        deviceId,
+        body: {
+          sessionId,
+          transcript: "Type in hello",
+          isFinal: true,
+          confidence: 0.99,
+          wakeWordDetected: true,
+          source: "electron",
+        },
+        requestId: crypto.randomUUID(),
+        ipAddress: "127.0.0.1",
+      });
     expect(first.conversation.responseText).toMatch(/insert text action for chrome/i);
 
-    const second = await voiceWithApplicationInteractionsAndActiveContext.recordTranscript({
-      ownerId,
-      deviceId,
-      body: {
-        sessionId,
-        transcript: "Do it",
-        isFinal: true,
-        confidence: 0.99,
-        wakeWordDetected: true,
-        source: "electron",
-      },
-      requestId: crypto.randomUUID(),
-      ipAddress: "127.0.0.1",
-      governanceSessionId: crypto.randomUUID(),
-      networkState: "PRIVATE_NETWORK",
-    });
+    const second =
+      await voiceWithApplicationInteractionsAndActiveContext.recordTranscript({
+        ownerId,
+        deviceId,
+        body: {
+          sessionId,
+          transcript: "Do it",
+          isFinal: true,
+          confidence: 0.99,
+          wakeWordDetected: true,
+          source: "electron",
+        },
+        requestId: crypto.randomUUID(),
+        ipAddress: "127.0.0.1",
+        governanceSessionId: crypto.randomUUID(),
+        networkState: "PRIVATE_NETWORK",
+      });
 
     expect(second.conversation.responseText).toMatch(/reviewed provider/i);
     expect(second.conversation.commandId).toBeTruthy();
@@ -800,8 +943,16 @@ describe("VoiceRuntimeService", () => {
   it("does not mutate continuity from interim or low-confidence speech", async () => {
     const { ownerId, voiceStore, voiceWithUnderstanding } = setup();
     for (const body of [
-      { transcript: "Schedule a meeting with Sarah tomorrow", isFinal: false, confidence: 0.98 },
-      { transcript: "Schedule a meeting with Sarah tomorrow", isFinal: true, confidence: 0.2 },
+      {
+        transcript: "Schedule a meeting with Sarah tomorrow",
+        isFinal: false,
+        confidence: 0.98,
+      },
+      {
+        transcript: "Schedule a meeting with Sarah tomorrow",
+        isFinal: true,
+        confidence: 0.2,
+      },
     ])
       await voiceWithUnderstanding.recordTranscript({
         ownerId,
@@ -1284,7 +1435,12 @@ describe("VoiceRuntimeService", () => {
           selectedText: "Generate",
           focusedElement: null,
           chunks: [
-            { id: "/devices#selection", kind: "SELECTION", text: "Generate", relevance: 1 },
+            {
+              id: "/devices#selection",
+              kind: "SELECTION",
+              text: "Generate",
+              relevance: 1,
+            },
           ],
           extractionStatus: "AVAILABLE",
           controls: [],
@@ -1298,9 +1454,9 @@ describe("VoiceRuntimeService", () => {
     expect(response.responseText).toBe("You highlighted Generate.");
     expect(execute).toHaveBeenCalledTimes(1);
     expect(JSON.stringify(execute.mock.calls[0]?.[0])).toContain("Generate");
-    expect(response.conversation.contextReferences.map((item) => item.source)).toContain(
-      "SELECTION",
-    );
+    expect(
+      response.conversation.contextReferences.map((item) => item.source),
+    ).toContain("SELECTION");
   });
 
   it("routes contextual voice questions through AIRouter with the canonical device context", async () => {
@@ -1639,7 +1795,9 @@ describe("VoiceRuntimeService", () => {
       content: ["Known applications and their bounded capabilities."],
       selectedText: null,
       focusedElement: null,
-      chunks: [{ id: "title", kind: "TITLE" as const, text: "Applications", relevance: 1 }],
+      chunks: [
+        { id: "title", kind: "TITLE" as const, text: "Applications", relevance: 1 },
+      ],
       extractionStatus: "AVAILABLE" as const,
       controls: [],
       authority: "CONTEXT_ONLY" as const,

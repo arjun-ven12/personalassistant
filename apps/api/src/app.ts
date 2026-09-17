@@ -48,6 +48,45 @@ import { ExecutionError } from "./execution/errors.js";
 import { ExecutionService, type ExecutionLimits } from "./execution/service.js";
 import { InMemoryExecutionStore, type ExecutionStore } from "./execution/store.js";
 import type { ServerExecutionSigner } from "./execution/server-key-store.js";
+import {
+  InMemoryEngineeringRuntimeStore,
+  type EngineeringRuntimeStore,
+} from "./engineering-runtime/store.js";
+import { PostgresEngineeringRuntimeStore } from "./engineering-runtime/postgres-store.js";
+import { EngineeringTransportScopeVerifier } from "./engineering-runtime/transport.js";
+import {
+  InMemoryEngineeringOrchestrationStore,
+  type EngineeringOrchestrationStore,
+} from "./engineering-orchestration/store.js";
+import { PostgresEngineeringOrchestrationStore } from "./engineering-orchestration/postgres-store.js";
+import {
+  EngineeringManagerService,
+  type EngineeringTaskWorker,
+  type EngineeringWorkspaceGateway,
+} from "./engineering-orchestration/service.js";
+import {
+  AIRouterEngineeringTaskWorker,
+  type GovernedEngineeringActionGateway,
+} from "./engineering-orchestration/ai-worker.js";
+import { SignedExecutionEngineeringGateway } from "./engineering-orchestration/signed-gateway.js";
+import { AgentOsEngineeringGateway } from "./engineering-orchestration/agent-os-gateway.js";
+import { registerEngineeringOrchestrationRoutes } from "./routes/engineering-orchestration.js";
+import { registerEngineeringIntegrationRoutes } from "./routes/engineering-integration.js";
+import {
+  InMemoryEngineeringIntegrationStore,
+  type EngineeringIntegrationStore,
+} from "./engineering-integration/store.js";
+import { PostgresEngineeringIntegrationStore } from "./engineering-integration/postgres-store.js";
+import { EngineeringIntegrationService } from "./engineering-integration/service.js";
+import { AIRouterEngineeringIntegrationReviewer } from "./engineering-integration/ai-reviewer.js";
+import { AIRouterEngineeringConflictResolver } from "./engineering-integration/ai-conflict-resolver.js";
+import { EngineeringDeliveryService } from "./engineering-delivery/service.js";
+import {
+  InMemoryEngineeringDeliveryStore,
+  type EngineeringDeliveryStore,
+} from "./engineering-delivery/store.js";
+import { PostgresEngineeringDeliveryStore } from "./engineering-delivery/postgres-store.js";
+import { registerEngineeringDeliveryRoutes } from "./routes/engineering-delivery.js";
 import { registerExecutionRoutes } from "./routes/executions.js";
 import { registerCrossDeviceRoutes } from "./routes/cross-device.js";
 import { registerCompanyRoutes } from "./routes/companies.js";
@@ -76,7 +115,10 @@ import {
   PostgresObservabilityStore,
   type ObservabilityStore,
 } from "./observability/store.js";
-import { InMemoryPortfolioEconomyStore, type PortfolioEconomyStore } from "./agent-economy/portfolio-store.js";
+import {
+  InMemoryPortfolioEconomyStore,
+  type PortfolioEconomyStore,
+} from "./agent-economy/portfolio-store.js";
 import { PostgresPortfolioEconomyStore } from "./agent-economy/portfolio-postgres-store.js";
 import {
   CrossCompanyExecutionService,
@@ -433,6 +475,13 @@ export interface BuildApiOptions {
   productionNetworkVerifierConfigured?: boolean;
   now?: () => Date;
   executionStore?: ExecutionStore;
+  engineeringRuntimeStore?: EngineeringRuntimeStore;
+  engineeringOrchestrationStore?: EngineeringOrchestrationStore;
+  engineeringIntegrationStore?: EngineeringIntegrationStore;
+  engineeringDeliveryStore?: EngineeringDeliveryStore;
+  engineeringWorkspaceGateway?: EngineeringWorkspaceGateway;
+  engineeringActionGateway?: GovernedEngineeringActionGateway;
+  engineeringTaskWorker?: EngineeringTaskWorker;
   repositoryStore?: RepositoryStore;
   patchStore?: PatchStore;
   validationStore?: ValidationStore;
@@ -542,6 +591,13 @@ export const buildApi = async ({
   productionNetworkVerifierConfigured = nodeEnvironment !== "production",
   now,
   executionStore = new InMemoryExecutionStore(),
+  engineeringRuntimeStore,
+  engineeringOrchestrationStore,
+  engineeringIntegrationStore,
+  engineeringDeliveryStore,
+  engineeringWorkspaceGateway,
+  engineeringActionGateway,
+  engineeringTaskWorker,
   repositoryStore = new InMemoryRepositoryStore(),
   patchStore = new InMemoryPatchStore(),
   validationStore = new InMemoryValidationStore(),
@@ -668,6 +724,26 @@ export const buildApi = async ({
     (database
       ? new PostgresWorkforceRuntimeStore(database.pool)
       : new InMemoryWorkforceRuntimeStore());
+  const resolvedEngineeringRuntimeStore =
+    engineeringRuntimeStore ??
+    (database
+      ? new PostgresEngineeringRuntimeStore(database.pool)
+      : new InMemoryEngineeringRuntimeStore());
+  const resolvedEngineeringOrchestrationStore =
+    engineeringOrchestrationStore ??
+    (database
+      ? new PostgresEngineeringOrchestrationStore(database.pool)
+      : new InMemoryEngineeringOrchestrationStore());
+  const resolvedEngineeringIntegrationStore =
+    engineeringIntegrationStore ??
+    (database
+      ? new PostgresEngineeringIntegrationStore(database.pool)
+      : new InMemoryEngineeringIntegrationStore());
+  const resolvedEngineeringDeliveryStore =
+    engineeringDeliveryStore ??
+    (database
+      ? new PostgresEngineeringDeliveryStore(database.pool)
+      : new InMemoryEngineeringDeliveryStore());
   const economicAuthority =
     aiEconomics ??
     (database
@@ -726,9 +802,10 @@ export const buildApi = async ({
       disableRequestLogging: false,
     }),
   });
-  app.addHook("onClose", () => {
+  app.addHook("onClose", async () => {
     canonicalRouter.shutdown();
-    void telemetry.shutdown();
+    redis.close();
+    await telemetry.shutdown();
   });
 
   await app.register(cookie);
@@ -854,6 +931,13 @@ export const buildApi = async ({
     (database
       ? new PostgresObservabilityStore(database.pool)
       : new InMemoryObservabilityStore());
+  if (embeddings.status().enabled)
+    companyData.setSemanticEmbeddingProvider({
+      providerId: embeddings.options.provider,
+      version: `${embeddings.options.provider}:${embeddings.options.model}:${embeddings.options.dimensions}`,
+      locality: "CLOUD",
+      embed: (text) => embeddings.embed(text),
+    });
   const portfolio = new OwnerPortfolioObservabilityService(
     resolvedObservabilityStore,
     resolvedCompanyStore,
@@ -864,7 +948,10 @@ export const buildApi = async ({
   );
   const resolvedPortfolioEconomyStore =
     portfolioEconomyStore ??
-    (database ? new PostgresPortfolioEconomyStore(database.pool) : new InMemoryPortfolioEconomyStore());
+    (database
+      ? new PostgresPortfolioEconomyStore(database.pool, database.transaction)
+      : new InMemoryPortfolioEconomyStore());
+  if (database) portfolio.setTransaction(database.transaction);
   telemetry.setRecorder?.((span) => {
     if (!span.ownerId) return;
     return portfolio.recordSystemSpan(span);
@@ -1010,6 +1097,11 @@ export const buildApi = async ({
       await conversationContinuity.recordGovernedInteractionSettlement(input);
     },
     privateNetworkRequired,
+    new EngineeringTransportScopeVerifier(
+      resolvedEngineeringRuntimeStore,
+      resolvedEngineeringIntegrationStore,
+      approvals,
+    ),
   );
   const repositories = new RepositoryService(
     repositoryStore,
@@ -1076,6 +1168,40 @@ export const buildApi = async ({
     now,
     agentFactory,
   );
+  const signedEngineeringGateway = new SignedExecutionEngineeringGateway(
+    executions,
+    executionStore,
+    resolvedEngineeringRuntimeStore,
+    now,
+  );
+  const engineeringManager = new EngineeringManagerService(
+    resolvedEngineeringOrchestrationStore,
+    resolvedEngineeringRuntimeStore,
+    agentStore,
+    agents,
+    engineeringWorkspaceGateway ?? signedEngineeringGateway,
+    engineeringTaskWorker ??
+      new AIRouterEngineeringTaskWorker(
+        canonicalRouter,
+        engineeringActionGateway ?? signedEngineeringGateway,
+      ),
+    governanceAudit,
+    now,
+  );
+  const engineeringIntegration = new EngineeringIntegrationService(
+    resolvedEngineeringIntegrationStore,
+    resolvedEngineeringOrchestrationStore,
+    resolvedEngineeringRuntimeStore,
+    signedEngineeringGateway,
+    new AIRouterEngineeringIntegrationReviewer(canonicalRouter),
+    governanceAudit,
+    now,
+  );
+  engineeringIntegration.setApprovals(approvals);
+  engineeringIntegration.setConflictResolver(
+    new AIRouterEngineeringConflictResolver(canonicalRouter),
+  );
+  engineeringIntegration.setManager(engineeringManager);
   const agentOs = new AgentOsService(
     agentOsStore,
     agentStore,
@@ -1102,6 +1228,13 @@ export const buildApi = async ({
     governanceAudit,
     now,
   );
+  engineeringManager.setAgentOs(new AgentOsEngineeringGateway(agentOs, agentStore));
+  engineeringManager.setMemory({
+    retrieve: (input) => memory.retrieveEngineeringContext(input),
+    promote: async (input) => {
+      await memory.promoteEngineeringFacts(input);
+    },
+  });
   const agentCognition = new AgentCognitionService(
     agentCognitionStore,
     agentStore,
@@ -1151,13 +1284,15 @@ export const buildApi = async ({
     undefined,
     now,
   );
-  durableScheduler.setGovernorProposalWorkload(new GovernorProposalWorker(
-    resolvedObservabilityStore,
-    portfolio,
-    `${durableScheduler.workerId}:governor-proposals`,
-    undefined,
-    now,
-  ));
+  durableScheduler.setGovernorProposalWorkload(
+    new GovernorProposalWorker(
+      resolvedObservabilityStore,
+      portfolio,
+      `${durableScheduler.workerId}:governor-proposals`,
+      undefined,
+      now,
+    ),
+  );
   durableExecution.setSchedulerEnabled(Boolean(database && durableSchedulerEnabled));
   if (database && durableSchedulerEnabled) {
     app.addHook("onReady", () => durableScheduler.start());
@@ -1570,6 +1705,223 @@ export const buildApi = async ({
     governanceAudit,
     now,
   );
+  engineeringManager.setWorkforceMatcher({
+    rank: async (input) =>
+      (await workforceRuntime.rankEngineeringCandidates(input)).map(
+        (score) => score.agentId,
+      ),
+  });
+  engineeringIntegration.setReviewerSelector({
+    select: async (input) => {
+      const agentDefinitions = await companyScope.run(
+        {
+          ownerId: input.ownerId,
+          companyId: input.companyId,
+          role: "OWNER",
+          requestId: input.objectiveId,
+        },
+        () => agentStore.listAgents(input.ownerId),
+      );
+      const assignments = (
+        await Promise.all(
+          agentDefinitions.map(async (agent) => ({
+            agent,
+            assignment: await agentStore.findAssignment(
+              input.ownerId,
+              agent.id,
+              input.companyId,
+            ),
+          })),
+        )
+      ).filter(
+        ({ agent, assignment }) =>
+          assignment &&
+          agent.status === "available" &&
+          (!agent.workforce || agent.workforce.organizationId === input.companyId) &&
+          input.repositoryAgentIds.includes(assignment.id) &&
+          !input.excludedAgentIds.includes(assignment.id),
+      );
+      const ranked = await workforceRuntime.rankEngineeringCandidates({
+        ownerId: input.ownerId,
+        companyId: input.companyId,
+        objectiveId: input.objectiveId,
+        taskType: input.security ? "SECURITY" : "INTEGRATION_PREP",
+        role: input.security ? "SECURITY_REVIEWER" : "GENERALIST_ENGINEER",
+        skills: input.security
+          ? ["security", "review", "repository"]
+          : ["integration", "review", "repository"],
+        capabilities: ["repository.inspect", "repository.git_diff"],
+        riskLevel: input.security ? "CRITICAL" : "HIGH",
+        eligibleAgentDefinitionIds: assignments.map(({ agent }) => agent.id),
+      });
+      for (const score of ranked) {
+        if (!score.eligible) continue;
+        const match = assignments.find(({ agent }) => agent.id === score.agentId);
+        if (match?.assignment) return match.assignment.id;
+      }
+      return undefined;
+    },
+  });
+  const engineeringDelivery = new EngineeringDeliveryService(
+    resolvedEngineeringDeliveryStore,
+    resolvedEngineeringRuntimeStore,
+    registry,
+    engineeringManager,
+    engineeringIntegration,
+    signedEngineeringGateway,
+    async (input) =>
+      companyScope.run(
+        {
+          ownerId: input.ownerId,
+          companyId: input.companyId,
+          role: "OWNER",
+          requestId: input.requestId,
+        },
+        async () => {
+          await agents.ensureBuiltIns(input.ownerId, input.requestId);
+          const definitions = await agentStore.listAgents(input.ownerId);
+          const assignments = await Promise.all(
+            definitions.map((agent) =>
+              Promise.resolve(
+                agentStore.findAssignment(input.ownerId, agent.id, input.companyId),
+              ),
+            ),
+          );
+          return assignments.filter(Boolean).map((assignment) => assignment!.id);
+        },
+      ),
+    notifications,
+    governanceAudit,
+    now,
+  );
+  voice.setEngineeringDelivery({
+    start: async (input) => {
+      const companyId = companyScope.companyId(input.ownerId);
+      if (!companyId)
+        throw new Error("A selected company is required for engineering delivery.");
+      const root = (await registry.listWorkspaces(input.ownerId)).find(
+        (workspace) =>
+          workspace.enabled &&
+          workspace.permissions.write &&
+          workspace.permissions.createFile &&
+          workspace.permissions.modifyFile &&
+          workspace.permissions.runScripts &&
+          workspace.gitPermissions.createBranch &&
+          workspace.gitPermissions.commit,
+      );
+      if (!root)
+        throw new Error(
+          "No governed development root is configured for new software projects.",
+        );
+      const created = await engineeringDelivery.create(
+        { ...input, companyId },
+        {
+          request: input.text,
+          repositoryId: null,
+          developmentRootWorkspaceId: root.id,
+          projectName: null,
+          acceptanceCriteria: [],
+          constraints: [],
+          deadlineAt: null,
+          visibleMode: false,
+          idempotencyKey: `voice-${input.requestId}`,
+        },
+      );
+      return {
+        deliveryId: created.delivery.id,
+        projectName: created.delivery.projectName,
+        status: created.delivery.status,
+      };
+    },
+    status: async (input) => {
+      const companyId = companyScope.companyId(input.ownerId);
+      if (!companyId) return null;
+      const delivery = (await engineeringDelivery.list(input.ownerId, companyId))[0];
+      if (!delivery) return null;
+      const center = await engineeringDelivery.controlCenter(
+        input.ownerId,
+        companyId,
+        delivery.id,
+      );
+      const cost = center.delivery.modelUsage.reduce(
+        (sum, usage) => sum + Number(usage.costUsd),
+        0,
+      );
+      return {
+        projectName: center.delivery.projectName,
+        status: center.delivery.status,
+        progress: center.overallProgress,
+        completed: center.completedTasks,
+        total: center.totalTasks,
+        activeAgents: center.activeAgents.length,
+        costUsd: cost.toFixed(4),
+        previewUrl:
+          center.delivery.preview?.state === "RUNNING"
+            ? center.delivery.preview.url
+            : null,
+      };
+    },
+    addInstruction: async (input) => {
+      const companyId = companyScope.companyId(input.ownerId);
+      if (!companyId) return null;
+      const deliveries = await engineeringDelivery.list(input.ownerId, companyId);
+      const delivery = deliveries.find(
+        (item) =>
+          !["DONE", "DONE_WITH_WARNINGS", "FAILED", "CANCELLED"].includes(item.status),
+      );
+      if (delivery) {
+        const updated = await engineeringDelivery.addInstruction(
+          { ...input, companyId },
+          delivery.id,
+          {
+            instruction: input.text,
+            idempotencyKey: `voice-instruction-${input.requestId}`,
+          },
+        );
+        return {
+          projectName: updated.delivery.projectName,
+          status: updated.delivery.status,
+          newObjective: false,
+        };
+      }
+      const projects = await engineeringDelivery.projects(input.ownerId, companyId);
+      const words = new Set(
+        input.text
+          .toLowerCase()
+          .split(/[^a-z0-9]+/)
+          .filter(Boolean),
+      );
+      const named = projects.filter((project) =>
+        project.projectName
+          .toLowerCase()
+          .split(/[^a-z0-9]+/)
+          .filter((word) => word.length > 2)
+          .some((word) => words.has(word)),
+      );
+      const project =
+        named.length === 1 ? named[0] : projects.length === 1 ? projects[0] : null;
+      if (!project) return null;
+      const updated = await engineeringDelivery.create(
+        { ...input, companyId },
+        {
+          request: input.text,
+          repositoryId: project.repositoryId,
+          developmentRootWorkspaceId: null,
+          projectName: project.projectName,
+          acceptanceCriteria: [],
+          constraints: [],
+          deadlineAt: null,
+          visibleMode: false,
+          idempotencyKey: `voice-modification-${input.requestId}`,
+        },
+      );
+      return {
+        projectName: updated.delivery.projectName,
+        status: updated.delivery.status,
+        newObjective: true,
+      };
+    },
+  });
   const objectives = new ObjectiveEngineService(
     executiveStore,
     workforceRuntime,
@@ -1578,40 +1930,58 @@ export const buildApi = async ({
     crossApplicationWorkflows,
     capabilityStudio,
   );
-  portfolio.setCompanyObjectiveProvider(async ({
-    ownerId, companyId, proposal, title, canonicalMetricKey, requestId, ipAddress,
-  }) => companyScope.run(
-    { ownerId, companyId, role: "OWNER", requestId },
-    async () => {
-      const marker = `portfolio-proposal:${proposal.id}`;
-      const existing = await objectives.dashboard(ownerId);
-      const goal = existing.goals.find((item) => item.constraints.includes(marker));
-      if (goal) {
-        const objective = existing.objectives.find((item) => item.executiveGoalId === goal.id);
-        if (objective) return objective.id;
-      }
-      const terms = proposal.revisions.at(-1)!.terms;
-      const created = await objectives.create({
-        ownerId,
-        body: {
-          title: title.slice(0, 160), outcome: terms.requestedOutcome,
-          deadline: terms.deadline ?? proposal.expiresAt,
-          budgetCredits: terms.budgetCredits, priority: "HIGH",
-          organizationId: companyId, constraints: [...terms.constraints, marker],
-          metrics: [{
-            name: canonicalMetricKey ?? "PORTFOLIO_OUTCOME",
-            unit: terms.unit ?? "count",
-            target: terms.targetValue === null ? 1 : Number(terms.targetValue),
-            direction: "HIGHER_IS_BETTER",
-          }],
-        },
-        requestId, ipAddress,
-      });
-      if (!created.objective)
-        throw Object.assign(new Error("Accepted proposal did not produce a valid objective draft."), { code: "COMPANY_OBJECTIVE_CLARIFICATION_REQUIRED", statusCode: 409 });
-      return created.objective.id;
-    },
-  ));
+  if (database) objectives.setTransaction(database.transaction);
+  portfolio.setCompanyObjectiveProvider(
+    async ({
+      ownerId,
+      companyId,
+      proposal,
+      title,
+      canonicalMetricKey,
+      requestId,
+      ipAddress,
+    }) =>
+      companyScope.run({ ownerId, companyId, role: "OWNER", requestId }, async () => {
+        const marker = `portfolio-proposal:${proposal.id}`;
+        const goals = await executiveStore.listGoals(ownerId);
+        const goal = goals.find((item) => item.constraints.includes(marker));
+        if (goal) {
+          const objective = (
+            await executiveStore.listObjectiveExecutions(ownerId)
+          ).find((item) => item.executiveGoalId === goal.id);
+          if (objective) return objective.id;
+        }
+        const terms = proposal.revisions.at(-1)!.terms;
+        const created = await objectives.create({
+          ownerId,
+          body: {
+            title: title.slice(0, 160),
+            outcome: terms.requestedOutcome,
+            deadline: terms.deadline ?? proposal.expiresAt,
+            budgetCredits: terms.budgetCredits,
+            priority: "HIGH",
+            organizationId: companyId,
+            constraints: [...terms.constraints, marker],
+            metrics: [
+              {
+                name: canonicalMetricKey ?? "PORTFOLIO_OUTCOME",
+                unit: terms.unit ?? "count",
+                target: terms.targetValue === null ? 1 : Number(terms.targetValue),
+                direction: "HIGHER_IS_BETTER",
+              },
+            ],
+          },
+          requestId,
+          ipAddress,
+        });
+        if (!created.objective)
+          throw Object.assign(
+            new Error("Accepted proposal did not produce a valid objective draft."),
+            { code: "COMPANY_OBJECTIVE_CLARIFICATION_REQUIRED", statusCode: 409 },
+          );
+        return created.objective.id;
+      }),
+  );
   const companyManagement = new CompanyManagementService(
     resolvedCompanyStore,
     companyData,
@@ -1625,7 +1995,12 @@ export const buildApi = async ({
   );
   portfolio.setManagementSummaryProvider((ownerId, companyId) =>
     companyScope.run(
-      { ownerId, companyId, role: "OWNER", requestId: `portfolio-management:${companyId}` },
+      {
+        ownerId,
+        companyId,
+        role: "OWNER",
+        requestId: `portfolio-management:${companyId}`,
+      },
       async () => {
         const [objectiveDashboard, plans, decisions, history] = await Promise.all([
           objectives.dashboard(ownerId),
@@ -1633,18 +2008,31 @@ export const buildApi = async ({
           executiveStore.listDecisions(ownerId),
           executiveStore.listHistory(ownerId),
         ]);
-        const activePlan = plans.filter((item) => item.status === "ACTIVE").sort((a, b) => b.version - a.version)[0];
-        const objectivesAtRisk = objectiveDashboard.objectives.filter((item) => ["AT_RISK", "BLOCKED", "FAILED"].includes(item.status)).length;
-        const blockedObjectives = objectiveDashboard.objectives.filter((item) => ["BLOCKED", "FAILED"].includes(item.status)).length;
-        const review = history.find((item) => item.metadata.kind === "MANAGEMENT_REVIEW");
+        const activePlan = plans
+          .filter((item) => item.status === "ACTIVE")
+          .sort((a, b) => b.version - a.version)[0];
+        const objectivesAtRisk = objectiveDashboard.objectives.filter((item) =>
+          ["AT_RISK", "BLOCKED", "FAILED"].includes(item.status),
+        ).length;
+        const blockedObjectives = objectiveDashboard.objectives.filter((item) =>
+          ["BLOCKED", "FAILED"].includes(item.status),
+        ).length;
+        const review = history.find(
+          (item) => item.metadata.kind === "MANAGEMENT_REVIEW",
+        );
         return {
           topPriority: activePlan?.milestones[0] ?? null,
           totalObjectives: objectiveDashboard.objectives.length,
           objectivesAtRisk,
           blockedObjectives,
-          decisionsRequiringOwner: decisions.filter((item) => item.status === "PROPOSED").length,
+          decisionsRequiringOwner: decisions.filter(
+            (item) => item.status === "PROPOSED",
+          ).length,
           latestReviewAt: review?.createdAt ?? null,
-          nextRecommendedFocus: objectivesAtRisk ? "Review at-risk objectives and bounded replan options." : activePlan?.milestones[0] ?? "Establish an approved measurable objective.",
+          nextRecommendedFocus: objectivesAtRisk
+            ? "Review at-risk objectives and bounded replan options."
+            : (activePlan?.milestones[0] ??
+              "Establish an approved measurable objective."),
         };
       },
     ),
@@ -1708,14 +2096,40 @@ export const buildApi = async ({
       });
     },
     commercialEvent: async (event) => {
-      const template=event.eventType==="REFUND_REQUESTED"?"REFUND":event.eventType==="INVOICE_OVERDUE"||event.eventType==="PAYMENT_FAILED"?"ACCOUNTS_RECEIVABLE":event.eventType==="INVENTORY_LOW"?"INVENTORY":event.eventType==="CAMPAIGN_THRESHOLD_BREACHED"?"CAMPAIGN_OPTIMIZATION":null;
-      if(template)await integrations.startCommercialWorkflow({ownerId:event.ownerId,companyId:event.companyId,template,triggerKey:event.canonicalEventId,sourceRefs:[event.entityRef??event.canonicalEventId]});
+      const template =
+        event.eventType === "REFUND_REQUESTED"
+          ? "REFUND"
+          : event.eventType === "INVOICE_OVERDUE" ||
+              event.eventType === "PAYMENT_FAILED"
+            ? "ACCOUNTS_RECEIVABLE"
+            : event.eventType === "INVENTORY_LOW"
+              ? "INVENTORY"
+              : event.eventType === "CAMPAIGN_THRESHOLD_BREACHED"
+                ? "CAMPAIGN_OPTIMIZATION"
+                : null;
+      if (template)
+        await integrations.startCommercialWorkflow({
+          ownerId: event.ownerId,
+          companyId: event.companyId,
+          template,
+          triggerKey: event.canonicalEventId,
+          sourceRefs: [event.entityRef ?? event.canonicalEventId],
+        });
       await tasks.emitLifecycleEvent({
-        ownerId:event.ownerId,
-        eventType:`business.${event.eventType.toLowerCase()}`,
-        scopeId:event.companyId,
-        baselineVersion:event.sourceVersion??event.occurredAt,
-        sourceSnapshot:{companyId:event.companyId,eventType:event.eventType,canonicalEventId:event.canonicalEventId,entityRef:event.entityRef,objectiveId:event.objectiveId,amountMinor:event.amountMinor,currency:event.currency,occurredAt:event.occurredAt},
+        ownerId: event.ownerId,
+        eventType: `business.${event.eventType.toLowerCase()}`,
+        scopeId: event.companyId,
+        baselineVersion: event.sourceVersion ?? event.occurredAt,
+        sourceSnapshot: {
+          companyId: event.companyId,
+          eventType: event.eventType,
+          canonicalEventId: event.canonicalEventId,
+          entityRef: event.entityRef,
+          objectiveId: event.objectiveId,
+          amountMinor: event.amountMinor,
+          currency: event.currency,
+          occurredAt: event.occurredAt,
+        },
       });
     },
     verifiedReward: async ({ ownerId, agentId, taskId, evidenceRef }) => {
@@ -1789,6 +2203,12 @@ export const buildApi = async ({
     csrfProtection: true,
     executions,
     executionStore,
+    engineeringManager,
+    engineeringOrchestrationStore: resolvedEngineeringOrchestrationStore,
+    engineeringIntegration,
+    engineeringIntegrationStore: resolvedEngineeringIntegrationStore,
+    engineeringDelivery,
+    engineeringDeliveryStore: resolvedEngineeringDeliveryStore,
     repositories,
     repositoryStore,
     patches,
@@ -2036,6 +2456,9 @@ export const buildApi = async ({
   registerApprovalRoutes(app, context);
   registerSecurityRoutes(app, context);
   registerExecutionRoutes(app, context);
+  registerEngineeringOrchestrationRoutes(app, context);
+  registerEngineeringIntegrationRoutes(app, context);
+  registerEngineeringDeliveryRoutes(app, context);
   registerCrossDeviceRoutes(app, context);
   registerRepositoryRoutes(app, context);
   registerPatchRoutes(app, context);

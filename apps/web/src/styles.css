@@ -1291,8 +1291,13 @@ textarea:focus-visible {
 }
 
 @media (max-width: 720px) {
-  .portfolio-search-controls { grid-template-columns: 1fr; }
-  .portfolio-approval-row, .portfolio-proposal-row { flex-direction: column; }
+  .portfolio-search-controls {
+    grid-template-columns: 1fr;
+  }
+  .portfolio-approval-row,
+  .portfolio-proposal-row {
+    flex-direction: column;
+  }
 }
 .portfolio-tabs {
   display: flex;
@@ -2241,6 +2246,275 @@ dt {
 
 .wide-page {
   max-width: 1180px;
+}
+
+.engineering-control-center {
+  display: grid;
+  gap: 14px;
+}
+.engineering-command-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2.1fr) minmax(230px, 0.9fr);
+  gap: 14px;
+}
+.engineering-request-form {
+  display: grid;
+  gap: 14px;
+}
+.engineering-request-form textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+.engineering-form-row {
+  display: grid;
+  grid-template-columns: 1fr 0.75fr 1.2fr auto;
+  gap: 9px;
+  align-items: end;
+}
+.engineering-project-list {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  max-height: 260px;
+  overflow: auto;
+}
+.engineering-project-list > span {
+  color: var(--muted);
+  font: 0.68rem var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.engineering-project-list button {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.025);
+  text-align: left;
+}
+.engineering-project-list button.active {
+  border-color: rgba(87, 184, 255, 0.3);
+  color: var(--text);
+  background: rgba(87, 184, 255, 0.08);
+}
+.engineering-project-list small {
+  color: var(--muted);
+  font: 0.62rem var(--mono);
+}
+.engineering-mission-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: start;
+}
+.engineering-mission-heading p {
+  margin-bottom: 0;
+}
+.engineering-status {
+  flex: 0 0 auto;
+  padding: 8px 11px;
+  border: 1px solid rgba(87, 184, 255, 0.28);
+  border-radius: 999px;
+  color: var(--accent);
+  background: rgba(87, 184, 255, 0.08);
+  font: 0.68rem var(--mono);
+}
+.engineering-status.done,
+.engineering-status.done_with_warnings {
+  color: var(--success);
+  border-color: rgba(67, 231, 162, 0.3);
+  background: rgba(67, 231, 162, 0.08);
+}
+.engineering-status.failed,
+.engineering-status.blocked {
+  color: var(--danger);
+  border-color: rgba(255, 93, 110, 0.3);
+  background: rgba(255, 93, 110, 0.08);
+}
+.engineering-metrics {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin: 0;
+}
+.engineering-metrics article {
+  display: grid;
+  gap: 5px;
+  align-content: center;
+}
+.engineering-metrics strong {
+  font-size: 1rem;
+}
+.engineering-progress-track {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.06);
+}
+.engineering-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--success));
+  box-shadow: 0 0 16px rgba(87, 184, 255, 0.45);
+  transition: width 0.35s ease;
+}
+.engineering-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.engineering-feature-list,
+.engineering-validation-list,
+.engineering-agent-list,
+.engineering-timeline,
+.engineering-files {
+  display: grid;
+  gap: 8px;
+}
+.engineering-feature-list article,
+.engineering-validation-list article {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 9px;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.engineering-feature-list small,
+.engineering-validation-list span {
+  color: var(--muted);
+  font: 0.65rem var(--mono);
+  text-transform: uppercase;
+}
+.feature-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.feature-dot.done {
+  background: var(--success);
+  box-shadow: 0 0 10px rgba(67, 231, 162, 0.5);
+}
+.feature-dot.implementing,
+.feature-dot.validating,
+.feature-dot.reviewing {
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(87, 184, 255, 0.5);
+}
+.feature-dot.blocked,
+.feature-dot.failed {
+  background: var(--danger);
+}
+.engineering-validation-list article {
+  grid-template-columns: 1fr auto;
+}
+.engineering-validation-list strong {
+  color: var(--muted);
+  font: 0.7rem var(--mono);
+}
+.engineering-validation-list strong.pass {
+  color: var(--success);
+}
+.engineering-validation-list strong.fail {
+  color: var(--danger);
+}
+.engineering-agent-list article,
+.engineering-timeline article {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+}
+.engineering-agent-list div,
+.engineering-timeline div {
+  display: grid;
+  gap: 3px;
+}
+.engineering-agent-list span,
+.engineering-agent-list small,
+.engineering-timeline small {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+.engineering-preview-panel,
+.engineering-controls {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+.engineering-preview-panel p {
+  margin: 0;
+}
+.engineering-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.engineering-actions a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border: 1px solid rgba(87, 184, 255, 0.25);
+  border-radius: 10px;
+  color: var(--accent);
+  text-decoration: none;
+}
+.engineering-controls form {
+  display: flex;
+  min-width: min(480px, 100%);
+  gap: 8px;
+}
+.engineering-controls form input {
+  flex: 1;
+}
+.engineering-timeline article {
+  grid-template-columns: auto 1fr;
+}
+.engineering-files code {
+  padding: 7px 9px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1050px) {
+  .engineering-command-row,
+  .engineering-grid {
+    grid-template-columns: 1fr;
+  }
+  .engineering-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .engineering-form-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 680px) {
+  .engineering-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .engineering-form-row {
+    grid-template-columns: 1fr;
+  }
+  .engineering-mission-heading,
+  .engineering-preview-panel,
+  .engineering-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .engineering-controls form {
+    min-width: 0;
+    flex-direction: column;
+  }
 }
 
 .tabbed-workspace {

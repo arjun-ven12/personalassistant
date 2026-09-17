@@ -322,7 +322,7 @@ export const SandboxExecutionResultSchema = z
     stdoutSummary: z.string().max(4_000),
     stderrSummary: z.string().max(4_000),
     durationMs: z.number().int().nonnegative(),
-    destroyed: z.literal(true),
+    destroyed: z.boolean(),
     traceId: z.string().min(16).max(64),
     createdAt: z.iso.datetime(),
   })

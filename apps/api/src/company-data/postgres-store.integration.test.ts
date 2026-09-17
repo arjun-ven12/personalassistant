@@ -1,12 +1,15 @@
 import {
   CompanyDataSourceSchema,
   CompanySemanticDocumentSchema,
+  KnowledgeNodeSchema,
 } from "@alexa-control/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { PostgresDatabase } from "../persistence/database.js";
 import { safeTestDatabaseUrl } from "../persistence/test-database.js";
 import { PostgresCompanyDataStore } from "./postgres-store.js";
+import { PostgresMemoryStore } from "../memory/postgres-store.js";
+import { companyScope } from "../companies/scope.js";
 
 const connectionString = safeTestDatabaseUrl();
 
@@ -113,6 +116,7 @@ describe.skipIf(!connectionString)(
         entityTypes: [],
         query: "growth evidence",
         queryEmbedding: embedding,
+        embeddingVersion: "test-v1",
         limit: 10,
       });
       expect(atlasResults.map((result) => result.document.id)).toEqual([
@@ -121,6 +125,21 @@ describe.skipIf(!connectionString)(
       expect(
         atlasResults.some((result) => result.document.id === novaDocument.id),
       ).toBe(false);
+      expect(await store.searchSemanticDocuments({ ownerId: crypto.randomUUID(), companyId: atlas, scopeIds: [`company:${atlas}`], entityTypes: [], query: "growth", queryEmbedding: embedding, embeddingVersion: "test-v1", limit: 10 })).toEqual([]);
+      expect(await store.searchSemanticDocuments({ ownerId, companyId: atlas, scopeIds: [`company:${nova}`], entityTypes: [], query: "growth", queryEmbedding: embedding, embeddingVersion: "test-v1", limit: 10 })).toEqual([]);
+      expect(await store.searchSemanticDocuments({ ownerId, companyId: atlas, scopeIds: [`company:${atlas}`], entityTypes: [], query: "growth", queryEmbedding: embedding, embeddingVersion: "wrong-version", limit: 10 })).toEqual([]);
+    });
+
+    it("does not widen legacy graph memory reads or overwrite another company's node", async () => {
+      const memories = new PostgresMemoryStore(database.pool);
+      await database.pool.query("UPDATE owners SET default_company_id=$2 WHERE id=$1", [ownerId, atlas]);
+      const node = KnowledgeNodeSchema.parse({ id: crypto.randomUUID(), ownerId, kind: "memory", label: "Nova private", summary: "Synthetic private evidence", evidence: [], refId: null, confidence: 1, createdAt: at, updatedAt: at });
+      const scope = (companyId: string) => ({ ownerId, companyId, role: "OWNER" as const, requestId: "fixture" });
+      await companyScope.run(scope(nova), () => memories.saveKnowledgeNode(node));
+      expect(await memories.listKnowledgeNodes(ownerId, 10)).toEqual([]);
+      await companyScope.run(scope(atlas), () => memories.saveKnowledgeNode({ ...node, label: "Forbidden overwrite" }));
+      expect((await companyScope.run(scope(nova), () => memories.listKnowledgeNodes(ownerId, 10)))[0]?.label).toBe("Nova private");
+      await expect(companyScope.run(scope(atlas), () => memories.listKnowledgeNodes(crypto.randomUUID(), 10))).rejects.toMatchObject({ code: "COMPANY_OWNER_SCOPE_MISMATCH" });
     });
   },
 );

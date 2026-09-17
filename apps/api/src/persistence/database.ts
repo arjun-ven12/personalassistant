@@ -2,6 +2,7 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 
 import pg from "pg";
+import { transactionalPool, type UnitOfWork } from "./unit-of-work.js";
 
 const { Pool } = pg;
 
@@ -13,6 +14,7 @@ export interface MigrationStatus {
 
 export class PostgresDatabase {
   readonly pool: pg.Pool;
+  readonly transaction: UnitOfWork;
 
   constructor(
     connectionString: string,
@@ -23,19 +25,30 @@ export class PostgresDatabase {
     } = {},
   ) {
     const parsedConnection = new URL(connectionString);
+    const loopback = ["localhost", "127.0.0.1", "[::1]", "::1"].includes(parsedConnection.hostname);
+    const urlMode = parsedConnection.searchParams.get("sslmode");
+    const mode = options.sslMode ?? urlMode ?? (loopback ? "disable" : "verify-full");
+    if (!["disable", "require", "verify-full"].includes(mode) || (mode === "disable" && !loopback))
+      throw new Error("DATABASE_TLS_CONFIGURATION_DENIED");
+    for (const key of ["ssl", "sslcert", "sslkey", "sslrootcert"])
+      if (parsedConnection.searchParams.has(key)) throw new Error("DATABASE_TLS_URL_OVERRIDE_DENIED");
+    // pg connection-string SSL options otherwise override explicit verification.
+    parsedConnection.searchParams.delete("sslmode");
+    parsedConnection.searchParams.delete("uselibpqcompat");
     const startupOptions = parsedConnection.searchParams.get("options") ?? undefined;
-    this.pool = new Pool({
-      connectionString,
+    const rawPool = new Pool({
+      connectionString: parsedConnection.toString(),
       ...(startupOptions ? { options: startupOptions } : {}),
       max: options.poolSize ?? 10,
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: options.connectionTimeoutMillis ?? 5_000,
       application_name: "personal-assistant-api",
-      ssl:
-        options.sslMode && options.sslMode !== "disable"
-          ? { rejectUnauthorized: options.sslMode === "verify-full" }
-          : undefined,
+      // `require` remains a compatibility spelling but never disables identity verification.
+      ssl: mode === "disable" ? false : { rejectUnauthorized: true },
     });
+    const unit = transactionalPool(rawPool);
+    this.pool = unit.pool;
+    this.transaction = unit.run;
   }
 
   async ping() {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { MemoryRecordSchema } from "@alexa-control/shared";
 import { EmbeddingService } from "./embedding-service.js";
@@ -6,7 +6,7 @@ import { RetrievalService } from "./retrieval-service.js";
 import { InMemoryMemoryStore } from "../memory/store.js";
 
 describe("RetrievalService", () => {
-  it("combines keyword, vector fallback, importance, recency, and confidence", async () => {
+  it("honestly falls back to lexical retrieval without embeddings, expired memories or irrelevant boosts", async () => {
     const ownerId = crypto.randomUUID();
     const store = new InMemoryMemoryStore();
     const at = new Date().toISOString();
@@ -44,6 +44,12 @@ describe("RetrievalService", () => {
     });
     store.saveMemory(relevant);
     store.saveMemory(irrelevant);
+    const expired = MemoryRecordSchema.parse({
+      ...relevant,
+      id: crypto.randomUUID(),
+      expiresAt: "2020-01-01T00:00:00.000Z",
+    });
+    store.saveMemory(expired);
     const retrieval = new RetrievalService(
       store,
       new EmbeddingService({
@@ -63,6 +69,13 @@ describe("RetrievalService", () => {
       },
     );
 
+    vi.spyOn(retrieval.embeddings, "status").mockReturnValue({
+      enabled: true,
+      provider: "openai",
+      model: "fixture",
+      queueLength: 0,
+    });
+    const embed = vi.spyOn(retrieval.embeddings, "embed");
     const result = await retrieval.hybridSearch(ownerId, {
       query: "authentication sessions csrf",
       mode: "hybrid",
@@ -71,5 +84,16 @@ describe("RetrievalService", () => {
 
     expect(result.results[0]?.memoryId).toBe(relevant.id);
     expect(result.results[0]?.score).toBeGreaterThan(0);
+    expect(result.mode).toBe("keyword");
+    expect(result.results.map((item) => item.memoryId)).toEqual([relevant.id]);
+    expect(embed).not.toHaveBeenCalled();
+    await expect(
+      retrieval.hybridSearch(ownerId, {
+        query: "authentication",
+        mode: "vector",
+        limit: 5,
+      }),
+    ).rejects.toMatchObject({ code: "VECTOR_RETRIEVAL_UNAVAILABLE" });
+    expect(embed).not.toHaveBeenCalled();
   });
 });

@@ -28,6 +28,11 @@ const at = "2026-08-31T00:00:00.000Z";
 const context = (companyId: string) => ({ ownerId, companyId, role: "OWNER" as const, requestId: companyId });
 
 describe("company-scoped repositories", () => {
+  it("rejects a foreign owner instead of dropping the current company filter", () => {
+    const store = new InMemoryMemoryStore();
+    expect(() => companyScope.run(context(companyA), () => store.listMemories(crypto.randomUUID(), 10)))
+      .toThrow("different owner");
+  });
   it("isolates Agent Economy balances for the same agent identifier", () => {
     const store = new InMemoryAgentEconomyStore();
     const account = (credits: number) => AgentEconomyAccountSchema.parse({

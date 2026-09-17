@@ -17460,6 +17460,33 @@ var CapabilitySchema = external_exports.enum([
   "app.automate",
   "workspace.read",
   "repository.index",
+  "repository.initialize_project",
+  "repository.inspect",
+  "repository.search",
+  "repository.file_read",
+  "repository.file_create",
+  "repository.file_patch",
+  "repository.file_delete",
+  "repository.git_status",
+  "repository.git_diff",
+  "repository.integration_diff",
+  "repository.git_log",
+  "repository.worktree_create",
+  "repository.worktree_inspect",
+  "repository.worktree_remove",
+  "repository.command_run",
+  "repository.validate",
+  "repository.prepare_commit",
+  "repository.integrate_commit",
+  "repository.resolve_additive_docs_conflict",
+  "repository.merge_candidate",
+  "repository.install_dependencies",
+  "repository.add_dependency",
+  "repository.remove_dependency",
+  "repository.dev_server_start",
+  "repository.dev_server_status",
+  "repository.dev_server_stop",
+  "repository.dev_server_restart",
   "workspace.validate",
   "workspace.write",
   "workspace.create_file",
@@ -20575,6 +20602,17 @@ var AuditEventTypeSchema = external_exports.enum([
   "REPOSITORY_INDEXED",
   "REPOSITORY_INDEX_FAILED",
   "REPOSITORY_SEARCHED",
+  "ENGINEERING_REPOSITORY_REGISTERED",
+  "ENGINEERING_WORKSPACE_CREATED",
+  "ENGINEERING_WORKSPACE_RECONCILED",
+  "ENGINEERING_WORKSPACE_ARCHIVED",
+  "ENGINEERING_CAPABILITY_INVOKED",
+  "ENGINEERING_CAPABILITY_DENIED",
+  "ENGINEERING_FILE_PATCHED",
+  "ENGINEERING_FILE_CREATED",
+  "ENGINEERING_FILE_DELETE_QUARANTINED",
+  "ENGINEERING_COMMAND_RUN",
+  "ENGINEERING_VALIDATION_RUN",
   "INTEGRATION_INSTALLED",
   "INTEGRATION_DISABLED",
   "INTEGRATION_AUTH_CONFIGURED",
@@ -20856,7 +20894,23 @@ var AuditEventTypeSchema = external_exports.enum([
   "WORKFORCE_TASK_SCHEDULED",
   "WORKFORCE_TASK_REVIEWED",
   "WORKFORCE_TASK_CANCELLED",
-  "WORKFORCE_RUNTIME_RECOVERED"
+  "WORKFORCE_RUNTIME_RECOVERED",
+  "ENGINEERING_OBJECTIVE_CREATED",
+  "ENGINEERING_OWNER_CLARIFICATION_REQUIRED",
+  "ENGINEERING_OWNER_CLARIFICATION_ANSWERED",
+  "ENGINEERING_MEMORY_PROMOTED",
+  "ENGINEERING_INTEGRATION_CREATED",
+  "ENGINEERING_INTEGRATION_CONFLICT_DETECTED",
+  "ENGINEERING_INTEGRATION_VALIDATION_EXECUTED",
+  "ENGINEERING_INTEGRATION_REVIEW_EXECUTED",
+  "ENGINEERING_INTEGRATION_REPAIR_CREATED",
+  "ENGINEERING_INTEGRATION_REPAIR_BLOCKED",
+  "ENGINEERING_MERGE_CANDIDATE_READY",
+  "ENGINEERING_MERGE_CANDIDATE_STALE",
+  "ENGINEERING_MERGE_EXECUTED",
+  "ENGINEERING_INTEGRATION_CANCELLED",
+  "ENGINEERING_DELIVERY_CREATED",
+  "ENGINEERING_DELIVERY_COMPLETED"
 ]);
 var AuditOutcomeSchema = external_exports.enum(["SUCCESS", "FAILURE", "DENIED"]);
 var AuditRecordSchema = external_exports.object({
@@ -21188,6 +21242,680 @@ var SignedCommandEnvelopeSchema = external_exports.object({
     path: ["expiresAt"]
   }
 );
+
+// ../../packages/shared/src/engineering-runtime.ts
+var EngineeringRepositoryStatusSchema = external_exports.enum([
+  "INITIALIZING",
+  "ACTIVE",
+  "DISABLED",
+  "ARCHIVED"
+]);
+var EngineeringWorkspaceStateSchema = external_exports.enum([
+  "CREATING",
+  "READY",
+  "DIRTY",
+  "VALIDATING",
+  "COMPLETED",
+  "FAILED",
+  "CANCELLED",
+  "CLEANING_UP",
+  "ARCHIVED"
+]);
+var EngineeringCapabilitySchema = external_exports.enum([
+  "repository.initialize_project",
+  "repository.inspect",
+  "repository.search",
+  "repository.file_read",
+  "repository.file_create",
+  "repository.file_patch",
+  "repository.file_delete",
+  "repository.git_status",
+  "repository.git_diff",
+  "repository.integration_diff",
+  "repository.git_log",
+  "repository.worktree_create",
+  "repository.worktree_inspect",
+  "repository.worktree_remove",
+  "repository.run_command",
+  "repository.validate",
+  "repository.install_dependencies",
+  "repository.add_dependency",
+  "repository.remove_dependency",
+  "repository.dev_server_start",
+  "repository.dev_server_status",
+  "repository.dev_server_stop",
+  "repository.dev_server_restart",
+  "repository.prepare_commit",
+  "repository.integrate_commit",
+  "repository.resolve_additive_docs_conflict",
+  "repository.merge_candidate"
+]);
+var EngineeringErrorCodeSchema = external_exports.enum([
+  "REPOSITORY_NOT_FOUND",
+  "REPOSITORY_NOT_AUTHORIZED",
+  "WORKSPACE_NOT_FOUND",
+  "WORKSPACE_BUSY",
+  "PATH_OUTSIDE_REPOSITORY",
+  "CAPABILITY_DENIED",
+  "COMMAND_NOT_ALLOWED",
+  "COMMAND_TIMEOUT",
+  "COMMAND_SANDBOX_UNAVAILABLE",
+  "VALIDATION_FAILED",
+  "GIT_ERROR",
+  "WORKTREE_ERROR",
+  "PROTECTED_PATH",
+  "DIRTY_REPOSITORY",
+  "SYMLINK_REJECTED",
+  "BINARY_FILE",
+  "OUTPUT_LIMIT",
+  "CANCELLED",
+  "INCONSISTENT_STATE",
+  "DEPENDENCY_INSTALL_FAILED",
+  "DEV_SERVER_FAILED",
+  "PORT_UNAVAILABLE"
+]);
+var EngineeringRelativePathSchema = external_exports.string().min(1).max(1024).refine((value) => !value.startsWith("/") && !/^[A-Za-z]:/.test(value)).refine((value) => !value.includes("\0") && !/[?*[\]{}]/.test(value)).refine(
+  (value) => value.replaceAll("\\", "/").split("/").every((segment) => segment !== "" && segment !== "." && segment !== ".."),
+  "Path must be a normalized repository-relative path."
+);
+var SafeIdentifierSchema = external_exports.string().trim().regex(/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/);
+var EngineeringRepositoryMetadataSchema = external_exports.object({
+  languages: external_exports.array(external_exports.string().min(1).max(80)).max(30),
+  packageManagers: external_exports.array(external_exports.string().min(1).max(40)).max(10),
+  frameworks: external_exports.array(external_exports.string().min(1).max(80)).max(20),
+  importantFiles: external_exports.array(EngineeringRelativePathSchema).max(50),
+  contractBindings: external_exports.array(
+    external_exports.object({
+      sourcePath: EngineeringRelativePathSchema,
+      generatedPathPrefix: EngineeringRelativePathSchema
+    }).strict()
+  ).max(30).default([])
+}).strict();
+var EngineeringRepositorySchema = external_exports.object({
+  schemaVersion: external_exports.literal("1"),
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid(),
+  displayName: external_exports.string().trim().min(1).max(120),
+  workspaceLocatorId: RegistryIdSchema,
+  defaultBranch: external_exports.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._/-]{0,199}$/),
+  protectedBranches: external_exports.array(external_exports.string().min(1).max(200)).min(1).max(20),
+  protectedPaths: external_exports.array(external_exports.string().min(1).max(300)).max(100),
+  generatedPaths: external_exports.array(external_exports.string().min(1).max(300)).max(100),
+  commandProfileId: SafeIdentifierSchema,
+  capabilityProfileId: SafeIdentifierSchema,
+  authorizedAgentIds: external_exports.array(external_exports.string().uuid()).max(100),
+  metadata: EngineeringRepositoryMetadataSchema,
+  status: EngineeringRepositoryStatusSchema,
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict().superRefine((value, context) => {
+  if (!value.protectedBranches.includes(value.defaultBranch))
+    context.addIssue({
+      code: "custom",
+      path: ["protectedBranches"],
+      message: "The default branch must be protected."
+    });
+  for (const [index, binding] of value.metadata.contractBindings.entries()) {
+    if (!value.generatedPaths.some(
+      (pattern) => binding.generatedPathPrefix === pattern.replace(/\/\*\*?$/, "") || binding.generatedPathPrefix.startsWith(
+        `${pattern.replace(/\/\*\*?$/, "")}/`
+      )
+    ))
+      context.addIssue({
+        code: "custom",
+        path: ["metadata", "contractBindings", index],
+        message: "Contract output must be inside a registered generated path."
+      });
+  }
+});
+var CreateEngineeringRepositoryRequestSchema = external_exports.object({
+  displayName: external_exports.string().trim().min(1).max(120),
+  workspaceLocatorId: RegistryIdSchema,
+  defaultBranch: external_exports.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._/-]{0,199}$/),
+  protectedBranches: external_exports.array(external_exports.string().min(1).max(200)).max(20).default([]),
+  protectedPaths: external_exports.array(external_exports.string().min(1).max(300)).max(100).default([]),
+  generatedPaths: external_exports.array(external_exports.string().min(1).max(300)).max(100).default([]),
+  commandProfileId: SafeIdentifierSchema,
+  capabilityProfileId: SafeIdentifierSchema,
+  authorizedAgentIds: external_exports.array(external_exports.string().uuid()).max(100).default([])
+}).strict();
+var EngineeringWorkspaceSchema = external_exports.object({
+  schemaVersion: external_exports.literal("1"),
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid(),
+  repositoryId: external_exports.string().uuid(),
+  taskId: external_exports.string().uuid().nullable(),
+  agentId: external_exports.string().uuid().nullable(),
+  idempotencyKey: SafeIdentifierSchema,
+  branchName: external_exports.string().regex(/^alexa\/[a-z0-9][a-z0-9-]{0,119}$/),
+  worktreeLocator: SafeIdentifierSchema,
+  baseCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/),
+  headCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/).nullable(),
+  state: EngineeringWorkspaceStateSchema,
+  leaseOwner: SafeIdentifierSchema.nullable(),
+  leaseExpiresAt: external_exports.iso.datetime().nullable(),
+  leaseGeneration: external_exports.number().int().nonnegative(),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime(),
+  expiresAt: external_exports.iso.datetime().nullable()
+}).strict();
+var CreateEngineeringWorkspaceRequestSchema = external_exports.object({
+  repositoryId: external_exports.string().uuid(),
+  taskId: external_exports.string().uuid().nullable().default(null),
+  agentId: external_exports.string().uuid().nullable().default(null),
+  idempotencyKey: SafeIdentifierSchema,
+  slug: external_exports.string().trim().min(1).max(80).regex(/^[a-zA-Z0-9][a-zA-Z0-9 _-]*$/),
+  expiresAt: external_exports.iso.datetime().nullable().default(null)
+}).strict();
+var EngineeringSearchRequestSchema = external_exports.object({
+  query: external_exports.string().min(1).max(300),
+  mode: external_exports.enum(["TEXT", "FILE_NAME"]),
+  limit: external_exports.number().int().min(1).max(200).default(50)
+}).strict();
+var EngineeringSearchResultSchema = external_exports.object({
+  path: EngineeringRelativePathSchema,
+  line: external_exports.number().int().positive().nullable(),
+  preview: external_exports.string().max(500)
+}).strict();
+var EngineeringFileReadRequestSchema = external_exports.object({
+  path: EngineeringRelativePathSchema,
+  startLine: external_exports.number().int().positive().default(1),
+  endLine: external_exports.number().int().positive().max(2e4).optional(),
+  maxBytes: external_exports.number().int().min(1).max(131072).default(32768)
+}).strict().refine((value) => value.endLine === void 0 || value.endLine >= value.startLine, {
+  message: "endLine must not precede startLine."
+});
+var EngineeringFileReadResultSchema = external_exports.object({
+  path: EngineeringRelativePathSchema,
+  startLine: external_exports.number().int().positive(),
+  endLine: external_exports.number().int().nonnegative(),
+  content: external_exports.string().max(131072),
+  sha256: external_exports.string().length(64),
+  truncated: external_exports.boolean(),
+  redactions: external_exports.array(external_exports.string().max(80)).max(20)
+}).strict();
+var EngineeringPatchSchema = external_exports.object({
+  path: EngineeringRelativePathSchema,
+  expectedSha256: external_exports.string().length(64),
+  hunks: external_exports.array(
+    external_exports.object({
+      startLine: external_exports.number().int().positive(),
+      endLine: external_exports.number().int().nonnegative(),
+      replacement: external_exports.string().max(131072)
+    }).strict().refine((value) => value.endLine >= value.startLine - 1)
+  ).min(1).max(50)
+}).strict();
+var EngineeringFileCreateRequestSchema = external_exports.object({
+  path: EngineeringRelativePathSchema,
+  content: external_exports.string().max(131072)
+}).strict();
+var EngineeringFileDeleteRequestSchema = external_exports.object({
+  path: EngineeringRelativePathSchema,
+  expectedSha256: external_exports.string().length(64),
+  approvalId: external_exports.string().uuid()
+}).strict();
+var EngineeringCommandDefinitionSchema = external_exports.object({
+  id: SafeIdentifierSchema,
+  executable: external_exports.enum(["pnpm", "npm", "pytest", "ruff", "mypy", "gradle"]),
+  args: external_exports.array(
+    external_exports.string().min(1).max(120).regex(/^[a-zA-Z0-9@%+=:,./_-]+$/)
+  ).max(20),
+  kind: external_exports.enum(["LINT", "TYPECHECK", "TEST", "BUILD", "OTHER"]),
+  timeoutMs: external_exports.number().int().min(1e3).max(30 * 6e4),
+  maxOutputBytes: external_exports.number().int().min(1024).max(1048576),
+  networkPolicy: external_exports.literal("DENY")
+}).strict();
+var EngineeringDevServerDefinitionSchema = external_exports.object({
+  id: SafeIdentifierSchema,
+  executable: external_exports.enum(["pnpm", "npm", "yarn", "python", "gradle"]),
+  args: external_exports.array(
+    external_exports.string().min(1).max(120).regex(/^[a-zA-Z0-9@%+=:,./_-]+$/)
+  ).max(20),
+  portFlag: external_exports.enum(["--port", "-p", "--server.port"]).nullable(),
+  hostFlag: external_exports.enum(["--host", "--hostname"]).nullable(),
+  healthPath: external_exports.string().regex(/^\/[a-zA-Z0-9._~!$&'()*+,;=:@%/-]*$/).max(300),
+  startupTimeoutMs: external_exports.number().int().min(1e3).max(12e4),
+  maxLifetimeMs: external_exports.number().int().min(6e4).max(24 * 60 * 6e4)
+}).strict();
+var EngineeringCommandProfileSchema = external_exports.object({
+  schemaVersion: external_exports.literal("1"),
+  id: SafeIdentifierSchema,
+  ownerId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid(),
+  displayName: external_exports.string().min(1).max(120),
+  commands: external_exports.array(EngineeringCommandDefinitionSchema).min(1).max(30),
+  validationOrder: external_exports.array(SafeIdentifierSchema).max(20),
+  dependencyManager: external_exports.enum(["pnpm", "npm", "yarn", "pip", "uv", "gradle"]).nullable().default(null),
+  developmentServers: external_exports.array(EngineeringDevServerDefinitionSchema).max(10).default([]),
+  status: external_exports.enum(["ACTIVE", "DISABLED"]),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict().superRefine((value, context) => {
+  const ids = new Set(value.commands.map((command) => command.id));
+  if (ids.size !== value.commands.length)
+    context.addIssue({
+      code: "custom",
+      path: ["commands"],
+      message: "Command IDs must be unique."
+    });
+  for (const id of value.validationOrder)
+    if (!ids.has(id))
+      context.addIssue({
+        code: "custom",
+        path: ["validationOrder"],
+        message: `Unknown command: ${id}`
+      });
+  const serverIds = new Set(value.developmentServers.map((server) => server.id));
+  if (serverIds.size !== value.developmentServers.length)
+    context.addIssue({
+      code: "custom",
+      path: ["developmentServers"],
+      message: "Development server IDs must be unique."
+    });
+});
+var EngineeringProjectTemplateSchema = external_exports.enum([
+  "REACT_VITE_TYPESCRIPT",
+  "EMPTY_TYPESCRIPT"
+]);
+var EngineeringDependencyPackageSchema = external_exports.string().trim().min(1).max(160).regex(
+  /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*(?:@(?:\^|~)?[0-9][0-9A-Za-z.+-]*)?$/
+);
+var EngineeringDependencyOperationResultSchema = external_exports.object({
+  packageManager: external_exports.enum(["pnpm", "npm", "yarn", "pip", "uv", "gradle"]),
+  operation: external_exports.enum(["INSTALL", "ADD", "REMOVE"]),
+  packages: external_exports.array(EngineeringDependencyPackageSchema).max(20),
+  exitCode: external_exports.number().int().nullable(),
+  durationMs: external_exports.number().int().nonnegative(),
+  stdout: external_exports.string().max(131072),
+  stderr: external_exports.string().max(131072),
+  timedOut: external_exports.boolean(),
+  lockfileChanged: external_exports.boolean()
+}).strict();
+var EngineeringPreviewStateSchema = external_exports.enum([
+  "STARTING",
+  "RUNNING",
+  "FAILED",
+  "STOPPED"
+]);
+var EngineeringPreviewResultSchema = external_exports.object({
+  previewId: external_exports.string().uuid(),
+  serverId: SafeIdentifierSchema,
+  state: EngineeringPreviewStateSchema,
+  pid: external_exports.number().int().positive().nullable(),
+  port: external_exports.number().int().min(1024).max(65535).nullable(),
+  url: external_exports.string().url().refine((value) => {
+    const url2 = new URL(value);
+    return url2.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url2.hostname);
+  }).nullable(),
+  healthStatus: external_exports.enum(["PENDING", "PASS", "FAIL"]),
+  startedAt: external_exports.iso.datetime().nullable(),
+  checkedAt: external_exports.iso.datetime(),
+  expiresAt: external_exports.iso.datetime().nullable(),
+  failureSummary: external_exports.string().max(1e3).nullable()
+}).strict();
+var EngineeringCommandResultSchema = external_exports.object({
+  commandId: SafeIdentifierSchema,
+  exitCode: external_exports.number().int().nullable(),
+  stdout: external_exports.string().max(1048576),
+  stderr: external_exports.string().max(1048576),
+  startedAt: external_exports.iso.datetime(),
+  completedAt: external_exports.iso.datetime(),
+  durationMs: external_exports.number().int().nonnegative(),
+  timedOut: external_exports.boolean(),
+  cancelled: external_exports.boolean(),
+  truncated: external_exports.boolean(),
+  networkIsolated: external_exports.literal(true)
+}).strict();
+var EngineeringValidationStepStatusSchema = external_exports.enum([
+  "PASS",
+  "FAIL",
+  "SKIPPED",
+  "NOT_CONFIGURED",
+  "ERROR"
+]);
+var EngineeringValidationReportSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  workspaceId: external_exports.string().uuid(),
+  status: external_exports.enum(["PASS", "FAIL", "ERROR", "CANCELLED"]),
+  steps: external_exports.array(
+    external_exports.object({
+      commandId: SafeIdentifierSchema,
+      kind: external_exports.enum(["LINT", "TYPECHECK", "TEST", "BUILD", "OTHER"]),
+      status: EngineeringValidationStepStatusSchema,
+      result: EngineeringCommandResultSchema.nullable(),
+      failures: external_exports.array(
+        external_exports.object({
+          file: EngineeringRelativePathSchema.nullable(),
+          testName: external_exports.string().max(300).nullable(),
+          message: external_exports.string().max(1e3)
+        }).strict()
+      ).max(50)
+    }).strict()
+  ).max(20),
+  durationMs: external_exports.number().int().nonnegative(),
+  createdAt: external_exports.iso.datetime()
+}).strict();
+var EngineeringGitStatusSchema = external_exports.object({
+  branch: external_exports.string().max(200),
+  entries: external_exports.array(
+    external_exports.object({
+      path: EngineeringRelativePathSchema,
+      originalPath: EngineeringRelativePathSchema.nullable(),
+      kind: external_exports.enum([
+        "MODIFIED",
+        "ADDED",
+        "DELETED",
+        "RENAMED",
+        "UNTRACKED",
+        "CONFLICTED"
+      ])
+    }).strict()
+  ).max(2e3),
+  dirty: external_exports.boolean(),
+  truncated: external_exports.boolean()
+}).strict();
+var EngineeringDiffResultSchema = external_exports.object({
+  patch: external_exports.string().max(524288),
+  files: external_exports.array(
+    external_exports.object({
+      path: EngineeringRelativePathSchema,
+      additions: external_exports.number().int().nonnegative(),
+      deletions: external_exports.number().int().nonnegative(),
+      binary: external_exports.boolean()
+    }).strict()
+  ).max(2e3),
+  truncated: external_exports.boolean(),
+  redactions: external_exports.array(external_exports.string().max(80)).max(20)
+}).strict();
+var EngineeringPreparedCommitSchema = external_exports.object({
+  commit: external_exports.string().regex(/^[0-9a-f]{40,64}$/),
+  files: external_exports.array(EngineeringRelativePathSchema).min(1).max(2e3),
+  redactions: external_exports.array(external_exports.string().max(80)).max(20)
+}).strict();
+var EngineeringCommitIntegrationResultSchema = external_exports.object({
+  integrated: external_exports.boolean(),
+  commit: external_exports.string().regex(/^[0-9a-f]{40,64}$/),
+  headCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/),
+  conflictPaths: external_exports.array(EngineeringRelativePathSchema).max(500),
+  conflictHunks: external_exports.array(
+    external_exports.object({
+      path: EngineeringRelativePathSchema,
+      startLine: external_exports.number().int().positive(),
+      endLine: external_exports.number().int().positive()
+    }).strict()
+  ).max(100).default([])
+}).strict();
+var EngineeringCandidateMergeResultSchema = external_exports.object({
+  merged: external_exports.boolean(),
+  alreadyMerged: external_exports.boolean(),
+  headCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/),
+  targetBranch: external_exports.string().max(200)
+}).strict();
+var EngineeringExecutionRecordSchema = external_exports.object({
+  schemaVersion: external_exports.literal("1"),
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid(),
+  repositoryId: external_exports.string().uuid(),
+  workspaceId: external_exports.string().uuid(),
+  taskId: external_exports.string().uuid().nullable(),
+  agentId: external_exports.string().uuid().nullable(),
+  capability: EngineeringCapabilitySchema,
+  modelProvider: external_exports.string().max(80).nullable(),
+  modelId: external_exports.string().max(120).nullable(),
+  aiRequestId: external_exports.string().uuid().nullable(),
+  inputTokens: external_exports.number().int().nonnegative().nullable(),
+  outputTokens: external_exports.number().int().nonnegative().nullable(),
+  costMinor: external_exports.number().int().nonnegative().nullable(),
+  status: external_exports.enum(["RUNNING", "SUCCEEDED", "FAILED", "CANCELLED"]),
+  filesTouched: external_exports.array(EngineeringRelativePathSchema).max(200),
+  commandIds: external_exports.array(SafeIdentifierSchema).max(50),
+  validationAttempt: external_exports.number().int().nonnegative(),
+  startedAt: external_exports.iso.datetime(),
+  completedAt: external_exports.iso.datetime().nullable(),
+  durationMs: external_exports.number().int().nonnegative().nullable(),
+  failureCode: EngineeringErrorCodeSchema.nullable()
+}).strict();
+var EngineeringExecutionResultSchema = external_exports.object({
+  repository: EngineeringRepositorySchema,
+  workspace: EngineeringWorkspaceSchema,
+  filesChanged: external_exports.array(EngineeringRelativePathSchema).max(2e3),
+  diffSummary: EngineeringDiffResultSchema,
+  validation: EngineeringValidationReportSchema.nullable(),
+  commandsRun: external_exports.array(EngineeringCommandResultSchema).max(50),
+  warnings: external_exports.array(external_exports.string().max(500)).max(50),
+  status: external_exports.enum(["SUCCEEDED", "FAILED", "CANCELLED"])
+}).strict();
+var EngineeringTransportScopeSchema = external_exports.object({
+  schemaVersion: external_exports.literal("1"),
+  companyId: external_exports.string().uuid(),
+  repositoryId: external_exports.string().uuid(),
+  engineeringWorkspaceId: external_exports.string().uuid().nullable(),
+  workspaceLocatorId: RegistryIdSchema,
+  worktreeLocator: SafeIdentifierSchema.nullable(),
+  taskId: external_exports.string().uuid().nullable(),
+  agentId: external_exports.string().uuid().nullable(),
+  operationId: external_exports.string().uuid(),
+  idempotencyKey: SafeIdentifierSchema,
+  requestId: external_exports.string().uuid()
+}).strict();
+var EngineeringTransportOperationSchema = external_exports.discriminatedUnion("capability", [
+  external_exports.object({
+    capability: external_exports.literal("repository.initialize_project"),
+    input: external_exports.object({
+      template: EngineeringProjectTemplateSchema,
+      projectSlug: external_exports.string().regex(/^[a-z0-9][a-z0-9-]{0,79}$/),
+      defaultBranch: external_exports.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._/-]{0,199}$/)
+    }).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.inspect"),
+    input: external_exports.object({}).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.worktree_create"),
+    input: external_exports.object({
+      branchName: external_exports.string().regex(/^alexa\/[a-z0-9][a-z0-9-]{0,119}$/),
+      baseCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/)
+    }).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.worktree_inspect"),
+    input: external_exports.object({}).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.worktree_remove"),
+    input: external_exports.object({}).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.search"),
+    input: EngineeringSearchRequestSchema
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.file_read"),
+    input: EngineeringFileReadRequestSchema
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.file_patch"),
+    input: external_exports.object({
+      patch: EngineeringPatchSchema,
+      protectedPaths: external_exports.array(external_exports.string().min(1).max(300)).max(100),
+      protectedPathApproved: external_exports.boolean()
+    }).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.file_create"),
+    input: EngineeringFileCreateRequestSchema.extend({
+      protectedPaths: external_exports.array(external_exports.string().min(1).max(300)).max(100),
+      protectedPathApproved: external_exports.boolean()
+    }).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.file_delete"),
+    input: EngineeringFileDeleteRequestSchema.omit({ approvalId: true }).extend({
+      protectedPaths: external_exports.array(external_exports.string().min(1).max(300)).max(100),
+      protectedPathApproved: external_exports.boolean()
+    }).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.git_status"),
+    input: external_exports.object({}).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.git_diff"),
+    input: external_exports.object({ maxBytes: external_exports.number().int().min(1024).max(524288) }).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.integration_diff"),
+    input: external_exports.object({
+      baseCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/),
+      maxBytes: external_exports.number().int().min(1024).max(524288)
+    }).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.prepare_commit"),
+    input: external_exports.object({
+      taskId: external_exports.string().uuid(),
+      agentId: external_exports.string().uuid(),
+      baseCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/)
+    }).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.integrate_commit"),
+    input: external_exports.object({
+      commit: external_exports.string().regex(/^[0-9a-f]{40,64}$/),
+      sourceWorkspaceId: external_exports.string().uuid(),
+      sourceWorktreeLocator: external_exports.string().regex(/^ew-[0-9a-f-]{36}$/)
+    }).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.resolve_additive_docs_conflict"),
+    input: external_exports.object({
+      commit: external_exports.string().regex(/^[0-9a-f]{40,64}$/),
+      sourceWorkspaceId: external_exports.string().uuid(),
+      sourceWorktreeLocator: external_exports.string().regex(/^ew-[0-9a-f-]{36}$/),
+      path: EngineeringRelativePathSchema,
+      expectedHead: external_exports.string().regex(/^[0-9a-f]{40,64}$/)
+    }).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.merge_candidate"),
+    input: external_exports.object({
+      candidateId: external_exports.string().uuid(),
+      integrationRunId: external_exports.string().uuid(),
+      expectedBase: external_exports.string().regex(/^[0-9a-f]{40,64}$/),
+      candidateHead: external_exports.string().regex(/^[0-9a-f]{40,64}$/),
+      targetBranch: external_exports.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._/-]{0,199}$/),
+      mergeIdempotencyKey: external_exports.string().min(8).max(200),
+      leaseGeneration: external_exports.number().int().positive(),
+      leaseExpiresAt: external_exports.iso.datetime()
+    }).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.run_command"),
+    input: external_exports.object({ command: EngineeringCommandDefinitionSchema }).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.install_dependencies"),
+    input: external_exports.object({
+      packageManager: external_exports.enum(["pnpm", "npm", "yarn", "pip", "uv", "gradle"])
+    }).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.add_dependency"),
+    input: external_exports.object({
+      packageManager: external_exports.enum(["pnpm", "npm", "yarn", "pip", "uv", "gradle"]),
+      packages: external_exports.array(EngineeringDependencyPackageSchema).min(1).max(20),
+      development: external_exports.boolean()
+    }).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.remove_dependency"),
+    input: external_exports.object({
+      packageManager: external_exports.enum(["pnpm", "npm", "yarn", "pip", "uv", "gradle"]),
+      packages: external_exports.array(EngineeringDependencyPackageSchema).min(1).max(20)
+    }).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.dev_server_start"),
+    input: external_exports.object({
+      previewId: external_exports.string().uuid(),
+      server: EngineeringDevServerDefinitionSchema,
+      preferredPort: external_exports.number().int().min(1024).max(65535).nullable(),
+      portRangeStart: external_exports.number().int().min(1024).max(65535),
+      portRangeEnd: external_exports.number().int().min(1024).max(65535)
+    }).strict().refine(
+      (value) => value.portRangeEnd >= value.portRangeStart && value.portRangeEnd - value.portRangeStart <= 100
+    )
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.dev_server_status"),
+    input: external_exports.object({ previewId: external_exports.string().uuid() }).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.dev_server_stop"),
+    input: external_exports.object({ previewId: external_exports.string().uuid() }).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.dev_server_restart"),
+    input: external_exports.object({
+      previewId: external_exports.string().uuid(),
+      server: EngineeringDevServerDefinitionSchema,
+      preferredPort: external_exports.number().int().min(1024).max(65535).nullable(),
+      portRangeStart: external_exports.number().int().min(1024).max(65535),
+      portRangeEnd: external_exports.number().int().min(1024).max(65535)
+    }).strict().refine(
+      (value) => value.portRangeEnd >= value.portRangeStart && value.portRangeEnd - value.portRangeStart <= 100
+    )
+  }).strict()
+]);
+var EngineeringTransportRequestSchema = external_exports.intersection(
+  EngineeringTransportScopeSchema,
+  EngineeringTransportOperationSchema
+);
+var EngineeringRepositoryInspectionSchema = external_exports.object({
+  baseCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/),
+  branch: external_exports.string().max(200),
+  dirty: external_exports.boolean(),
+  metadata: EngineeringRepositoryMetadataSchema
+}).strict();
+var EngineeringWorktreeInspectionSchema = external_exports.object({
+  exists: external_exports.boolean(),
+  baseCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/).nullable(),
+  headCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/).nullable(),
+  dirty: external_exports.boolean(),
+  branch: external_exports.string().max(200).nullable()
+}).strict();
+var EngineeringMutationResultSchema = external_exports.object({ path: EngineeringRelativePathSchema, sha256: external_exports.string().length(64) }).strict();
+var EngineeringQuarantineResultSchema = external_exports.object({
+  path: EngineeringRelativePathSchema,
+  recoveryLocator: external_exports.string().min(1).max(300)
+}).strict();
+var EngineeringTransportOutputSchema = external_exports.union([
+  EngineeringRepositoryInspectionSchema,
+  EngineeringWorktreeInspectionSchema,
+  external_exports.object({ completed: external_exports.literal(true) }).strict(),
+  external_exports.array(EngineeringSearchResultSchema).max(200),
+  EngineeringFileReadResultSchema,
+  EngineeringMutationResultSchema,
+  EngineeringQuarantineResultSchema,
+  EngineeringGitStatusSchema,
+  EngineeringDiffResultSchema,
+  EngineeringPreparedCommitSchema,
+  EngineeringCommitIntegrationResultSchema,
+  EngineeringCandidateMergeResultSchema,
+  EngineeringCommandResultSchema,
+  EngineeringDependencyOperationResultSchema,
+  EngineeringPreviewResultSchema
+]);
+var EngineeringTransportResultSchema = external_exports.object({
+  schemaVersion: external_exports.literal("1"),
+  operationId: external_exports.string().uuid(),
+  capability: EngineeringCapabilitySchema,
+  output: EngineeringTransportOutputSchema
+}).strict();
 
 // ../../packages/shared/src/repositories.ts
 var RepositoryIndexStatusSchema = external_exports.enum([
@@ -22044,7 +22772,8 @@ var ReadOnlyToolNameSchema = external_exports.enum([
   "repository.scan_metadata",
   "workspace.apply_patch",
   "workspace.validate_profile",
-  "native.provider_capability"
+  "native.provider_capability",
+  "engineering.repository_capability"
 ]);
 var ExecutionRequestStatusSchema = external_exports.enum([
   "PENDING",
@@ -22117,6 +22846,10 @@ var ReadOnlyCapabilityArgumentsSchema = external_exports.discriminatedUnion("too
   external_exports.object({
     toolName: external_exports.literal("native.provider_capability"),
     arguments: NativeCapabilityDispatchRequestSchema
+  }),
+  external_exports.object({
+    toolName: external_exports.literal("engineering.repository_capability"),
+    arguments: EngineeringTransportRequestSchema
   })
 ]);
 var WorkspaceMetadataResultSchema = external_exports.object({
@@ -22218,7 +22951,8 @@ var ReadOnlyCapabilityResultSchema = external_exports.union([
   RepositoryScanResultSchema,
   PatchExecutionResultSchema,
   ValidationExecutionResultSchema,
-  NativeProviderExecutionTransportResultSchema
+  NativeProviderExecutionTransportResultSchema,
+  EngineeringTransportResultSchema
 ]);
 var ReadOnlyExecutionRequestSchema = external_exports.object({
   id: external_exports.string().uuid(),
@@ -26115,11 +26849,13 @@ var IndexCompanySemanticDocumentRequestSchema = CompanySemanticDocumentSchema.pi
   embeddingVersion: true
 });
 var CompanySemanticSearchRequestSchema = external_exports.object({
+  mode: external_exports.enum(["lexical", "vector", "hybrid"]).default("lexical"),
   query: external_exports.string().trim().min(1).max(500),
   entityTypes: external_exports.array(CompanySemanticDocumentTypeSchema).max(6).default([]),
   limit: external_exports.number().int().min(1).max(50).default(10),
   assignmentId: uuid3.optional()
 }).strict();
+var CompanyEmbeddingSchema = external_exports.array(external_exports.number().finite()).length(1536).refine((values) => values.some((value) => value !== 0), "Zero vectors have no cosine similarity.");
 
 // ../../packages/shared/src/company-management.ts
 var uuid5 = external_exports.string().uuid();
@@ -27149,7 +27885,7 @@ var SandboxExecutionResultSchema = external_exports.object({
   stdoutSummary: external_exports.string().max(4e3),
   stderrSummary: external_exports.string().max(4e3),
   durationMs: external_exports.number().int().nonnegative(),
-  destroyed: external_exports.literal(true),
+  destroyed: external_exports.boolean(),
   traceId: external_exports.string().min(16).max(64),
   createdAt: external_exports.iso.datetime()
 }).strict();
@@ -27209,6 +27945,674 @@ var CreateCrossCompanyServiceRequestSchema = external_exports.object({
 var CompleteCrossCompanyServiceRequestSchema = external_exports.object({
   result: CrossCompanyServiceResultSchema,
   actualCostCredits: external_exports.number().nonnegative()
+}).strict();
+
+// ../../packages/shared/src/engineering-orchestration.ts
+var EngineeringTaskTypeSchema = external_exports.enum([
+  "ARCHITECTURE",
+  "BACKEND",
+  "FRONTEND",
+  "DATABASE",
+  "ANDROID",
+  "MAC_NATIVE",
+  "TESTING",
+  "SECURITY",
+  "INFRASTRUCTURE",
+  "DOCUMENTATION",
+  "INTEGRATION_PREP"
+]);
+var EngineeringAgentRoleSchema = external_exports.enum([
+  "ENGINEERING_MANAGER",
+  "BACKEND_ENGINEER",
+  "FRONTEND_ENGINEER",
+  "DATABASE_ENGINEER",
+  "MOBILE_ENGINEER",
+  "TEST_QA_ENGINEER",
+  "SECURITY_REVIEWER",
+  "GENERALIST_ENGINEER",
+  "MAC_NATIVE_ENGINEER",
+  "DEVOPS_INFRASTRUCTURE_ENGINEER"
+]);
+var EngineeringObjectiveStatusSchema = external_exports.enum([
+  "PLANNING",
+  "READY",
+  "RUNNING",
+  "PAUSED",
+  "BLOCKED",
+  "NEEDS_CLARIFICATION",
+  "COMPLETED",
+  "FAILED",
+  "CANCELLED"
+]);
+var EngineeringTaskStatusSchema = external_exports.enum([
+  "PLANNED",
+  "READY",
+  "ACTIVE",
+  "BLOCKED",
+  "REVIEWING",
+  "COMPLETE",
+  "FAILED",
+  "CANCELLED"
+]);
+var EngineeringFailureCategorySchema = external_exports.enum([
+  "IMPLEMENTATION_ERROR",
+  "TEST_FAILURE",
+  "TYPE_ERROR",
+  "BUILD_FAILURE",
+  "MISSING_CONTEXT",
+  "MISSING_CAPABILITY",
+  "DEPENDENCY_NOT_READY",
+  "CONFLICT",
+  "POLICY_DENIED",
+  "ENVIRONMENT_FAILURE",
+  "MODEL_FAILURE",
+  "AMBIGUOUS_REQUIREMENT"
+]);
+var EngineeringModelTierSchema = external_exports.enum([
+  "LUNA",
+  "TERRA",
+  "SOL",
+  "ASTRA"
+]);
+var EngineeringRiskLevelSchema = external_exports.enum([
+  "LOW",
+  "MEDIUM",
+  "HIGH",
+  "CRITICAL"
+]);
+var EngineeringModelPolicySchema = external_exports.object({
+  initialTier: EngineeringModelTierSchema,
+  currentTier: EngineeringModelTierSchema,
+  maxTier: EngineeringModelTierSchema,
+  escalationCount: external_exports.number().int().min(0).max(3),
+  reason: external_exports.string().min(1).max(500)
+}).strict();
+var EngineeringObjectiveBudgetSchema = external_exports.object({
+  maxTokens: external_exports.number().int().positive().max(1e8).nullable(),
+  maxCostUsd: external_exports.string().regex(/^\d+(\.\d{1,8})?$/).nullable(),
+  maxPremiumCostUsd: external_exports.string().regex(/^\d+(\.\d{1,8})?$/).nullable()
+}).strict();
+var EngineeringClarificationSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  question: external_exports.string().min(1).max(500),
+  status: external_exports.enum(["PENDING", "ANSWERED", "CANCELLED"]),
+  answerSummary: external_exports.string().min(1).max(2e3).nullable(),
+  answerIdempotencyKey: external_exports.string().min(8).max(200).nullable(),
+  requestedAt: external_exports.iso.datetime(),
+  answeredAt: external_exports.iso.datetime().nullable()
+}).strict();
+var AnswerEngineeringClarificationRequestSchema = external_exports.object({
+  answer: external_exports.string().trim().min(1).max(2e3),
+  idempotencyKey: external_exports.string().trim().min(8).max(200)
+}).strict();
+var EngineeringObjectiveSchema = external_exports.object({
+  schemaVersion: external_exports.literal("1"),
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid(),
+  repositoryId: external_exports.string().uuid(),
+  workflowId: external_exports.string().uuid().nullable(),
+  managerAgentId: external_exports.string().min(3).max(120),
+  title: external_exports.string().trim().min(1).max(255),
+  description: external_exports.string().trim().min(1).max(8e3),
+  acceptanceCriteria: external_exports.array(external_exports.string().min(1).max(1e3)).min(1).max(30),
+  constraints: external_exports.array(external_exports.string().min(1).max(1e3)).max(30),
+  protectedAreas: external_exports.array(external_exports.string().min(1).max(300)).max(100),
+  priority: external_exports.enum(["LOW", "NORMAL", "HIGH", "URGENT"]),
+  riskLevel: EngineeringRiskLevelSchema,
+  budget: EngineeringObjectiveBudgetSchema.nullable(),
+  deadlineAt: external_exports.iso.datetime().nullable(),
+  status: EngineeringObjectiveStatusSchema,
+  clarificationQuestion: external_exports.string().max(500).nullable(),
+  clarification: EngineeringClarificationSchema.nullable().default(null),
+  maxParallelTasks: external_exports.number().int().min(3).max(6),
+  maxReplans: external_exports.number().int().min(0).max(2),
+  replanCount: external_exports.number().int().min(0).max(2),
+  managerReasoningCount: external_exports.number().int().nonnegative().max(20),
+  totalInputTokens: external_exports.number().int().nonnegative(),
+  totalOutputTokens: external_exports.number().int().nonnegative(),
+  totalCostUsd: external_exports.string().regex(/^\d+(\.\d{1,8})?$/),
+  version: external_exports.number().int().positive(),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime(),
+  completedAt: external_exports.iso.datetime().nullable()
+}).strict();
+var CreateEngineeringObjectiveRequestSchema = external_exports.object({
+  repositoryId: external_exports.string().uuid(),
+  title: external_exports.string().trim().min(1).max(255),
+  description: external_exports.string().trim().min(1).max(8e3),
+  acceptanceCriteria: external_exports.array(external_exports.string().trim().min(1).max(1e3)).min(1).max(30),
+  constraints: external_exports.array(external_exports.string().trim().min(1).max(1e3)).max(30).default([]),
+  protectedAreas: external_exports.array(external_exports.string().min(1).max(300)).max(100).default([]),
+  priority: external_exports.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
+  riskLevel: EngineeringRiskLevelSchema.default("MEDIUM"),
+  budget: EngineeringObjectiveBudgetSchema.nullable().default(null),
+  deadlineAt: external_exports.iso.datetime().nullable().default(null),
+  maxParallelTasks: external_exports.number().int().min(3).max(6).default(4)
+}).strict();
+var EngineeringTaskSchema = external_exports.object({
+  schemaVersion: external_exports.literal("1"),
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid(),
+  objectiveId: external_exports.string().uuid(),
+  parentTaskId: external_exports.string().uuid().nullable(),
+  repositoryId: external_exports.string().uuid(),
+  workspaceId: external_exports.string().uuid().nullable(),
+  title: external_exports.string().min(1).max(255),
+  description: external_exports.string().min(1).max(4e3),
+  acceptanceCriteria: external_exports.array(external_exports.string().min(1).max(1e3)).min(1).max(20),
+  taskType: EngineeringTaskTypeSchema,
+  requiredSkills: external_exports.array(external_exports.string().min(1).max(120)).max(30),
+  requiredCapabilities: external_exports.array(EngineeringCapabilitySchema).max(20),
+  dependencies: external_exports.array(external_exports.string().uuid()).max(20),
+  riskLevel: EngineeringRiskLevelSchema,
+  estimatedDifficulty: external_exports.enum(["LOW", "MEDIUM", "HIGH", "VERY_HIGH"]),
+  assignedAgentId: external_exports.string().min(3).max(120).nullable(),
+  assignedRole: EngineeringAgentRoleSchema,
+  reviewerAgentId: external_exports.string().min(3).max(120).nullable(),
+  agentSessionId: external_exports.string().uuid().nullable().default(null),
+  modelPolicy: EngineeringModelPolicySchema,
+  readOnly: external_exports.boolean(),
+  reviewRequired: external_exports.boolean(),
+  status: EngineeringTaskStatusSchema,
+  attempt: external_exports.number().int().nonnegative().max(4),
+  maxAttempts: external_exports.number().int().min(2).max(4),
+  leaseOwner: external_exports.string().min(1).max(120).nullable(),
+  leaseExpiresAt: external_exports.iso.datetime().nullable(),
+  leaseGeneration: external_exports.number().int().nonnegative(),
+  lastFailureCategory: EngineeringFailureCategorySchema.nullable(),
+  lastFailureSummary: external_exports.string().max(1e3).nullable(),
+  createdAt: external_exports.iso.datetime(),
+  startedAt: external_exports.iso.datetime().nullable(),
+  completedAt: external_exports.iso.datetime().nullable(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var EngineeringArtifactTypeSchema = external_exports.enum([
+  "API_CONTRACT",
+  "SCHEMA_CHANGE",
+  "COMPONENT_INTERFACE",
+  "TEST_EXPECTATIONS",
+  "MIGRATION_NOTES",
+  "ARCHITECTURE_DECISION",
+  "VALIDATION_SUMMARY",
+  "BLOCKER"
+]);
+var EngineeringArtifactSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid(),
+  objectiveId: external_exports.string().uuid(),
+  taskId: external_exports.string().uuid(),
+  type: EngineeringArtifactTypeSchema,
+  title: external_exports.string().min(1).max(255),
+  summary: external_exports.string().min(1).max(4e3),
+  contract: external_exports.record(external_exports.string().max(80), external_exports.json()).default({}),
+  producerAgentId: external_exports.string().min(3).max(120),
+  createdAt: external_exports.iso.datetime()
+}).strict();
+var EngineeringTaskResultSchema = external_exports.object({
+  schemaVersion: external_exports.literal("1"),
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid(),
+  objectiveId: external_exports.string().uuid(),
+  taskId: external_exports.string().uuid(),
+  agentId: external_exports.string().min(3).max(120),
+  workspaceId: external_exports.string().uuid().nullable(),
+  workspaceBaseCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/).nullable(),
+  filesChanged: external_exports.array(external_exports.string().min(1).max(1024)).max(500),
+  diffSummary: external_exports.string().max(4e3),
+  validationStatus: external_exports.enum(["PASS", "FAIL", "SKIPPED", "NOT_CONFIGURED", "ERROR"]),
+  validationReportId: external_exports.string().uuid().nullable(),
+  reviewStatus: external_exports.enum(["NOT_REQUIRED", "PENDING", "PASS", "FAIL"]),
+  modelProvider: external_exports.string().max(80).nullable(),
+  modelName: external_exports.string().max(160).nullable(),
+  modelTier: EngineeringModelTierSchema,
+  inputTokens: external_exports.number().int().nonnegative(),
+  outputTokens: external_exports.number().int().nonnegative(),
+  costUsd: external_exports.string().regex(/^\d+(\.\d{1,8})?$/),
+  attempts: external_exports.number().int().min(1).max(4),
+  durationMs: external_exports.number().int().nonnegative(),
+  status: external_exports.enum(["SUCCEEDED", "FAILED", "CANCELLED", "BLOCKED"]),
+  failureCategory: EngineeringFailureCategorySchema.nullable(),
+  warnings: external_exports.array(external_exports.string().max(500)).max(30),
+  completedAt: external_exports.iso.datetime()
+}).strict();
+var EngineeringEventTypeSchema = external_exports.enum([
+  "OBJECTIVE_DECOMPOSED",
+  "TASK_CREATED",
+  "AGENT_ASSIGNED",
+  "WORKSPACE_ASSIGNED",
+  "MODEL_SELECTED",
+  "TASK_STARTED",
+  "VALIDATION_FAILED",
+  "TASK_RETRY",
+  "TASK_REASSIGNED",
+  "MODEL_ESCALATED",
+  "REVIEW_REQUESTED",
+  "CAPABILITY_REQUESTED",
+  "DEPENDENCY_CHANGED",
+  "TASK_COMPLETED",
+  "OBJECTIVE_PAUSED",
+  "OBJECTIVE_RESUMED",
+  "OBJECTIVE_CANCELLED",
+  "OBJECTIVE_BLOCKED",
+  "OBJECTIVE_COMPLETED",
+  "OBJECTIVE_RECOVERED",
+  "OWNER_CLARIFICATION_REQUIRED",
+  "OWNER_CLARIFICATION_ANSWERED"
+]);
+var EngineeringEventSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid(),
+  objectiveId: external_exports.string().uuid(),
+  taskId: external_exports.string().uuid().nullable(),
+  type: EngineeringEventTypeSchema,
+  summary: external_exports.string().min(1).max(1e3),
+  metadata: external_exports.record(external_exports.string().max(80), external_exports.json()).default({}),
+  createdAt: external_exports.iso.datetime()
+}).strict();
+var EngineeringContextPackageSchema = external_exports.object({
+  objectiveId: external_exports.string().uuid(),
+  taskId: external_exports.string().uuid(),
+  repositorySummary: external_exports.string().max(4e3),
+  relevantFiles: external_exports.array(external_exports.string().min(1).max(1024)).max(50),
+  dependencyArtifacts: external_exports.array(EngineeringArtifactSchema).max(50),
+  acceptanceCriteria: external_exports.array(external_exports.string().min(1).max(1e3)).max(20),
+  constraints: external_exports.array(external_exports.string().min(1).max(1e3)).max(30),
+  protectedPaths: external_exports.array(external_exports.string().min(1).max(300)).max(100),
+  priorFailureSummaries: external_exports.array(external_exports.string().max(1e3)).max(4),
+  memoryRefs: external_exports.array(external_exports.string().uuid()).max(20).default([]),
+  memorySummaries: external_exports.array(external_exports.string().min(1).max(1e3)).max(20).default([]),
+  maxTokens: external_exports.number().int().min(1e3).max(32e3)
+}).strict();
+var EngineeringObjectiveViewSchema = external_exports.object({
+  objective: EngineeringObjectiveSchema,
+  tasks: external_exports.array(EngineeringTaskSchema).max(30),
+  results: external_exports.array(EngineeringTaskResultSchema).max(30),
+  artifacts: external_exports.array(EngineeringArtifactSchema).max(200),
+  events: external_exports.array(EngineeringEventSchema).max(500),
+  readyForIntegration: external_exports.boolean()
+}).strict();
+
+// ../../packages/shared/src/engineering-integration.ts
+var CommitSchema = external_exports.string().regex(/^[0-9a-f]{40,64}$/);
+var MoneySchema = external_exports.string().regex(/^\d+(\.\d{1,8})?$/);
+var EngineeringIntegrationStatusSchema = external_exports.enum([
+  "PLANNING",
+  "INTEGRATING",
+  "CONFLICTED",
+  "REPAIRING",
+  "VALIDATING",
+  "REVIEWING",
+  "READY",
+  "FAILED",
+  "BLOCKED",
+  "CANCELLED"
+]);
+var EngineeringRegressionClassificationSchema = external_exports.enum([
+  "PRE_EXISTING",
+  "NEW_REGRESSION",
+  "RESOLVED",
+  "UNKNOWN"
+]);
+var EngineeringRegressionEvidenceSchema = external_exports.object({
+  commandId: external_exports.string().max(128),
+  file: EngineeringRelativePathSchema.nullable(),
+  testName: external_exports.string().max(300).nullable(),
+  classification: EngineeringRegressionClassificationSchema
+}).strict();
+var EngineeringContractFindingSchema = external_exports.object({
+  kind: external_exports.enum(["GENERATED_CLIENT_MISMATCH", "CONFLICTING_CONTRACT_ARTIFACT"]),
+  paths: external_exports.array(EngineeringRelativePathSchema).max(20),
+  taskIds: external_exports.array(external_exports.string().uuid()).max(30),
+  summary: external_exports.string().max(500)
+}).strict();
+var EngineeringConflictTypeSchema = external_exports.enum([
+  "TEXTUAL_SAFE",
+  "STRUCTURAL",
+  "CONTRACT",
+  "SCHEMA",
+  "MIGRATION",
+  "SECURITY_SENSITIVE",
+  "DELETE_MODIFY",
+  "RENAME",
+  "GENERATED_FILE",
+  "UNKNOWN"
+]);
+var EngineeringChangeKindSchema = external_exports.enum([
+  "MODIFIED",
+  "ADDED",
+  "DELETED",
+  "RENAMED"
+]);
+var EngineeringChangeMapEntrySchema = external_exports.object({
+  path: EngineeringRelativePathSchema,
+  taskIds: external_exports.array(external_exports.string().uuid()).min(1).max(30),
+  kinds: external_exports.array(EngineeringChangeKindSchema).min(1).max(30),
+  overlap: external_exports.enum(["NONE", "SAME_FILE", "SAME_REGION", "UNKNOWN"]),
+  protectedPath: external_exports.boolean(),
+  generated: external_exports.boolean()
+}).strict();
+var EngineeringIntegrationConflictSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  path: EngineeringRelativePathSchema,
+  hunks: external_exports.array(external_exports.object({
+    startLine: external_exports.number().int().positive(),
+    endLine: external_exports.number().int().positive()
+  }).strict()).max(100).default([]),
+  taskIds: external_exports.array(external_exports.string().uuid()).min(2).max(30),
+  type: EngineeringConflictTypeSchema,
+  riskLevel: external_exports.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
+  status: external_exports.enum(["DETECTED", "RESOLVED", "ESCALATED"]),
+  attempts: external_exports.number().int().min(0).max(2),
+  resolverModel: external_exports.string().max(160).nullable(),
+  resolverProviderId: external_exports.string().max(80).nullable().default(null),
+  resolverInputTokens: external_exports.number().int().nonnegative().default(0),
+  resolverOutputTokens: external_exports.number().int().nonnegative().default(0),
+  resolverAgentId: external_exports.string().uuid().nullable().default(null),
+  resolutionResult: external_exports.enum(["NOT_ATTEMPTED", "REJECTED", "APPLIED", "VALIDATED"]).default("NOT_ATTEMPTED"),
+  validationReportId: external_exports.string().uuid().nullable().default(null),
+  summary: external_exports.string().min(1).max(1e3)
+}).strict();
+var EngineeringAcceptanceEvidenceSchema = external_exports.object({
+  criterion: external_exports.string().min(1).max(1e3),
+  evidence: external_exports.array(external_exports.string().min(1).max(500)).max(20),
+  satisfied: external_exports.boolean()
+}).strict();
+var EngineeringIntegrationReviewSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid(),
+  runId: external_exports.string().uuid(),
+  reviewerAgentId: external_exports.string().min(3).max(120),
+  providerId: external_exports.string().max(80).nullable(),
+  modelId: external_exports.string().max(160).nullable(),
+  verdict: external_exports.enum(["PASS", "PASS_WITH_WARNINGS", "CHANGES_REQUIRED", "BLOCK"]),
+  dimensions: external_exports.object({
+    correctness: external_exports.number().int().min(0).max(100),
+    scopeAdherence: external_exports.number().int().min(0).max(100),
+    architectureConsistency: external_exports.number().int().min(0).max(100),
+    maintainability: external_exports.number().int().min(0).max(100),
+    security: external_exports.number().int().min(0).max(100),
+    tests: external_exports.number().int().min(0).max(100),
+    regressionRisk: external_exports.number().int().min(0).max(100),
+    acceptanceCoverage: external_exports.number().int().min(0).max(100)
+  }).strict(),
+  findings: external_exports.array(external_exports.string().min(1).max(1e3)).max(50),
+  evidence: external_exports.array(external_exports.string().min(1).max(500)).max(100),
+  acceptanceEvidence: external_exports.array(EngineeringAcceptanceEvidenceSchema).max(30),
+  inputTokens: external_exports.number().int().nonnegative(),
+  outputTokens: external_exports.number().int().nonnegative(),
+  costUsd: MoneySchema,
+  headCommit: CommitSchema,
+  createdAt: external_exports.iso.datetime()
+}).strict();
+var EngineeringIntegrationRunSchema = external_exports.object({
+  schemaVersion: external_exports.literal("1"),
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid(),
+  repositoryId: external_exports.string().uuid(),
+  objectiveId: external_exports.string().uuid(),
+  idempotencyKey: external_exports.string().min(8).max(200),
+  baseCommit: CommitSchema,
+  integrationBranch: external_exports.string().regex(/^alexa\/[a-z0-9][a-z0-9-]{0,119}$/),
+  integrationWorkspaceId: external_exports.string().uuid(),
+  taskIds: external_exports.array(external_exports.string().uuid()).min(1).max(30),
+  sourceWorkspaceIds: external_exports.array(external_exports.string().uuid()).min(1).max(30),
+  integrationOrder: external_exports.array(external_exports.string().uuid()).min(1).max(30),
+  changeMap: external_exports.array(EngineeringChangeMapEntrySchema).max(2e3),
+  conflicts: external_exports.array(EngineeringIntegrationConflictSchema).max(500),
+  regressionEvidence: external_exports.array(EngineeringRegressionEvidenceSchema).max(500).default([]),
+  contractFindings: external_exports.array(EngineeringContractFindingSchema).max(100).default([]),
+  status: EngineeringIntegrationStatusSchema,
+  securityReviewRequired: external_exports.boolean(),
+  validationReportId: external_exports.string().uuid().nullable(),
+  baselineValidationReportId: external_exports.string().uuid().nullable(),
+  reviewId: external_exports.string().uuid().nullable(),
+  securityReviewId: external_exports.string().uuid().nullable(),
+  repairCycles: external_exports.number().int().min(0).max(3),
+  maxRepairCycles: external_exports.number().int().min(1).max(3),
+  repairTaskIds: external_exports.array(external_exports.string().uuid()).max(3).default([]),
+  repairEvidence: external_exports.array(external_exports.object({
+    cycle: external_exports.number().int().min(1).max(3),
+    taskId: external_exports.string().uuid(),
+    parentTaskId: external_exports.string().uuid(),
+    category: external_exports.enum(["REGRESSION", "CONTRACT_MISMATCH", "TYPE_BUILD_FAILURE", "TEST_FAILURE", "REVIEW_CHANGES_REQUIRED", "CONFLICT_RESOLUTION_DEFECT"]),
+    summary: external_exports.string().max(1e3),
+    validationReportId: external_exports.string().uuid().nullable(),
+    reviewId: external_exports.string().uuid().nullable()
+  }).strict()).max(3).default([]),
+  leaseOwner: external_exports.string().min(1).max(120).nullable(),
+  leaseExpiresAt: external_exports.iso.datetime().nullable(),
+  leaseGeneration: external_exports.number().int().nonnegative(),
+  integrationDurationMs: external_exports.number().int().nonnegative(),
+  validationDurationMs: external_exports.number().int().nonnegative(),
+  reviewDurationMs: external_exports.number().int().nonnegative(),
+  integrationCostUsd: MoneySchema,
+  reviewCostUsd: MoneySchema,
+  securityReviewCostUsd: MoneySchema,
+  repairCostUsd: MoneySchema,
+  createdAt: external_exports.iso.datetime(),
+  startedAt: external_exports.iso.datetime().nullable(),
+  completedAt: external_exports.iso.datetime().nullable(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var EngineeringMergeCandidateSchema = external_exports.object({
+  schemaVersion: external_exports.literal("1"),
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid(),
+  runId: external_exports.string().uuid(),
+  objectiveId: external_exports.string().uuid(),
+  repositoryId: external_exports.string().uuid(),
+  integrationWorkspaceId: external_exports.string().uuid(),
+  branch: external_exports.string().max(200),
+  baseCommit: CommitSchema,
+  headCommit: CommitSchema,
+  tasksIncluded: external_exports.array(external_exports.string().uuid()).min(1).max(30),
+  validationReportId: external_exports.string().uuid(),
+  reviewReportId: external_exports.string().uuid(),
+  securityReviewId: external_exports.string().uuid().nullable(),
+  acceptanceEvidence: external_exports.array(EngineeringAcceptanceEvidenceSchema).max(30),
+  filesChanged: external_exports.array(EngineeringRelativePathSchema).max(2e3),
+  diffSummary: external_exports.string().max(4e3),
+  risks: external_exports.array(external_exports.string().max(500)).max(50),
+  warnings: external_exports.array(external_exports.string().max(500)).max(50),
+  dependencyChanges: external_exports.array(external_exports.string().max(500)).max(100),
+  status: external_exports.enum([
+    "PREPARING",
+    "VALIDATING",
+    "REVIEWING",
+    "READY",
+    "CHANGES_REQUIRED",
+    "BLOCKED",
+    "STALE",
+    "MERGING",
+    "MERGED",
+    "CANCELLED"
+  ]),
+  validatedHeadCommit: CommitSchema,
+  reviewedHeadCommit: CommitSchema,
+  mergeIdempotencyKey: external_exports.string().min(8).max(200).nullable().default(null),
+  mergedAt: external_exports.iso.datetime().nullable().default(null),
+  mergedHeadCommit: CommitSchema.nullable().default(null),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var CreateEngineeringIntegrationRequestSchema = external_exports.object({
+  objectiveId: external_exports.string().uuid(),
+  idempotencyKey: external_exports.string().trim().min(8).max(200)
+}).strict();
+var MergeEngineeringCandidateRequestSchema = external_exports.object({
+  idempotencyKey: external_exports.string().trim().min(8).max(200)
+}).strict();
+var EngineeringIntegrationViewSchema = external_exports.object({
+  run: EngineeringIntegrationRunSchema,
+  candidate: EngineeringMergeCandidateSchema.nullable(),
+  reviews: external_exports.array(EngineeringIntegrationReviewSchema).max(10)
+}).strict();
+
+// ../../packages/shared/src/engineering-delivery.ts
+var EngineeringSoftwareIntentSchema = external_exports.enum([
+  "BUILD_SOFTWARE",
+  "MODIFY_SOFTWARE",
+  "FIX_SOFTWARE"
+]);
+var EngineeringComplexitySchema = external_exports.enum([
+  "TRIVIAL",
+  "SMALL",
+  "MEDIUM",
+  "LARGE",
+  "HIGH_RISK"
+]);
+var EngineeringDeliveryStatusSchema = external_exports.enum([
+  "RECEIVED",
+  "INITIALIZING",
+  "PLANNING",
+  "IMPLEMENTING",
+  "INTEGRATING",
+  "REVIEWING",
+  "PREVIEWING",
+  "DONE",
+  "DONE_WITH_WARNINGS",
+  "PAUSED",
+  "BLOCKED",
+  "FAILED",
+  "OWNER_INPUT_REQUIRED",
+  "CANCELLED"
+]);
+var EngineeringFeatureStatusSchema = external_exports.enum([
+  "QUEUED",
+  "PLANNING",
+  "IMPLEMENTING",
+  "VALIDATING",
+  "REVIEWING",
+  "DONE",
+  "BLOCKED",
+  "FAILED"
+]);
+var CreateSoftwareObjectiveRequestSchema = external_exports.object({
+  request: external_exports.string().trim().min(5).max(8e3),
+  repositoryId: external_exports.string().uuid().nullable().default(null),
+  developmentRootWorkspaceId: RegistryIdSchema.nullable().default(null),
+  projectName: external_exports.string().trim().min(1).max(100).nullable().default(null),
+  acceptanceCriteria: external_exports.array(external_exports.string().trim().min(1).max(1e3)).max(30).default([]),
+  constraints: external_exports.array(external_exports.string().trim().min(1).max(1e3)).max(30).default([]),
+  deadlineAt: external_exports.iso.datetime().nullable().default(null),
+  visibleMode: external_exports.boolean().default(false),
+  idempotencyKey: external_exports.string().trim().min(8).max(200)
+}).strict().superRefine((value, context) => {
+  if (!value.repositoryId && !value.developmentRootWorkspaceId)
+    context.addIssue({
+      code: "custom",
+      path: ["developmentRootWorkspaceId"],
+      message: "A governed development root is required for a new project."
+    });
+  if (value.repositoryId && value.developmentRootWorkspaceId)
+    context.addIssue({
+      code: "custom",
+      path: ["repositoryId"],
+      message: "Choose either an existing repository or a new-project development root."
+    });
+});
+var AddEngineeringInstructionRequestSchema = external_exports.object({
+  instruction: external_exports.string().trim().min(3).max(2e3),
+  idempotencyKey: external_exports.string().trim().min(8).max(200)
+}).strict();
+var EngineeringFeatureProgressSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  name: external_exports.string().min(1).max(160),
+  acceptanceCriteria: external_exports.array(external_exports.string().min(1).max(1e3)).max(10),
+  taskIds: external_exports.array(external_exports.string().uuid()).max(10),
+  weight: external_exports.number().int().min(1).max(100),
+  status: EngineeringFeatureStatusSchema
+}).strict();
+var EngineeringModelUsageSchema = external_exports.object({
+  tier: external_exports.enum(["LUNA", "TERRA", "SOL", "ASTRA"]),
+  calls: external_exports.number().int().nonnegative(),
+  inputTokens: external_exports.number().int().nonnegative(),
+  outputTokens: external_exports.number().int().nonnegative(),
+  costUsd: external_exports.string().regex(/^\d+(\.\d{1,8})?$/)
+}).strict();
+var EngineeringDeliverySchema = external_exports.object({
+  schemaVersion: external_exports.literal("1"),
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid(),
+  objectiveId: external_exports.string().uuid(),
+  repositoryId: external_exports.string().uuid(),
+  integrationRunId: external_exports.string().uuid().nullable(),
+  candidateId: external_exports.string().uuid().nullable(),
+  intent: EngineeringSoftwareIntentSchema,
+  projectMode: external_exports.enum(["NEW", "EXISTING"]),
+  projectName: external_exports.string().min(1).max(100),
+  sourceRequest: external_exports.string().min(5).max(8e3),
+  complexity: EngineeringComplexitySchema,
+  stack: external_exports.array(external_exports.string().min(1).max(80)).max(20),
+  features: external_exports.array(EngineeringFeatureProgressSchema).min(1).max(30),
+  status: EngineeringDeliveryStatusSchema,
+  visibleMode: external_exports.boolean(),
+  preview: EngineeringPreviewResultSchema.nullable(),
+  validation: external_exports.object({
+    lint: external_exports.enum(["WAITING", "RUNNING", "PASS", "FAIL", "NOT_CONFIGURED"]),
+    typecheck: external_exports.enum(["WAITING", "RUNNING", "PASS", "FAIL", "NOT_CONFIGURED"]),
+    tests: external_exports.enum(["WAITING", "RUNNING", "PASS", "FAIL", "NOT_CONFIGURED"]),
+    build: external_exports.enum(["WAITING", "RUNNING", "PASS", "FAIL", "NOT_CONFIGURED"]),
+    review: external_exports.enum(["WAITING", "RUNNING", "PASS", "PASS_WITH_WARNINGS", "FAIL"])
+  }).strict(),
+  filesChanged: external_exports.array(EngineeringRelativePathSchema).max(2e3),
+  modelUsage: external_exports.array(EngineeringModelUsageSchema).max(4),
+  warnings: external_exports.array(external_exports.string().max(500)).max(50),
+  instructionKeys: external_exports.array(external_exports.string().min(8).max(200)).max(100),
+  planningStartedAt: external_exports.iso.datetime(),
+  firstCodeAt: external_exports.iso.datetime().nullable(),
+  firstPreviewAt: external_exports.iso.datetime().nullable(),
+  validatedAt: external_exports.iso.datetime().nullable(),
+  completedAt: external_exports.iso.datetime().nullable(),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var EngineeringControlCenterSchema = external_exports.object({
+  delivery: EngineeringDeliverySchema,
+  overallProgress: external_exports.number().min(0).max(100),
+  activeAgents: external_exports.array(
+    external_exports.object({
+      agentId: external_exports.string().min(3).max(120),
+      role: external_exports.string().min(1).max(120),
+      taskId: external_exports.string().uuid(),
+      taskTitle: external_exports.string().min(1).max(255),
+      status: external_exports.string().min(1).max(40),
+      modelTier: external_exports.enum(["LUNA", "TERRA", "SOL", "ASTRA"]),
+      workspaceId: external_exports.string().uuid().nullable(),
+      elapsedMs: external_exports.number().int().nonnegative(),
+      attempt: external_exports.number().int().nonnegative()
+    }).strict()
+  ).max(6),
+  completedTasks: external_exports.number().int().nonnegative(),
+  blockedTasks: external_exports.number().int().nonnegative(),
+  totalTasks: external_exports.number().int().nonnegative(),
+  timeline: external_exports.array(
+    external_exports.object({
+      id: external_exports.string().uuid(),
+      at: external_exports.iso.datetime(),
+      type: external_exports.string().max(80),
+      summary: external_exports.string().max(1e3)
+    }).strict()
+  ).max(200),
+  elapsedMs: external_exports.number().int().nonnegative()
+}).strict();
+var EngineeringProjectRegistryEntrySchema = external_exports.object({
+  repositoryId: external_exports.string().uuid(),
+  projectName: external_exports.string().min(1).max(100),
+  stack: external_exports.array(external_exports.string().min(1).max(80)).max(20),
+  latestDeliveryId: external_exports.string().uuid(),
+  status: EngineeringDeliveryStatusSchema,
+  preview: EngineeringPreviewResultSchema.nullable(),
+  lastModifiedAt: external_exports.iso.datetime()
 }).strict();
 
 // ../../packages/shared/src/infrastructure.ts

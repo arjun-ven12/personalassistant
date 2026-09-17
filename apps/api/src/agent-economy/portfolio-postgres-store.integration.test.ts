@@ -45,4 +45,32 @@ describe.skipIf(!connectionString)("Phase 25.8H PostgreSQL portfolio economy", (
     expect(retry.id).toBe(successful.value.id);
     expect((await store.listAccounts(ownerId)).find((item) => item.accountType === "OWNER_RESERVE")?.availableCredits).toBe(100);
   });
+
+  it("serializes duplicate funding and rejects changed replay terms without a balance change", async () => {
+    const before = (await store.listAccounts(ownerId)).find((a) => a.accountType === "OWNER_RESERVE")!.availableCredits;
+    const input = { ownerId, amount: 25, reason: "Concurrent funding fixture", authorityRef: "OWNER_RESERVE_FUND:isolated-test", idempotencyKey: "fund-concurrent-replay-0001", approvalId: crypto.randomUUID(), at };
+    const results = await Promise.all(Array.from({ length: 8 }, () => store.fundOwnerReserve(input)));
+    expect(new Set(results.map((r) => r.fundingId)).size).toBe(1);
+    await expect(store.fundOwnerReserve({ ...input, amount: 26 })).rejects.toMatchObject({ code: "ECONOMY_IDEMPOTENCY_CONFLICT" });
+    expect((await store.listAccounts(ownerId)).find((a) => a.accountType === "OWNER_RESERVE")!.availableCredits).toBe(before + 25);
+    expect(await store.findFunding(crypto.randomUUID(), input.idempotencyKey)).toBeNull();
+  });
+
+  it("rolls back funding when the enclosing audit fails and safely retries", async () => {
+    const transactional = new PostgresPortfolioEconomyStore(database.pool, database.transaction);
+    const before = (await store.listAccounts(ownerId)).find((a) => a.accountType === "OWNER_RESERVE")!.availableCredits;
+    const input = { ownerId, amount: 7, reason: "Audit rollback fixture", authorityRef: "OWNER_RESERVE_FUND:isolated-test", idempotencyKey: "fund-audit-rollback-0001", approvalId: crypto.randomUUID(), at };
+    await expect(database.transaction(`portfolio:${ownerId}`, async () => {
+      await transactional.fundOwnerReserve(input);
+      throw new Error("AUDIT_WRITE_FAILED");
+    })).rejects.toThrow("AUDIT_WRITE_FAILED");
+    expect(await store.findFunding(ownerId, input.idempotencyKey)).toBeNull();
+    expect((await store.listAccounts(ownerId)).find((a) => a.accountType === "OWNER_RESERVE")!.availableCredits).toBe(before);
+    const results = await Promise.all(Array.from({ length: 4 }, () => transactional.fundOwnerReserve(input)));
+    expect(new Set(results.map((r) => r.fundingId)).size).toBe(1);
+    const transferInput = { ownerId, companyId, amount: 1, reason: "Duplicate allocation fixture", idempotencyKey: "transfer-concurrent-0001", approvalId: null, at };
+    const transfers = await Promise.all(Array.from({ length: 4 }, () => transactional.transfer(transferInput)));
+    expect(new Set(transfers.map((r) => r.id)).size).toBe(1);
+    expect((await store.listAccounts(ownerId)).find((a) => a.accountType === "OWNER_RESERVE")!.availableCredits).toBe(before + 6);
+  });
 });

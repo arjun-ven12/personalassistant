@@ -596,12 +596,16 @@ export const IndexCompanySemanticDocumentRequestSchema =
   });
 export const CompanySemanticSearchRequestSchema = z
   .object({
+    mode: z.enum(["lexical", "vector", "hybrid"]).default("lexical"),
     query: z.string().trim().min(1).max(500),
     entityTypes: z.array(CompanySemanticDocumentTypeSchema).max(6).default([]),
     limit: z.number().int().min(1).max(50).default(10),
     assignmentId: uuid.optional(),
   })
   .strict();
+
+export const CompanyEmbeddingSchema = z.array(z.number().finite()).length(1536)
+  .refine((values) => values.some((value) => value !== 0), "Zero vectors have no cosine similarity.");
 
 export type CompanyDataSensitivity = z.infer<typeof CompanyDataSensitivitySchema>;
 export type CompanyDataSource = z.infer<typeof CompanyDataSourceSchema>;

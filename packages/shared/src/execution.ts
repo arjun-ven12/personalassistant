@@ -2,6 +2,10 @@ import { z } from "zod";
 
 import { RegistryIdSchema } from "./applications.js";
 import {
+  EngineeringTransportRequestSchema,
+  EngineeringTransportResultSchema,
+} from "./engineering-runtime.js";
+import {
   NativeCapabilityDispatchRequestSchema,
   NativeProviderExecutionTransportResultSchema,
 } from "./native-providers.js";
@@ -22,6 +26,7 @@ export const ReadOnlyToolNameSchema = z.enum([
   "workspace.apply_patch",
   "workspace.validate_profile",
   "native.provider_capability",
+  "engineering.repository_capability",
 ]);
 
 export const ExecutionRequestStatusSchema = z.enum([
@@ -117,6 +122,10 @@ export const ReadOnlyCapabilityArgumentsSchema = z.discriminatedUnion("toolName"
   z.object({
     toolName: z.literal("native.provider_capability"),
     arguments: NativeCapabilityDispatchRequestSchema,
+  }),
+  z.object({
+    toolName: z.literal("engineering.repository_capability"),
+    arguments: EngineeringTransportRequestSchema,
   }),
 ]);
 
@@ -247,6 +256,7 @@ export const ReadOnlyCapabilityResultSchema = z.union([
   PatchExecutionResultSchema,
   ValidationExecutionResultSchema,
   NativeProviderExecutionTransportResultSchema,
+  EngineeringTransportResultSchema,
 ]);
 
 export const ReadOnlyExecutionRequestSchema = z

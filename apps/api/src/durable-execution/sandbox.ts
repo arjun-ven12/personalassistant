@@ -1,13 +1,6 @@
 import { spawn } from "node:child_process";
-import {
-  chmod,
-  mkdir,
-  mkdtemp,
-  readFile,
-  readdir,
-  rm,
-  writeFile,
-} from "node:fs/promises";
+import { constants } from "node:fs";
+import { chmod, mkdir, mkdtemp, open, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 
@@ -28,6 +21,52 @@ const commands = {
   PYTHON: ["python", "/workspace/code.py"],
 } as const;
 const extensions = { NODE: "js", PYTHON: "py" } as const;
+const MAX_COLLECTED_BYTES = 16 * 1_048_576;
+const flatName = (name: string) =>
+  name.length > 0 &&
+  name.length <= 120 &&
+  name !== "." &&
+  name !== ".." &&
+  basename(name) === name &&
+  !name.includes("\\") &&
+  [...name].every(
+    (character) => character.charCodeAt(0) >= 32 && character.charCodeAt(0) !== 127,
+  );
+const boundaryError = (code: string) =>
+  Object.assign(new Error("Sandbox artifact boundary validation failed."), { code });
+
+/** Open once without following links; validate and read through that same descriptor. */
+export const readSandboxOutput = async (
+  directory: string,
+  name: string,
+  budget: number,
+) => {
+  if (!flatName(name)) throw boundaryError("POLICY_DENIED");
+  const file = await open(
+    join(directory, name),
+    constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK,
+  );
+  try {
+    const metadata = await file.stat();
+    if (!metadata.isFile() || metadata.nlink !== 1)
+      throw boundaryError("POLICY_DENIED");
+    if (metadata.size > budget) throw boundaryError("RESOURCE_LIMIT");
+    const chunks: Buffer[] = [];
+    let bytes = 0;
+    for (;;) {
+      // Read one byte past the limit to detect growth without an unbounded allocation.
+      const chunk = Buffer.alloc(Math.min(65_536, budget - bytes + 1));
+      const result = await file.read(chunk, 0, chunk.length, null);
+      if (!result.bytesRead) break;
+      bytes += result.bytesRead;
+      if (bytes > budget) throw boundaryError("RESOURCE_LIMIT");
+      chunks.push(chunk.subarray(0, result.bytesRead));
+    }
+    return Buffer.concat(chunks, bytes);
+  } finally {
+    await file.close();
+  }
+};
 const bounded = (value: string) => value.slice(-OUTPUT_LIMIT);
 const redact = (value: string) =>
   bounded(value)
@@ -111,6 +150,17 @@ export class LocalDockerSandboxProvider {
   ) {}
 
   async execute(request: SandboxExecutionRequest) {
+    request = SandboxExecutionRequestSchema.parse(request);
+    // The bind-backed output mount cannot enforce a runtime disk quota. Do not
+    // run untrusted code on the real host until a reviewed quota-backed mount
+    // exists. Injected runners are test fixtures, not production containment.
+    if (this.runner === defaultRunner)
+      throw Object.assign(boundaryError("SANDBOX_UNAVAILABLE"), { reasonCode: "RUNTIME_DISK_CONTAINMENT_UNVERIFIED" });
+    if (
+      request.expectedOutputs.some((name) => !flatName(name)) ||
+      new Set(request.expectedOutputs).size !== request.expectedOutputs.length
+    )
+      throw boundaryError("POLICY_DENIED");
     if (request.networkPolicy !== "DENY_ALL")
       throw Object.assign(
         new Error("The local sandbox supports DENY_ALL networking only."),
@@ -124,6 +174,8 @@ export class LocalDockerSandboxProvider {
     const root = await mkdtemp(join(tmpdir(), "alexa-sandbox-"));
     const inputDir = join(root, "input"),
       outputDir = join(root, "output");
+    const containerName = `alexa-sandbox-${crypto.randomUUID()}`;
+    let dispatched = false;
     const started = performance.now();
     try {
       await Promise.all([mkdir(inputDir), mkdir(outputDir)]);
@@ -145,19 +197,21 @@ export class LocalDockerSandboxProvider {
           request.companyId,
           ref,
         );
-        await writeFile(
-          join(inputDir, basename(artifact.name).slice(0, 120)),
-          artifact.content,
-          { mode: 0o444 },
-        );
+        if (!flatName(artifact.name)) throw boundaryError("POLICY_DENIED");
+        await writeFile(join(inputDir, artifact.name), artifact.content, {
+          mode: 0o444,
+          flag: "wx",
+        });
       }
       await chmod(inputDir, 0o555);
       const memory = `${request.resourceLimits.memoryMb}m`;
+      dispatched = true;
       const result = await this.runner({
         binary: this.binary,
         args: [
           "run",
-          "--rm",
+          "--name",
+          containerName,
           "--pull",
           "never",
           "--network",
@@ -186,20 +240,34 @@ export class LocalDockerSandboxProvider {
         ],
         timeoutMs: request.timeoutMs,
       });
+      if (result.timedOut) throw boundaryError("TIMEOUT");
       const outputArtifactRefs: string[] = [];
       let totalOutputBytes = 0;
-      for (const name of (await readdir(outputDir)).slice(
-        0,
-        request.expectedOutputs.length || 40,
-      )) {
-        if (name.includes("..")) continue;
-        const content = await readFile(join(outputDir, name));
+      const names = await readdir(outputDir);
+      if (
+        names.length > 40 ||
+        names.some((name) => !flatName(name)) ||
+        (request.expectedOutputs.length > 0 &&
+          (names.some((name) => !request.expectedOutputs.includes(name)) ||
+            request.expectedOutputs.some((name) => !names.includes(name))))
+      )
+        throw boundaryError("POLICY_DENIED");
+      const budget = Math.min(
+        MAX_COLLECTED_BYTES,
+        request.resourceLimits.diskMb * 1_048_576,
+      );
+      const outputs: Array<{ name: string; content: Buffer }> = [];
+      for (const name of names.sort()) {
+        const content = await readSandboxOutput(
+          outputDir,
+          name,
+          budget - totalOutputBytes,
+        );
         totalOutputBytes += content.byteLength;
-        if (totalOutputBytes > request.resourceLimits.diskMb * 1_048_576) {
-          throw Object.assign(new Error("Sandbox output exceeded its disk budget."), {
-            code: "RESOURCE_LIMIT",
-          });
-        }
+        outputs.push({ name, content });
+      }
+      // Validate the entire batch before persisting any artifact.
+      for (const { name, content } of outputs) {
         outputArtifactRefs.push(
           await this.artifacts.write(request.ownerId, request.companyId, {
             name,
@@ -216,11 +284,55 @@ export class LocalDockerSandboxProvider {
         stderr: redact(result.stderr),
         outputArtifactRefs,
         durationMs: Math.round(performance.now() - started),
+        destroyed: true,
       };
     } finally {
-      await chmod(inputDir, 0o700).catch(() => undefined);
-      await rm(root, { recursive: true, force: true });
+      await this.cleanup(containerName, dispatched, inputDir, root);
     }
+  }
+
+  private async cleanup(
+    containerName: string,
+    dispatched: boolean,
+    inputDir: string,
+    root: string,
+  ) {
+    // Killing the Docker CLI is not proof that its container stopped.
+    let destroyed = !dispatched;
+    try {
+      if (dispatched) {
+        const removal = await this.runner({
+          binary: this.binary,
+          args: ["rm", "--force", containerName],
+          timeoutMs: 10_000,
+        });
+        destroyed = removal.exitCode === 0 && !removal.timedOut;
+        if (!destroyed) {
+          const remaining = await this.runner({
+            binary: this.binary,
+            args: [
+              "container",
+              "ls",
+              "--all",
+              "--filter",
+              `name=^/${containerName}$`,
+              "--format",
+              "{{.ID}}",
+            ],
+            timeoutMs: 10_000,
+          });
+          destroyed =
+            remaining.exitCode === 0 && !remaining.timedOut && !remaining.stdout.trim();
+        }
+      }
+    } catch {
+      destroyed = false;
+    }
+    // Never remove a mount while an unconfirmed container could still write to it.
+    if (!destroyed)
+      throw Object.assign(boundaryError("SANDBOX_UNAVAILABLE"), { destroyed: false });
+    await chmod(inputDir, 0o700).catch(() => undefined);
+    await rm(root, { recursive: true, force: true });
   }
 }
 
@@ -231,6 +343,7 @@ export class SandboxExecutionService {
     readonly provider: LocalDockerSandboxProvider,
     readonly audit?: GovernanceAuditWriter,
     readonly now = () => new Date(),
+    readonly authorize?: (request: SandboxExecutionRequest, capability: string) => Promise<boolean>,
   ) {}
   async execute(raw: unknown, auditContext: { requestId: string; ipAddress: string }) {
     const request = SandboxExecutionRequestSchema.parse(raw);
@@ -257,6 +370,10 @@ export class SandboxExecutionService {
         ),
         { code: "SANDBOX_CAPABILITY_DENIED", statusCode: 403 },
       );
+    // A definition requirement or profile ID is not an effective grant. Only a
+    // trusted server resolver may attest the full policy/grant intersection.
+    if (!this.authorize || !(await this.authorize(request, capability)))
+      throw Object.assign(new Error("Effective sandbox authority is unavailable or denied."), { code: "SANDBOX_CAPABILITY_DENIED", statusCode: 403 });
     let outcome: Awaited<ReturnType<LocalDockerSandboxProvider["execute"]>> | undefined;
     let failureCode:
       | "CODE_ERROR"
@@ -276,12 +393,12 @@ export class SandboxExecutionService {
     } catch (error) {
       failureCode =
         error instanceof Error &&
-        ["RESOURCE_LIMIT", "NETWORK_DENIED", "POLICY_DENIED"].includes(
+        ["RESOURCE_LIMIT", "NETWORK_DENIED", "POLICY_DENIED", "TIMEOUT"].includes(
           (error as Error & { code?: string }).code ?? "",
         )
           ? (
               error as Error & {
-                code: "RESOURCE_LIMIT" | "NETWORK_DENIED" | "POLICY_DENIED";
+                code: "RESOURCE_LIMIT" | "NETWORK_DENIED" | "POLICY_DENIED" | "TIMEOUT";
               }
             ).code
           : "SANDBOX_UNAVAILABLE";
@@ -300,7 +417,7 @@ export class SandboxExecutionService {
       stdoutSummary: outcome?.stdout ?? "",
       stderrSummary: outcome?.stderr ?? "",
       durationMs: outcome?.durationMs ?? 0,
-      destroyed: true,
+      destroyed: outcome?.destroyed ?? false,
       traceId: request.traceId,
       createdAt: this.now().toISOString(),
     });

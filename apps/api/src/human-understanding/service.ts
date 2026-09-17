@@ -93,13 +93,30 @@ const deterministicNonExecution = (
   normalizedText: string,
 ): DeterministicNonExecutionCategory | null => {
   if (!actionReference.test(normalizedText)) return null;
-  if (/\b(?:do not|don't|dont|never)\s+(?:please\s+)?(?:open|launch|start|run|execute|delete|remove|close|quit|shut down|shutdown)\b/.test(normalizedText) || /\bplease\s+(?:do not|don't|dont|never)\s+/.test(normalizedText))
+  if (
+    /\b(?:do not|don't|dont|never)\s+(?:please\s+)?(?:open|launch|start|run|execute|delete|remove|close|quit|shut down|shutdown)\b/.test(
+      normalizedText,
+    ) ||
+    /\bplease\s+(?:do not|don't|dont|never)\s+/.test(normalizedText)
+  )
     return "NEGATED_ACTION";
-  if (/\b(?:if i wanted to|if we wanted to|what (?:would happen|happens) if|what if)\b/.test(normalizedText))
+  if (
+    /\b(?:if i wanted to|if we wanted to|what (?:would happen|happens) if|what if)\b/.test(
+      normalizedText,
+    )
+  )
     return "HYPOTHETICAL_ACTION";
-  if (/\b(?:how (?:do|would|could|can) i|tell me how to|i want to know how to|i'm reading about|im reading about|reading about)\b/.test(normalizedText))
+  if (
+    /\b(?:how (?:do|would|could|can) i|tell me how to|i want to know how to|i'm reading about|im reading about|reading about)\b/.test(
+      normalizedText,
+    )
+  )
     return "EDUCATIONAL_ACTION_REFERENCE";
-  if (/\b(?:said|wrote|asked|quoted)\b[^\n]{0,120}["'](?:open|launch|start|run|execute|delete|remove|close|quit|shut down|shutdown)\b/.test(normalizedText))
+  if (
+    /\b(?:said|wrote|asked|quoted)\b[^\n]{0,120}["'](?:open|launch|start|run|execute|delete|remove|close|quit|shut down|shutdown)\b/.test(
+      normalizedText,
+    )
+  )
     return "QUOTED_ACTION";
   return null;
 };
@@ -1021,6 +1038,8 @@ export class PersonalityBootstrapService {
     for (const [name, pattern, intentId, slots, priority] of [
       ["Open X", "open {target}", "OpenObject", ["target"], 90],
       ["Launch X", "launch {application}", "LaunchApplication", ["application"], 95],
+      ["Build software", "build {object}", "BuildSoftware", ["object"], 88],
+      ["Develop software", "develop {object}", "BuildSoftware", ["object"], 88],
       ["Create X", "create {object}", "CreateObject", ["object"], 85],
       ["Find X", "find {object}", "FindObject", ["object"], 85],
       ["Search X", "search {object}", "SearchObject", ["object"], 82],
@@ -1555,11 +1574,10 @@ export class HumanUnderstandingService {
                 candidateApplications: [],
                 candidateWorkflows: [],
                 fallbackStrategy: "execute" as const,
-                explanation:
-                  nonExecutionCategory
-                    ? `Deterministic ${nonExecutionCategory.toLowerCase()} safety rule matched before executable intent classification.`
-                    : negativeExampleMatches[0]?.reason ??
-                      "Matched a negative corpus example; execution must not happen.",
+                explanation: nonExecutionCategory
+                  ? `Deterministic ${nonExecutionCategory.toLowerCase()} safety rule matched before executable intent classification.`
+                  : (negativeExampleMatches[0]?.reason ??
+                    "Matched a negative corpus example; execution must not happen."),
               },
             ]
           : this.intents.classify({
@@ -2198,14 +2216,15 @@ const patternMatches = (pattern: PatternLibraryEntry, normalizedText: string) =>
 
 const permissionsForIntent = (intentId: string) => {
   if (/delete/i.test(intentId)) return ["approval.required", "destructive.protected"];
-  if (/create|patch|update|move|rename/i.test(intentId)) return ["planner.required"];
+  if (/build|create|patch|update|move|rename/i.test(intentId))
+    return ["planner.required"];
   if (/launch|open|find|search/i.test(intentId)) return ["planner.required"];
   return [];
 };
 
 const entitySlotsForIntent = (intentId: string) => {
   if (/application/i.test(intentId)) return ["application"];
-  if (/object|find|search|open|create/i.test(intentId)) return ["target"];
+  if (/object|find|search|open|build|create/i.test(intentId)) return ["target"];
   return [];
 };
 

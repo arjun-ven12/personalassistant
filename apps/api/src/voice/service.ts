@@ -128,8 +128,12 @@ const containsActionLanguage = (value: string) =>
     value,
   );
 const reviewedApplicationInteractionLanguage = (value: string) =>
-  /\b(?:type|insert|replace|click|press|activate|send|submit|refresh|reload)\b/i.test(value) &&
-  /\b(?:chrome|google chrome|safari|chatgpt|codex|vs\s*code|visual studio code|browser|search|composer|text|field|button|there|here|it)\b/i.test(value);
+  /\b(?:type|insert|replace|click|press|activate|send|submit|refresh|reload)\b/i.test(
+    value,
+  ) &&
+  /\b(?:chrome|google chrome|safari|chatgpt|codex|vs\s*code|visual studio code|browser|search|composer|text|field|button|there|here|it)\b/i.test(
+    value,
+  );
 const applicationInteractionIdFromContext = (context: ActiveContext | null) => {
   const id = context?.application.id;
   if (id) return id;
@@ -139,15 +143,59 @@ const applicationInteractionIdFromContext = (context: ActiveContext | null) => {
   if (bundle === "com.apple.safari" || name.includes("safari")) return "safari";
   if (bundle === "com.openai.chat" || name.includes("chatgpt")) return "chatgpt";
   if (bundle === "com.openai.codex" || name.includes("codex")) return "codex";
-  if (bundle === "com.microsoft.vscode" || name === "code" || name.includes("visual studio code"))
+  if (
+    bundle === "com.microsoft.vscode" ||
+    name === "code" ||
+    name.includes("visual studio code")
+  )
     return "vscode";
   if (bundle === "com.apple.finder" || name.includes("finder")) return "finder";
   return null;
 };
 const voiceConversationTimeoutMs = 90_000;
+const softwareBuildRequest = (value: string) =>
+  /\b(?:build|create|make|develop)\b[\s\S]{0,120}\b(?:website|site|app|application|dashboard|frontend|backend|api|software|page)\b/i.test(
+    value,
+  );
+const engineeringStatusRequest = (value: string) =>
+  /\b(?:how(?:'s| is).*(?:build|site|app|website)|what (?:have you finished|are you working on)|which agents|how much.*cost)\b/i.test(
+    value,
+  );
+const engineeringInstruction = (value: string) =>
+  /^(?:also\s+|and\s+)?(?:add|include|make|change|update|fix|repair)\b/i.test(value);
+
+export interface VoiceEngineeringGateway {
+  start(input: {
+    ownerId: string;
+    text: string;
+    requestId: string;
+    ipAddress: string;
+    sessionId: string;
+    networkState: "UNKNOWN" | "PRIVATE_NETWORK" | "PUBLIC_NETWORK" | "UNAVAILABLE";
+  }): Promise<{ deliveryId: string; projectName: string; status: string }>;
+  status(input: { ownerId: string }): Promise<{
+    projectName: string;
+    status: string;
+    progress: number;
+    completed: number;
+    total: number;
+    activeAgents: number;
+    costUsd: string;
+    previewUrl: string | null;
+  } | null>;
+  addInstruction(input: {
+    ownerId: string;
+    text: string;
+    requestId: string;
+    ipAddress: string;
+    sessionId: string;
+    networkState: "UNKNOWN" | "PRIVATE_NETWORK" | "PUBLIC_NETWORK" | "UNAVAILABLE";
+  }): Promise<{ projectName: string; status: string; newObjective: boolean } | null>;
+}
 
 export class VoiceRuntimeService {
   readonly continuity: ConversationContinuityService;
+  private engineering?: VoiceEngineeringGateway;
 
   constructor(
     readonly store: VoiceStore,
@@ -168,6 +216,10 @@ export class VoiceRuntimeService {
     readonly explicitMemoryTeaching?: ExplicitMemoryTeachingService,
   ) {
     this.continuity = continuity ?? new ConversationContinuityService(store, now);
+  }
+
+  setEngineeringDelivery(gateway: VoiceEngineeringGateway) {
+    this.engineering = gateway;
   }
 
   async dashboard(ownerId: string): Promise<VoiceDashboardResponse> {
@@ -447,9 +499,8 @@ export class VoiceRuntimeService {
           safeExplanation: "Duplicate turn replayed without re-execution.",
           contextSourceCount: contextReferences.length,
           pageChunkCount: parsed.pageContext?.chunks.length ?? 0,
-          memoryItemCount: contextReferences.filter(
-            (item) => item.source === "MEMORY",
-          ).length,
+          memoryItemCount: contextReferences.filter((item) => item.source === "MEMORY")
+            .length,
           createdAt: at,
         });
       return VoiceTranscriptResponseSchema.parse({
@@ -483,7 +534,8 @@ export class VoiceRuntimeService {
     const explicitMemoryInput = explicitTeaching
       ? {
           type: explicitTeaching.type,
-          content: explicitTeaching.content || continuity?.resolvedReference?.value || "",
+          content:
+            explicitTeaching.content || continuity?.resolvedReference?.value || "",
           entityRefs: [],
         }
       : null;
@@ -570,7 +622,10 @@ export class VoiceRuntimeService {
       (understandingUnavailable && !containsActionLanguage(parsed.transcript)) ||
       (mustNotExecute && nonExecutionCategory !== "NEGATED_ACTION");
     const interactionPlan =
-      this.applicationInteractions && parsed.isFinal && !interruption && !explicitTeaching
+      this.applicationInteractions &&
+      parsed.isFinal &&
+      !interruption &&
+      !explicitTeaching
         ? await this.applicationInteractions.planFromUtterance({
             ownerId: input.ownerId,
             utterance: parsed.transcript,
@@ -578,8 +633,7 @@ export class VoiceRuntimeService {
             conversationId: conversationSession.id,
             resolvedText: continuity?.resolvedReference?.value ?? null,
             currentApplicationId: applicationInteractionIdFromContext(desktopContext),
-            previousInteractionProposal:
-              continuity?.state.actionProposal ?? null,
+            previousInteractionProposal: continuity?.state.actionProposal ?? null,
           })
         : null;
 
@@ -615,6 +669,64 @@ export class VoiceRuntimeService {
           : "Remembered.";
       classification = "ANSWER";
       routeStages = ["MEMORY", "PRECODED"];
+    } else if (
+      this.engineering &&
+      parsed.isFinal &&
+      !interruption &&
+      !mustNotExecute &&
+      softwareBuildRequest(parsed.transcript) &&
+      input.governanceSessionId &&
+      input.networkState
+    ) {
+      const started = await this.engineering.start({
+        ownerId: input.ownerId,
+        text: parsed.transcript,
+        requestId: input.requestId,
+        ipAddress: input.ipAddress,
+        sessionId: input.governanceSessionId,
+        networkState: input.networkState,
+      });
+      responseText = `Got it. I'm building ${started.projectName}. You can follow live progress in Engineering.`;
+      classification = "ACTION";
+      intentCreated = true;
+      commandId = started.deliveryId;
+      routeStages = ["PRECODED", "ACTION"];
+    } else if (
+      this.engineering &&
+      parsed.isFinal &&
+      !mustNotExecute &&
+      engineeringStatusRequest(parsed.transcript)
+    ) {
+      const status = await this.engineering.status({ ownerId: input.ownerId });
+      responseText = status
+        ? `${status.projectName} is ${status.status.toLowerCase().replaceAll("_", " ")} at ${status.progress} percent. ${status.completed} of ${status.total} tasks are complete, ${status.activeAgents} agents are active, and the recorded model cost is $${status.costUsd}.${status.previewUrl ? ` Preview is running at ${status.previewUrl}.` : ""}`
+        : "There is no active engineering delivery in this company.";
+      classification = "ANSWER";
+      routeStages = ["PRECODED"];
+    } else if (
+      this.engineering &&
+      parsed.isFinal &&
+      !mustNotExecute &&
+      engineeringInstruction(parsed.transcript) &&
+      input.governanceSessionId &&
+      input.networkState
+    ) {
+      const updated = await this.engineering.addInstruction({
+        ownerId: input.ownerId,
+        text: parsed.transcript,
+        requestId: input.requestId,
+        ipAddress: input.ipAddress,
+        sessionId: input.governanceSessionId,
+        networkState: input.networkState,
+      });
+      responseText = updated
+        ? updated.newObjective
+          ? `I started a governed modification objective for ${updated.projectName}.`
+          : `I added that requirement to ${updated.projectName} without restarting the project.`
+        : "There is no active engineering build to update.";
+      classification = updated ? "ACTION" : "ANSWER";
+      intentCreated = Boolean(updated);
+      routeStages = ["PRECODED", ...(updated ? ["ACTION" as const] : [])];
     } else if (
       continuity?.handled &&
       continuity.canonicalRequest &&
@@ -701,7 +813,10 @@ export class VoiceRuntimeService {
         : "The conversation changed before I could prepare that application interaction.";
       classification = "ACTION";
       routeStages = ["PRECODED", "CLARIFICATION"];
-    } else if (interactionPlan?.clarification && containsActionLanguage(parsed.transcript)) {
+    } else if (
+      interactionPlan?.clarification &&
+      containsActionLanguage(parsed.transcript)
+    ) {
       responseText = interactionPlan.clarification;
       classification = "CLARIFY";
       routeStages = ["PRECODED", "CLARIFICATION"];
@@ -924,9 +1039,13 @@ export class VoiceRuntimeService {
         !reviewedApplicationInteractionLanguage(parsed.transcript)
       ) {
         const currentContextTarget = contextReferences.find((reference) =>
-          ["SELECTION", "FOCUSED_ELEMENT", "DOCUMENT", "ACTIVE_PAGE", "APPLICATION"].includes(
-            reference.source,
-          ),
+          [
+            "SELECTION",
+            "FOCUSED_ELEMENT",
+            "DOCUMENT",
+            "ACTIVE_PAGE",
+            "APPLICATION",
+          ].includes(reference.source),
         );
         const proposalTarget =
           continuity?.resolvedReference ??
@@ -1086,9 +1205,7 @@ export class VoiceRuntimeService {
         conversationId: conversationSession.id,
         turnId,
         responseText,
-        canonicalRequest: interactionPlan?.request
-          ? null
-          : continuity.canonicalRequest,
+        canonicalRequest: interactionPlan?.request ? null : continuity.canonicalRequest,
         commandId,
       });
 
@@ -1977,7 +2094,10 @@ export class VoiceRuntimeService {
       );
     } else {
       const current = wakeWordSettings[0];
-      if (current && (!current.wakeWords.includes("Athena") || !current.wakeWords.includes("Alexa"))) {
+      if (
+        current &&
+        (!current.wakeWords.includes("Athena") || !current.wakeWords.includes("Alexa"))
+      ) {
         await this.store.saveWakeWordSettings(
           WakeWordSettingsRecordSchema.parse({
             ...current,

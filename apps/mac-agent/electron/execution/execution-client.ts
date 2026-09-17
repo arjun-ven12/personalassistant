@@ -18,6 +18,7 @@ import { apiErrorDetails } from "../services.js";
 import { dispatchReadOnlyCapability, type DispatcherLimits } from "./dispatcher.js";
 import { CapabilityError } from "./errors.js";
 import { reconnectDelayMs } from "../product-runtime.js";
+import type { NativeEngineeringRuntime } from "../engineering-runtime/runtime.js";
 
 export interface ExecutionClientStatus {
   polling: boolean;
@@ -28,6 +29,78 @@ export interface ExecutionClientStatus {
   lastFailureCode: string | null;
   lastHeartbeatAt: string | null;
 }
+
+export class ServerExecutionReplayGuard {
+  readonly #nonces = new Map<string, number>();
+
+  consume(deviceId: string, nonce: string, expiresAt: string, now: Date) {
+    const nowMs = now.getTime();
+    for (const [key, expiry] of this.#nonces)
+      if (expiry <= nowMs) this.#nonces.delete(key);
+    const key = `${deviceId}:${nonce}`;
+    if (this.#nonces.has(key))
+      throw new CapabilityError(
+        "AGENT_SERVER_ENVELOPE_REPLAYED",
+        "The server execution envelope nonce has already been consumed.",
+      );
+    this.#nonces.set(key, new Date(expiresAt).getTime());
+  }
+}
+
+export const verifyServerExecutionEnvelope = async (input: {
+  envelope: unknown;
+  deviceId: string;
+  serverPublicKeyX: string;
+  now?: Date;
+  replayGuard?: ServerExecutionReplayGuard;
+}) => {
+  const envelope = ServerExecutionEnvelopeSchema.parse(input.envelope);
+  const now = input.now ?? new Date();
+  if (
+    envelope.request.deviceId !== input.deviceId ||
+    new Date(envelope.issuedAt).getTime() > now.getTime() + 120_000 ||
+    new Date(envelope.issuedAt) >= new Date(envelope.expiresAt) ||
+    new Date(envelope.expiresAt) <= now ||
+    envelope.expiresAt !== envelope.request.expiresAt
+  )
+    throw new CapabilityError(
+      "AGENT_SERVER_SIGNATURE_FAILED",
+      "Server request binding is invalid.",
+    );
+  const { signature } = envelope;
+  const unsigned = {
+    request: envelope.request,
+    issuedAt: envelope.issuedAt,
+    expiresAt: envelope.expiresAt,
+    nonce: envelope.nonce,
+    securityStateVersion: envelope.securityStateVersion,
+  };
+  const key = await webcrypto.subtle.importKey(
+    "jwk",
+    { kty: "OKP", crv: "Ed25519", x: input.serverPublicKeyX, ext: true },
+    { name: "Ed25519" },
+    false,
+    ["verify"],
+  );
+  const valid = await webcrypto.subtle.verify(
+    "Ed25519",
+    key,
+    Buffer.from(signature, "base64url"),
+    new TextEncoder().encode(canonicalizeExecutionPayload(unsigned)),
+  );
+  if (!valid)
+    throw new CapabilityError(
+      "AGENT_SERVER_SIGNATURE_FAILED",
+      "Server signature is invalid.",
+    );
+  input.replayGuard?.consume(
+    input.deviceId,
+    envelope.nonce,
+    envelope.expiresAt,
+    now,
+  );
+  return envelope.request;
+};
 
 export class ReadOnlyExecutionClient {
   readonly status: ExecutionClientStatus = {
@@ -43,6 +116,7 @@ export class ReadOnlyExecutionClient {
   #stopped = true;
   #consecutiveFailures = 0;
   #lastCancellationCursor: string | undefined;
+  readonly #serverReplayGuard = new ServerExecutionReplayGuard();
 
   constructor(
     readonly apiBaseUrl: string,
@@ -58,8 +132,9 @@ export class ReadOnlyExecutionClient {
         }
       | undefined = undefined,
     readonly fetchImplementation: typeof fetch = fetch,
-    readonly onStatusChanged: (status: Readonly<ExecutionClientStatus>) => void =
-      () => undefined,
+    readonly onStatusChanged: (status: Readonly<ExecutionClientStatus>) => void = () =>
+      undefined,
+    readonly engineeringRuntime: NativeEngineeringRuntime | undefined = undefined,
   ) {}
 
   start() {
@@ -137,42 +212,12 @@ export class ReadOnlyExecutionClient {
   }
 
   private async verifyServerRequest(envelopeInput: unknown) {
-    const envelope = ServerExecutionEnvelopeSchema.parse(envelopeInput);
-    if (
-      envelope.request.deviceId !== this.deviceId ||
-      new Date(envelope.expiresAt) <= new Date()
-    )
-      throw new CapabilityError(
-        "AGENT_SERVER_SIGNATURE_FAILED",
-        "Server request binding is invalid.",
-      );
-    const { signature } = envelope;
-    const unsigned = {
-      request: envelope.request,
-      issuedAt: envelope.issuedAt,
-      expiresAt: envelope.expiresAt,
-      nonce: envelope.nonce,
-      securityStateVersion: envelope.securityStateVersion,
-    };
-    const key = await webcrypto.subtle.importKey(
-      "jwk",
-      { kty: "OKP", crv: "Ed25519", x: this.serverPublicKeyX, ext: true },
-      { name: "Ed25519" },
-      false,
-      ["verify"],
-    );
-    const valid = await webcrypto.subtle.verify(
-      "Ed25519",
-      key,
-      Buffer.from(signature, "base64url"),
-      new TextEncoder().encode(canonicalizeExecutionPayload(unsigned)),
-    );
-    if (!valid)
-      throw new CapabilityError(
-        "AGENT_SERVER_SIGNATURE_FAILED",
-        "Server signature is invalid.",
-      );
-    return envelope.request;
+    return verifyServerExecutionEnvelope({
+      envelope: envelopeInput,
+      deviceId: this.deviceId,
+      serverPublicKeyX: this.serverPublicKeyX,
+      replayGuard: this.#serverReplayGuard,
+    });
   }
 
   private async execute(request: ReadOnlyExecutionRequest) {
@@ -205,6 +250,7 @@ export class ReadOnlyExecutionClient {
               request,
               this.limits,
               abortController.signal,
+              this.engineeringRuntime,
             );
     } catch (error) {
       status =

@@ -13,7 +13,9 @@ export const companyScope = {
   },
   current(ownerId?: string) {
     const context = storage.getStore();
-    return !context || (ownerId && context.ownerId !== ownerId) ? undefined : context;
+    if (context && ownerId && context.ownerId !== ownerId)
+      throw Object.assign(new Error("Authenticated company context belongs to a different owner."), { code: "COMPANY_OWNER_SCOPE_MISMATCH", statusCode: 403 });
+    return context;
   },
   companyId(ownerId?: string) {
     return this.current(ownerId)?.companyId;

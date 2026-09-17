@@ -8,6 +8,7 @@ import { InMemoryRepositoryStore } from "../repositories/store.js";
 import { MemoryIndexerService } from "./service.js";
 import { InMemoryMemoryStore } from "./store.js";
 import { InMemoryWorkflowStore } from "../workflows/store.js";
+import { companyScope } from "../companies/scope.js";
 
 const setup = async () => {
   const ownerId = crypto.randomUUID();
@@ -44,6 +45,68 @@ const setup = async () => {
 };
 
 describe("MemoryIndexerService", () => {
+  it("promotes only validated stable engineering facts and isolates company scope", async () => {
+    const { audits, ownerId, repository, service } = await setup();
+    const companyId = crypto.randomUUID();
+    const otherCompanyId = crypto.randomUUID();
+    const taskId = crypto.randomUUID();
+    const resultId = crypto.randomUUID();
+    const promoted = await companyScope.run(
+      { ownerId, companyId, role: "OWNER", requestId: "memory-promotion" },
+      () =>
+        service.promoteEngineeringFacts({
+          ownerId,
+          companyId,
+          repositoryId: repository.id,
+          agentId: "coding_agent",
+          taskId,
+          resultId,
+          artifacts: [
+            {
+              type: "ARCHITECTURE_DECISION",
+              title: "Use existing repository service",
+              summary: "Repository access remains behind the registered service.",
+            },
+            {
+              type: "BLOCKER",
+              title: "Transient model error",
+              summary: "Do not retain transient error spam.",
+            },
+          ],
+          requestId: "memory-promotion",
+          ipAddress: "127.0.0.1",
+        }),
+    );
+    expect(promoted.promotedMemoryIds).toHaveLength(1);
+    const sameCompany = await companyScope.run(
+      { ownerId, companyId, role: "OWNER", requestId: "memory-read" },
+      () =>
+        service.retrieveEngineeringContext({
+          ownerId,
+          companyId,
+          repositoryId: repository.id,
+          agentId: "coding_agent",
+          taskId,
+        }),
+    );
+    expect(sameCompany.refs).toEqual(promoted.promotedMemoryIds);
+    const otherCompany = await companyScope.run(
+      { ownerId, companyId: otherCompanyId, role: "OWNER", requestId: "memory-deny" },
+      () =>
+        service.retrieveEngineeringContext({
+          ownerId,
+          companyId: otherCompanyId,
+          repositoryId: repository.id,
+          agentId: "coding_agent",
+          taskId,
+        }),
+    );
+    expect(otherCompany.refs).toEqual([]);
+    expect(
+      audits.some((event) => event.eventType === "ENGINEERING_MEMORY_PROMOTED"),
+    ).toBe(true);
+  });
+
   it("records owner-scoped memories with evidence and searchable retrieval", async () => {
     const { audits, ownerId, repository, service } = await setup();
     const created = await service.recordMemory({

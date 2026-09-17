@@ -107,7 +107,10 @@ const sensitivityRank: Record<CompanyDataSensitivity, number> = {
   RESTRICTED: 3,
 };
 
+type SemanticEmbeddingProvider = { version: string; providerId: string; locality: "LOCAL" | "CLOUD"; embed(text: string): Promise<number[]> };
 export class CompanyDataService {
+  #embedding?: SemanticEmbeddingProvider;
+  setSemanticEmbeddingProvider(provider: SemanticEmbeddingProvider) { this.#embedding = provider; }
   constructor(
     readonly store: CompanyDataStore,
     readonly companies: CompanyStore,
@@ -972,30 +975,41 @@ export class CompanyDataService {
         "MEMORY_SCOPE_MISMATCH",
         "Company memory must use the active company scope.",
       );
-    const allowedScopeIds = new Set<string>([`company:${context.companyId}`]);
+    const allowedScopeIds = new Set<string>([`COMPANY:company:${context.companyId}`]);
     for (const assignment of await this.agents.listAssignments(
       context.ownerId,
       context.companyId,
     )) {
-      allowedScopeIds.add(assignment.memoryScopeId);
-      allowedScopeIds.add(assignment.organizationMemoryScopeId);
+      allowedScopeIds.add(`AGENT_ASSIGNMENT:${assignment.memoryScopeId}`);
+      allowedScopeIds.add(`COMPANY:${assignment.organizationMemoryScopeId}`);
       if (assignment.departmentMemoryScopeId)
-        allowedScopeIds.add(assignment.departmentMemoryScopeId);
+        allowedScopeIds.add(`DEPARTMENT:${assignment.departmentMemoryScopeId}`);
     }
     if (
-      !allowedScopeIds.has(body.scopeId) &&
-      !["TASK", "CONVERSATION"].includes(body.scopeType)
+      !allowedScopeIds.has(`${body.scopeType}:${body.scopeId}`)
     )
       throw dataError(
         "MEMORY_SCOPE_MISMATCH",
         "Semantic memory scope is not registered in this company.",
       );
+    let embeddingVersion = embedding ? body.embeddingVersion : null;
+    if (!embedding && this.#embedding) {
+      // Indexing can still save canonical text when cloud embeddings are denied.
+      let provider: SemanticEmbeddingProvider | undefined;
+      try { provider = await this.authorizedEmbedding(context.ownerId, context.companyId); }
+      catch { provider = undefined; }
+      if (provider) {
+        embedding = await provider.embed(`${body.title}\n${body.summary}`);
+        embeddingVersion = provider.version;
+      }
+    }
     const at = this.now().toISOString();
     const document = CompanySemanticDocumentSchema.parse({
       id: crypto.randomUUID(),
       ownerId: context.ownerId,
       companyId: context.companyId,
       ...body,
+      embeddingVersion,
       createdAt: at,
       updatedAt: at,
     });
@@ -1018,6 +1032,8 @@ export class CompanyDataService {
     const assignment = actor.assignmentId
       ? await this.assignmentById(ownerId, companyId, actor.assignmentId)
       : undefined;
+    if (actor.assignmentId && (!assignment || assignment.status !== "ACTIVE"))
+      throw dataError("MEMORY_ASSIGNMENT_DENIED", "Assignment is unavailable in the requested company.");
     const authorizedDatasets = assignment
       ? datasets
           .map((item) =>
@@ -1174,14 +1190,42 @@ export class CompanyDataService {
       companyId,
       body.assignmentId ? { assignmentId: body.assignmentId } : {},
     );
-    return this.store.searchSemanticDocuments({
+    const base = {
       ownerId,
       companyId,
       scopeIds: context.authorizedMemoryScopes.map((item) => item.scopeId),
       entityTypes: body.entityTypes,
       query: body.query,
       limit: body.limit,
-    });
+      // No document-level restricted grant exists yet. Assignment scope alone
+      // cannot authorize confidential/restricted raw semantic content.
+      sensitivities: body.assignmentId ? ["PUBLIC", "INTERNAL"] as CompanyDataSensitivity[] : ["PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED"] as CompanyDataSensitivity[],
+    };
+    const lexical = async () => (await this.store.searchSemanticDocuments(base))
+      .map((item) => ({ ...item, retrievalMode: "lexical" as const }));
+    if (body.mode === "lexical") return lexical();
+    try {
+      const provider = await this.authorizedEmbedding(ownerId, companyId);
+      const queryEmbedding = await provider.embed(body.query);
+      return (await this.store.searchSemanticDocuments({ ...base, queryEmbedding, embeddingVersion: provider.version }))
+        .map((item) => ({ ...item, retrievalMode: "vector" as const }));
+    } catch (error) {
+      if (body.mode === "vector") throw error;
+      // Explicit hybrid fallback: retain real lexical scores, never fake cosine.
+      return lexical();
+    }
+  }
+
+  private async authorizedEmbedding(ownerId: string, companyId: string) {
+    const provider = this.#embedding;
+    if (!provider) throw dataError("VECTOR_RETRIEVAL_UNAVAILABLE", "No reviewed embedding provider is configured.");
+    // A query may contain sensitive text. Do not infer a lower classification
+    // from its wording or from caller-supplied metadata.
+    const policy = await this.resolveModelDataPolicy(ownerId, companyId, "RESTRICTED");
+    if (provider.locality === "CLOUD" && (!policy.allowCloud ||
+        (policy.routing === "APPROVED_CLOUD" && !policy.approvedCloudProviderIds.includes(provider.providerId))))
+      throw dataError("EMBEDDING_DATA_POLICY_DENIED", "Company policy does not permit this embedding provider.");
+    return provider;
   }
   async resolveModelDataPolicy(
     ownerId: string,

@@ -68,6 +68,31 @@ const setup = (options: { withObjectiveSpecialistFactory?: boolean } = {}) => {
 const create = (service: WorkforceRuntimeService, body: Record<string,unknown>) => service.createTask({ ownerId, body: { title: "Implement endpoint", objective: "Implement and verify a bounded TypeScript endpoint.", requiredSkills: ["typescript"], requiredCapabilities: ["workspace.read"], economicBudget: 10, ...body }, requestId: "request", ipAddress: "127.0.0.1" });
 
 describe("WorkforceRuntimeService", () => {
+  it("reuses workforce skill, capability, reputation, calibration, availability, workload and cost scoring for engineering candidates", async () => {
+    const { service } = setup();
+    const scores = await service.rankEngineeringCandidates({
+      ownerId,
+      companyId: organizationId,
+      objectiveId: crypto.randomUUID(),
+      taskType: "BACKEND",
+      role: "BACKEND_ENGINEER",
+      skills: ["typescript", "implementation"],
+      capabilities: ["workspace.read"],
+      riskLevel: "MEDIUM",
+      eligibleAgentDefinitionIds: ["backend_agent", "review_agent"],
+    });
+    expect(scores.map((score) => score.agentId)).toEqual([
+      "backend_agent",
+      "review_agent",
+    ]);
+    expect(scores[0]).toMatchObject({
+      capabilityFit: 1,
+      availability: 1,
+      costEfficiency: 0.5,
+    });
+    expect(scores[0]!.reputation).toBeGreaterThan(scores[1]!.reputation);
+  });
+
   it("selects one funded specialist, activates lazily, routes through shared AI, settles, and returns dormant", async () => {
     const { service, activations, reservations, counts } = setup();
     const { task } = await create(service, { createdByAgentId: "engineering_manager" });

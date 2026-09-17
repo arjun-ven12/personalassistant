@@ -1,4 +1,5 @@
 import {
+  CompanyEmbeddingSchema,
   CompanyCredentialReferenceSchema,
   CompanyDataPipelineSchema,
   CompanyDataPolicySchema,
@@ -147,6 +148,8 @@ export interface CompanyDataStore {
     entityTypes: CompanySemanticDocument["entityType"][];
     query: string;
     queryEmbedding?: number[];
+    embeddingVersion?: string;
+    sensitivities?: CompanySemanticDocument["sensitivity"][];
     limit: number;
   }): Awaitable<Array<{ document: CompanySemanticDocument; score: number }>>;
   listSemanticDocuments(
@@ -359,6 +362,7 @@ export class InMemoryCompanyDataStore implements CompanyDataStore {
   }
   saveSemanticDocument(value: CompanySemanticDocument, embedding?: number[]) {
     const item = CompanySemanticDocumentSchema.parse(value);
+    if (embedding) CompanyEmbeddingSchema.parse(embedding);
     this.#documents.set(key(item.ownerId, item.companyId, item.id), {
       document: clone(item),
       ...(embedding ? { embedding: [...embedding] } : {}),
@@ -371,8 +375,14 @@ export class InMemoryCompanyDataStore implements CompanyDataStore {
     entityTypes: CompanySemanticDocument["entityType"][];
     query: string;
     queryEmbedding?: number[];
+    embeddingVersion?: string;
+    sensitivities?: CompanySemanticDocument["sensitivity"][];
     limit: number;
   }) {
+    if (input.queryEmbedding) {
+      CompanyEmbeddingSchema.parse(input.queryEmbedding);
+      if (!input.embeddingVersion) throw new Error("EMBEDDING_VERSION_REQUIRED");
+    }
     const scopes = new Set(input.scopeIds);
     const types = new Set(input.entityTypes);
     const queryTokens = tokens(input.query);
@@ -382,8 +392,11 @@ export class InMemoryCompanyDataStore implements CompanyDataStore {
           document.ownerId === input.ownerId &&
           document.companyId === input.companyId &&
           scopes.has(document.scopeId) &&
+          (!input.sensitivities || input.sensitivities.includes(document.sensitivity)) &&
+          (!input.queryEmbedding || (Boolean(document.embeddingVersion) && document.embeddingVersion === input.embeddingVersion)) &&
           (types.size === 0 || types.has(document.entityType)),
       )
+      .filter(({ embedding }) => !input.queryEmbedding || Boolean(embedding))
       .map(({ document, embedding }) => ({
         document: clone(document),
         score:

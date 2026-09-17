@@ -97,6 +97,106 @@ export class WorkforceRuntimeService {
     this.lifecycleSink = sink;
   }
 
+  async rankEngineeringCandidates(input: {
+    ownerId: string;
+    companyId: string;
+    objectiveId: string;
+    taskType: string;
+    role: string;
+    skills: string[];
+    capabilities: string[];
+    riskLevel: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+    eligibleAgentDefinitionIds: string[];
+  }) {
+    const [agents, economy, tasks] = await Promise.all([
+      this.agentStore.listAgents(input.ownerId),
+      this.economy.dashboard(input.ownerId),
+      this.store.listTasks(input.ownerId, 500),
+    ]);
+    const accountByAgent = new Map(
+      economy.accounts.map((account) => [account.agentId, account]),
+    );
+    const performanceByAgent = new Map(
+      economy.performance.map((item) => [item.agentId, item]),
+    );
+    const activeByAgent = new Map<string, number>();
+    for (const task of tasks.filter(
+      (item) =>
+        ["ASSIGNED", "RESERVED", "RUNNING"].includes(item.status) &&
+        item.assignedAgentId,
+    ))
+      activeByAgent.set(
+        task.assignedAgentId!,
+        (activeByAgent.get(task.assignedAgentId!) ?? 0) + 1,
+      );
+    const at = this.now().toISOString();
+    const task = WorkforceRuntimeTaskSchema.parse({
+      id: crypto.randomUUID(),
+      idempotencyKey: `engineering:${input.objectiveId}:${input.taskType}`.slice(0, 200),
+      ownerId: input.ownerId,
+      organizationId: input.companyId,
+      createdByAgentId: "engineering_manager",
+      assignedAgentId: null,
+      agentDefinitionId: null,
+      companyAssignmentId: null,
+      parentTaskId: null,
+      rootTaskId: crypto.randomUUID(),
+      depth: 0,
+      type: "WORK",
+      title: `Engineering ${input.taskType}`,
+      objective: `Bounded ${input.role} engineering task`,
+      inputs: { engineeringObjectiveId: input.objectiveId },
+      evidenceRefs: [],
+      memoryScopeRefs: [],
+      requiredSkills: input.skills,
+      requiredCapabilities: input.capabilities,
+      preferredDepartmentId: null,
+      priority: "normal",
+      riskLevel: input.riskLevel === "CRITICAL" ? "HIGH" : input.riskLevel,
+      economicBudget: 10,
+      reservedCredits: 0,
+      actualCost: 0,
+      reservationId: null,
+      status: "MATCHING",
+      retryCount: 0,
+      maxRetries: 0,
+      selection: [],
+      requirement: null,
+      workforceGap: null,
+      resultSummary: null,
+      resultConfidence: null,
+      aiRequestId: null,
+      providerId: null,
+      modelId: null,
+      sandboxStatus: null,
+      artifactCount: 0,
+      createdAt: at,
+      updatedAt: at,
+      startedAt: null,
+      completedAt: null,
+      expiresAt: null,
+    });
+    const requirement = this.requirementFor(task);
+    const permitted = new Set(input.eligibleAgentDefinitionIds);
+    return agents
+      .filter((agent) => permitted.has(agent.id))
+      .map((agent) =>
+        this.score(
+          task,
+          requirement,
+          agent,
+          accountByAgent.get(agent.id),
+          performanceByAgent.get(agent.id),
+          activeByAgent.get(agent.id) ?? 0,
+        ),
+      )
+      .sort(
+        (left, right) =>
+          right.finalScore - left.finalScore ||
+          left.agentId.localeCompare(right.agentId),
+      );
+  }
+
   async dashboard(ownerId: string) {
     const [tasks, messages, reviews, agents, economy] = await Promise.all([
       this.store.listTasks(ownerId, 500),

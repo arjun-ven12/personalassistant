@@ -56,12 +56,12 @@ export interface ObservabilityStore {
   savePortfolioObjective(value: PortfolioObjective): Awaitable<void>;
   updatePortfolioObjective(value: PortfolioObjective): Awaitable<void>;
   listPortfolioObjectives(ownerId: string): Awaitable<PortfolioObjective[]>;
-  saveGovernorProposal(value: GovernorProposal): Awaitable<void>;
+  saveGovernorProposal(value: GovernorProposal, expected?: GovernorProposal, now?: string): Awaitable<void>;
   findGovernorProposal(ownerId: string, id: string): Awaitable<GovernorProposal | null>;
   listGovernorProposals(ownerId: string, portfolioObjectiveId?: string): Awaitable<GovernorProposal[]>;
   claimGovernorProposals(input: { workerId: string; now: string; leaseMs: number; limit: number }): Awaitable<GovernorProposal[]>;
-  renewGovernorProposalLease(input: { ownerId: string; proposalId: string; workerId: string; now: string; leaseMs: number }): Awaitable<GovernorProposal | null>;
-  releaseGovernorProposalLease(ownerId: string, proposalId: string, workerId: string): Awaitable<void>;
+  renewGovernorProposalLease(input: { ownerId: string; proposalId: string; workerId: string; now: string; leaseMs: number; leaseGeneration?: number }): Awaitable<GovernorProposal | null>;
+  releaseGovernorProposalLease(ownerId: string, proposalId: string, workerId: string, leaseGeneration?: number): Awaitable<void>;
   purgeExpired(before: string): Awaitable<number>;
 }
 
@@ -150,8 +150,17 @@ export class InMemoryObservabilityStore implements ObservabilityStore {
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
       .map(clone);
   }
-  saveGovernorProposal(value: GovernorProposal) {
+  saveGovernorProposal(value: GovernorProposal, expected?: GovernorProposal, now?: string) {
     const item = GovernorProposalSchema.parse(value);
+    if (expected) {
+      const current = this.#governorProposals.get(`${item.ownerId}:${item.id}`);
+      if (!current || current.companyId !== expected.companyId || current.status !== expected.status ||
+          current.leaseGeneration !== expected.leaseGeneration || current.leaseOwner !== expected.leaseOwner ||
+          current.revisions.length !== expected.revisions.length ||
+          (item.status !== "EXPIRED" && (!now || current.expiresAt <= now)) ||
+          (expected.leaseOwner && (!now || !current.leaseExpiresAt || current.leaseExpiresAt <= now)))
+        throw Object.assign(new Error("Governor proposal changed or its lease expired."), { code: "GOVERNOR_PROPOSAL_CAS_FAILED", statusCode: 409 });
+    }
     const duplicate = [...this.#governorProposals.values()].find((entry) => entry.ownerId === item.ownerId && entry.idempotencyKey === item.idempotencyKey);
     if (duplicate && duplicate.id !== item.id) return;
     this.#governorProposals.set(`${item.ownerId}:${item.id}`, clone(item));
@@ -185,9 +194,11 @@ export class InMemoryObservabilityStore implements ObservabilityStore {
     }
     return claimed;
   }
-  renewGovernorProposalLease(input: { ownerId: string; proposalId: string; workerId: string; now: string; leaseMs: number }) {
+  renewGovernorProposalLease(input: { ownerId: string; proposalId: string; workerId: string; now: string; leaseMs: number; leaseGeneration?: number }) {
     const item = this.#governorProposals.get(`${input.ownerId}:${input.proposalId}`);
-    if (!item || item.leaseOwner !== input.workerId || !item.leaseExpiresAt || item.leaseExpiresAt <= input.now) return null;
+    if (!item || item.status !== "UNDER_REVIEW" || item.leaseOwner !== input.workerId ||
+        (input.leaseGeneration !== undefined && item.leaseGeneration !== input.leaseGeneration) ||
+        !item.leaseExpiresAt || item.leaseExpiresAt <= input.now) return null;
     const updated = GovernorProposalSchema.parse({
       ...item,
       leaseExpiresAt: new Date(new Date(input.now).getTime() + input.leaseMs).toISOString(),
@@ -196,9 +207,9 @@ export class InMemoryObservabilityStore implements ObservabilityStore {
     this.#governorProposals.set(`${updated.ownerId}:${updated.id}`, clone(updated));
     return clone(updated);
   }
-  releaseGovernorProposalLease(ownerId: string, proposalId: string, workerId: string) {
+  releaseGovernorProposalLease(ownerId: string, proposalId: string, workerId: string, leaseGeneration?: number) {
     const item = this.#governorProposals.get(`${ownerId}:${proposalId}`);
-    if (!item || item.leaseOwner !== workerId) return;
+    if (!item || item.leaseOwner !== workerId || (leaseGeneration !== undefined && item.leaseGeneration !== leaseGeneration)) return;
     this.#governorProposals.set(`${ownerId}:${proposalId}`, GovernorProposalSchema.parse({
       ...item, status: item.status === "UNDER_REVIEW" ? "DELIVERED" : item.status,
       leaseOwner: null, leaseAcquiredAt: null, leaseExpiresAt: null,
@@ -388,8 +399,24 @@ export class PostgresObservabilityStore implements ObservabilityStore {
     );
     return result.rows.map((row) => PortfolioObjectiveSchema.parse(row.record));
   }
-  async saveGovernorProposal(value: GovernorProposal) {
+  async saveGovernorProposal(value: GovernorProposal, expected?: GovernorProposal, now?: string) {
     const item = GovernorProposalSchema.parse(value);
+    if (expected) {
+      const result = await this.pool.query(
+        `UPDATE owner_governor_proposals SET status=$4,lease_owner=$5,lease_acquired_at=$6,
+          lease_expires_at=$7,updated_at=$8,record=$9
+         WHERE owner_id=$1 AND company_id=$2 AND id=$3 AND status=$10 AND lease_generation=$11
+          AND lease_owner IS NOT DISTINCT FROM $12 AND jsonb_array_length(record->'revisions')=$13
+          AND ($12::text IS NULL OR lease_expires_at>$14::timestamptz)
+          AND ($4='EXPIRED' OR expires_at>$14::timestamptz)`,
+        [item.ownerId, item.companyId, item.id, item.status, item.leaseOwner, item.leaseAcquiredAt,
+          item.leaseExpiresAt, item.updatedAt, item, expected.status, expected.leaseGeneration,
+          expected.leaseOwner, expected.revisions.length, now ?? null],
+      );
+      if (result.rowCount !== 1)
+        throw Object.assign(new Error("Governor proposal changed or its lease expired."), { code: "GOVERNOR_PROPOSAL_CAS_FAILED", statusCode: 409 });
+      return;
+    }
     await this.pool.query(
       `INSERT INTO owner_governor_proposals(id,owner_id,company_id,portfolio_objective_id,status,idempotency_key,expires_at,
          lease_owner,lease_acquired_at,lease_expires_at,lease_generation,attempt_count,created_at,updated_at,record)
@@ -453,9 +480,11 @@ export class PostgresObservabilityStore implements ObservabilityStore {
       throw error;
     } finally { client.release(); }
   }
-  async renewGovernorProposalLease(input: { ownerId: string; proposalId: string; workerId: string; now: string; leaseMs: number }) {
+  async renewGovernorProposalLease(input: { ownerId: string; proposalId: string; workerId: string; now: string; leaseMs: number; leaseGeneration?: number }) {
     const item = await this.findGovernorProposal(input.ownerId, input.proposalId);
-    if (!item || item.leaseOwner !== input.workerId || !item.leaseExpiresAt || item.leaseExpiresAt <= input.now) return null;
+    if (!item || item.status !== "UNDER_REVIEW" || item.leaseOwner !== input.workerId ||
+        (input.leaseGeneration !== undefined && item.leaseGeneration !== input.leaseGeneration) ||
+        !item.leaseExpiresAt || item.leaseExpiresAt <= input.now) return null;
     const updated = GovernorProposalSchema.parse({
       ...item,
       leaseExpiresAt: new Date(new Date(input.now).getTime() + input.leaseMs).toISOString(),
@@ -463,22 +492,23 @@ export class PostgresObservabilityStore implements ObservabilityStore {
     });
     const result = await this.pool.query(
       `UPDATE owner_governor_proposals SET lease_expires_at=$4,updated_at=$5,record=$6
-       WHERE owner_id=$1 AND id=$2 AND lease_owner=$3 AND lease_expires_at>$5`,
-      [input.ownerId, input.proposalId, input.workerId, updated.leaseExpiresAt, input.now, updated],
+       WHERE owner_id=$1 AND id=$2 AND lease_owner=$3 AND lease_expires_at>$5
+         AND status='UNDER_REVIEW' AND lease_generation=$7`,
+      [input.ownerId, input.proposalId, input.workerId, updated.leaseExpiresAt, input.now, updated, item.leaseGeneration],
     );
     return result.rowCount === 1 ? updated : null;
   }
-  async releaseGovernorProposalLease(ownerId: string, proposalId: string, workerId: string) {
+  async releaseGovernorProposalLease(ownerId: string, proposalId: string, workerId: string, leaseGeneration?: number) {
     const item = await this.findGovernorProposal(ownerId, proposalId);
-    if (!item || item.leaseOwner !== workerId) return;
+    if (!item || item.leaseOwner !== workerId || (leaseGeneration !== undefined && item.leaseGeneration !== leaseGeneration)) return;
     const updated = GovernorProposalSchema.parse({
       ...item, status: item.status === "UNDER_REVIEW" ? "DELIVERED" : item.status,
       leaseOwner: null, leaseAcquiredAt: null, leaseExpiresAt: null,
     });
     await this.pool.query(
       `UPDATE owner_governor_proposals SET status=$4,lease_owner=NULL,lease_acquired_at=NULL,
-         lease_expires_at=NULL,record=$5 WHERE owner_id=$1 AND id=$2 AND lease_owner=$3`,
-      [ownerId, proposalId, workerId, updated.status, updated],
+         lease_expires_at=NULL,record=$5 WHERE owner_id=$1 AND id=$2 AND lease_owner=$3 AND lease_generation=$6`,
+      [ownerId, proposalId, workerId, updated.status, updated, item.leaseGeneration],
     );
   }
   async purgeExpired(before: string) {

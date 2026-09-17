@@ -158,7 +158,11 @@ export class PolicyEngine {
         input.ownerId,
         input.action,
       );
-      if (approved?.status === "APPROVED" && risk.approvalRequirement === "explicit") {
+      if (approved?.status === "APPROVED" &&
+          (risk.approvalRequirement === "explicit" ||
+            risk.approvalRequirement === "recent_authentication" &&
+            input.action.toolName === "engineering.merge_candidate" &&
+            approved.decidedBySessionId === input.sessionId)) {
         return this.record(input, {
           decision: "allow",
           code: "POLICY_ALLOWED_WITH_APPROVAL",

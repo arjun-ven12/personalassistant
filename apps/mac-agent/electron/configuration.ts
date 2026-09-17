@@ -14,6 +14,7 @@ const PackagedConfigurationSchema = z
     ALEXA_AGENT_LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).optional(),
     ALEXA_REQUIRE_PRIVATE_NETWORK: z.boolean().optional(),
     ALEXA_READ_ONLY_EXECUTION_ENABLED: z.boolean().optional(),
+    ALEXA_ENGINEERING_RUNTIME_ENABLED: z.boolean().optional(),
     ALEXA_EXECUTION_POLL_INTERVAL_MS: z
       .number()
       .int()

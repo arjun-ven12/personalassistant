@@ -63,6 +63,11 @@ import {
   type LocalDeviceMetadata,
 } from "./device-key-store.js";
 import { ReadOnlyExecutionClient } from "./execution/execution-client.js";
+import {
+  DockerEngineeringRunner,
+  DockerEngineeringDependencyRunner,
+  NativeEngineeringRuntime,
+} from "./engineering-runtime/runtime.js";
 import { discoverInstalledMacApplications } from "./application-discovery.js";
 import { MacNativeProviderHost } from "./native-providers.js";
 import { NativeSpeechRecognitionSession } from "./native-speech.js";
@@ -139,6 +144,7 @@ let deviceKeyStore: ElectronSafeStorageDeviceKeyStore;
 let deviceMetadataStore: DeviceMetadataStore;
 let persistedMetadata: LocalDeviceMetadata | null = null;
 let executionClient: ReadOnlyExecutionClient | null = null;
+let engineeringRuntime: NativeEngineeringRuntime | null = null;
 let mainWindow: BrowserWindow | null = null;
 let voiceOverlayWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -193,6 +199,13 @@ const startExecutionClientIfReady = () => {
   if (executionClient?.deviceId === persistedMetadata.deviceId) return;
   executionClient?.stop();
   executionClient = null;
+  engineeringRuntime = environment.ALEXA_ENGINEERING_RUNTIME_ENABLED
+    ? new NativeEngineeringRuntime(
+        path.join(app.getPath("userData"), "engineering-worktrees"),
+        new DockerEngineeringRunner(),
+        new DockerEngineeringDependencyRunner(),
+      )
+    : null;
   executionClient = new ReadOnlyExecutionClient(
     environment.ALEXA_API_BASE_URL,
     persistedMetadata.deviceId,
@@ -239,6 +252,7 @@ const startExecutionClientIfReady = () => {
       }
       rebuildTrayMenu();
     },
+    engineeringRuntime ?? undefined,
   );
   executionClient.start();
 };

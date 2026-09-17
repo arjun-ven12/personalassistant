@@ -430,6 +430,11 @@ import {
   type UpdateCompanyRequest,
   CompanyDataDashboardSchema,
   ResolvedCompanyAgentContextSchema,
+  EngineeringControlCenterSchema,
+  EngineeringDeliverySchema,
+  EngineeringProjectRegistryEntrySchema,
+  CreateSoftwareObjectiveRequestSchema,
+  AddEngineeringInstructionRequestSchema,
 } from "@alexa-control/shared";
 import { z } from "zod";
 
@@ -553,6 +558,55 @@ export const createApiClient = (baseUrl: string) => {
   };
 
   return {
+    getEngineeringDeliveries: () =>
+      requestAndValidate(
+        baseUrl,
+        "/api/engineering-deliveries",
+        z.object({ deliveries: z.array(EngineeringDeliverySchema) }).strict(),
+      ),
+    getEngineeringProjects: () =>
+      requestAndValidate(
+        baseUrl,
+        "/api/engineering-deliveries/projects",
+        z.object({ projects: z.array(EngineeringProjectRegistryEntrySchema) }).strict(),
+      ),
+    getEngineeringControlCenter: (id: string) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/engineering-deliveries/${encodeURIComponent(id)}`,
+        EngineeringControlCenterSchema,
+      ),
+    createSoftwareObjective: (input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/engineering-deliveries",
+        EngineeringControlCenterSchema,
+        jsonBody(CreateSoftwareObjectiveRequestSchema.parse(input)),
+      ),
+    controlEngineeringDelivery: (
+      id: string,
+      action: "run" | "pause" | "resume" | "cancel",
+    ) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/engineering-deliveries/${encodeURIComponent(id)}/${action}`,
+        EngineeringControlCenterSchema,
+        jsonBody({}),
+      ),
+    addEngineeringInstruction: (id: string, input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/engineering-deliveries/${encodeURIComponent(id)}/instructions`,
+        EngineeringControlCenterSchema,
+        jsonBody(AddEngineeringInstructionRequestSchema.parse(input)),
+      ),
+    controlEngineeringPreview: (id: string, action: "status" | "restart" | "stop") =>
+      requestAndValidate(
+        baseUrl,
+        `/api/engineering-deliveries/${encodeURIComponent(id)}/preview/${action}`,
+        EngineeringControlCenterSchema,
+        jsonBody({}),
+      ),
     getCompanies: async () => {
       const response = await requestAndValidate(
         baseUrl,
@@ -2282,7 +2336,11 @@ export const createApiClient = (baseUrl: string) => {
     getOwnerPortfolio: () =>
       requestAndValidate(baseUrl, "/api/portfolio", OwnerPortfolioDashboardSchema),
     getPortfolioBrief: () =>
-      requestAndValidate(baseUrl, "/api/portfolio/brief", PortfolioExecutiveBriefSchema),
+      requestAndValidate(
+        baseUrl,
+        "/api/portfolio/brief",
+        PortfolioExecutiveBriefSchema,
+      ),
     comparePortfolioCompanies: (input: unknown) =>
       requestAndValidate(
         baseUrl,
@@ -2314,17 +2372,47 @@ export const createApiClient = (baseUrl: string) => {
       ),
     searchPortfolio: (input: unknown) => {
       const query = PortfolioSearchRequestSchema.parse(input);
-      const params = new URLSearchParams({ query: query.query, type: query.type, limit: String(query.limit) });
-      return requestAndValidate(baseUrl, `/api/portfolio/search?${params}`, PortfolioSearchResponseSchema);
+      const params = new URLSearchParams({
+        query: query.query,
+        type: query.type,
+        limit: String(query.limit),
+      });
+      return requestAndValidate(
+        baseUrl,
+        `/api/portfolio/search?${params}`,
+        PortfolioSearchResponseSchema,
+      );
     },
     getPortfolioApprovals: () =>
-      requestAndValidate(baseUrl, "/api/portfolio/approvals?status=ALL&limit=100", z.array(PortfolioApprovalRowSchema).max(200)),
-    decidePortfolioApproval: (approvalId: string, decision: "approve" | "reject", reason?: string) =>
-      requestAndValidate(baseUrl, `/api/portfolio/approvals/${encodeURIComponent(approvalId)}/${decision}`, ApprovalResponseSchema, jsonBody(reason ? { reason } : {})),
+      requestAndValidate(
+        baseUrl,
+        "/api/portfolio/approvals?status=ALL&limit=100",
+        z.array(PortfolioApprovalRowSchema).max(200),
+      ),
+    decidePortfolioApproval: (
+      approvalId: string,
+      decision: "approve" | "reject",
+      reason?: string,
+    ) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/portfolio/approvals/${encodeURIComponent(approvalId)}/${decision}`,
+        ApprovalResponseSchema,
+        jsonBody(reason ? { reason } : {}),
+      ),
     getGovernorProposals: () =>
-      requestAndValidate(baseUrl, "/api/portfolio/governor-proposals", z.array(GovernorProposalSchema).max(1_000)),
+      requestAndValidate(
+        baseUrl,
+        "/api/portfolio/governor-proposals",
+        z.array(GovernorProposalSchema).max(1_000),
+      ),
     decideGovernorProposal: (proposalId: string, input: unknown) =>
-      requestAndValidate(baseUrl, `/api/portfolio/governor-proposals/${encodeURIComponent(proposalId)}/decision`, GovernorProposalSchema, jsonBody(GovernorProposalDecisionRequestSchema.parse(input))),
+      requestAndValidate(
+        baseUrl,
+        `/api/portfolio/governor-proposals/${encodeURIComponent(proposalId)}/decision`,
+        GovernorProposalSchema,
+        jsonBody(GovernorProposalDecisionRequestSchema.parse(input)),
+      ),
     comparePortfolioMetric: (input: unknown) =>
       requestAndValidate(
         baseUrl,

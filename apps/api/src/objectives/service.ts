@@ -25,6 +25,7 @@ import { ExecutionError } from "../execution/errors.js";
 import type { ExecutiveStore } from "../executive/store.js";
 import type { GovernanceAuditWriter } from "../governance/approval-service.js";
 import type { WorkforceRuntimeService } from "../workforce-runtime/service.js";
+import type { UnitOfWork } from "../persistence/unit-of-work.js";
 
 const TERMINAL = new Set(["COMPLETED", "FAILED", "CANCELLED", "EXPIRED"]);
 const STAGNATION_MIN_OBSERVATIONS=3;
@@ -34,6 +35,8 @@ type ObjectiveNotificationSink={dispatch(input:{ownerId:string;eventId:string;ca
 
 export class ObjectiveEngineService {
   #notificationSink?: ObjectiveNotificationSink;
+  #transaction?: UnitOfWork;
+  setTransaction(transaction: UnitOfWork) { this.#transaction = transaction; }
   constructor(
     readonly store: ExecutiveStore,
     readonly workforce: WorkforceRuntimeService,
@@ -69,6 +72,12 @@ export class ObjectiveEngineService {
   }
 
   async create(input: { ownerId: string; body: unknown; requestId: string; ipAddress: string }) {
+    return this.#transaction
+      ? this.#transaction(`portfolio:${input.ownerId}`, () => this.createAtomic(input))
+      : this.createAtomic(input);
+  }
+
+  private async createAtomic(input: { ownerId: string; body: unknown; requestId: string; ipAddress: string }) {
     const body = CreateObjectiveRequestSchema.parse(input.body);
     const clarificationQuestions = this.clarifications(body.outcome, body.metrics.length, body.deadline);
     if (clarificationQuestions.length) return { objective: null, projects: [], clarificationQuestions };

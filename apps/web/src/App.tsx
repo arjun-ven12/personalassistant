@@ -67,6 +67,7 @@ import { TasksPage } from "./TasksPage.js";
 import { VoicePage } from "./VoicePage.js";
 import { TabbedWorkspacePage, type WorkspaceTab } from "./TabbedWorkspacePage.js";
 import { OperationalPage } from "./OperationalPage.js";
+import { EngineeringControlCenterPage } from "./EngineeringControlCenterPage.js";
 import { legacyRoute } from "./appRouting.js";
 import { ApiClientError, type ApiClient } from "./api.js";
 import { retainQueryAcrossCompanySwitch } from "./companyQueryCache.js";
@@ -375,6 +376,11 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
   ];
   const engineeringTabs: WorkspaceTab[] = [
     {
+      id: "overview",
+      label: "Control Center",
+      content: <EngineeringControlCenterPage apiClient={apiClient} />,
+    },
+    {
       id: "repositories",
       label: "Repositories",
       content: <RepositoriesPage apiClient={apiClient} />,
@@ -468,10 +474,15 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
                         aria-label="Active company"
                         disabled={companies.isPending || selectCompany.isPending}
                         onChange={(event) => {
-                          if (event.target.value === "__portfolio__") navigate("/portfolio");
+                          if (event.target.value === "__portfolio__")
+                            navigate("/portfolio");
                           else selectCompany.mutate(event.target.value);
                         }}
-                        value={pathname === "/portfolio" ? "__portfolio__" : companies.data?.currentCompany.id ?? ""}
+                        value={
+                          pathname === "/portfolio"
+                            ? "__portfolio__"
+                            : (companies.data?.currentCompany.id ?? "")
+                        }
                       >
                         <option value="__portfolio__">All Companies</option>
                         {companies.data?.companies
@@ -689,8 +700,8 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
                   ) : null}
                   {pathname === "/engineering" ? (
                     <TabbedWorkspacePage
-                      activeTab={activeTab || "repositories"}
-                      description="Developer tooling for inspecting and maintaining Athena itself."
+                      activeTab={activeTab || "overview"}
+                      description="Build, validate, review, and preview governed software objectives."
                       onTabChange={(tab) => selectTab("/engineering", tab)}
                       tabs={engineeringTabs}
                       title="Engineering"

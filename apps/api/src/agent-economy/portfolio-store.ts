@@ -43,6 +43,11 @@ const stableUuid = (value: string) => {
 const reserveId = (ownerId: string) => stableUuid(`economy:owner-reserve:${ownerId}`);
 const companyIdFor = (ownerId: string, companyId: string) => stableUuid(`economy:company:${ownerId}:${companyId}`);
 
+export function assertEconomyReplay(existing: Record<string, unknown>, input: Record<string, unknown>, fields: string[]) {
+  if (fields.some((field) => existing[field] !== input[field]))
+    throw Object.assign(new Error("Idempotency key is already bound to different economic terms."), { code: "ECONOMY_IDEMPOTENCY_CONFLICT", statusCode: 409 });
+}
+
 export class InMemoryPortfolioEconomyStore implements PortfolioEconomyStore {
   readonly #accounts = new Map<string, EconomyScopeAccount>();
   readonly #transfers = new Map<string, EconomyScopeTransfer>();
@@ -82,7 +87,10 @@ export class InMemoryPortfolioEconomyStore implements PortfolioEconomyStore {
     if (!Number.isSafeInteger(input.amount) || input.amount <= 0 || input.amount > 1_000_000_000)
       throw Object.assign(new Error("Transfer amount must be a positive bounded integer."), { code: "INVALID_PORTFOLIO_TRANSFER_AMOUNT" });
     const duplicate = this.findTransfer(input.ownerId, input.idempotencyKey);
-    if (duplicate) return duplicate;
+    if (duplicate) {
+      assertEconomyReplay(duplicate, input, ["companyId", "amount", "reason", "approvalId"]);
+      return duplicate;
+    }
     this.ensureAccounts(input.ownerId, [input.companyId], input.at);
     const sourceKey = `${input.ownerId}:${reserveId(input.ownerId)}`;
     const destinationKey = `${input.ownerId}:${companyIdFor(input.ownerId, input.companyId)}`;
@@ -113,7 +121,10 @@ export class InMemoryPortfolioEconomyStore implements PortfolioEconomyStore {
       throw Object.assign(new Error("Funding amount must be a positive bounded integer."), { code: "INVALID_OWNER_RESERVE_FUNDING_AMOUNT" });
     const key = `${input.ownerId}:${input.idempotencyKey}`;
     const duplicate = this.#funding.get(key);
-    if (duplicate) return structuredClone(duplicate);
+    if (duplicate) {
+      assertEconomyReplay(duplicate, input, ["amount", "reason", "authorityRef", "approvalId"]);
+      return structuredClone(duplicate);
+    }
     this.ensureAccounts(input.ownerId, [], input.at);
     const accountKey = `${input.ownerId}:${reserveId(input.ownerId)}`;
     const account = this.#accounts.get(accountKey)!;

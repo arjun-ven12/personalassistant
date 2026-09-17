@@ -6,7 +6,7 @@ const list = async <T>(pool: Pool, ownerId: string, kind: string, schema: { pars
   const companyId=companyScope.companyId(ownerId);
   const query=companyId
     ? await pool.query<{record:unknown}>("SELECT record FROM executive_records WHERE owner_id=$1 AND company_id=$2 AND kind=$3 ORDER BY updated_at DESC",[ownerId,companyId,kind])
-    : await pool.query<{record:unknown}>("SELECT record FROM executive_records WHERE owner_id=$1 AND kind=$2 ORDER BY updated_at DESC",[ownerId,kind]);
+    : await pool.query<{record:unknown}>("SELECT record FROM executive_records WHERE owner_id=$1 AND company_id=(SELECT default_company_id FROM owners WHERE id=$1) AND kind=$2 ORDER BY updated_at DESC",[ownerId,kind]);
   return query.rows.map((row)=>schema.parse(row.record));
 };
 const save = async (pool: Pool, kind: string, record: { id: string; ownerId: string }, updatedAt: string) => {

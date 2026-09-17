@@ -61,7 +61,7 @@ export class PostgresMemoryStore implements MemoryStore {
   async findMemory(ownerId: string, memoryId: string) {
     const companyId = companyScope.companyId(ownerId);
     const result = await this.pool.query<{ record: unknown }>(
-      companyId ? "SELECT record FROM memories WHERE owner_id=$1 AND company_id=$2 AND id=$3" : "SELECT record FROM memories WHERE owner_id=$1 AND id=$2",
+      companyId ? "SELECT record FROM memories WHERE owner_id=$1 AND company_id=$2 AND id=$3" : "SELECT record FROM memories WHERE owner_id=$1 AND id=$2 AND company_id=(SELECT default_company_id FROM owners WHERE id=$1)",
       companyId ? [ownerId, companyId, memoryId] : [ownerId, memoryId],
     );
     return result.rows[0] ? MemoryRecordSchema.parse(result.rows[0].record) : undefined;
@@ -70,7 +70,7 @@ export class PostgresMemoryStore implements MemoryStore {
   async listMemories(ownerId: string, limit: number) {
     const companyId = companyScope.companyId(ownerId);
     const result = await this.pool.query<{ record: unknown }>(
-      companyId ? "SELECT record FROM memories WHERE owner_id=$1 AND company_id=$2 ORDER BY updated_at DESC LIMIT $3" : "SELECT record FROM memories WHERE owner_id=$1 ORDER BY updated_at DESC LIMIT $2",
+      companyId ? "SELECT record FROM memories WHERE owner_id=$1 AND company_id=$2 ORDER BY updated_at DESC LIMIT $3" : "SELECT record FROM memories WHERE owner_id=$1 AND company_id=(SELECT default_company_id FROM owners WHERE id=$1) ORDER BY updated_at DESC LIMIT $2",
       companyId ? [ownerId, companyId, limit] : [ownerId, limit],
     );
     return result.rows.map((row) => MemoryRecordSchema.parse(row.record));
@@ -81,6 +81,7 @@ export class PostgresMemoryStore implements MemoryStore {
     const values: unknown[] = [ownerId];
     const companyId = companyScope.companyId(ownerId);
     if (companyId) { values.push(companyId); clauses.push(`company_id=$${values.length}`); }
+    else clauses.push("company_id=(SELECT default_company_id FROM owners WHERE id=$1)");
     if (query.type) {
       values.push(query.type);
       clauses.push(`memory_type=$${values.length}`);
@@ -116,7 +117,7 @@ export class PostgresMemoryStore implements MemoryStore {
       `INSERT INTO knowledge_nodes(id,owner_id,kind,label,ref_id,confidence,created_at,updated_at,record,company_id)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
        ON CONFLICT (id) DO UPDATE
-       SET label=$4,ref_id=$5,confidence=$6,updated_at=$8,record=$9`,
+       SET label=$4,ref_id=$5,confidence=$6,updated_at=$8,record=$9 WHERE knowledge_nodes.owner_id=EXCLUDED.owner_id AND knowledge_nodes.company_id=EXCLUDED.company_id`,
       [
         parsed.id,
         parsed.ownerId,
@@ -134,7 +135,7 @@ export class PostgresMemoryStore implements MemoryStore {
 
   async listKnowledgeNodes(ownerId: string, limit: number) {
     const result = await this.pool.query<{ record: unknown }>(
-      "SELECT record FROM knowledge_nodes WHERE owner_id=$1 AND ($3::uuid IS NULL OR company_id=$3) ORDER BY updated_at DESC LIMIT $2",
+      "SELECT record FROM knowledge_nodes WHERE owner_id=$1 AND company_id=COALESCE($3::uuid,(SELECT default_company_id FROM owners WHERE id=$1)) ORDER BY updated_at DESC LIMIT $2",
       [ownerId, limit, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows.map((row) => KnowledgeNodeSchema.parse(row.record));
@@ -162,7 +163,7 @@ export class PostgresMemoryStore implements MemoryStore {
 
   async listKnowledgeEdges(ownerId: string, limit: number) {
     const result = await this.pool.query<{ record: unknown }>(
-      "SELECT record FROM knowledge_edges WHERE owner_id=$1 AND ($3::uuid IS NULL OR company_id=$3) ORDER BY created_at DESC LIMIT $2",
+      "SELECT record FROM knowledge_edges WHERE owner_id=$1 AND company_id=COALESCE($3::uuid,(SELECT default_company_id FROM owners WHERE id=$1)) ORDER BY created_at DESC LIMIT $2",
       [ownerId, limit, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows.map((row) => KnowledgeEdgeSchema.parse(row.record));
@@ -173,7 +174,7 @@ export class PostgresMemoryStore implements MemoryStore {
     await this.pool.query(
       `INSERT INTO engineering_decisions(id,owner_id,repository_id,workflow_id,status,created_at,updated_at,record,company_id)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-       ON CONFLICT (id) DO UPDATE SET status=$5,updated_at=$7,record=$8`,
+       ON CONFLICT (id) DO UPDATE SET status=$5,updated_at=$7,record=$8 WHERE engineering_decisions.owner_id=EXCLUDED.owner_id AND engineering_decisions.company_id=EXCLUDED.company_id`,
       [
         parsed.id,
         parsed.ownerId,
@@ -190,7 +191,7 @@ export class PostgresMemoryStore implements MemoryStore {
 
   async listDecisions(ownerId: string, limit: number) {
     const result = await this.pool.query<{ record: unknown }>(
-      "SELECT record FROM engineering_decisions WHERE owner_id=$1 AND ($3::uuid IS NULL OR company_id=$3) ORDER BY created_at DESC LIMIT $2",
+      "SELECT record FROM engineering_decisions WHERE owner_id=$1 AND company_id=COALESCE($3::uuid,(SELECT default_company_id FROM owners WHERE id=$1)) ORDER BY created_at DESC LIMIT $2",
       [ownerId, limit, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows.map((row) => EngineeringDecisionRecordSchema.parse(row.record));
@@ -202,7 +203,7 @@ export class PostgresMemoryStore implements MemoryStore {
       `INSERT INTO repository_memory(owner_id,repository_id,last_consolidated_at,confidence,record,company_id)
        VALUES ($1,$2,$3,$4,$5,$6)
        ON CONFLICT (owner_id,repository_id) DO UPDATE
-       SET last_consolidated_at=$3,confidence=$4,record=$5`,
+       SET last_consolidated_at=$3,confidence=$4,record=$5 WHERE repository_memory.company_id=EXCLUDED.company_id`,
       [
         parsed.ownerId,
         parsed.repositoryId,
@@ -216,7 +217,7 @@ export class PostgresMemoryStore implements MemoryStore {
 
   async getRepositoryMemory(ownerId: string, repositoryId: string) {
     const result = await this.pool.query<{ record: unknown }>(
-      "SELECT record FROM repository_memory WHERE owner_id=$1 AND repository_id=$2 AND ($3::uuid IS NULL OR company_id=$3)",
+      "SELECT record FROM repository_memory WHERE owner_id=$1 AND repository_id=$2 AND company_id=COALESCE($3::uuid,(SELECT default_company_id FROM owners WHERE id=$1))",
       [ownerId, repositoryId, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows[0]
@@ -230,7 +231,7 @@ export class PostgresMemoryStore implements MemoryStore {
       `INSERT INTO agent_memory(owner_id,agent_id,last_updated_at,success_rate,record,company_id)
        VALUES ($1,$2,$3,$4,$5,$6)
        ON CONFLICT (owner_id,agent_id) DO UPDATE
-       SET last_updated_at=$3,success_rate=$4,record=$5`,
+       SET last_updated_at=$3,success_rate=$4,record=$5 WHERE agent_memory.company_id=EXCLUDED.company_id`,
       [
         parsed.ownerId,
         parsed.agentId,
@@ -244,7 +245,7 @@ export class PostgresMemoryStore implements MemoryStore {
 
   async getAgentMemory(ownerId: string, agentId: string) {
     const result = await this.pool.query<{ record: unknown }>(
-      "SELECT record FROM agent_memory WHERE owner_id=$1 AND agent_id=$2 AND ($3::uuid IS NULL OR company_id=$3)",
+      "SELECT record FROM agent_memory WHERE owner_id=$1 AND agent_id=$2 AND company_id=COALESCE($3::uuid,(SELECT default_company_id FROM owners WHERE id=$1))",
       [ownerId, agentId, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows[0]
@@ -274,7 +275,7 @@ export class PostgresMemoryStore implements MemoryStore {
 
   async listLearningEvents(ownerId: string, limit: number) {
     const result = await this.pool.query<{ record: unknown }>(
-      "SELECT record FROM learning_events WHERE owner_id=$1 AND ($3::uuid IS NULL OR company_id=$3) ORDER BY created_at DESC LIMIT $2",
+      "SELECT record FROM learning_events WHERE owner_id=$1 AND company_id=COALESCE($3::uuid,(SELECT default_company_id FROM owners WHERE id=$1)) ORDER BY created_at DESC LIMIT $2",
       [ownerId, limit, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows.map((row) => LearningEventRecordSchema.parse(row.record));
@@ -285,7 +286,7 @@ export class PostgresMemoryStore implements MemoryStore {
     await this.pool.query(
       `INSERT INTO memory_suggestions(id,owner_id,repository_id,status,risk_level,confidence,created_at,updated_at,record,company_id)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-       ON CONFLICT (id) DO UPDATE SET status=$4,updated_at=$8,record=$9`,
+       ON CONFLICT (id) DO UPDATE SET status=$4,updated_at=$8,record=$9 WHERE memory_suggestions.owner_id=EXCLUDED.owner_id AND memory_suggestions.company_id=EXCLUDED.company_id`,
       [
         parsed.id,
         parsed.ownerId,
@@ -303,7 +304,7 @@ export class PostgresMemoryStore implements MemoryStore {
 
   async listSuggestions(ownerId: string, limit: number) {
     const result = await this.pool.query<{ record: unknown }>(
-      "SELECT record FROM memory_suggestions WHERE owner_id=$1 AND ($3::uuid IS NULL OR company_id=$3) ORDER BY created_at DESC LIMIT $2",
+      "SELECT record FROM memory_suggestions WHERE owner_id=$1 AND company_id=COALESCE($3::uuid,(SELECT default_company_id FROM owners WHERE id=$1)) ORDER BY created_at DESC LIMIT $2",
       [ownerId, limit, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows.map((row) => MemorySuggestionRecordSchema.parse(row.record));
@@ -321,7 +322,7 @@ export class PostgresMemoryStore implements MemoryStore {
 
   async listTimeline(ownerId: string, limit: number) {
     const result = await this.pool.query<{ record: unknown }>(
-      "SELECT record FROM memory_timeline WHERE owner_id=$1 AND ($3::uuid IS NULL OR company_id=$3) ORDER BY occurred_at DESC LIMIT $2",
+      "SELECT record FROM memory_timeline WHERE owner_id=$1 AND company_id=COALESCE($3::uuid,(SELECT default_company_id FROM owners WHERE id=$1)) ORDER BY occurred_at DESC LIMIT $2",
       [ownerId, limit, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows.map((row) => MemoryTimelineEventSchema.parse(row.record));

@@ -39,11 +39,13 @@ import {
 
 import type { AgentStore } from "../agents/store.js";
 import type { PortfolioEconomyStore } from "../agent-economy/portfolio-store.js";
+import { assertEconomyReplay } from "../agent-economy/portfolio-store.js";
 import type { CompanyDataStore } from "../company-data/store.js";
 import type { CompanyStore } from "../companies/store.js";
 import type { ApprovalService, GovernanceAuditWriter } from "../governance/approval-service.js";
 import { companyScope } from "../companies/scope.js";
 import type { ObservabilityStore } from "./store.js";
+import type { UnitOfWork } from "../persistence/unit-of-work.js";
 
 const forbiddenAttribute =
   /(authorization|cookie|credential|password|secret|token|api.?key|prompt|input|output|memory|payload|content|email|phone)/i;
@@ -162,6 +164,8 @@ export class OwnerPortfolioObservabilityService {
   #portfolioEconomy?: PortfolioEconomyStore;
   #approvals?: ApprovalService;
   #companyObjectiveProvider?: CompanyObjectiveProvider;
+  #transaction?: UnitOfWork;
+  setTransaction(transaction: UnitOfWork) { this.#transaction = transaction; }
   constructor(
     readonly store: ObservabilityStore,
     readonly companies: CompanyStore,
@@ -217,6 +221,12 @@ export class OwnerPortfolioObservabilityService {
     raw: unknown,
     request: { requestId: string; ipAddress: string; deviceId?: string },
   ) {
+    return this.#transaction
+      ? this.#transaction(`portfolio:${ownerId}`, () => this.transferPortfolioResourcesAtomic(ownerId, raw, request))
+      : this.transferPortfolioResourcesAtomic(ownerId, raw, request);
+  }
+
+  private async transferPortfolioResourcesAtomic(ownerId: string, raw: unknown, request: { requestId: string; ipAddress: string; deviceId?: string }) {
     if (!this.#portfolioEconomy || !this.#approvals)
       throw telemetryError("PORTFOLIO_ECONOMY_UNAVAILABLE", "Portfolio economy is unavailable.", 503);
     const input = PortfolioResourceTransferRequestSchema.parse(raw);
@@ -224,6 +234,7 @@ export class OwnerPortfolioObservabilityService {
     if (!company || company.status !== "ACTIVE")
       throw telemetryError("PORTFOLIO_COMPANY_SCOPE_MISMATCH", "Destination company is unauthorized or not active.");
     const existing = await this.#portfolioEconomy.findTransfer(ownerId, input.idempotencyKey);
+    if (existing) assertEconomyReplay(existing, input, ["companyId", "amount", "reason"]);
     if (existing)
       return PortfolioResourceTransferSchema.parse({
         transferId: existing.id, ownerId, companyId: existing.companyId, amount: existing.amount,
@@ -285,6 +296,12 @@ export class OwnerPortfolioObservabilityService {
     raw: unknown,
     request: { requestId: string; ipAddress: string; deviceId?: string },
   ) {
+    return this.#transaction
+      ? this.#transaction(`portfolio:${ownerId}`, () => this.fundOwnerReserveAtomic(ownerId, raw, request))
+      : this.fundOwnerReserveAtomic(ownerId, raw, request);
+  }
+
+  private async fundOwnerReserveAtomic(ownerId: string, raw: unknown, request: { requestId: string; ipAddress: string; deviceId?: string }) {
     if (!this.#portfolioEconomy || !this.#approvals)
       throw telemetryError("PORTFOLIO_ECONOMY_UNAVAILABLE", "Portfolio economy is unavailable.", 503);
     const parsed = OwnerReserveFundingRequestSchema.safeParse(raw);
@@ -298,6 +315,7 @@ export class OwnerPortfolioObservabilityService {
     }
     const input = parsed.data;
     const existing = await this.#portfolioEconomy.findFunding(ownerId, input.idempotencyKey);
+    if (existing) assertEconomyReplay(existing, input, ["amount", "reason"]);
     if (existing) return existing;
     const action = ProposedActionSchema.parse({
       actionId: deterministicUuid(`owner-reserve-fund:${ownerId}:${input.idempotencyKey}`),
@@ -552,6 +570,12 @@ export class OwnerPortfolioObservabilityService {
     raw: unknown,
     request: { requestId: string; ipAddress: string },
   ) {
+    return this.#transaction
+      ? this.#transaction(`portfolio:${ownerId}`, () => this.createPortfolioObjectiveAtomic(ownerId, raw, request))
+      : this.createPortfolioObjectiveAtomic(ownerId, raw, request);
+  }
+
+  private async createPortfolioObjectiveAtomic(ownerId: string, raw: unknown, request: { requestId: string; ipAddress: string }) {
     const input = CreatePortfolioObjectiveRequestSchema.parse(raw);
     const existing = await this.store.findPortfolioObjectiveByIdempotencyKey(
       ownerId,
@@ -699,12 +723,28 @@ export class OwnerPortfolioObservabilityService {
     ownerId: string,
     proposalId: string,
     raw: unknown,
-    request: { requestId: string; ipAddress: string; workerId?: string },
+    request: { requestId: string; ipAddress: string; workerId?: string; leaseGeneration?: number; signal?: AbortSignal },
   ) {
+    return this.#transaction
+      ? this.#transaction(`portfolio:${ownerId}`, () => this.decideGovernorProposalAtomic(ownerId, proposalId, raw, request))
+      : this.decideGovernorProposalAtomic(ownerId, proposalId, raw, request);
+  }
+
+  private async decideGovernorProposalAtomic(ownerId: string, proposalId: string, raw: unknown,
+    request: { requestId: string; ipAddress: string; workerId?: string; leaseGeneration?: number; signal?: AbortSignal }) {
     const input = GovernorProposalDecisionRequestSchema.parse(raw);
     let proposal = await this.store.findGovernorProposal(ownerId, proposalId);
     if (!proposal) throw telemetryError("GOVERNOR_PROPOSAL_NOT_FOUND", "Governor proposal was not found.", 404);
     if (proposal.decisionIdempotencyKeys.includes(input.idempotencyKey)) return proposal;
+    if (request.workerId && (proposal.leaseOwner !== request.workerId ||
+        proposal.leaseGeneration !== request.leaseGeneration || !proposal.leaseExpiresAt ||
+        proposal.leaseExpiresAt <= this.now().toISOString()))
+      throw telemetryError("GOVERNOR_PROPOSAL_LEASE_LOST", "The durable evaluation lease is no longer current.", 409);
+    const expected = proposal;
+    const persist = (value: GovernorProposal) => {
+      request.signal?.throwIfAborted();
+      return this.store.saveGovernorProposal(value, expected, this.now().toISOString());
+    };
     if (proposal.leaseOwner && proposal.leaseOwner !== request.workerId)
       throw telemetryError("GOVERNOR_PROPOSAL_LEASED", "Governor proposal is being evaluated by the durable scheduler.", 409);
     if (["ACCEPTED", "REJECTED", "EXPIRED", "CANCELLED"].includes(proposal.status))
@@ -718,7 +758,7 @@ export class OwnerPortfolioObservabilityService {
     const at = this.now().toISOString();
     if (new Date(proposal.expiresAt).getTime() <= this.now().getTime()) {
       proposal = GovernorProposalSchema.parse({ ...proposal, status: "EXPIRED", updatedAt: at, decisionIdempotencyKeys: [...proposal.decisionIdempotencyKeys, input.idempotencyKey], leaseOwner: null, leaseAcquiredAt: null, leaseExpiresAt: null });
-      await this.store.saveGovernorProposal(proposal);
+      await persist(proposal);
       await this.syncPortfolioObjective(proposal, "EXPIRED", "Proposal expired before a decision.");
       return proposal;
     }
@@ -729,7 +769,7 @@ export class OwnerPortfolioObservabilityService {
       const rounds = proposal.revisions.filter((item) => item.proposedBy === "COMPANY_GOVERNOR").length;
       if (rounds >= proposal.maxCounterproposalRounds) {
         proposal = GovernorProposalSchema.parse({ ...proposal, status: "ESCALATED_TO_OWNER", updatedAt: at, decisionIdempotencyKeys: [...proposal.decisionIdempotencyKeys, input.idempotencyKey], leaseOwner: null, leaseAcquiredAt: null, leaseExpiresAt: null });
-        await this.store.saveGovernorProposal(proposal);
+        await persist(proposal);
         await this.syncPortfolioObjective(proposal, "OWNER_DECISION_REQUIRED", "Counterproposal limit reached; owner decision required.");
         await this.auditProposal(proposal, "GOVERNOR_PROPOSAL_ESCALATED", "SUCCESS", request, "Negotiation reached its bounded counterproposal limit.");
         return proposal;
@@ -739,7 +779,7 @@ export class OwnerPortfolioObservabilityService {
         revisions: [...proposal.revisions, { version: latest.version + 1, proposedBy: "COMPANY_GOVERNOR", terms: input.counterTerms!, reasonCode: input.reasonCode, explanation: input.explanation, createdAt: at }],
         updatedAt: at, decisionIdempotencyKeys: [...proposal.decisionIdempotencyKeys, input.idempotencyKey], leaseOwner: null, leaseAcquiredAt: null, leaseExpiresAt: null,
       });
-      await this.store.saveGovernorProposal(proposal);
+      await persist(proposal);
       await this.syncPortfolioObjective(proposal, proposal.status === "ESCALATED_TO_OWNER" ? "OWNER_DECISION_REQUIRED" : "COUNTERPROPOSED", input.explanation ?? "Company Governor counterproposed bounded terms.");
       await this.auditProposal(proposal, proposal.status === "ESCALATED_TO_OWNER" ? "GOVERNOR_PROPOSAL_ESCALATED" : "GOVERNOR_PROPOSAL_COUNTERPROPOSED", "SUCCESS", request, "Company Governor response persisted with immutable revision history.");
       return proposal;
@@ -750,7 +790,7 @@ export class OwnerPortfolioObservabilityService {
         revisions: [...proposal.revisions, { version: latest.version + 1, proposedBy: "COMPANY_GOVERNOR", terms: latest.terms, reasonCode: input.reasonCode, explanation: input.explanation, createdAt: at }],
         updatedAt: at, decisionIdempotencyKeys: [...proposal.decisionIdempotencyKeys, input.idempotencyKey], leaseOwner: null, leaseAcquiredAt: null, leaseExpiresAt: null,
       });
-      await this.store.saveGovernorProposal(proposal);
+      await persist(proposal);
       await this.syncPortfolioObjective(proposal, "REJECTED", input.explanation ?? input.reasonCode);
       await this.auditProposal(proposal, "GOVERNOR_PROPOSAL_REJECTED", "SUCCESS", request, "Company Governor rejected the proposal with a bounded reason.");
       return proposal;
@@ -762,6 +802,7 @@ export class OwnerPortfolioObservabilityService {
       ? (await this.store.listPortfolioObjectives(ownerId)).find((item) => item.id === portfolioObjectiveId)
       : undefined;
     if (!objective) throw telemetryError("PORTFOLIO_OBJECTIVE_NOT_FOUND", "Parent portfolio objective is unavailable.", 409);
+    request.signal?.throwIfAborted();
     const companyObjectiveId = proposal.companyObjectiveId ?? await this.#companyObjectiveProvider({
       ownerId, companyId: company.id, proposal, title: objective.title,
       canonicalMetricKey: objective.canonicalMetricKey, requestId: request.requestId, ipAddress: request.ipAddress,
@@ -771,15 +812,23 @@ export class OwnerPortfolioObservabilityService {
       revisions: [...proposal.revisions, { version: latest.version + 1, proposedBy: "COMPANY_GOVERNOR", terms: latest.terms, reasonCode: "ACCEPTED", explanation: input.explanation, createdAt: at }],
       updatedAt: at, decisionIdempotencyKeys: [...proposal.decisionIdempotencyKeys, input.idempotencyKey], leaseOwner: null, leaseAcquiredAt: null, leaseExpiresAt: null,
     });
-    await this.store.saveGovernorProposal(proposal);
+    await persist(proposal);
     await this.syncPortfolioObjective(proposal, "ACCEPTED", "Accepted into the existing company Objective Engine; activation still requires normal confirmation.", companyObjectiveId);
     await this.auditProposal(proposal, "GOVERNOR_PROPOSAL_ACCEPTED", "SUCCESS", request, "Company Governor accepted bounded terms into the normal Objective Engine.");
     return proposal;
   }
 
-  async evaluateClaimedGovernorProposal(proposal: GovernorProposal, workerId: string) {
+  async evaluateClaimedGovernorProposal(proposal: GovernorProposal, workerId: string, signal?: AbortSignal) {
+    return this.#transaction
+      ? this.#transaction(`portfolio:${proposal.ownerId}`, () => this.evaluateClaimedGovernorProposalAtomic(proposal, workerId, signal))
+      : this.evaluateClaimedGovernorProposalAtomic(proposal, workerId, signal);
+  }
+
+  private async evaluateClaimedGovernorProposalAtomic(proposal: GovernorProposal, workerId: string, signal?: AbortSignal) {
+    signal?.throwIfAborted();
     const current = await this.store.findGovernorProposal(proposal.ownerId, proposal.id);
-    if (!current || current.leaseOwner !== workerId)
+    if (!current || current.leaseOwner !== workerId || current.leaseGeneration !== proposal.leaseGeneration ||
+        !current.leaseExpiresAt || current.leaseExpiresAt <= this.now().toISOString())
       throw telemetryError("GOVERNOR_PROPOSAL_LEASE_LOST", "Governor proposal lease is no longer held.", 409);
     const idempotencyKey = `governor-evaluation:${current.id}`;
     if (new Date(current.expiresAt).getTime() <= this.now().getTime()) {
@@ -789,12 +838,13 @@ export class OwnerPortfolioObservabilityService {
           ? current.decisionIdempotencyKeys : [...current.decisionIdempotencyKeys, idempotencyKey],
         leaseOwner: null, leaseAcquiredAt: null, leaseExpiresAt: null,
       });
-      await this.store.saveGovernorProposal(expired);
+      signal?.throwIfAborted();
+      await this.store.saveGovernorProposal(expired, current, this.now().toISOString());
       await this.syncPortfolioObjective(expired, "EXPIRED", "Proposal expired before durable Governor evaluation.");
       return expired;
     }
     const company = await this.companies.findCompany(current.ownerId, current.companyId);
-    const request = { requestId: `scheduler:${current.id}`, ipAddress: "internal", workerId };
+    const request = { requestId: `scheduler:${current.id}`, ipAddress: "internal", workerId, leaseGeneration: current.leaseGeneration, ...(signal ? { signal } : {}) };
     if (!company || company.status !== "ACTIVE")
       return this.decideGovernorProposal(current.ownerId, current.id, {
         decision: "REJECT", reasonCode: "COMPANY_PAUSED",
@@ -1182,6 +1232,11 @@ export class OwnerPortfolioObservabilityService {
     spans: SystemTelemetrySpan[],
     aiTraces: AIObservabilityTrace[],
   ): Promise<PortfolioCompanySummary> {
+    const cutoff = this.now().getTime() - 15 * 60_000;
+    const freshSpans = spans.filter((span) => Date.parse(span.endedAt) >= cutoff);
+    const freshAI = aiTraces.filter((trace) => Date.parse(trace.endedAt) >= cutoff);
+    const healthErrors = freshSpans.filter((span) => span.status === "ERROR").length;
+    const healthAISuccess = freshAI.length ? freshAI.filter((trace) => trace.success).length / freshAI.length : null;
     const [metrics, datasets, pipelines, integrations, assignments, management] = await Promise.all(
       [
         this.metricViews(ownerId, company),
@@ -1193,7 +1248,8 @@ export class OwnerPortfolioObservabilityService {
       ],
     );
     const stale = datasets.filter(
-      (item) => item.freshness.state === "STALE" || item.freshness.state === "DEGRADED",
+      (item) => item.freshness.state === "STALE" || item.freshness.state === "DEGRADED" ||
+        (item.freshness.lastUpdatedAt !== null && this.now().getTime() - Date.parse(item.freshness.lastUpdatedAt) > item.freshness.staleAfterSeconds * 1000),
     ).length;
     const degradedPipelines = pipelines.filter(
       (item) => item.status === "DEGRADED" || item.status === "FAILED",
@@ -1211,7 +1267,7 @@ export class OwnerPortfolioObservabilityService {
         dimension: "BUSINESS" as const,
         state: businessWarnings
           ? ("WARNING" as const)
-          : metrics.length
+          : metrics.length && metrics.every((metric) => metric.freshness === "FRESH" && metric.value !== null)
             ? ("HEALTHY" as const)
             : ("UNKNOWN" as const),
         confidence: metrics.length
@@ -1232,7 +1288,7 @@ export class OwnerPortfolioObservabilityService {
             ? ("CRITICAL" as const)
             : stale + degradedPipelines
               ? ("WARNING" as const)
-              : datasets.length
+              : datasets.length && datasets.every((dataset) => dataset.freshness.state === "FRESH" && dataset.freshness.lastUpdatedAt !== null)
                 ? ("HEALTHY" as const)
                 : ("UNKNOWN" as const),
         confidence: datasets.length ? 0.95 : 0.2,
@@ -1243,31 +1299,31 @@ export class OwnerPortfolioObservabilityService {
       {
         dimension: "SYSTEM" as const,
         state:
-          errors > 3
+          healthErrors > 3
             ? ("CRITICAL" as const)
-            : errors
+            : healthErrors
               ? ("WARNING" as const)
-              : spans.length
+              : freshSpans.length
                 ? ("HEALTHY" as const)
                 : ("UNKNOWN" as const),
-        confidence: spans.length ? 0.9 : 0.2,
-        evidence: [`${errors} recorded runtime errors in the retained sample.`],
+        confidence: freshSpans.length ? 0.9 : 0.2,
+        evidence: [`${healthErrors} recorded runtime errors in the last 15 minutes; ${freshSpans.length} recent spans.`],
       },
       {
         dimension: "AI" as const,
         state:
-          aiSuccess === null
+          healthAISuccess === null
             ? ("UNKNOWN" as const)
-            : aiSuccess < 0.7
+            : healthAISuccess < 0.7
               ? ("CRITICAL" as const)
-              : aiSuccess < 0.9
+              : healthAISuccess < 0.9
                 ? ("WARNING" as const)
                 : ("HEALTHY" as const),
-        confidence: aiTraces.length ? Math.min(0.95, 0.5 + aiTraces.length / 100) : 0.2,
+        confidence: freshAI.length ? Math.min(0.95, 0.5 + freshAI.length / 100) : 0.2,
         evidence: [
-          aiSuccess === null
-            ? "No AI calls in retained telemetry."
-            : `${Math.round(aiSuccess * 100)}% AI call success across ${aiTraces.length} calls.`,
+          healthAISuccess === null
+            ? "No AI calls in the last 15 minutes."
+            : `${Math.round(healthAISuccess * 100)}% AI call success across ${freshAI.length} recent calls.`,
         ],
       },
       {
@@ -1292,11 +1348,11 @@ export class OwnerPortfolioObservabilityService {
       },
       {
         dimension: "ECONOMY" as const,
-        state: aiTraces.length ? ("HEALTHY" as const) : ("UNKNOWN" as const),
+        state: "UNKNOWN" as const,
         confidence: aiTraces.length ? 0.7 : 0.1,
         evidence: [
           aiTraces.length
-            ? `${aiCost.toFixed(2)} credits correlated from AI Router responses; the Agent Economy remains the accounting authority.`
+            ? `${aiCost.toFixed(2)} credits correlated from AI Router responses; spend alone cannot establish economy health.`
             : "No company-scoped AI cost evidence is available.",
         ],
       },
@@ -1330,11 +1386,7 @@ export class OwnerPortfolioObservabilityService {
       systemIncidents: errors,
       aiSpendCredits: aiCost,
       aiSuccessRate: aiSuccess,
-      integrationHealth: integrations.some((item) => item.status === "DEGRADED")
-        ? "DEGRADED"
-        : integrations.length
-          ? "HEALTHY"
-          : "UNAVAILABLE",
+      integrationHealth: integrations.length ? "DEGRADED" : "UNAVAILABLE",
       activeObjectives: Math.max(0, management.totalObjectives - management.objectivesAtRisk),
       atRiskObjectives: management.objectivesAtRisk,
       blockedObjectives: management.blockedObjectives,
@@ -1361,7 +1413,9 @@ export class OwnerPortfolioObservabilityService {
       return {
         service,
         state:
-          errorRate >= 0.2
+          !items.some((item) => Date.parse(item.endedAt) >= this.now().getTime() - 15 * 60_000)
+            ? ("UNKNOWN" as const)
+            : errorRate >= 0.2
             ? ("DOWN" as const)
             : errorRate >= 0.05
               ? ("DEGRADED" as const)

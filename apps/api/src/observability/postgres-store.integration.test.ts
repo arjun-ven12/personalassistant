@@ -2,12 +2,18 @@ import {
   AIObservabilityTraceSchema,
   GovernorProposalSchema,
   SystemTelemetrySpanSchema,
+  CompanySchema,
+  CompanyMembershipSchema,
 } from "@alexa-control/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { PostgresDatabase } from "../persistence/database.js";
 import { safeTestDatabaseUrl } from "../persistence/test-database.js";
 import { PostgresObservabilityStore } from "./store.js";
+import { OwnerPortfolioObservabilityService } from "./service.js";
+import { InMemoryCompanyStore } from "../companies/store.js";
+import { InMemoryCompanyDataStore } from "../company-data/store.js";
+import { InMemoryAgentStore } from "../agents/store.js";
 
 const connectionString = safeTestDatabaseUrl();
 describe.skipIf(!connectionString)(
@@ -125,6 +131,22 @@ describe.skipIf(!connectionString)(
       expect(await store.listSystemSpans(otherOwner, { limit: 10 })).toEqual([]);
       expect(await store.listAITraces(otherOwner, { limit: 10 })).toEqual([]);
     });
+    it("rolls back portfolio creation and proposals on audit failure and retries canonically", async () => {
+      const companies = new InMemoryCompanyStore();
+      companies.createCompany(CompanySchema.parse({ id: companyId, ownerId, slug: "nova", name: "Nova", status: "ACTIVE", timezone: "UTC", defaultCurrency: "USD", createdAt: at, updatedAt: at }),
+        CompanyMembershipSchema.parse({ companyId, principalId: ownerId, principalType: "OWNER", role: "OWNER", status: "ACTIVE", createdAt: at, updatedAt: at }));
+      let fail = true;
+      const service = new OwnerPortfolioObservabilityService(store, companies, new InMemoryCompanyDataStore(), new InMemoryAgentStore(), () => { if (fail) throw new Error("AUDIT_UNAVAILABLE"); }, () => new Date(at));
+      service.setTransaction(database.transaction);
+      const input = { title: "Safe portfolio objective", desiredOutcome: "Improve company operating evidence", strategy: "EQUAL", selectedCompanyIds: [companyId], budgetCredits: 10, idempotencyKey: "portfolio-audit-rollback-1" };
+      const request = { requestId: "fixture", ipAddress: "127.0.0.1" };
+      await expect(service.createPortfolioObjective(ownerId, input, request)).rejects.toThrow("AUDIT_UNAVAILABLE");
+      expect(await store.findPortfolioObjectiveByIdempotencyKey(ownerId, input.idempotencyKey)).toBeNull();
+      fail = false;
+      const results = await Promise.all(Array.from({ length: 4 }, () => service.createPortfolioObjective(ownerId, input, request)));
+      expect(new Set(results.map((result) => result.id)).size).toBe(1);
+      expect(await store.listGovernorProposals(ownerId, results[0]!.id)).toHaveLength(1);
+    });
     it("atomically claims Governor proposals across workers and recovers stale leases", async () => {
       for (let index = 1; index <= 20; index += 1) {
         await store.saveGovernorProposal(GovernorProposalSchema.parse({
@@ -158,6 +180,16 @@ describe.skipIf(!connectionString)(
         ...recovered[0], id: crypto.randomUUID(), ownerId: otherOwner,
         idempotencyKey: "cross-owner-governor-proposal-denied-0001",
       }))).rejects.toBeTruthy();
+      const oldLease = [...workerA, ...workerB].find((item) => item.id === canonical.id)!;
+      const decision = GovernorProposalSchema.parse({ ...canonical, status: "REJECTED", leaseOwner: null, leaseAcquiredAt: null, leaseExpiresAt: null });
+      const decisionAt = "2026-09-03T00:00:01.002Z";
+      await expect(store.saveGovernorProposal(decision, oldLease, decisionAt)).rejects.toMatchObject({ code: "GOVERNOR_PROPOSAL_CAS_FAILED" });
+      const results = await Promise.allSettled([
+        store.saveGovernorProposal(decision, canonical, decisionAt),
+        store.saveGovernorProposal({ ...decision, status: "ACCEPTED" }, canonical, decisionAt),
+      ]);
+      expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+      expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
     });
   },
 );
