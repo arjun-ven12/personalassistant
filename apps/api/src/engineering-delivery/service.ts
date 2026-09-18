@@ -34,6 +34,8 @@ export type EngineeringDeliveryContext = {
 };
 
 export class EngineeringDeliveryError extends Error {
+  readonly statusCode: number;
+
   constructor(
     readonly code:
       | "DELIVERY_NOT_FOUND"
@@ -44,6 +46,12 @@ export class EngineeringDeliveryError extends Error {
   ) {
     super(message);
     this.name = "EngineeringDeliveryError";
+    this.statusCode =
+      code === "DELIVERY_NOT_FOUND"
+        ? 404
+        : code === "DEVELOPMENT_ROOT_DENIED"
+          ? 403
+          : 409;
   }
 }
 

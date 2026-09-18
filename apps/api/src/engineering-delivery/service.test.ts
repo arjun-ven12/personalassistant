@@ -18,6 +18,7 @@ import type {
   ExecutiveNotificationService,
 } from "../notifications/service.js";
 import {
+  EngineeringDeliveryError,
   EngineeringDeliveryService,
   type EngineeringDeliveryContext,
 } from "./service.js";
@@ -308,6 +309,21 @@ const fixture = () => {
 };
 
 describe("EngineeringDeliveryService", () => {
+  it("maps governed delivery failures to actionable non-500 statuses", () => {
+    expect(new EngineeringDeliveryError("DELIVERY_NOT_FOUND", "missing")).toMatchObject(
+      { statusCode: 404 },
+    );
+    expect(
+      new EngineeringDeliveryError("DEVELOPMENT_ROOT_DENIED", "denied"),
+    ).toMatchObject({ statusCode: 403 });
+    expect(new EngineeringDeliveryError("INVALID_STATE", "conflict")).toMatchObject({
+      statusCode: 409,
+    });
+    expect(
+      new EngineeringDeliveryError("IDEMPOTENCY_CONFLICT", "conflict"),
+    ).toMatchObject({ statusCode: 409 });
+  });
+
   it("reuses an initializing repository when an approved new-project request is retried", async () => {
     const runtime = new InMemoryEngineeringRuntimeStore();
     const projectName = "Trial 1";
