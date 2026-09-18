@@ -14,6 +14,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   assertEnvironmentCompatible,
   atomicReplaceApp,
+  chooseInstallPath,
   readDeviceId,
 } from "./install-local-lib.mjs";
 
@@ -23,6 +24,27 @@ afterEach(async () => {
 });
 
 describe("local Mac Agent installer", () => {
+  it("preserves an existing legacy bundle path for secure-storage compatibility", async () => {
+    directory = await mkdtemp(path.join(os.tmpdir(), "mac-agent-path-"));
+    const legacy = path.join(directory, "Applications", "Alexa Mac Agent.app");
+    await mkdir(legacy, { recursive: true });
+
+    await expect(
+      chooseInstallPath({
+        home: directory,
+        exists: (candidate) => Promise.resolve(candidate === legacy),
+      }),
+    ).resolves.toBe(legacy);
+  });
+
+  it("uses the canonical user app name for a fresh installation", async () => {
+    directory = await mkdtemp(path.join(os.tmpdir(), "mac-agent-path-"));
+
+    await expect(
+      chooseInstallPath({ home: directory, exists: () => Promise.resolve(false) }),
+    ).resolves.toBe(path.join(directory, "Applications", "Athena Mac Agent.app"));
+  });
+
   it("atomically replaces only the app bundle and can roll back", async () => {
     directory = await mkdtemp(path.join(os.tmpdir(), "mac-agent-install-"));
     const source = path.join(directory, "source.app");

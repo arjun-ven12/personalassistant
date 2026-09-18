@@ -4,12 +4,21 @@ import os from "node:os";
 import path from "node:path";
 
 export const APP_NAME = "Athena Mac Agent.app";
+export const APP_EXECUTABLE = "Athena Mac Agent";
+export const LEGACY_APP_NAME = "Alexa Mac Agent.app";
+export const LEGACY_APP_EXECUTABLE = "Alexa Mac Agent";
 export const BUNDLE_ID = "com.alexacontrol.macagent";
 
 export const chooseInstallPath = async ({ home = os.homedir(), exists }) => {
-  const systemPath = `/Applications/${APP_NAME}`;
-  if (await exists(systemPath)) return systemPath;
-  return path.join(home, "Applications", APP_NAME);
+  const system = `/Applications/${APP_NAME}`;
+  const systemLegacy = `/Applications/${LEGACY_APP_NAME}`;
+  const user = path.join(home, "Applications", APP_NAME);
+  const userLegacy = path.join(home, "Applications", LEGACY_APP_NAME);
+  if (await exists(system)) return system;
+  if (await exists(systemLegacy)) return systemLegacy;
+  if (await exists(user)) return user;
+  if (await exists(userLegacy)) return userLegacy;
+  return user;
 };
 
 export const readDeviceId = async (metadataPath) => {

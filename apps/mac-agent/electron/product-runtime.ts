@@ -1,6 +1,10 @@
 import path from "node:path";
 import { z } from "zod";
 
+// Electron safeStorage derives its macOS Keychain service from app.getName().
+// This security identity must remain stable across product display-name changes.
+export const MAC_AGENT_SECURE_STORAGE_NAME = "Alexa Mac Agent";
+
 export const MacAgentConnectionStateSchema = z.enum([
   "ONLINE",
   "CONNECTING",
@@ -10,9 +14,7 @@ export const MacAgentConnectionStateSchema = z.enum([
   "DEVICE_REVOKED",
   "ERROR",
 ]);
-export type MacAgentConnectionState = z.infer<
-  typeof MacAgentConnectionStateSchema
->;
+export type MacAgentConnectionState = z.infer<typeof MacAgentConnectionStateSchema>;
 
 const authFailureCodes = new Set([
   "INVALID_SIGNATURE",
@@ -55,9 +57,25 @@ export const resolveAgentResource = (input: {
     ? path.join(input.resourcesPath, input.relativePath)
     : path.join(input.moduleDirectory, "..", input.relativePath);
 
+export const packagedMacStatePaths = (input: {
+  isPackaged: boolean;
+  platform: NodeJS.Platform;
+  home: string;
+}) =>
+  input.isPackaged && input.platform === "darwin"
+    ? {
+        userData: path.join(
+          input.home,
+          "Library",
+          "Application Support",
+          "Alexa Mac Agent",
+        ),
+        logs: path.join(input.home, "Library", "Logs", "Alexa Mac Agent"),
+      }
+    : null;
+
 export const maskDeviceId = (deviceId: string | null | undefined) => {
   if (!deviceId) return "Not configured";
   if (deviceId.length <= 12) return "••••";
   return `${deviceId.slice(0, 8)}…${deviceId.slice(-4)}`;
 };
-

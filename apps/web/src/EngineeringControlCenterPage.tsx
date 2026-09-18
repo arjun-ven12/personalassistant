@@ -14,6 +14,11 @@ import {
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import type { ApiClient } from "./api.js";
+import {
+  engineeringFirstRunMessage,
+  formatEngineeringLoadError,
+  isEligibleEngineeringRoot,
+} from "./engineeringControlCenterState.js";
 
 const duration = (milliseconds: number) => {
   const seconds = Math.floor(milliseconds / 1_000);
@@ -48,17 +53,7 @@ export const EngineeringControlCenterPage = ({
     queryFn: apiClient.getWorkspaces,
   });
   const eligibleRoots = useMemo(
-    () =>
-      (workspaces.data ?? []).filter(
-        (item) =>
-          item.enabled &&
-          item.permissions.write &&
-          item.permissions.createFile &&
-          item.permissions.modifyFile &&
-          item.permissions.runScripts &&
-          item.gitPermissions.createBranch &&
-          item.gitPermissions.commit,
-      ),
+    () => (workspaces.data ?? []).filter(isEligibleEngineeringRoot),
     [workspaces.data],
   );
   useEffect(() => {
@@ -135,6 +130,35 @@ export const EngineeringControlCenterPage = ({
     create.mutate();
   };
   const data = center.data;
+  const deliveryCount = deliveries.data?.deliveries.length ?? 0;
+  const firstRunMessage =
+    workspaces.isSuccess && deliveries.isSuccess
+      ? engineeringFirstRunMessage({
+          workspaceCount: workspaces.data.length,
+          eligibleRootCount: eligibleRoots.length,
+          deliveryCount,
+        })
+      : null;
+  const loadErrors = [
+    workspaces.error
+      ? formatEngineeringLoadError(
+          workspaces.error,
+          "Unable to load governed workspaces.",
+        )
+      : null,
+    projects.error
+      ? formatEngineeringLoadError(
+          projects.error,
+          "Unable to load engineering projects.",
+        )
+      : null,
+    deliveries.error
+      ? formatEngineeringLoadError(deliveries.error, "Unable to load delivery state.")
+      : null,
+    center.error
+      ? formatEngineeringLoadError(center.error, "Unable to load delivery state.")
+      : null,
+  ].filter((message): message is string => Boolean(message));
   const totalCost =
     data?.delivery.modelUsage.reduce((sum, item) => sum + Number(item.costUsd), 0) ?? 0;
 
@@ -212,6 +236,12 @@ export const EngineeringControlCenterPage = ({
           {create.error instanceof Error ? (
             <p className="form-error">{create.error.message}</p>
           ) : null}
+          {loadErrors.map((message) => (
+            <p className="form-error" key={message} role="alert">
+              {message}
+            </p>
+          ))}
+          {firstRunMessage ? <p className="notice">{firstRunMessage}</p> : null}
         </form>
         <div className="panel engineering-project-list">
           <span>Recent projects</span>
@@ -232,9 +262,13 @@ export const EngineeringControlCenterPage = ({
       {!data ? (
         <div className="panel">
           <p>
-            {center.isPending
+            {deliveries.isPending || (Boolean(selectedId) && center.isPending)
               ? "Loading engineering state…"
-              : "Start a software objective to see live delivery state."}
+              : deliveryCount === 0 && deliveries.isSuccess
+                ? "No engineering deliveries yet. Choose a governed development root and start your first build."
+                : center.error || deliveries.error
+                  ? "Delivery state is unavailable. Review the error above and try again."
+                  : "Select a recent project to see its delivery state."}
           </p>
         </div>
       ) : (

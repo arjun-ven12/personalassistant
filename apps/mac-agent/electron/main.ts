@@ -12,7 +12,7 @@ import {
   systemPreferences,
   Tray,
 } from "electron";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -90,12 +90,25 @@ import {
 } from "./update-runtime.js";
 import {
   connectionStateFor,
+  MAC_AGENT_SECURE_STORAGE_NAME,
   maskDeviceId,
+  packagedMacStatePaths,
   resolveAgentResource,
   type MacAgentConnectionState,
 } from "./product-runtime.js";
 
-app.setName("Athena Mac Agent");
+app.setName(MAC_AGENT_SECURE_STORAGE_NAME);
+const packagedStatePaths = packagedMacStatePaths({
+  isPackaged: app.isPackaged,
+  platform: process.platform,
+  home: os.homedir(),
+});
+if (packagedStatePaths) {
+  mkdirSync(packagedStatePaths.userData, { recursive: true, mode: 0o700 });
+  mkdirSync(packagedStatePaths.logs, { recursive: true, mode: 0o700 });
+  app.setPath("userData", packagedStatePaths.userData);
+  app.setPath("logs", packagedStatePaths.logs);
+}
 const environment = loadMacAgentConfiguration({
   isPackaged: app.isPackaged,
   packagedConfigPath: path.join(process.resourcesPath, "mac-agent.config.json"),

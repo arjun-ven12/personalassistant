@@ -251036,6 +251036,7 @@ var dispatchReadOnlyCapability = async (request, limits, signal, engineeringRunt
 
 // electron/product-runtime.ts
 var import_node_path7 = __toESM(require("path"), 1);
+var MAC_AGENT_SECURE_STORAGE_NAME = "Alexa Mac Agent";
 var MacAgentConnectionStateSchema = external_exports.enum([
   "ONLINE",
   "CONNECTING",
@@ -251065,6 +251066,15 @@ var reconnectDelayMs = (consecutiveFailures, baseIntervalMs, maximumMs = 6e4) =>
   return Math.min(maximumMs, baseIntervalMs * 2 ** boundedFailures);
 };
 var resolveAgentResource = (input) => input.isPackaged ? import_node_path7.default.join(input.resourcesPath, input.relativePath) : import_node_path7.default.join(input.moduleDirectory, "..", input.relativePath);
+var packagedMacStatePaths = (input) => input.isPackaged && input.platform === "darwin" ? {
+  userData: import_node_path7.default.join(
+    input.home,
+    "Library",
+    "Application Support",
+    "Alexa Mac Agent"
+  ),
+  logs: import_node_path7.default.join(input.home, "Library", "Logs", "Alexa Mac Agent")
+} : null;
 var maskDeviceId = (deviceId) => {
   if (!deviceId) return "Not configured";
   if (deviceId.length <= 12) return "\u2022\u2022\u2022\u2022";
@@ -254850,7 +254860,18 @@ ${result.stderr}`);
 };
 
 // electron/main.ts
-import_electron.app.setName("Athena Mac Agent");
+import_electron.app.setName(MAC_AGENT_SECURE_STORAGE_NAME);
+var packagedStatePaths = packagedMacStatePaths({
+  isPackaged: import_electron.app.isPackaged,
+  platform: process.platform,
+  home: import_node_os7.default.homedir()
+});
+if (packagedStatePaths) {
+  (0, import_node_fs6.mkdirSync)(packagedStatePaths.userData, { recursive: true, mode: 448 });
+  (0, import_node_fs6.mkdirSync)(packagedStatePaths.logs, { recursive: true, mode: 448 });
+  import_electron.app.setPath("userData", packagedStatePaths.userData);
+  import_electron.app.setPath("logs", packagedStatePaths.logs);
+}
 var environment = loadMacAgentConfiguration({
   isPackaged: import_electron.app.isPackaged,
   packagedConfigPath: import_node_path15.default.join(process.resourcesPath, "mac-agent.config.json"),

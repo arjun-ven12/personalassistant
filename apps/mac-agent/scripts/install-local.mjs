@@ -1,13 +1,15 @@
 import { execFile, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { readFile, rename, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
 import {
   APP_NAME,
+  APP_EXECUTABLE,
   BUNDLE_ID,
+  LEGACY_APP_EXECUTABLE,
   assertEnvironmentCompatible,
   atomicReplaceApp,
   chooseInstallPath,
@@ -18,20 +20,26 @@ import {
 const exec = promisify(execFile);
 const sleep = (milliseconds) =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
-const source = path.resolve("release/mac-arm64", APP_NAME);
+const localPackageName = "Alexa Mac Agent.app";
+const source = path.resolve("release/mac-arm64", localPackageName);
 const installPath = process.env.ALEXA_MAC_AGENT_INSTALL_PATH
   ? path.resolve(process.env.ALEXA_MAC_AGENT_INSTALL_PATH)
   : await chooseInstallPath({
       home: os.homedir(),
       exists: async (value) => existsSync(value),
     });
+const legacyInstallPath = path.join(path.dirname(installPath), "Alexa Mac Agent.app");
+const existingInstallPath = existsSync(installPath)
+  ? installPath
+  : existsSync(legacyInstallPath)
+    ? legacyInstallPath
+    : installPath;
 const metadataPath = path.join(
   os.homedir(),
   "Library/Application Support/Alexa Mac Agent/device-identity.json",
 );
-const operationalLogPath = path.join(
-  os.homedir(),
-  "Library/Logs/Alexa Mac Agent/alexa-mac-agent.jsonl",
+const operationalLogPaths = ["Alexa Mac Agent", "Athena Mac Agent"].map((name) =>
+  path.join(os.homedir(), "Library", "Logs", name, "alexa-mac-agent.jsonl"),
 );
 
 const plistValue = async (appPath, key) =>
@@ -43,30 +51,60 @@ const plistValue = async (appPath, key) =>
     ])
   ).stdout.trim();
 
-const isRunning = async () => {
-  try {
-    await exec("/usr/bin/pgrep", [
-      "-f",
-      `${installPath}/Contents/MacOS/Athena Mac Agent`,
-    ]);
-    return true;
-  } catch {
-    return false;
+const executableNames = [APP_EXECUTABLE, LEGACY_APP_EXECUTABLE];
+const bundleProcessPatterns = [...new Set([installPath, legacyInstallPath])].map(
+  (appPath) => `${appPath}/Contents/`,
+);
+
+const hasBundleProcess = async () => {
+  for (const pattern of bundleProcessPatterns) {
+    try {
+      await exec("/usr/bin/pgrep", ["-f", pattern]);
+      return true;
+    } catch {
+      // Continue so the canonical and legacy bundle paths are both checked.
+    }
   }
+  return false;
+};
+
+const isRunning = async (names = executableNames) => {
+  for (const executableName of names) {
+    try {
+      await exec("/usr/bin/pgrep", [
+        "-f",
+        `${installPath}/Contents/MacOS/${executableName}`,
+      ]);
+      return true;
+    } catch {
+      // Continue so legacy and current executable names are both checked.
+    }
+  }
+  return false;
 };
 
 const stopExisting = async () => {
-  if (!(await isRunning())) return;
-  await exec("/usr/bin/pkill", [
-    "-TERM",
-    "-f",
-    `${installPath}/Contents/MacOS/Athena Mac Agent`,
-  ]);
+  if (!(await hasBundleProcess())) return;
+  for (const pattern of bundleProcessPatterns)
+    await exec("/usr/bin/pkill", ["-TERM", "-f", pattern]).catch(() => undefined);
   for (let attempt = 0; attempt < 20; attempt += 1) {
-    if (!(await isRunning())) return;
+    if (!(await hasBundleProcess())) {
+      // Allow Electron's single-instance lock and LaunchServices registration to settle.
+      await sleep(750);
+      return;
+    }
     await sleep(250);
   }
-  throw new Error("Installed Mac Agent did not quit cleanly within five seconds.");
+  for (const pattern of bundleProcessPatterns)
+    await exec("/usr/bin/pkill", ["-KILL", "-f", pattern]).catch(() => undefined);
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    if (!(await hasBundleProcess())) {
+      await sleep(750);
+      return;
+    }
+    await sleep(250);
+  }
+  throw new Error("Installed Mac Agent processes survived bounded forced shutdown.");
 };
 
 const waitForLaunch = async () => {
@@ -79,6 +117,14 @@ const waitForLaunch = async () => {
 
 const verifyInstalledBundle = async () => {
   await exec("/usr/bin/codesign", ["--verify", "--deep", "--strict", installPath]);
+};
+
+const launchBundle = async (appPath) => {
+  const executableName = await plistValue(appPath, "CFBundleExecutable");
+  spawn(path.join(appPath, "Contents", "MacOS", executableName), [], {
+    detached: true,
+    stdio: "ignore",
+  }).unref();
 };
 
 const waitForBackend = async (apiBaseUrl) => {
@@ -99,30 +145,32 @@ const waitForBackend = async (apiBaseUrl) => {
 
 const waitForAgentConnection = async (launchedAt) => {
   for (let attempt = 0; attempt < 30; attempt += 1) {
-    try {
-      const entries = (await readFile(operationalLogPath, "utf8"))
-        .trim()
-        .split("\n")
-        .slice(-100)
-        .flatMap((line) => {
-          try {
-            return [JSON.parse(line)];
-          } catch {
-            return [];
-          }
-        });
-      if (
-        entries.some(
-          (entry) =>
-            entry?.category === "connection" &&
-            entry?.event === "CONNECTION_ONLINE" &&
-            typeof entry?.at === "string" &&
-            entry.at >= launchedAt,
+    for (const operationalLogPath of operationalLogPaths) {
+      try {
+        const entries = (await readFile(operationalLogPath, "utf8"))
+          .trim()
+          .split("\n")
+          .slice(-100)
+          .flatMap((line) => {
+            try {
+              return [JSON.parse(line)];
+            } catch {
+              return [];
+            }
+          });
+        if (
+          entries.some(
+            (entry) =>
+              entry?.category === "connection" &&
+              entry?.event === "CONNECTION_ONLINE" &&
+              typeof entry?.at === "string" &&
+              entry.at >= launchedAt,
+          )
         )
-      )
-        return;
-    } catch (error) {
-      if (error?.code !== "ENOENT") throw error;
+          return;
+      } catch (error) {
+        if (error?.code !== "ENOENT") throw error;
+      }
     }
     await sleep(1_000);
   }
@@ -140,7 +188,7 @@ if ((await plistValue(source, "CFBundleIdentifier")) !== BUNDLE_ID) {
 }
 
 const nextEnvironment = await readAppEnvironment(source);
-const currentEnvironment = await readAppEnvironment(installPath);
+const currentEnvironment = await readAppEnvironment(existingInstallPath);
 assertEnvironmentCompatible({
   current: currentEnvironment,
   next: nextEnvironment,
@@ -148,12 +196,23 @@ assertEnvironmentCompatible({
 });
 const beforeDeviceId = await readDeviceId(metadataPath);
 await stopExisting();
-const replacement = await atomicReplaceApp({ source, destination: installPath });
+const legacyMigrationBackup =
+  existingInstallPath === legacyInstallPath && legacyInstallPath !== installPath
+    ? `${legacyInstallPath}.migration-${process.pid}-${Date.now()}`
+    : null;
+let legacyMoved = false;
+let replacement = null;
+let committed = false;
 
 try {
+  if (legacyMigrationBackup) {
+    await rename(legacyInstallPath, legacyMigrationBackup);
+    legacyMoved = true;
+  }
+  replacement = await atomicReplaceApp({ source, destination: installPath });
   const launchedAt = new Date().toISOString();
   await verifyInstalledBundle();
-  spawn("/usr/bin/open", [installPath], { detached: true, stdio: "ignore" }).unref();
+  await launchBundle(installPath);
   await waitForLaunch();
   const packagedConfig = JSON.parse(
     await readFile(
@@ -174,6 +233,8 @@ try {
     throw new Error("Trusted device identity changed during app replacement.");
   }
   await replacement.commit();
+  committed = true;
+  if (legacyMoved) await rm(legacyMigrationBackup, { recursive: true, force: true });
   console.log(
     `Installed ${await plistValue(installPath, "CFBundleShortVersionString")} at ${installPath}`,
   );
@@ -184,10 +245,20 @@ try {
   );
   console.log("Mac Agent relaunched and canonical backend health is available.");
 } catch (error) {
-  await stopExisting().catch(() => undefined);
-  await replacement.rollback();
-  if (replacement.backup) {
-    spawn("/usr/bin/open", [installPath], { detached: true, stdio: "ignore" }).unref();
+  if (!committed) {
+    await stopExisting().catch(() => undefined);
+    await replacement?.rollback().catch(() => undefined);
+    if (legacyMoved) {
+      await rename(legacyMigrationBackup, legacyInstallPath).catch(() => undefined);
+    }
+    const rollbackPath = replacement?.backup
+      ? installPath
+      : legacyMoved
+        ? legacyInstallPath
+        : existingInstallPath;
+    if (existsSync(rollbackPath)) {
+      await launchBundle(rollbackPath).catch(() => undefined);
+    }
   }
   throw error;
 }

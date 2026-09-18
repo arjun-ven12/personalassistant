@@ -13,16 +13,24 @@ const mac = {
     { target: "zip", arch: ["arm64"] },
   ],
 };
-if (process.env.CSC_LINK && process.env.CSC_IDENTITY_AUTO_DISCOVERY !== "false") {
+const isSignedDistribution =
+  process.env.CSC_LINK && process.env.CSC_IDENTITY_AUTO_DISCOVERY !== "false";
+if (isSignedDistribution) {
   delete mac.identity;
 } else {
-  mac.identity = "-";
+  mac.identity =
+    process.env.ALEXA_MAC_AGENT_LOCAL_SIGNING_IDENTITY ??
+    "Alexa Local Development";
   mac.entitlements = "build-resources/entitlements.mac.local.plist";
   mac.entitlementsInherit = "build-resources/entitlements.mac.local.plist";
 }
 
 module.exports = {
   ...base,
+  // Electron safeStorage binds its Keychain service to the packaged product
+  // identity. Keep ad-hoc local upgrades on the established identity so a
+  // trusted device key remains decryptable across developer builds.
+  ...(!isSignedDistribution ? { productName: "Alexa Mac Agent" } : {}),
   buildVersion: process.env.ALEXA_MAC_AGENT_BUILD_NUMBER ?? base.buildVersion,
   publish: [
     {

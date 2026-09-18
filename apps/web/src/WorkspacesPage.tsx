@@ -74,8 +74,11 @@ export const WorkspacesPage = ({ apiClient }: { apiClient: ApiClient }) => {
       <p className="eyebrow">Lexical metadata registry</p>
       <h1>Workspaces</h1>
       <p>
-        The API does not inspect or access these paths during Phase 2.3. File browsing,
-        script execution, and permanent deletion are unavailable.
+        Workspace paths are governed metadata roots. Alexa Engineering may perform
+        bounded file, Git, script, and validation operations only through the trusted
+        signed Mac Agent and registered capabilities. The API has no unrestricted
+        filesystem or shell access; operations remain policy-, permission-, tenant-, and
+        workspace-scoped.
       </p>
       <form className="registry-form" onSubmit={submit}>
         <label>
