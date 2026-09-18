@@ -114,6 +114,76 @@ const setup = async (emergencyStopActive = false) => {
 };
 
 describe("ExecutionService policy integration", () => {
+  it("recovers only the exact approved project-initialization request", async () => {
+    const { service, approvals, ownerId } = await setup();
+    const companyId = crypto.randomUUID();
+    const repositoryId = crypto.randomUUID();
+    const agentId = crypto.randomUUID();
+    const operationId = crypto.randomUUID();
+    const requestId = crypto.randomUUID();
+    const request = {
+      schemaVersion: "1" as const,
+      companyId,
+      repositoryId,
+      engineeringWorkspaceId: null,
+      workspaceLocatorId: "eng-approved-retry",
+      worktreeLocator: null,
+      taskId: repositoryId,
+      agentId,
+      operationId,
+      idempotencyKey: operationId,
+      requestId,
+      capability: "repository.initialize_project" as const,
+      input: {
+        template: "REACT_VITE_TYPESCRIPT" as const,
+        projectSlug: "trial-1",
+        defaultBranch: "main",
+      },
+    };
+    const approval = await approvals.create({
+      ownerId,
+      action: {
+        actionId: operationId,
+        toolName: "repository.initialize_project",
+        workspaceId: request.workspaceLocatorId,
+        arguments: request,
+      },
+      riskLevel: "medium",
+      approvalRequirement: "explicit",
+      ipAddress: "127.0.0.1",
+      requestId: crypto.randomUUID(),
+    });
+    await approvals.approve(ownerId, approval.id, crypto.randomUUID(), {
+      ipAddress: "127.0.0.1",
+      requestId: crypto.randomUUID(),
+    });
+
+    await expect(
+      service.findApprovedProjectInitialization({
+        ownerId,
+        companyId,
+        repositoryId,
+        workspaceLocatorId: request.workspaceLocatorId,
+        agentId,
+        template: request.input.template,
+        projectSlug: request.input.projectSlug,
+        defaultBranch: request.input.defaultBranch,
+      }),
+    ).resolves.toEqual(request);
+    await expect(
+      service.findApprovedProjectInitialization({
+        ownerId,
+        companyId,
+        repositoryId,
+        workspaceLocatorId: request.workspaceLocatorId,
+        agentId,
+        template: request.input.template,
+        projectSlug: "different-project",
+        defaultBranch: request.input.defaultBranch,
+      }),
+    ).resolves.toBeUndefined();
+  });
+
   it("creates only policy-authorized, device-bound read-only requests", async () => {
     const { service, store, ownerId, deviceId, devicePrivateKey } = await setup();
     const request = await service.create({
@@ -555,12 +625,10 @@ describe("ExecutionService policy integration", () => {
     await expect(dispatch()).rejects.toMatchObject({ code: "APPROVAL_REQUIRED" });
     const [pending] = await normal.approvals.list(normal.ownerId, "PENDING");
     expect(pending).toMatchObject({ actionId: interactionProposalId });
-    await normal.approvals.approve(
-      normal.ownerId,
-      pending!.id,
-      sessionId,
-      { ipAddress: "127.0.0.1", requestId: crypto.randomUUID() },
-    );
+    await normal.approvals.approve(normal.ownerId, pending!.id, sessionId, {
+      ipAddress: "127.0.0.1",
+      requestId: crypto.randomUUID(),
+    });
 
     await expect(dispatch()).resolves.toMatchObject({
       actionId: interactionProposalId,

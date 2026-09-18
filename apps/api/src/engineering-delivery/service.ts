@@ -623,98 +623,135 @@ export class EngineeringDeliveryService {
         },
       });
     const agents = await this.authorizedAgents(context);
-    const agentId = agents[0];
+    const existingRepositories = (
+      await this.runtime.listRepositories(context.ownerId, context.companyId)
+    ).filter((item) => item.workspaceLocatorId === workspaceId);
+    if (existingRepositories.length > 1)
+      throw new EngineeringDeliveryError(
+        "INVALID_STATE",
+        "Multiple engineering repositories are bound to the same governed workspace.",
+      );
+    let repository = existingRepositories[0];
+    if (repository) {
+      if (
+        repository.status !== "INITIALIZING" ||
+        repository.displayName !== projectName
+      )
+        throw new EngineeringDeliveryError(
+          "INVALID_STATE",
+          "The derived project destination is already registered. Select it as an existing repository.",
+        );
+      const profile = await this.runtime.findCommandProfile(
+        context.ownerId,
+        context.companyId,
+        repository.commandProfileId,
+      );
+      const expectsReact = stack.includes("React");
+      const hasReactPreview = Boolean(
+        profile?.developmentServers.some((server) => server.id === "vite"),
+      );
+      if (!profile || profile.status !== "ACTIVE" || expectsReact !== hasReactPreview)
+        throw new EngineeringDeliveryError(
+          "INVALID_STATE",
+          "The initializing project no longer matches the requested reviewed template.",
+        );
+    }
+    const agentId = repository
+      ? repository.authorizedAgentIds.find((id) => agents.includes(id))
+      : agents[0];
     if (!agentId)
       throw new EngineeringDeliveryError(
         "INVALID_STATE",
         "No company-scoped engineering agent is available.",
       );
-    const id = crypto.randomUUID();
-    const profileId = `delivery-${id.replaceAll("-", "").slice(0, 24)}`;
-    const at = this.now().toISOString();
-    await this.runtime.saveCommandProfile(
-      EngineeringCommandProfileSchema.parse({
+    if (!repository) {
+      const id = crypto.randomUUID();
+      const profileId = `delivery-${id.replaceAll("-", "").slice(0, 24)}`;
+      const at = this.now().toISOString();
+      await this.runtime.saveCommandProfile(
+        EngineeringCommandProfileSchema.parse({
+          schemaVersion: "1",
+          id: profileId,
+          ownerId: context.ownerId,
+          companyId: context.companyId,
+          displayName: `${projectName} autonomous delivery`,
+          commands: [
+            {
+              id: "lint",
+              executable: "pnpm",
+              args: ["run", "lint"],
+              kind: "LINT",
+              timeoutMs: 120_000,
+              maxOutputBytes: 262_144,
+              networkPolicy: "DENY",
+            },
+            {
+              id: "typecheck",
+              executable: "pnpm",
+              args: ["run", "typecheck"],
+              kind: "TYPECHECK",
+              timeoutMs: 120_000,
+              maxOutputBytes: 262_144,
+              networkPolicy: "DENY",
+            },
+            {
+              id: "build",
+              executable: "pnpm",
+              args: ["run", "build"],
+              kind: "BUILD",
+              timeoutMs: 180_000,
+              maxOutputBytes: 524_288,
+              networkPolicy: "DENY",
+            },
+          ],
+          validationOrder: ["lint", "typecheck", "build"],
+          dependencyManager: "pnpm",
+          developmentServers: stack.includes("React")
+            ? [
+                {
+                  id: "vite",
+                  executable: "pnpm",
+                  args: ["run", "dev", "--"],
+                  portFlag: "--port",
+                  hostFlag: "--host",
+                  healthPath: "/",
+                  startupTimeoutMs: 60_000,
+                  maxLifetimeMs: 8 * 60 * 60_000,
+                },
+              ]
+            : [],
+          status: "ACTIVE",
+          createdAt: at,
+          updatedAt: at,
+        }),
+      );
+      repository = EngineeringRepositorySchema.parse({
         schemaVersion: "1",
-        id: profileId,
+        id,
         ownerId: context.ownerId,
         companyId: context.companyId,
-        displayName: `${projectName} autonomous delivery`,
-        commands: [
-          {
-            id: "lint",
-            executable: "pnpm",
-            args: ["run", "lint"],
-            kind: "LINT",
-            timeoutMs: 120_000,
-            maxOutputBytes: 262_144,
-            networkPolicy: "DENY",
-          },
-          {
-            id: "typecheck",
-            executable: "pnpm",
-            args: ["run", "typecheck"],
-            kind: "TYPECHECK",
-            timeoutMs: 120_000,
-            maxOutputBytes: 262_144,
-            networkPolicy: "DENY",
-          },
-          {
-            id: "build",
-            executable: "pnpm",
-            args: ["run", "build"],
-            kind: "BUILD",
-            timeoutMs: 180_000,
-            maxOutputBytes: 524_288,
-            networkPolicy: "DENY",
-          },
-        ],
-        validationOrder: ["lint", "typecheck", "build"],
-        dependencyManager: "pnpm",
-        developmentServers: stack.includes("React")
-          ? [
-              {
-                id: "vite",
-                executable: "pnpm",
-                args: ["run", "dev", "--"],
-                portFlag: "--port",
-                hostFlag: "--host",
-                healthPath: "/",
-                startupTimeoutMs: 60_000,
-                maxLifetimeMs: 8 * 60 * 60_000,
-              },
-            ]
-          : [],
-        status: "ACTIVE",
+        displayName: projectName,
+        workspaceLocatorId: workspaceId,
+        defaultBranch: "main",
+        protectedBranches: ["main"],
+        protectedPaths: [".git", ".env", ".env.*"],
+        generatedPaths: ["dist/**"],
+        commandProfileId: profileId,
+        capabilityProfileId: "engineering-autonomous-v1",
+        authorizedAgentIds: agents.slice(0, 100),
+        metadata: {
+          languages: [],
+          packageManagers: [],
+          frameworks: [],
+          importantFiles: [],
+          contractBindings: [],
+        },
+        status: "INITIALIZING",
         createdAt: at,
         updatedAt: at,
-      }),
-    );
-    let repository = EngineeringRepositorySchema.parse({
-      schemaVersion: "1",
-      id,
-      ownerId: context.ownerId,
-      companyId: context.companyId,
-      displayName: projectName,
-      workspaceLocatorId: workspaceId,
-      defaultBranch: "main",
-      protectedBranches: ["main"],
-      protectedPaths: [".git", ".env", ".env.*"],
-      generatedPaths: ["dist/**"],
-      commandProfileId: profileId,
-      capabilityProfileId: "engineering-autonomous-v1",
-      authorizedAgentIds: agents.slice(0, 100),
-      metadata: {
-        languages: [],
-        packageManagers: [],
-        frameworks: [],
-        importantFiles: [],
-        contractBindings: [],
-      },
-      status: "INITIALIZING",
-      createdAt: at,
-      updatedAt: at,
-    });
-    await this.runtime.saveRepository(repository);
+      });
+      await this.runtime.saveRepository(repository);
+    }
     const initialized = await this.gateway.initializeProject({
       ownerId: context.ownerId,
       companyId: context.companyId,

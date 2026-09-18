@@ -6,6 +6,7 @@ import {
   EngineeringValidationReportSchema,
   EngineeringWorkspaceSchema,
   type EngineeringCapability,
+  type EngineeringTransportRequest,
   type EngineeringTransportResult,
   type NetworkVerificationState,
 } from "@alexa-control/shared";
@@ -65,6 +66,23 @@ export class SignedExecutionEngineeringGateway
     )
       throw Object.assign(new Error("Project initialization scope is unavailable."), {
         code: "REPOSITORY_NOT_AUTHORIZED",
+      });
+    const approvedRequest = await this.executions.findApprovedProjectInitialization({
+      ownerId: input.ownerId,
+      companyId: input.companyId,
+      repositoryId: input.repositoryId,
+      workspaceLocatorId: repository.workspaceLocatorId,
+      agentId: input.agentId,
+      template: input.template,
+      projectSlug: input.projectSlug,
+      defaultBranch: input.defaultBranch,
+    });
+    if (approvedRequest)
+      return this.enqueueAndWait({
+        ownerId: input.ownerId,
+        transport: input.transport,
+        signal: new AbortController().signal,
+        request: approvedRequest,
       });
     return this.dispatch({
       ownerId: input.ownerId,
@@ -527,13 +545,27 @@ export class SignedExecutionEngineeringGateway
       capability: input.capability,
       input: operationInput,
     });
+    return this.enqueueAndWait({
+      ownerId: input.ownerId,
+      transport: input.transport,
+      signal: input.signal,
+      request,
+    });
+  }
+
+  private async enqueueAndWait(input: {
+    ownerId: string;
+    transport: Transport;
+    signal: AbortSignal;
+    request: EngineeringTransportRequest;
+  }): Promise<EngineeringTransportResult> {
     const queued = await this.executions.createEngineeringExecution({
       ownerId: input.ownerId,
       sessionId: input.transport.sessionId,
-      request,
+      request: input.request,
       networkState: input.transport.networkState,
       ipAddress: input.transport.ipAddress,
-      requestId,
+      requestId: input.request.requestId,
       ...(input.transport.deviceId ? { deviceId: input.transport.deviceId } : {}),
     });
     const deadline = this.now().getTime() + this.waitTimeoutMs;

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
-import type { ApiClient } from "./api.js";
+import { ApiClientError, type ApiClient } from "./api.js";
 import {
   engineeringFirstRunMessage,
   formatEngineeringLoadError,
@@ -233,8 +233,17 @@ export const EngineeringControlCenterPage = ({
               <Plus size={16} /> Build
             </button>
           </div>
-          {create.error instanceof Error ? (
-            <p className="form-error">{create.error.message}</p>
+          {create.error instanceof ApiClientError &&
+          create.error.code === "APPROVAL_REQUIRED" ? (
+            <p className="form-error" role="alert">
+              Project initialization is awaiting approval. Open{" "}
+              <a href="/approvals">Approvals</a>, approve the exact request, then click
+              Build again with the same project details.
+            </p>
+          ) : create.error instanceof Error ? (
+            <p className="form-error" role="alert">
+              {create.error.message}
+            </p>
           ) : null}
           {loadErrors.map((message) => (
             <p className="form-error" key={message} role="alert">

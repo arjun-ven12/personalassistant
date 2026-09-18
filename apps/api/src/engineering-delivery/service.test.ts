@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import {
   EngineeringCommandProfileSchema,
@@ -16,7 +17,10 @@ import type {
   ExecutiveNotificationEvent,
   ExecutiveNotificationService,
 } from "../notifications/service.js";
-import { EngineeringDeliveryService } from "./service.js";
+import {
+  EngineeringDeliveryService,
+  type EngineeringDeliveryContext,
+} from "./service.js";
 import { InMemoryEngineeringDeliveryStore } from "./store.js";
 
 const ownerId = "10000000-0000-4000-8000-000000000001";
@@ -304,6 +308,176 @@ const fixture = () => {
 };
 
 describe("EngineeringDeliveryService", () => {
+  it("reuses an initializing repository when an approved new-project request is retried", async () => {
+    const runtime = new InMemoryEngineeringRuntimeStore();
+    const projectName = "Trial 1";
+    const projectSlug = "trial-1";
+    const derivedWorkspaceId = `eng-${createHash("sha256")
+      .update(`${companyId}:${projectSlug}`)
+      .digest("hex")
+      .slice(0, 24)}`;
+    const initializingRepositoryId = crypto.randomUUID();
+    const profileId = "delivery-approved-retry";
+    runtime.saveCommandProfile(
+      EngineeringCommandProfileSchema.parse({
+        schemaVersion: "1",
+        id: profileId,
+        ownerId,
+        companyId,
+        displayName: "Trial 1 autonomous delivery",
+        commands: [
+          {
+            id: "build",
+            executable: "pnpm",
+            args: ["run", "build"],
+            kind: "BUILD",
+            timeoutMs: 60_000,
+            maxOutputBytes: 4096,
+            networkPolicy: "DENY",
+          },
+        ],
+        validationOrder: ["build"],
+        dependencyManager: "pnpm",
+        developmentServers: [
+          {
+            id: "vite",
+            executable: "pnpm",
+            args: ["run", "dev", "--"],
+            portFlag: "--port",
+            hostFlag: "--host",
+            healthPath: "/",
+            startupTimeoutMs: 30_000,
+            maxLifetimeMs: 60_000,
+          },
+        ],
+        status: "ACTIVE",
+        createdAt: at,
+        updatedAt: at,
+      }),
+    );
+    runtime.saveRepository(
+      EngineeringRepositorySchema.parse({
+        schemaVersion: "1",
+        id: initializingRepositoryId,
+        ownerId,
+        companyId,
+        displayName: projectName,
+        workspaceLocatorId: derivedWorkspaceId,
+        defaultBranch: "main",
+        protectedBranches: ["main"],
+        protectedPaths: [".git", ".env", ".env.*"],
+        generatedPaths: ["dist/**"],
+        commandProfileId: profileId,
+        capabilityProfileId: "engineering-autonomous-v1",
+        authorizedAgentIds: [agentId],
+        metadata: {
+          languages: [],
+          packageManagers: [],
+          frameworks: [],
+          importantFiles: [],
+          contractBindings: [],
+        },
+        status: "INITIALIZING",
+        createdAt: at,
+        updatedAt: at,
+      }),
+    );
+    const root = {
+      id: "engineering-projects",
+      ownerId,
+      displayName: "Engineering Projects",
+      rootPath: "/Users/test/engineering-projects",
+      enabled: true,
+      permissions: {
+        read: true,
+        write: true,
+        createFile: true,
+        modifyFile: true,
+        moveFile: false,
+        deleteFile: false as const,
+        runScripts: true,
+      },
+      blockedPatterns: [".env", "external-research/"],
+      allowedScripts: [],
+      gitPermissions: {
+        status: true,
+        diff: true,
+        createBranch: true,
+        commit: true,
+        push: false,
+      },
+      createdAt: at,
+      updatedAt: at,
+    };
+    const createWorkspace = vi.fn();
+    const registry = {
+      getWorkspace: vi.fn(() => Promise.resolve(root)),
+      listWorkspaces: vi.fn(() =>
+        Promise.resolve([
+          root,
+          {
+            ...root,
+            id: derivedWorkspaceId,
+            rootPath: `${root.rootPath}/${projectSlug}`,
+          },
+        ]),
+      ),
+      createWorkspace,
+    } as unknown as RegistryService;
+    const initializeProject = vi.fn(() =>
+      Promise.resolve({
+        output: {
+          branch: "main",
+          dirty: false,
+          metadata: {
+            languages: ["TypeScript"],
+            packageManagers: ["pnpm"],
+            frameworks: ["React", "Vite"],
+            importantFiles: ["package.json"],
+            contractBindings: [],
+          },
+        },
+      }),
+    );
+    const service = new EngineeringDeliveryService(
+      new InMemoryEngineeringDeliveryStore(),
+      runtime,
+      registry,
+      {} as EngineeringManagerService,
+      {} as EngineeringIntegrationService,
+      { initializeProject } as unknown as SignedExecutionEngineeringGateway,
+      () => Promise.resolve([agentId]),
+      {} as ExecutiveNotificationService,
+      vi.fn(() => Promise.resolve()),
+      () => new Date(at),
+    );
+
+    const resumed = await (
+      service as unknown as {
+        initializeRepository: (
+          context: EngineeringDeliveryContext,
+          rootId: string,
+          name: string,
+          stack: string[],
+        ) => Promise<{ id: string; status: string }>;
+      }
+    ).initializeRepository(context, root.id, projectName, ["React", "Vite"]);
+
+    expect(resumed).toMatchObject({
+      id: initializingRepositoryId,
+      status: "ACTIVE",
+    });
+    expect(runtime.listRepositories(ownerId, companyId)).toHaveLength(1);
+    expect(initializeProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        repositoryId: initializingRepositoryId,
+        projectSlug,
+        template: "REACT_VITE_TYPESCRIPT",
+      }),
+    );
+    expect(createWorkspace).not.toHaveBeenCalled();
+  });
+
   it("takes an existing natural-language objective through Luna work, integration, review, and healthy preview", async () => {
     const {
       service,

@@ -589,6 +589,60 @@ export class ExecutionService {
     });
   }
 
+  async findApprovedProjectInitialization(input: {
+    ownerId: string;
+    companyId: string;
+    repositoryId: string;
+    workspaceLocatorId: string;
+    agentId: string;
+    template: "REACT_VITE_TYPESCRIPT" | "EMPTY_TYPESCRIPT";
+    projectSlug: string;
+    defaultBranch: string;
+  }): Promise<EngineeringTransportRequest | undefined> {
+    const approvals = await this.governance.store.listApprovals(
+      input.ownerId,
+      "APPROVED",
+    );
+    for (const approval of approvals) {
+      if (
+        approval.toolName !== "repository.initialize_project" ||
+        approval.action.toolName !== "repository.initialize_project" ||
+        approval.action.workspaceId !== input.workspaceLocatorId
+      )
+        continue;
+      const request = EngineeringTransportRequestSchema.safeParse(
+        approval.action.arguments,
+      );
+      if (
+        !request.success ||
+        request.data.capability !== "repository.initialize_project"
+      )
+        continue;
+      const candidate = request.data;
+      if (
+        approval.action.actionId !== candidate.operationId ||
+        candidate.companyId !== input.companyId ||
+        candidate.repositoryId !== input.repositoryId ||
+        candidate.workspaceLocatorId !== input.workspaceLocatorId ||
+        candidate.engineeringWorkspaceId !== null ||
+        candidate.worktreeLocator !== null ||
+        candidate.taskId !== input.repositoryId ||
+        candidate.agentId !== input.agentId ||
+        candidate.idempotencyKey !== candidate.operationId ||
+        candidate.input.template !== input.template ||
+        candidate.input.projectSlug !== input.projectSlug ||
+        candidate.input.defaultBranch !== input.defaultBranch
+      )
+        continue;
+      const exactApproval = await this.governance.approvals.findMatchingApproved(
+        input.ownerId,
+        approval.action,
+      );
+      if (exactApproval?.status === "APPROVED") return candidate;
+    }
+    return undefined;
+  }
+
   async createNativeProviderExecution(input: {
     ownerId: string;
     sessionId: string;
