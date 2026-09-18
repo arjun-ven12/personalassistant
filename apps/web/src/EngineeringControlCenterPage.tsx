@@ -236,9 +236,13 @@ export const EngineeringControlCenterPage = ({
           {create.error instanceof ApiClientError &&
           create.error.code === "APPROVAL_REQUIRED" ? (
             <p className="form-error" role="alert">
-              Project initialization is awaiting approval. Open{" "}
-              <a href="/approvals">Approvals</a>, approve the exact request, then click
-              Build again with the same project details.
+              Project initialization is awaiting approval. Keep this Engineering tab
+              open, open{" "}
+              <a href="/approvals" rel="noreferrer" target="_blank">
+                Approvals in a new tab
+              </a>
+              , approve the exact request, return here, then click Build again. Your
+              build details will remain in this tab.
             </p>
           ) : create.error instanceof Error ? (
             <p className="form-error" role="alert">
