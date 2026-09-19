@@ -249,6 +249,59 @@ const runToTerminal = async (
 };
 
 describe("EngineeringManagerService", () => {
+  it("matches authorized company assignments independently of organizational grouping", async () => {
+    const { service, agentStore } = await setup();
+    const assignments = agentStore.listAssignments(ownerId, companyId);
+    for (const assignment of assignments)
+      agentStore.saveAssignment({ ...assignment, organizationId: otherCompanyId });
+
+    const planned = await create(service);
+
+    expect(planned.tasks).not.toHaveLength(0);
+    expect(planned.tasks.every((task) => Boolean(task.assignedAgentId))).toBe(true);
+  });
+
+  it("recovers an existing delivery blocked only by the corrected agent matcher", async () => {
+    const { service, store, agentStore } = await setup();
+    const assignments = agentStore.listAssignments(ownerId, companyId);
+    for (const assignment of assignments)
+      agentStore.saveAssignment({ ...assignment, organizationId: otherCompanyId });
+    const planned = await create(service);
+    const architecture = planned.tasks.find(
+      (task) => task.taskType === "ARCHITECTURE",
+    )!;
+    store.saveTask(
+      EngineeringTaskSchema.parse({
+        ...architecture,
+        assignedAgentId: null,
+        status: "BLOCKED",
+        lastFailureCategory: "MISSING_CAPABILITY",
+        lastFailureSummary: "No eligible existing logical agent was available.",
+      }),
+    );
+    for (const task of planned.tasks.filter((item) => item.id !== architecture.id))
+      store.saveTask(
+        EngineeringTaskSchema.parse({
+          ...task,
+          status: "BLOCKED",
+          lastFailureCategory: "DEPENDENCY_NOT_READY",
+          lastFailureSummary: "A required predecessor did not complete.",
+        }),
+      );
+    store.saveObjective({
+      ...planned.objective,
+      status: "BLOCKED",
+      version: planned.objective.version + 1,
+    });
+
+    const recovered = await service.resume(context, planned.objective.id);
+
+    expect(recovered.objective.status).toBe("COMPLETED");
+    expect(
+      recovered.tasks.find((task) => task.id === architecture.id)?.assignedAgentId,
+    ).not.toBeNull();
+  });
+
   it("creates one scoped integration repair task and executes it through the existing worker/workspace path", async () => {
     const { service, store, runtime } = await setup();
     const planned = await create(service);

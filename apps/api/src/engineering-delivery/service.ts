@@ -415,10 +415,10 @@ export class EngineeringDeliveryService {
   }
   async resume(context: EngineeringDeliveryContext, id: string) {
     const delivery = await this.require(context.ownerId, context.companyId, id);
-    if (delivery.status !== "PAUSED")
+    if (!["PAUSED", "BLOCKED"].includes(delivery.status))
       throw new EngineeringDeliveryError(
         "INVALID_STATE",
-        "Only a paused delivery can resume.",
+        "Only a paused or recoverable blocked delivery can resume.",
       );
     await this.manager.resume(context, delivery.objectiveId);
     await this.update(delivery, { status: "IMPLEMENTING" });

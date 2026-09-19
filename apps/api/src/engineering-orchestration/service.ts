@@ -837,11 +837,68 @@ export class EngineeringManagerService {
       context.companyId,
       objectiveId,
     );
-    if (objective.status !== "PAUSED")
+    if (!["PAUSED", "BLOCKED"].includes(objective.status))
       throw new EngineeringOrchestrationError(
         "INVALID_STATE",
-        "Only paused objectives can resume.",
+        "Only paused or recoverable blocked objectives can resume.",
       );
+    if (objective.status === "BLOCKED") {
+      const tasks = await this.store.listTasks(
+        context.ownerId,
+        context.companyId,
+        objective.id,
+      );
+      let recoveredAssignment = false;
+      for (const task of tasks) {
+        if (
+          task.status !== "BLOCKED" ||
+          task.lastFailureCategory !== "MISSING_CAPABILITY" ||
+          task.assignedAgentId
+        )
+          continue;
+        const assignedAgentId = await this.matchAgent(
+          objective,
+          task.assignedRole,
+          task.requiredSkills,
+          task.requiredCapabilities,
+          task.taskType,
+          task.riskLevel,
+        );
+        if (!assignedAgentId) continue;
+        await this.store.saveTask(
+          EngineeringTaskSchema.parse({
+            ...task,
+            assignedAgentId,
+            status: "READY",
+            lastFailureCategory: null,
+            lastFailureSummary: null,
+            updatedAt: this.now().toISOString(),
+          }),
+        );
+        recoveredAssignment = true;
+      }
+      if (!recoveredAssignment)
+        throw new EngineeringOrchestrationError(
+          "INVALID_STATE",
+          "No newly eligible authorized engineering agent is available.",
+        );
+      for (const task of tasks) {
+        if (
+          task.status !== "BLOCKED" ||
+          task.lastFailureCategory !== "DEPENDENCY_NOT_READY"
+        )
+          continue;
+        await this.store.saveTask(
+          EngineeringTaskSchema.parse({
+            ...task,
+            status: "PLANNED",
+            lastFailureCategory: null,
+            lastFailureSummary: null,
+            updatedAt: this.now().toISOString(),
+          }),
+        );
+      }
+    }
     await this.store.saveObjective(
       EngineeringObjectiveSchema.parse({
         ...objective,
@@ -2189,9 +2246,8 @@ export class EngineeringManagerService {
       (candidate) =>
         candidate.assignment &&
         candidate.assignment.id !== exclude &&
+        candidate.assignment.companyId === objective.companyId &&
         candidate.agent.status === "available" &&
-        (!candidate.agent.workforce ||
-          candidate.agent.workforce.organizationId === objective.companyId) &&
         repository?.authorizedAgentIds.includes(candidate.assignment.id),
     );
     if (this.workforceMatcher && eligible.length) {
@@ -2266,9 +2322,8 @@ export class EngineeringManagerService {
       (candidate) =>
         candidate.assignment &&
         candidate.assignment.id !== authorId &&
+        candidate.assignment.companyId === objective.companyId &&
         candidate.agent.status === "available" &&
-        (!candidate.agent.workforce ||
-          candidate.agent.workforce.organizationId === objective.companyId) &&
         repository?.authorizedAgentIds.includes(candidate.assignment.id),
     );
     return (

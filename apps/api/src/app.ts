@@ -1736,8 +1736,8 @@ export const buildApi = async ({
       ).filter(
         ({ agent, assignment }) =>
           assignment &&
+          assignment.companyId === input.companyId &&
           agent.status === "available" &&
-          (!agent.workforce || agent.workforce.organizationId === input.companyId) &&
           input.repositoryAgentIds.includes(assignment.id) &&
           !input.excludedAgentIds.includes(assignment.id),
       );
