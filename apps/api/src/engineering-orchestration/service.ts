@@ -103,6 +103,7 @@ export interface EngineeringTaskWorker {
   execute(input: {
     objective: EngineeringObjective;
     task: EngineeringTask;
+    agentDefinitionId: string;
     context: EngineeringContextPackage;
     modelTier: EngineeringModelTier;
     workspaceId: string | null;
@@ -141,6 +142,8 @@ export interface EngineeringTaskWorker {
     task: EngineeringTask;
     authorAgentId: string;
     reviewerAgentId: string;
+    authorAgentDefinitionId: string;
+    reviewerAgentDefinitionId: string;
     context: EngineeringContextPackage;
     modelTier: EngineeringModelTier;
     workspaceId: string | null;
@@ -859,14 +862,17 @@ export class EngineeringManagerService {
           ["MODEL_FAILURE", "ENVIRONMENT_FAILURE"].includes(
             task.lastFailureCategory ?? "",
           ) &&
-          task.assignedAgentId &&
-          task.attempt < 4
+          task.assignedAgentId
         ) {
+          const startsNewRecoveryCycle = task.attempt >= task.maxAttempts;
           await this.store.saveTask(
             EngineeringTaskSchema.parse({
               ...task,
               status: "READY",
-              maxAttempts: Math.min(4, Math.max(task.maxAttempts, task.attempt + 1)),
+              attempt: startsNewRecoveryCycle ? 0 : task.attempt,
+              maxAttempts: startsNewRecoveryCycle
+                ? 3
+                : Math.min(4, Math.max(task.maxAttempts, task.attempt + 1)),
               lastFailureCategory: null,
               lastFailureSummary: null,
               updatedAt: this.now().toISOString(),
@@ -1338,6 +1344,15 @@ export class EngineeringManagerService {
         );
       }
       const contextPackage = await this.contextFor(objective, task);
+      const agentDefinitionId = await this.agentDefinitionId(
+        objective,
+        task.assignedAgentId!,
+      );
+      if (!agentDefinitionId)
+        throw Object.assign(
+          new Error("The assigned engineering agent definition is unavailable."),
+          { category: "MISSING_CAPABILITY" },
+        );
       if (this.agentOs) {
         const session = await this.agentOs.start({
           objective,
@@ -1375,6 +1390,7 @@ export class EngineeringManagerService {
       const outcome = await this.worker.execute({
         objective,
         task,
+        agentDefinitionId,
         context: contextPackage,
         modelTier: task.modelPolicy.currentTier,
         workspaceId: task.workspaceId,
@@ -1506,11 +1522,28 @@ export class EngineeringManagerService {
         const authorAgentId = task.assignedAgentId;
         const reviewerAgentId = task.reviewerAgentId;
         if (!authorAgentId || !reviewerAgentId) return;
+        const [authorAgentDefinitionId, reviewerAgentDefinitionId] = await Promise.all([
+          this.agentDefinitionId(objective, authorAgentId),
+          this.agentDefinitionId(objective, reviewerAgentId),
+        ]);
+        if (!authorAgentDefinitionId || !reviewerAgentDefinitionId) {
+          await this.handleFailure(
+            objective,
+            task,
+            workerId,
+            generation,
+            "MISSING_CAPABILITY",
+            "An assigned engineering review agent definition is unavailable.",
+          );
+          return;
+        }
         const review = await this.worker.review({
           objective,
           task,
           authorAgentId,
           reviewerAgentId,
+          authorAgentDefinitionId,
+          reviewerAgentDefinitionId,
           context: contextPackage,
           modelTier:
             task.riskLevel === "CRITICAL" ? "SOL" : task.modelPolicy.currentTier,
@@ -1852,11 +1885,16 @@ export class EngineeringManagerService {
           capabilities: ["repository.revert_commit", "repository.validate"],
           risk: "HIGH",
         });
-      if (/\b(install (?:the )?dependencies|install [@a-z0-9._/-]+|(?:add|remove) (?:the )?(?:dependency|package|library|framer motion|recharts|lodash))\b/.test(text))
+      if (
+        /\b(install (?:the )?dependencies|install [@a-z0-9._/-]+|(?:add|remove) (?:the )?(?:dependency|package|library|framer motion|recharts|lodash))\b/.test(
+          text,
+        )
+      )
         add({
           key: "dependencies",
           title: "Apply the governed project dependency change",
-          description: "Inspect the registered package manager, perform only the requested project-scoped dependency operation, and validate the resulting manifest and lockfile.",
+          description:
+            "Inspect the registered package manager, perform only the requested project-scoped dependency operation, and validate the resulting manifest and lockfile.",
           type: "BACKEND",
           role: "GENERALIST_ENGINEER",
           dependencies: ["architecture"],
@@ -2375,6 +2413,24 @@ export class EngineeringManagerService {
             right.score - left.score || left.agent.id.localeCompare(right.agent.id),
         )[0]?.assignment.id ?? null
     );
+  }
+
+  private async agentDefinitionId(
+    objective: EngineeringObjective,
+    assignmentId: string,
+  ) {
+    const assignments = await companyScope.run(
+      {
+        ownerId: objective.ownerId,
+        companyId: objective.companyId,
+        role: "OWNER" as const,
+        requestId: objective.id,
+      },
+      () => this.agentStore.listAssignments(objective.ownerId, objective.companyId),
+    );
+    const assignment = assignments.find((item) => item.id === assignmentId);
+    if (!assignment || ["PAUSED", "REVOKED"].includes(assignment.status)) return null;
+    return assignment.agentDefinitionId;
   }
 
   private async independentReviewer(

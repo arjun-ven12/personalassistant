@@ -96,12 +96,14 @@ class FakeWorker implements EngineeringTaskWorker {
   blockTypes = new Set<EngineeringTask["taskType"]>();
   delayMs = 2;
   modelTiers: string[] = [];
+  agentDefinitionIds: string[] = [];
 
   async execute(input: Parameters<EngineeringTaskWorker["execute"]>[0]) {
     this.active += 1;
     this.maximumActive = Math.max(this.maximumActive, this.active);
     this.starts.push(input.task);
     this.modelTiers.push(input.modelTier);
+    this.agentDefinitionIds.push(input.agentDefinitionId);
     const attempt = (this.attempts.get(input.task.id) ?? 0) + 1;
     this.attempts.set(input.task.id, attempt);
     try {
@@ -161,6 +163,7 @@ class FakeWorker implements EngineeringTaskWorker {
 
   review(input: Parameters<EngineeringTaskWorker["review"]>[0]) {
     expect(input.reviewerAgentId).not.toBe(input.authorAgentId);
+    expect(input.reviewerAgentDefinitionId).not.toBe(input.authorAgentDefinitionId);
     return Promise.resolve({
       status: "PASS" as const,
       summary: "Independent review passed.",
@@ -309,7 +312,7 @@ describe("EngineeringManagerService", () => {
   });
 
   it("retries the same bounded task after an external model-provider blocker is fixed", async () => {
-    const { service, store } = await setup();
+    const { service, store, agentStore, worker } = await setup();
     const planned = await create(service);
     const architecture = planned.tasks.find(
       (task) => task.taskType === "ARCHITECTURE",
@@ -318,7 +321,8 @@ describe("EngineeringManagerService", () => {
       EngineeringTaskSchema.parse({
         ...architecture,
         status: "BLOCKED",
-        attempt: architecture.maxAttempts,
+        attempt: 4,
+        maxAttempts: 4,
         lastFailureCategory: "MODEL_FAILURE",
         lastFailureSummary: "Provider rejected the structured-output schema.",
       }),
@@ -342,9 +346,14 @@ describe("EngineeringManagerService", () => {
 
     expect(recovered.tasks.find((task) => task.id === architecture.id)).toMatchObject({
       status: "COMPLETE",
-      attempt: architecture.maxAttempts + 1,
+      attempt: 1,
       lastFailureCategory: null,
     });
+    const assignment = agentStore
+      .listAssignments(ownerId, companyId)
+      .find((item) => item.id === architecture.assignedAgentId)!;
+    expect(worker.agentDefinitionIds).toContain(assignment.agentDefinitionId);
+    expect(worker.agentDefinitionIds).not.toContain(architecture.assignedAgentId);
   });
 
   it("creates one scoped integration repair task and executes it through the existing worker/workspace path", async () => {
@@ -435,23 +444,33 @@ describe("EngineeringManagerService", () => {
   it("routes project dependency additions and removals through finite governed capabilities", async () => {
     const { service } = await setup();
     const added = await create(service, "Add Recharts to this project.", "MEDIUM");
-    expect(added.tasks.find((task) => task.title.includes("dependency"))?.requiredCapabilities)
-      .toContain("repository.add_dependency");
+    expect(
+      added.tasks.find((task) => task.title.includes("dependency"))
+        ?.requiredCapabilities,
+    ).toContain("repository.add_dependency");
     const removed = await create(service, "Remove lodash from this project.", "MEDIUM");
-    expect(removed.tasks.find((task) => task.title.includes("dependency"))?.requiredCapabilities)
-      .toContain("repository.remove_dependency");
+    expect(
+      removed.tasks.find((task) => task.title.includes("dependency"))
+        ?.requiredCapabilities,
+    ).toContain("repository.remove_dependency");
   });
 
   it("replans an active objective with one bounded requirement task and updated acceptance criteria", async () => {
     const { service } = await setup();
     const planned = await create(service, "Build responsive pricing cards.", "MEDIUM");
     const before = planned.tasks.length;
-    const task = await service.addInstruction(context, planned.objective.id,
-      "Also make the cards horizontally scrollable on mobile.", "instruction-replan-123");
+    const task = await service.addInstruction(
+      context,
+      planned.objective.id,
+      "Also make the cards horizontally scrollable on mobile.",
+      "instruction-replan-123",
+    );
     const updated = await service.view(ownerId, companyId, planned.objective.id);
     expect(updated.tasks).toHaveLength(before + 1);
     expect(task.title).toContain("Additional requirement");
-    expect(updated.objective.acceptanceCriteria).toContain("Also make the cards horizontally scrollable on mobile.");
+    expect(updated.objective.acceptanceCriteria).toContain(
+      "Also make the cards horizontally scrollable on mobile.",
+    );
   });
 
   it("runs a 10-task objective with bounded four-way concurrency and no duplicate execution", async () => {

@@ -17,6 +17,7 @@ const repositoryId = "30000000-0000-4000-8000-000000000003";
 const objectiveId = "40000000-0000-4000-8000-000000000004";
 const taskId = "50000000-0000-4000-8000-000000000005";
 const agentId = "60000000-0000-4000-8000-000000000006";
+const agentDefinitionId = "coding_agent";
 const now = "2026-09-16T00:00:00.000Z";
 
 const objective = EngineeringObjectiveSchema.parse({
@@ -151,6 +152,7 @@ describe("AIRouterEngineeringTaskWorker", () => {
     const result = await worker.execute({
       objective,
       task,
+      agentDefinitionId,
       context,
       modelTier: "LUNA",
       workspaceId: task.workspaceId,
@@ -161,6 +163,20 @@ describe("AIRouterEngineeringTaskWorker", () => {
     expect(executeStructured.mock.calls[0]![0]).toMatchObject({
       purpose: "CODING",
       requestedRole: "CODER",
+      contextProfile: "AGENT_TASK",
+      agentId: agentDefinitionId,
+      agentDefinitionId,
+      companyAgentAssignmentId: agentId,
+      context: [
+        {
+          sourceType: "AGENT",
+          trustLevel: "TRUSTED",
+          content: {
+            agentDefinitionId,
+            companyAgentAssignmentId: agentId,
+          },
+        },
+      ],
       economicContext: {
         ownerId,
         companyId,
@@ -200,6 +216,7 @@ describe("AIRouterEngineeringTaskWorker", () => {
     const result = await worker.execute({
       objective,
       task,
+      agentDefinitionId,
       context,
       modelTier: "LUNA",
       workspaceId: task.workspaceId,
@@ -235,6 +252,7 @@ describe("AIRouterEngineeringTaskWorker", () => {
       worker.execute({
         objective,
         task,
+        agentDefinitionId,
         context,
         modelTier: "LUNA",
         workspaceId: task.workspaceId,

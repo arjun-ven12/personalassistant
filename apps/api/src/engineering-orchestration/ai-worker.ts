@@ -84,15 +84,11 @@ export interface GovernedEngineeringActionGateway {
   }>;
 }
 
-export class UnavailableEngineeringActionGateway
-  implements GovernedEngineeringActionGateway
-{
+export class UnavailableEngineeringActionGateway implements GovernedEngineeringActionGateway {
   invoke(): Promise<never> {
     return Promise.reject(
       Object.assign(
-        new Error(
-          "The signed Mac-agent engineering action gateway is not configured.",
-        ),
+        new Error("The signed Mac-agent engineering action gateway is not configured."),
         { code: "ENGINEERING_SIGNED_TRANSPORT_UNAVAILABLE" },
       ),
     );
@@ -137,88 +133,98 @@ export class AIRouterEngineeringTaskWorker implements EngineeringTaskWorker {
         failureCategory: "MISSING_CAPABILITY" as const,
         failureSummary: "No logical engineering agent assignment exists.",
       };
-    const response = await this.router.executeStructured({
-      requestId: crypto.randomUUID(),
-      purpose: "CODING",
-      requestedRole: routing(input.modelTier).requestedRole,
-      risk:
-        input.task.riskLevel === "CRITICAL"
-          ? "CRITICAL"
-          : input.task.riskLevel,
-      complexityHint: routing(input.modelTier).complexityHint,
-      reasoning: routing(input.modelTier).reasoning,
-      outputMode: "STRUCTURED",
-      input: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "json",
-              value: {
-                task: {
-                  id: input.task.id,
-                  title: input.task.title,
-                  description: input.task.description,
-                  acceptanceCriteria: input.task.acceptanceCriteria,
-                  requiredCapabilities: input.task.requiredCapabilities,
-                },
-                context: input.context,
-              },
-            },
-          ],
-        },
-      ],
-      systemInstructions: [
-        "Return only a bounded engineering proposal. Use only required capabilities and registered IDs.",
-        "Never emit shell text, executable paths, credentials, raw filesystem paths, deployment, merge, commit, or push actions.",
-        "Protected paths remain approval-gated. Do not broaden scope beyond acceptance criteria.",
-      ],
-      maxOutputTokens: 4_096,
-      maxAttempts: 3,
-      maxCloudEscalations: input.modelTier === "LUNA" ? 0 : 1,
-      maxCostUsd: input.objective.budget?.maxCostUsd ?? undefined,
-      maxContextTokens: input.context.maxTokens,
-      economicMaxInputTokens: Math.min(
-        input.context.maxTokens,
-        input.objective.budget?.maxTokens ?? input.context.maxTokens,
-      ),
-      economicContext: {
-        ownerId: input.objective.ownerId,
-        companyId: input.objective.companyId,
-        agentId: input.task.assignedAgentId,
-        taskId: input.task.id,
-        workflowId: input.objective.workflowId ?? undefined,
+    const response = await this.router.executeStructured(
+      {
+        requestId: crypto.randomUUID(),
         purpose: "CODING",
-        autonomyMode: "AUTONOMOUS",
-        costCenter: `engineering-objective:${input.objective.id}`,
-        metadata: {
-          objectiveId: input.objective.id,
-          modelTier: input.modelTier,
-          maxPremiumCostUsd:
-            input.objective.budget?.maxPremiumCostUsd ?? null,
+        requestedRole: routing(input.modelTier).requestedRole,
+        risk: input.task.riskLevel === "CRITICAL" ? "CRITICAL" : input.task.riskLevel,
+        complexityHint: routing(input.modelTier).complexityHint,
+        reasoning: routing(input.modelTier).reasoning,
+        outputMode: "STRUCTURED",
+        input: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "json",
+                value: {
+                  task: {
+                    id: input.task.id,
+                    title: input.task.title,
+                    description: input.task.description,
+                    acceptanceCriteria: input.task.acceptanceCriteria,
+                    requiredCapabilities: input.task.requiredCapabilities,
+                  },
+                  context: input.context,
+                },
+              },
+            ],
+          },
+        ],
+        contextProfile: "AGENT_TASK",
+        context: [
+          {
+            sourceType: "AGENT",
+            trustLevel: "TRUSTED",
+            content: {
+              agentDefinitionId: input.agentDefinitionId,
+              companyAgentAssignmentId: input.task.assignedAgentId,
+              taskId: input.task.id,
+              role: input.task.assignedRole,
+              requiredSkills: input.task.requiredSkills,
+              requiredCapabilities: input.task.requiredCapabilities,
+            },
+          },
+        ],
+        systemInstructions: [
+          "Return only a bounded engineering proposal. Use only required capabilities and registered IDs.",
+          "Never emit shell text, executable paths, credentials, raw filesystem paths, deployment, merge, commit, or push actions.",
+          "Protected paths remain approval-gated. Do not broaden scope beyond acceptance criteria.",
+        ],
+        maxOutputTokens: 4_096,
+        maxAttempts: 3,
+        maxCloudEscalations: input.modelTier === "LUNA" ? 0 : 1,
+        maxCostUsd: input.objective.budget?.maxCostUsd ?? undefined,
+        maxContextTokens: input.context.maxTokens,
+        economicMaxInputTokens: Math.min(
+          input.context.maxTokens,
+          input.objective.budget?.maxTokens ?? input.context.maxTokens,
+        ),
+        economicContext: {
+          ownerId: input.objective.ownerId,
+          companyId: input.objective.companyId,
+          agentId: input.task.assignedAgentId,
+          taskId: input.task.id,
+          workflowId: input.objective.workflowId ?? undefined,
+          purpose: "CODING",
+          autonomyMode: "AUTONOMOUS",
+          costCenter: `engineering-objective:${input.objective.id}`,
+          metadata: {
+            objectiveId: input.objective.id,
+            modelTier: input.modelTier,
+            maxPremiumCostUsd: input.objective.budget?.maxPremiumCostUsd ?? null,
+          },
         },
+        objectiveId: input.objective.id,
+        taskId: input.task.id,
+        agentId: input.agentDefinitionId,
+        agentDefinitionId: input.agentDefinitionId,
+        companyAgentAssignmentId: input.task.assignedAgentId,
+        taskClass: input.task.taskType,
+        schema: AgentProposalSchema,
+        schemaName: "engineering_agent_proposal_v1",
       },
-      objectiveId: input.objective.id,
-      taskId: input.task.id,
-      agentId: input.task.assignedAgentId,
-      taskClass: input.task.taskType,
-      schema: AgentProposalSchema,
-      schemaName: "engineering_agent_proposal_v1",
-    }, { signal: input.signal });
+      { signal: input.signal },
+    );
     if (response.outcome !== "SUCCESS" || !response.structuredOutput)
       return {
         status: "FAILED" as const,
         failureCategory: "MODEL_FAILURE" as const,
-        failureSummary:
-          response.attempts.at(-1)?.reason ?? response.decision.reason,
+        failureSummary: response.attempts.at(-1)?.reason ?? response.decision.reason,
       };
     const proposal = AgentProposalSchema.parse(response.structuredOutput);
-    let validationStatus:
-      | "PASS"
-      | "FAIL"
-      | "ERROR"
-      | "NOT_CONFIGURED"
-      | undefined;
+    let validationStatus: "PASS" | "FAIL" | "ERROR" | "NOT_CONFIGURED" | undefined;
     let validationReportId: string | null = null;
     const filesChanged = new Set<string>();
     let diffSummary = proposal.summary;
@@ -251,13 +257,14 @@ export class AIRouterEngineeringTaskWorker implements EngineeringTaskWorker {
         status: "FAILED" as const,
         validationStatus: validationStatus ?? "NOT_CONFIGURED",
         failureCategory: "TEST_FAILURE" as const,
-        failureSummary: "A mutating task did not produce a passing governed validation result.",
+        failureSummary:
+          "A mutating task did not produce a passing governed validation result.",
       };
     return {
       status: "SUCCEEDED" as const,
       filesChanged: [...filesChanged],
       diffSummary,
-      validationStatus: input.task.readOnly ? "PASS" as const : validationStatus!,
+      validationStatus: input.task.readOnly ? ("PASS" as const) : validationStatus!,
       validationReportId,
       modelProvider: response.providerId ?? null,
       modelName: response.modelId ?? null,
@@ -270,24 +277,60 @@ export class AIRouterEngineeringTaskWorker implements EngineeringTaskWorker {
   }
 
   async review(input: Parameters<EngineeringTaskWorker["review"]>[0]) {
-    const response = await this.router.executeStructured({
-      requestId: crypto.randomUUID(),
-      purpose: "EVALUATION",
-      requestedRole: "DEEP_REASONER",
-      risk: input.task.riskLevel,
-      complexityHint: routing(input.modelTier).complexityHint,
-      reasoning: "HIGH",
-      outputMode: "STRUCTURED",
-      input: [{ role: "user", content: [{ type: "json", value: { task: input.task, context: input.context, authorAgentId: input.authorAgentId, reviewerAgentId: input.reviewerAgentId } }] }],
-      systemInstructions: ["Perform an independent bounded review. Never execute tools or grant capabilities."],
-      maxOutputTokens: 1_024,
-      maxAttempts: 2,
-      objectiveId: input.objective.id,
-      taskId: input.task.id,
-      agentId: input.reviewerAgentId,
-      schema: ReviewSchema,
-      schemaName: "engineering_independent_review_v1",
-    }, { signal: input.signal });
+    const response = await this.router.executeStructured(
+      {
+        requestId: crypto.randomUUID(),
+        purpose: "EVALUATION",
+        requestedRole: "DEEP_REASONER",
+        risk: input.task.riskLevel,
+        complexityHint: routing(input.modelTier).complexityHint,
+        reasoning: "HIGH",
+        outputMode: "STRUCTURED",
+        input: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "json",
+                value: {
+                  task: input.task,
+                  context: input.context,
+                  authorAgentId: input.authorAgentId,
+                  reviewerAgentId: input.reviewerAgentId,
+                },
+              },
+            ],
+          },
+        ],
+        contextProfile: "AGENT_TASK",
+        context: [
+          {
+            sourceType: "AGENT",
+            trustLevel: "TRUSTED",
+            content: {
+              agentDefinitionId: input.reviewerAgentDefinitionId,
+              companyAgentAssignmentId: input.reviewerAgentId,
+              authorAgentDefinitionId: input.authorAgentDefinitionId,
+              taskId: input.task.id,
+              review: true,
+            },
+          },
+        ],
+        systemInstructions: [
+          "Perform an independent bounded review. Never execute tools or grant capabilities.",
+        ],
+        maxOutputTokens: 1_024,
+        maxAttempts: 2,
+        objectiveId: input.objective.id,
+        taskId: input.task.id,
+        agentId: input.reviewerAgentDefinitionId,
+        agentDefinitionId: input.reviewerAgentDefinitionId,
+        companyAgentAssignmentId: input.reviewerAgentId,
+        schema: ReviewSchema,
+        schemaName: "engineering_independent_review_v1",
+      },
+      { signal: input.signal },
+    );
     return response.outcome === "SUCCESS" && response.structuredOutput
       ? ReviewSchema.parse(response.structuredOutput)
       : { status: "FAIL" as const, summary: response.decision.reason };
