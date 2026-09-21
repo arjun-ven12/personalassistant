@@ -1,7 +1,16 @@
+import { createHash } from "node:crypto";
+
 import type { AgentOsService } from "../agents/os-service.js";
 import type { AgentStore } from "../agents/store.js";
 import { companyScope } from "../companies/scope.js";
 import type { EngineeringAgentOsGateway } from "./service.js";
+
+const boundedSkillRef = (value: string) => {
+  if (value.length >= 3 && value.length <= 120) return value;
+  if (value.length < 3) return `skill:${value}`;
+  const digest = createHash("sha256").update(value).digest("hex");
+  return `${value.slice(0, 55)}:${digest}`;
+};
 
 export class AgentOsEngineeringGateway implements EngineeringAgentOsGateway {
   constructor(
@@ -95,7 +104,9 @@ export class AgentOsEngineeringGateway implements EngineeringAgentOsGateway {
           skillRefs: [
             ...input.task.requiredSkills,
             `capability-profile:${assignment.capabilityGrantProfileId}`,
-          ].slice(0, 50),
+          ]
+            .slice(0, 50)
+            .map(boundedSkillRef),
           knowledgeSourceRefs: ["repository", "architecture", "memory"],
           contextTokenBudget:
             input.task.estimatedDifficulty === "VERY_HIGH" ? 16_000 : 8_000,

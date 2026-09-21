@@ -6,6 +6,7 @@ import {
   mkdir,
   open,
   readFile as readFsFile,
+  readdir,
   realpath,
   rename,
   stat,
@@ -308,6 +309,43 @@ const assertNotIgnored = (relativePath: string) => {
     );
 };
 
+const matchesExactProjectScaffold = async (
+  root: string,
+  files: Record<string, string>,
+) => {
+  const expectedFiles = new Set(Object.keys(files));
+  const expectedDirectories = new Set(
+    Object.keys(files)
+      .map((relativePath) => path.dirname(relativePath))
+      .filter((relativePath) => relativePath !== "."),
+  );
+  const actualFiles = new Set<string>();
+  const visit = async (directory: string, prefix = ""): Promise<boolean> => {
+    const entries = await readdir(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
+      if (entry.isSymbolicLink()) return false;
+      if (entry.isDirectory()) {
+        if (!expectedDirectories.has(relativePath)) return false;
+        if (!(await visit(path.join(directory, entry.name), relativePath))) return false;
+        continue;
+      }
+      if (!entry.isFile() || !expectedFiles.has(relativePath)) return false;
+      actualFiles.add(relativePath);
+    }
+    return true;
+  };
+  try {
+    if (!(await visit(root)) || actualFiles.size !== expectedFiles.size) return false;
+    for (const [relativePath, content] of Object.entries(files))
+      if ((await readFsFile(path.join(root, relativePath), "utf8")) !== content)
+        return false;
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export interface NetworkIsolatedEngineeringRunner {
   readonly networkIsolated: true;
   run(input: {
@@ -568,12 +606,6 @@ export class NativeEngineeringRuntime {
         "PATH_OUTSIDE_REPOSITORY",
         "The registered development root is too broad or sensitive.",
       );
-    if (await lstat(target).catch(() => null))
-      throw new NativeEngineeringRuntimeError(
-        "INCONSISTENT_STATE",
-        "The project directory already exists; initialization will not overwrite it.",
-      );
-    await mkdir(path.join(target, "src"), { recursive: true, mode: 0o700 });
     const files: Record<string, string> =
       input.template === "REACT_VITE_TYPESCRIPT"
         ? {
@@ -598,14 +630,24 @@ export class NativeEngineeringRuntime {
             "src/index.ts": "export const ready = true;\n",
             ".gitignore": "node_modules\ndist\n.env\n.env.*\n!.env.example\n",
           };
-    for (const [relative, content] of Object.entries(files)) {
-      const destination = path.join(target, relative);
-      await mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
-      await writeFile(destination, content, {
-        encoding: "utf8",
-        flag: "wx",
-        mode: 0o600,
-      });
+    const existing = await lstat(target).catch(() => null);
+    if (existing) {
+      if (!existing.isDirectory() || !(await matchesExactProjectScaffold(target, files)))
+        throw new NativeEngineeringRuntimeError(
+          "INCONSISTENT_STATE",
+          "The project directory already exists and is not the exact incomplete governed scaffold.",
+        );
+    } else {
+      await mkdir(path.join(target, "src"), { recursive: true, mode: 0o700 });
+      for (const [relative, content] of Object.entries(files)) {
+        const destination = path.join(target, relative);
+        await mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
+        await writeFile(destination, content, {
+          encoding: "utf8",
+          flag: "wx",
+          mode: 0o600,
+        });
+      }
     }
     if (!this.dependencyRunner)
       throw new NativeEngineeringRuntimeError(
@@ -618,6 +660,16 @@ export class NativeEngineeringRuntime {
       operation: "INSTALL",
       packages: [],
     });
+    if (
+      installed.exitCode !== 0 &&
+      /cannot connect to the docker daemon|is the docker daemon running|no such image/i.test(
+        installed.stderr,
+      )
+    )
+      throw new NativeEngineeringRuntimeError(
+        "COMMAND_SANDBOX_UNAVAILABLE",
+        "The reviewed dependency container is unavailable. Start Docker Desktop and retry the exact build.",
+      );
     if (installed.exitCode !== 0 || installed.timedOut)
       throw new NativeEngineeringRuntimeError(
         "DEPENDENCY_INSTALL_FAILED",
@@ -1573,6 +1625,47 @@ export class NativeEngineeringRuntime {
       files,
       redactions: diff.redactions,
     });
+  }
+
+  async revertCommit(input: {
+    repositoryRootPath: string;
+    worktreeLocator: string;
+    targetCommit: string;
+    expectedHead: string;
+  }) {
+    await this.resolveRepository(input.repositoryRootPath);
+    if (!/^[0-9a-f]{40,64}$/.test(input.targetCommit) || !/^[0-9a-f]{40,64}$/.test(input.expectedHead))
+      throw new NativeEngineeringRuntimeError("GIT_ERROR", "Invalid governed revert identity.");
+    const worktree = await this.resolveWorktree(input.worktreeLocator);
+    const status = await this.gitStatus(input);
+    if (status.dirty)
+      throw new NativeEngineeringRuntimeError("DIRTY_REPOSITORY", "The isolated revert workspace must be clean.");
+    const head = (await runGit(worktree, ["rev-parse", "HEAD"])).trim();
+    if (head !== input.expectedHead || input.targetCommit !== input.expectedHead)
+      throw new NativeEngineeringRuntimeError(
+        "INCONSISTENT_STATE",
+        "The revert target is not the current registered head; later dependent work requires owner review.",
+      );
+    await runGit(worktree, ["cat-file", "-e", `${input.targetCommit}^{commit}`]);
+    const result = await runBounded({
+      executable: GIT,
+      args: ["revert", "--no-commit", input.targetCommit],
+      cwd: worktree,
+      env: SAFE_GIT_ENV,
+      timeoutMs: 30_000,
+      maxOutputBytes: MAX_GIT_OUTPUT,
+    });
+    if (result.exitCode !== 0) {
+      await runGit(worktree, ["revert", "--abort"], 20_000).catch(() => undefined);
+      throw new NativeEngineeringRuntimeError(
+        "INCONSISTENT_STATE",
+        "The deterministic revert conflicted with current repository history.",
+      );
+    }
+    const reverted = await this.gitStatus(input);
+    if (!reverted.dirty)
+      throw new NativeEngineeringRuntimeError("GIT_ERROR", "The target commit produced no reversible project change.");
+    return reverted;
   }
 
   async integrateCommit(input: {

@@ -87,6 +87,9 @@ import {
 } from "./engineering-delivery/store.js";
 import { PostgresEngineeringDeliveryStore } from "./engineering-delivery/postgres-store.js";
 import { registerEngineeringDeliveryRoutes } from "./routes/engineering-delivery.js";
+import { EngineeringProjectSessionService } from "./engineering-delivery/session-service.js";
+import { InMemoryEngineeringProjectSessionStore, PostgresEngineeringProjectSessionStore } from "./engineering-delivery/session-store.js";
+import { registerEngineeringProjectSessionRoutes } from "./routes/engineering-project-sessions.js";
 import { registerExecutionRoutes } from "./routes/executions.js";
 import { registerCrossDeviceRoutes } from "./routes/cross-device.js";
 import { registerCompanyRoutes } from "./routes/companies.js";
@@ -1794,6 +1797,15 @@ export const buildApi = async ({
     governanceAudit,
     now,
   );
+  const engineeringProjectSessions = new EngineeringProjectSessionService(
+    database ? new PostgresEngineeringProjectSessionStore(database.pool) : new InMemoryEngineeringProjectSessionStore(),
+    resolvedEngineeringRuntimeStore,
+    engineeringDelivery,
+    now,
+  );
+  engineeringDelivery.onTerminal((context, deliveryId) =>
+    engineeringProjectSessions.handleDeliveryTerminal(context, deliveryId),
+  );
   voice.setEngineeringDelivery({
     start: async (input) => {
       const companyId = companyScope.companyId(input.ownerId);
@@ -2209,6 +2221,7 @@ export const buildApi = async ({
     engineeringIntegrationStore: resolvedEngineeringIntegrationStore,
     engineeringDelivery,
     engineeringDeliveryStore: resolvedEngineeringDeliveryStore,
+    engineeringProjectSessions,
     repositories,
     repositoryStore,
     patches,
@@ -2459,6 +2472,7 @@ export const buildApi = async ({
   registerEngineeringOrchestrationRoutes(app, context);
   registerEngineeringIntegrationRoutes(app, context);
   registerEngineeringDeliveryRoutes(app, context);
+  registerEngineeringProjectSessionRoutes(app, context);
   registerCrossDeviceRoutes(app, context);
   registerRepositoryRoutes(app, context);
   registerPatchRoutes(app, context);

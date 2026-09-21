@@ -15,6 +15,10 @@ const ProposedOperationSchema = z
       "repository.git_diff",
       "repository.run_command",
       "repository.validate",
+      "repository.install_dependencies",
+      "repository.add_dependency",
+      "repository.remove_dependency",
+      "repository.revert_commit",
     ]),
     input: z.record(z.string().max(80), z.json()),
   })

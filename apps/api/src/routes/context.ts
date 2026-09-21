@@ -83,6 +83,7 @@ import type { ApplicationInteractionService } from "../application-interactions/
 import type { SpatialInteractionService } from "../spatial/service.js";
 import type { SpatialStore } from "../spatial/store.js";
 import type { VoiceRuntimeService } from "../voice/service.js";
+import type { EngineeringProjectSessionService } from "../engineering-delivery/session-service.js";
 import type { VoiceCaptureLeaseService } from "../voice/capture-lease.js";
 import type { ActiveContextService } from "../active-context/service.js";
 import type { VoiceStore } from "../voice/store.js";
@@ -179,6 +180,7 @@ export interface ApiRouteContext {
   engineeringIntegrationStore: EngineeringIntegrationStore;
   engineeringDelivery: EngineeringDeliveryService;
   engineeringDeliveryStore: EngineeringDeliveryStore;
+  engineeringProjectSessions: EngineeringProjectSessionService;
   repositories: RepositoryService;
   repositoryStore: RepositoryStore;
   patches: PatchService;

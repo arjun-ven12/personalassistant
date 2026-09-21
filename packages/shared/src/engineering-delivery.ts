@@ -4,6 +4,7 @@ import { RegistryIdSchema } from "./applications.js";
 import {
   EngineeringPreviewResultSchema,
   EngineeringRelativePathSchema,
+  EngineeringRepositoryStatusSchema,
 } from "./engineering-runtime.js";
 
 export const EngineeringSoftwareIntentSchema = z.enum([
@@ -171,6 +172,11 @@ export const EngineeringControlCenterSchema = z
       .max(6),
     completedTasks: z.number().int().nonnegative(),
     blockedTasks: z.number().int().nonnegative(),
+    blocker: z.object({
+      category: z.enum(["CAPABILITY_UNAVAILABLE", "REPOSITORY_PERMISSION", "POLICY_APPROVAL_REQUIRED", "MODEL_PROVIDER_UNAVAILABLE", "VALIDATION_FAILURE", "MERGE_CONFLICT", "OWNER_CLARIFICATION_REQUIRED", "DEVICE_OFFLINE"]),
+      message: z.string().min(1).max(300),
+      action: z.string().min(1).max(300),
+    }).strict().nullable(),
     totalTasks: z.number().int().nonnegative(),
     timeline: z
       .array(
@@ -191,10 +197,14 @@ export const EngineeringControlCenterSchema = z
 export const EngineeringProjectRegistryEntrySchema = z
   .object({
     repositoryId: z.string().uuid(),
+    companyId: z.string().uuid(),
+    repositoryName: z.string().min(1).max(120),
     projectName: z.string().min(1).max(100),
     stack: z.array(z.string().min(1).max(80)).max(20),
-    latestDeliveryId: z.string().uuid(),
-    status: EngineeringDeliveryStatusSchema,
+    defaultBranch: z.string().min(1).max(200),
+    repositoryStatus: EngineeringRepositoryStatusSchema,
+    latestDeliveryId: z.string().uuid().nullable(),
+    status: EngineeringDeliveryStatusSchema.nullable(),
     preview: EngineeringPreviewResultSchema.nullable(),
     lastModifiedAt: z.iso.datetime(),
   })

@@ -49,6 +49,7 @@ export const EngineeringCapabilitySchema = z.enum([
   "repository.integrate_commit",
   "repository.resolve_additive_docs_conflict",
   "repository.merge_candidate",
+  "repository.revert_commit",
 ]);
 
 export const EngineeringErrorCodeSchema = z.enum([
@@ -817,6 +818,15 @@ const EngineeringTransportOperationSchema = z.discriminatedUnion("capability", [
     .object({
       capability: z.literal("repository.run_command"),
       input: z.object({ command: EngineeringCommandDefinitionSchema }).strict(),
+    })
+    .strict(),
+  z
+    .object({
+      capability: z.literal("repository.revert_commit"),
+      input: z.object({
+        targetCommit: z.string().regex(/^[0-9a-f]{40,64}$/),
+        expectedHead: z.string().regex(/^[0-9a-f]{40,64}$/),
+      }).strict(),
     })
     .strict(),
   z

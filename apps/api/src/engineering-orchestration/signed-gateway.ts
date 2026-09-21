@@ -224,6 +224,13 @@ export class SignedExecutionEngineeringGateway
     if (input.capability === "repository.validate") return this.validate(input);
     const result = await this.dispatch(input);
     const output = result.output as Record<string, unknown>;
+    const revertedFiles = input.capability === "repository.revert_commit" && Array.isArray(output.entries)
+      ? output.entries.flatMap((entry: unknown) => {
+          if (!entry || typeof entry !== "object" || !("path" in entry)) return [];
+          const path = (entry as { path?: unknown }).path;
+          return typeof path === "string" ? [path] : [];
+        })
+      : [];
     return {
       output,
       ...(input.capability === "repository.git_diff"
@@ -235,6 +242,9 @@ export class SignedExecutionEngineeringGateway
         input.capability,
       ) && typeof output.path === "string"
         ? { filesChanged: [output.path] }
+        : {}),
+      ...(input.capability === "repository.revert_commit"
+        ? { filesChanged: revertedFiles }
         : {}),
     };
   }
@@ -590,9 +600,16 @@ export class SignedExecutionEngineeringGateway
           state.status,
         )
       )
-        throw Object.assign(new Error("Signed engineering execution failed."), {
-          code: state.failureCode ?? "ENVIRONMENT_FAILURE",
-        });
+        throw Object.assign(
+          new Error(
+            result?.safeMessage ??
+              "The trusted Mac Agent could not complete the engineering operation.",
+          ),
+          {
+            code: state.failureCode ?? "ENVIRONMENT_FAILURE",
+            statusCode: 503,
+          },
+        );
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
     await this.executionStore.cancel(

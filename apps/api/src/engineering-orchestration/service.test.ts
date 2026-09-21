@@ -131,7 +131,9 @@ class FakeWorker implements EngineeringTaskWorker {
         };
       return {
         status: "SUCCEEDED" as const,
-        filesChanged: input.task.readOnly ? [] : [`src/${input.task.taskType.toLowerCase()}.ts`],
+        filesChanged: input.task.readOnly
+          ? []
+          : [`src/${input.task.taskType.toLowerCase()}.ts`],
         diffSummary: `${input.task.taskType} completed within scope.`,
         validationStatus: "PASS" as const,
         validationReportId: crypto.randomUUID(),
@@ -175,12 +177,11 @@ const setup = async (worker = new FakeWorker(), now: () => Date = () => new Date
     { ownerId, companyId, role: "OWNER", requestId: context.requestId },
     () => agents.ensureBuiltIns(ownerId, context.requestId),
   );
-  const authorizedAgentIds = (
-    companyScope.run(
-      { ownerId, companyId, role: "OWNER", requestId: context.requestId },
-      () => agentStore.listAssignments(ownerId, companyId),
+  const authorizedAgentIds = companyScope
+    .run({ ownerId, companyId, role: "OWNER", requestId: context.requestId }, () =>
+      agentStore.listAssignments(ownerId, companyId),
     )
-  ).map((assignment) => assignment.id);
+    .map((assignment) => assignment.id);
   runtime.saveRepository(
     EngineeringRepositorySchema.parse({
       schemaVersion: "1",
@@ -243,7 +244,12 @@ const runToTerminal = async (
   limit = 20,
 ) => {
   let view = await service.view(ownerId, companyId, objectiveId);
-  for (let index = 0; index < limit && !["COMPLETED", "BLOCKED", "FAILED", "CANCELLED"].includes(view.objective.status); index += 1)
+  for (
+    let index = 0;
+    index < limit &&
+    !["COMPLETED", "BLOCKED", "FAILED", "CANCELLED"].includes(view.objective.status);
+    index += 1
+  )
     view = await service.runReady(context, objectiveId, `worker-${index}`);
   return view;
 };
@@ -307,23 +313,44 @@ describe("EngineeringManagerService", () => {
     const planned = await create(service);
     const completed = await runToTerminal(service, planned.objective.id);
     expect(completed.objective.status).toBe("COMPLETED");
-    const parent = completed.tasks.find((task) => !task.readOnly && task.status === "COMPLETE")!;
-    const input = { objectiveId: planned.objective.id, integrationRunId: crypto.randomUUID(),
-      cycle: 1, parentTaskId: parent.id, category: "TEST_FAILURE",
-      summary: "Combined registered test failed in one bounded domain." };
+    const parent = completed.tasks.find(
+      (task) => !task.readOnly && task.status === "COMPLETE",
+    )!;
+    const input = {
+      objectiveId: planned.objective.id,
+      integrationRunId: crypto.randomUUID(),
+      cycle: 1,
+      parentTaskId: parent.id,
+      category: "TEST_FAILURE",
+      summary: "Combined registered test failed in one bounded domain.",
+    };
     const repair = await service.createIntegrationRepairTask(context, input);
-    expect((await service.createIntegrationRepairTask(context, input)).id).toBe(repair.id);
+    expect((await service.createIntegrationRepairTask(context, input)).id).toBe(
+      repair.id,
+    );
     expect(repair.parentTaskId).toBe(parent.id);
     expect(repair.status).toBe("READY");
-    expect(store.findObjective(ownerId, companyId, planned.objective.id)?.status).toBe("READY");
+    expect(store.findObjective(ownerId, companyId, planned.objective.id)?.status).toBe(
+      "READY",
+    );
     const repaired = await runToTerminal(service, planned.objective.id);
     const finalTask = repaired.tasks.find((task) => task.id === repair.id)!;
     expect(finalTask.status).toBe("COMPLETE");
     expect(finalTask.workspaceId).not.toBeNull();
-    expect(runtime.findWorkspace(ownerId, companyId, finalTask.workspaceId!)?.taskId).toBe(repair.id);
-    expect(repaired.results.some((result) => result.taskId === repair.id && result.validationStatus === "PASS")).toBe(true);
-    await expect(service.createIntegrationRepairTask({ ...context, companyId: otherCompanyId }, input))
-      .rejects.toMatchObject({ code: "OBJECTIVE_NOT_FOUND" });
+    expect(
+      runtime.findWorkspace(ownerId, companyId, finalTask.workspaceId!)?.taskId,
+    ).toBe(repair.id);
+    expect(
+      repaired.results.some(
+        (result) => result.taskId === repair.id && result.validationStatus === "PASS",
+      ),
+    ).toBe(true);
+    await expect(
+      service.createIntegrationRepairTask(
+        { ...context, companyId: otherCompanyId },
+        input,
+      ),
+    ).rejects.toMatchObject({ code: "OBJECTIVE_NOT_FOUND" });
   });
   it("decomposes a simple feature into a bounded dependency graph and passes contracts structurally", async () => {
     const { service, worker } = await setup();
@@ -347,6 +374,47 @@ describe("EngineeringManagerService", () => {
     expect(frontendStart?.dependencies).toContain(backendStart?.id);
   });
 
+  it("uses one governed worker for a narrow text edit while retaining validation and integration readiness", async () => {
+    const { service, worker } = await setup();
+    const planned = await create(
+      service,
+      "Change the CTA text from Get Started to Contact Me.",
+      "MEDIUM",
+    );
+    expect(planned.tasks).toHaveLength(1);
+    expect(planned.tasks[0]).toMatchObject({
+      assignedRole: "GENERALIST_ENGINEER",
+      modelPolicy: { initialTier: "LUNA" },
+      readOnly: false,
+    });
+    const completed = await runToTerminal(service, planned.objective.id);
+    expect(completed.objective.status).toBe("COMPLETED");
+    expect(completed.readyForIntegration).toBe(true);
+    expect(worker.starts).toHaveLength(1);
+  });
+
+  it("routes project dependency additions and removals through finite governed capabilities", async () => {
+    const { service } = await setup();
+    const added = await create(service, "Add Recharts to this project.", "MEDIUM");
+    expect(added.tasks.find((task) => task.title.includes("dependency"))?.requiredCapabilities)
+      .toContain("repository.add_dependency");
+    const removed = await create(service, "Remove lodash from this project.", "MEDIUM");
+    expect(removed.tasks.find((task) => task.title.includes("dependency"))?.requiredCapabilities)
+      .toContain("repository.remove_dependency");
+  });
+
+  it("replans an active objective with one bounded requirement task and updated acceptance criteria", async () => {
+    const { service } = await setup();
+    const planned = await create(service, "Build responsive pricing cards.", "MEDIUM");
+    const before = planned.tasks.length;
+    const task = await service.addInstruction(context, planned.objective.id,
+      "Also make the cards horizontally scrollable on mobile.", "instruction-replan-123");
+    const updated = await service.view(ownerId, companyId, planned.objective.id);
+    expect(updated.tasks).toHaveLength(before + 1);
+    expect(task.title).toContain("Additional requirement");
+    expect(updated.objective.acceptanceCriteria).toContain("Also make the cards horizontally scrollable on mobile.");
+  });
+
   it("runs a 10-task objective with bounded four-way concurrency and no duplicate execution", async () => {
     const worker = new FakeWorker();
     worker.delayMs = 15;
@@ -362,7 +430,9 @@ describe("EngineeringManagerService", () => {
     expect(completed.objective.status).toBe("COMPLETED");
     expect(worker.maximumActive).toBeGreaterThanOrEqual(3);
     expect(worker.maximumActive).toBeLessThanOrEqual(4);
-    expect(new Set(worker.starts.map((task) => task.id)).size).toBe(worker.starts.length);
+    expect(new Set(worker.starts.map((task) => task.id)).size).toBe(
+      worker.starts.length,
+    );
   });
 
   it("does not start dependent tasks early", async () => {
@@ -379,25 +449,37 @@ describe("EngineeringManagerService", () => {
     const worker = new FakeWorker();
     worker.failOnceTypes.add("BACKEND");
     const { service } = await setup(worker);
-    const planned = await create(service, "Add a routine backend endpoint and tests.", "LOW");
+    const planned = await create(
+      service,
+      "Add a routine backend endpoint and tests.",
+      "LOW",
+    );
     const completed = await runToTerminal(service, planned.objective.id);
     expect(completed.objective.status).toBe("COMPLETED");
     const backend = completed.tasks.find((task) => task.taskType === "BACKEND")!;
     expect(backend.attempt).toBe(2);
     expect(backend.modelPolicy.initialTier).toBe("LUNA");
     expect(backend.modelPolicy.currentTier).toBe("TERRA");
-    expect(completed.events.some((event) => event.type === "MODEL_ESCALATED")).toBe(true);
+    expect(completed.events.some((event) => event.type === "MODEL_ESCALATED")).toBe(
+      true,
+    );
   });
 
   it("starts security work at Sol and enforces an independent reviewer", async () => {
     const { service } = await setup();
-    const planned = await create(service, "Change auth permission and tenant isolation behavior with tests.", "CRITICAL");
+    const planned = await create(
+      service,
+      "Change auth permission and tenant isolation behavior with tests.",
+      "CRITICAL",
+    );
     const security = planned.tasks.find((task) => task.taskType === "SECURITY")!;
     expect(security.modelPolicy.initialTier).toBe("SOL");
     expect(security.reviewRequired).toBe(true);
     expect(security.reviewerAgentId).not.toBe(security.assignedAgentId);
     const completed = await runToTerminal(service, planned.objective.id);
-    expect(completed.results.find((result) => result.taskId === security.id)?.reviewStatus).toBe("PASS");
+    expect(
+      completed.results.find((result) => result.taskId === security.id)?.reviewStatus,
+    ).toBe("PASS");
   });
 
   it("records a missing capability instead of self-granting", async () => {
@@ -407,8 +489,12 @@ describe("EngineeringManagerService", () => {
     const planned = await create(service, "Add a backend endpoint.");
     const blocked = await runToTerminal(service, planned.objective.id);
     expect(blocked.objective.status).toBe("BLOCKED");
-    expect(blocked.events.some((event) => event.type === "CAPABILITY_REQUESTED")).toBe(true);
-    expect(blocked.tasks.find((task) => task.taskType === "BACKEND")?.status).toBe("BLOCKED");
+    expect(blocked.events.some((event) => event.type === "CAPABILITY_REQUESTED")).toBe(
+      true,
+    );
+    expect(blocked.tasks.find((task) => task.taskType === "BACKEND")?.status).toBe(
+      "BLOCKED",
+    );
   });
 
   it("asks for clarification on critical product ambiguity without creating tasks", async () => {
@@ -421,10 +507,15 @@ describe("EngineeringManagerService", () => {
 
   it("accepts one idempotent owner clarification and resumes the existing objective", async () => {
     const { service } = await setup();
-    const blocked = await create(service, "Delete a user and all related data.", "HIGH");
+    const blocked = await create(
+      service,
+      "Delete a user and all related data.",
+      "HIGH",
+    );
     const clarificationId = blocked.objective.clarification!.id;
     const body = {
-      answer: "Preserve immutable audit and activity history; remove only the active profile.",
+      answer:
+        "Preserve immutable audit and activity history; remove only the active profile.",
       idempotencyKey: "clarification-answer-0001",
     };
     const resumed = await service.answerClarification(
@@ -446,9 +537,7 @@ describe("EngineeringManagerService", () => {
     );
     expect(duplicate.results).toHaveLength(resumed.results.length);
     expect(
-      duplicate.events.filter(
-        (event) => event.type === "OWNER_CLARIFICATION_ANSWERED",
-      ),
+      duplicate.events.filter((event) => event.type === "OWNER_CLARIFICATION_ANSWERED"),
     ).toHaveLength(1);
   });
 
@@ -509,7 +598,10 @@ describe("EngineeringManagerService", () => {
       retrieve: ({ companyId: scope, taskId }) => {
         expect(scope).toBe(companyId);
         retrievals.push(taskId);
-        return Promise.resolve({ refs: [], summaries: ["Use the registered validation profile."] });
+        return Promise.resolve({
+          refs: [],
+          summaries: ["Use the registered validation profile."],
+        });
       },
       promote: ({ companyId: scope, taskId }) => {
         expect(scope).toBe(companyId);
@@ -525,7 +617,9 @@ describe("EngineeringManagerService", () => {
     expect(completed).toHaveLength(completedView.tasks.length);
     expect(retrievals).toHaveLength(completedView.tasks.length);
     expect(promotions.length).toBeGreaterThan(0);
-    expect(completedView.tasks.every((task) => Boolean(task.agentSessionId))).toBe(true);
+    expect(completedView.tasks.every((task) => Boolean(task.agentSessionId))).toBe(
+      true,
+    );
   });
 
   it("stops new work on cancellation while preserving created workspaces", async () => {
@@ -543,7 +637,11 @@ describe("EngineeringManagerService", () => {
     expect(cancelled.objective.status).toBe("CANCELLED");
     expect(runtime.listWorkspaces(ownerId, companyId).length).toBeGreaterThan(0);
     expect(workspaces.cancelled.length).toBeGreaterThan(0);
-    expect((await service.view(ownerId, companyId, planned.objective.id)).tasks.every((task) => ["COMPLETE", "CANCELLED"].includes(task.status))).toBe(true);
+    expect(
+      (await service.view(ownerId, companyId, planned.objective.id)).tasks.every(
+        (task) => ["COMPLETE", "CANCELLED"].includes(task.status),
+      ),
+    ).toBe(true);
   });
 
   it("recovers an expired active task without duplicating its workspace", async () => {
@@ -588,7 +686,14 @@ describe("EngineeringManagerService", () => {
         updatedAt: current.toISOString(),
       }),
     );
-    const claimed = store.acquireTaskLease({ ownerId, companyId, taskId: backend.id, workerId: "crashed", now: current.toISOString(), expiresAt: new Date(current.getTime() + 1_000).toISOString() });
+    const claimed = store.acquireTaskLease({
+      ownerId,
+      companyId,
+      taskId: backend.id,
+      workerId: "crashed",
+      now: current.toISOString(),
+      expiresAt: new Date(current.getTime() + 1_000).toISOString(),
+    });
     expect(claimed?.status).toBe("ACTIVE");
     current = new Date(current.getTime() + 2_000);
     const restarted = new EngineeringManagerService(
@@ -603,30 +708,38 @@ describe("EngineeringManagerService", () => {
       1_000,
     );
     const recovered = await restarted.recover(context, planned.objective.id);
-    expect(recovered.events.some((event) => event.type === "OBJECTIVE_RECOVERED")).toBe(true);
-    const backendWorkspaces = runtime.listWorkspaces(
-      ownerId,
-      companyId,
-      repositoryId,
+    expect(recovered.events.some((event) => event.type === "OBJECTIVE_RECOVERED")).toBe(
+      true,
     );
-    expect(backendWorkspaces.filter((item) => item.taskId === backend.id)).toHaveLength(1);
+    const backendWorkspaces = runtime.listWorkspaces(ownerId, companyId, repositoryId);
+    expect(backendWorkspaces.filter((item) => item.taskId === backend.id)).toHaveLength(
+      1,
+    );
   });
 
   it("enforces company scope and attributes task and objective cost", async () => {
     const { service } = await setup();
     await expect(
-      service.create({ ...context, companyId: otherCompanyId }, {
-        repositoryId,
-        title: "Cross tenant",
-        description: "Add endpoint",
-        acceptanceCriteria: ["Done"],
-      }),
+      service.create(
+        { ...context, companyId: otherCompanyId },
+        {
+          repositoryId,
+          title: "Cross tenant",
+          description: "Add endpoint",
+          acceptanceCriteria: ["Done"],
+        },
+      ),
     ).rejects.toMatchObject({ code: "REPOSITORY_NOT_AUTHORIZED" });
     const planned = await create(service);
     const completed = await runToTerminal(service, planned.objective.id);
-    const resultTotal = completed.results.reduce((sum, result) => sum + Number(result.costUsd), 0);
+    const resultTotal = completed.results.reduce(
+      (sum, result) => sum + Number(result.costUsd),
+      0,
+    );
     expect(Number(completed.objective.totalCostUsd)).toBeCloseTo(resultTotal);
-    expect(completed.results.every((result) => result.modelProvider === "test-router")).toBe(true);
+    expect(
+      completed.results.every((result) => result.modelProvider === "test-router"),
+    ).toBe(true);
   });
 });
 
@@ -654,7 +767,13 @@ describe("InMemoryEngineeringOrchestrationStore lease fencing", () => {
       assignedAgentId: "coding_agent",
       assignedRole: "BACKEND_ENGINEER",
       reviewerAgentId: null,
-      modelPolicy: { initialTier: "LUNA", currentTier: "LUNA", maxTier: "SOL", escalationCount: 0, reason: "test" },
+      modelPolicy: {
+        initialTier: "LUNA",
+        currentTier: "LUNA",
+        maxTier: "SOL",
+        escalationCount: 0,
+        reason: "test",
+      },
       readOnly: false,
       reviewRequired: false,
       status: "READY",
@@ -671,8 +790,22 @@ describe("InMemoryEngineeringOrchestrationStore lease fencing", () => {
       updatedAt: "2026-09-16T00:00:00.000Z",
     });
     store.saveTask(task);
-    const claimed = store.acquireTaskLease({ ownerId, companyId, taskId: task.id, workerId: "one", now: "2026-09-16T00:00:00.000Z", expiresAt: "2026-09-16T00:00:01.000Z" })!;
-    expect(store.saveTaskFenced(claimed, "one", claimed.leaseGeneration, "2026-09-16T00:00:02.000Z")).toBe(false);
+    const claimed = store.acquireTaskLease({
+      ownerId,
+      companyId,
+      taskId: task.id,
+      workerId: "one",
+      now: "2026-09-16T00:00:00.000Z",
+      expiresAt: "2026-09-16T00:00:01.000Z",
+    })!;
+    expect(
+      store.saveTaskFenced(
+        claimed,
+        "one",
+        claimed.leaseGeneration,
+        "2026-09-16T00:00:02.000Z",
+      ),
+    ).toBe(false);
     expect(
       store.releaseTaskLease({
         ownerId,

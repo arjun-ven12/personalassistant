@@ -63,6 +63,22 @@ class TestDependencyRunner implements EngineeringDependencyRunner {
   }
 }
 
+class UnavailableDependencyRunner implements EngineeringDependencyRunner {
+  run(input: Parameters<EngineeringDependencyRunner["run"]>[0]) {
+    return Promise.resolve(EngineeringDependencyOperationResultSchema.parse({
+      packageManager: input.packageManager,
+      operation: input.operation,
+      packages: input.packages,
+      exitCode: 1,
+      durationMs: 1,
+      stdout: "",
+      stderr: "Cannot connect to the Docker daemon. Is the docker daemon running?",
+      timedOut: false,
+      lockfileChanged: false,
+    }));
+  }
+}
+
 describe("NativeEngineeringRuntime", () => {
   let temporaryRoot: string;
   let repositoryRoot: string;
@@ -114,6 +130,23 @@ describe("NativeEngineeringRuntime", () => {
 
   afterEach(async () => {
     await rm(temporaryRoot, { recursive: true, force: true });
+  });
+
+  it("deterministically reverts only the exact current registered head in an isolated worktree", async () => {
+    await writeFile(path.join(repositoryRoot, "source.ts"), "export const value = 2;\n");
+    await execute("/usr/bin/git", ["add", "source.ts"], { cwd: repositoryRoot });
+    await execute("/usr/bin/git", ["commit", "-m", "governed change"], { cwd: repositoryRoot });
+    const inspection = await runtime.inspectRepository({ repositoryRootPath: repositoryRoot });
+    const worktreeLocator = `ew-${crypto.randomUUID()}`;
+    await runtime.createWorktree({ repositoryRootPath: repositoryRoot, worktreeLocator,
+      branchName: "alexa/revert-current-head", baseCommit: inspection.baseCommit });
+    await expect(runtime.revertCommit({ repositoryRootPath: repositoryRoot, worktreeLocator,
+      targetCommit: "f".repeat(40), expectedHead: inspection.baseCommit }))
+      .rejects.toThrow("later dependent work");
+    const result = await runtime.revertCommit({ repositoryRootPath: repositoryRoot, worktreeLocator,
+      targetCommit: inspection.baseCommit, expectedHead: inspection.baseCommit });
+    expect(result.dirty).toBe(true);
+    expect(result.entries.map((entry) => entry.path)).toContain("source.ts");
   });
 
   it("creates five isolated worktrees and preserves independent changes", async () => {
@@ -816,6 +849,39 @@ describe("NativeEngineeringRuntime", () => {
     ).rejects.toMatchObject({ code: "INCONSISTENT_STATE" });
   });
 
+  it("resumes only an exact incomplete scaffold after the dependency container becomes available", async () => {
+    const developmentRoot = path.join(temporaryRoot, "retry-development-root");
+    await mkdir(developmentRoot);
+    const projectRoot = path.join(developmentRoot, "portfolio-site");
+    const unavailableRuntime = new NativeEngineeringRuntime(
+      worktreeRoot,
+      new TestIsolatedRunner(),
+      new UnavailableDependencyRunner(),
+    );
+    const request = {
+      repositoryRootPath: projectRoot,
+      projectSlug: "portfolio-site",
+      template: "REACT_VITE_TYPESCRIPT" as const,
+      defaultBranch: "main",
+    };
+
+    await expect(unavailableRuntime.initializeProject(request)).rejects.toMatchObject({
+      code: "COMMAND_SANDBOX_UNAVAILABLE",
+      message:
+        "The reviewed dependency container is unavailable. Start Docker Desktop and retry the exact build.",
+    });
+
+    const recoveredRuntime = new NativeEngineeringRuntime(
+      worktreeRoot,
+      new TestIsolatedRunner(),
+      new TestDependencyRunner(),
+    );
+    await expect(recoveredRuntime.initializeProject(request)).resolves.toMatchObject({
+      branch: "main",
+      dirty: false,
+    });
+  });
+
   it("runs bounded project dependency operations and denies non-registry dependency specs", async () => {
     const dependencies = new TestDependencyRunner();
     const dependencyRuntime = new NativeEngineeringRuntime(
@@ -841,6 +907,17 @@ describe("NativeEngineeringRuntime", () => {
       packages: [],
     });
     expect(installed).toMatchObject({ operation: "INSTALL", exitCode: 0 });
+    await dependencyRuntime.dependencyOperation({
+      repositoryRootPath: repositoryRoot, worktreeLocator: locator,
+      packageManager: "pnpm", operation: "ADD", packages: ["recharts"], development: false,
+    });
+    await dependencyRuntime.dependencyOperation({
+      repositoryRootPath: repositoryRoot, worktreeLocator: locator,
+      packageManager: "pnpm", operation: "REMOVE", packages: ["lodash"],
+    });
+    expect(dependencies.calls.map((call) => [call.operation, call.packages])).toEqual([
+      ["INSTALL", []], ["ADD", ["recharts"]], ["REMOVE", ["lodash"]],
+    ]);
     await writeFile(
       path.join(worktreeRoot, locator, "package.json"),
       JSON.stringify({

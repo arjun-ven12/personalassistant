@@ -73,6 +73,7 @@ const terminal = new Set([
 ]);
 
 export class EngineeringDeliveryService {
+  readonly terminalListeners = new Set<(context: EngineeringDeliveryContext, deliveryId: string) => Promise<void>>();
   constructor(
     readonly store: EngineeringDeliveryStore,
     readonly runtime: EngineeringRuntimeStore,
@@ -87,6 +88,14 @@ export class EngineeringDeliveryService {
     readonly audit: GovernanceAuditWriter,
     readonly now: () => Date = () => new Date(),
   ) {}
+
+  onTerminal(listener: (context: EngineeringDeliveryContext, deliveryId: string) => Promise<void>) {
+    this.terminalListeners.add(listener);
+  }
+
+  private async notifyTerminal(context: EngineeringDeliveryContext, deliveryId: string) {
+    await Promise.allSettled([...this.terminalListeners].map((listener) => listener(context, deliveryId)));
+  }
 
   async create(context: EngineeringDeliveryContext, body: unknown) {
     const request = CreateSoftwareObjectiveRequestSchema.parse(body);
@@ -241,6 +250,7 @@ export class EngineeringDeliveryService {
               ? "CANCELLED"
               : "BLOCKED";
       await this.update(delivery, { status });
+      if (["BLOCKED", "OWNER_INPUT_REQUIRED", "CANCELLED"].includes(status)) await this.notifyTerminal(context, delivery.id);
       return this.controlCenter(context.ownerId, context.companyId, delivery.id);
     }
     const integrationView = delivery.integrationRunId
@@ -274,6 +284,7 @@ export class EngineeringDeliveryService {
           `Integration ended in ${integrated.run.status}.`,
         ].slice(0, 50),
       });
+      await this.notifyTerminal(context, delivery.id);
       return this.controlCenter(context.ownerId, context.companyId, delivery.id);
     }
     delivery = await this.update(delivery, {
@@ -370,6 +381,7 @@ export class EngineeringDeliveryService {
       previewReady: preview?.state === "RUNNING",
       filesChanged: delivery.filesChanged.length,
     });
+    await this.notifyTerminal(context, delivery.id);
     return this.controlCenter(context.ownerId, context.companyId, delivery.id);
   }
 
@@ -434,6 +446,7 @@ export class EngineeringDeliveryService {
       status: "CANCELLED",
       completedAt: this.now().toISOString(),
     });
+    await this.notifyTerminal(context, delivery.id);
     return this.controlCenter(context.ownerId, context.companyId, id);
   }
 
@@ -456,6 +469,34 @@ export class EngineeringDeliveryService {
           : "repository.dev_server_stop";
     const preview = await this.previewAction(context, delivery, capability);
     await this.update(delivery, { preview });
+    return this.controlCenter(context.ownerId, context.companyId, id);
+  }
+
+  async startPreview(context: EngineeringDeliveryContext, id: string) {
+    const delivery = await this.require(context.ownerId, context.companyId, id);
+    if (!delivery.integrationRunId)
+      throw new EngineeringDeliveryError("INVALID_STATE", "A validated integration workspace is required before starting preview.");
+    if (delivery.preview?.previewId) return this.previewControl(context, id, "restart");
+    const [integration, repository] = await Promise.all([
+      this.integration.view(context.ownerId, context.companyId, delivery.integrationRunId),
+      this.requireRepository(context, delivery.repositoryId),
+    ]);
+    const profile = await this.runtime.findCommandProfile(context.ownerId, context.companyId, repository.commandProfileId);
+    const server = profile?.developmentServers[0];
+    const agentId = repository.authorizedAgentIds[0];
+    if (!server || !agentId)
+      throw new EngineeringDeliveryError("INVALID_STATE", "A registered development server and authorized Mac Agent are required.");
+    const result = await this.gateway.invoke({
+      ownerId: context.ownerId, companyId: context.companyId, repositoryId: repository.id,
+      workspaceId: integration.run.integrationWorkspaceId, taskId: delivery.objectiveId, agentId,
+      capability: "repository.dev_server_start",
+      operationInput: { previewId: crypto.randomUUID(), serverId: server.id, preferredPort: 4173 },
+      signal: new AbortController().signal, transport: context,
+    });
+    const preview = result.output as NonNullable<EngineeringDelivery["preview"]>;
+    if (preview.state !== "RUNNING" || preview.healthStatus !== "PASS" || !preview.url)
+      throw new EngineeringDeliveryError("INVALID_STATE", "The development server did not pass its bounded health check.");
+    await this.update(delivery, { preview, firstPreviewAt: this.now().toISOString() });
     return this.controlCenter(context.ownerId, context.companyId, id);
   }
 
@@ -521,6 +562,31 @@ export class EngineeringDeliveryService {
     return EngineeringControlCenterSchema.parse({
       delivery: refreshed,
       overallProgress: progress,
+      blocker: (() => {
+        const task = view.tasks.find((item) => ["BLOCKED", "FAILED"].includes(item.status));
+        if (!task) return null;
+        switch (task.lastFailureCategory) {
+          case "MISSING_CAPABILITY":
+            return { category: "CAPABILITY_UNAVAILABLE", message: "A required engineering capability or eligible agent is unavailable.", action: "Check the trusted Mac Agent, registered capabilities, and Engineering workforce; then retry." };
+          case "POLICY_DENIED":
+            return { category: "POLICY_APPROVAL_REQUIRED", message: "Governance did not permit this change.", action: "Review the exact policy or approval request before retrying." };
+          case "MODEL_FAILURE":
+            return { category: "MODEL_PROVIDER_UNAVAILABLE", message: "No eligible model completed this task.", action: "Check model-provider availability and routing, then retry." };
+          case "AMBIGUOUS_REQUIREMENT":
+          case "MISSING_CONTEXT":
+            return { category: "OWNER_CLARIFICATION_REQUIRED", message: "The task needs more project context or a clearer requirement.", action: "Clarify the requested change in the project session, then retry." };
+          case "CONFLICT":
+            return { category: "MERGE_CONFLICT", message: "The proposed change conflicts with the current project state.", action: "Review the conflicting files and integration candidate before retrying." };
+          case "TEST_FAILURE":
+          case "TYPE_ERROR":
+          case "BUILD_FAILURE":
+            return { category: "VALIDATION_FAILURE", message: "Project validation failed.", action: "Open the run activity and validation details, fix the failure, then retry." };
+          case "ENVIRONMENT_FAILURE":
+            return { category: "DEVICE_OFFLINE", message: "The trusted engineering environment could not complete the task.", action: "Check Mac Agent connectivity and project access, then retry." };
+          default:
+            return { category: "CAPABILITY_UNAVAILABLE", message: "The task stopped before a safe change could complete.", action: "Review the run activity and Engineering configuration before retrying." };
+        }
+      })(),
       activeAgents: view.tasks
         .filter(
           (task) =>
@@ -566,17 +632,30 @@ export class EngineeringDeliveryService {
     const byRepo = new Map<string, EngineeringDelivery>();
     for (const item of records)
       if (!byRepo.has(item.repositoryId)) byRepo.set(item.repositoryId, item);
-    return [...byRepo.values()].map((item) =>
-      EngineeringProjectRegistryEntrySchema.parse({
-        repositoryId: item.repositoryId,
-        projectName: item.projectName,
-        stack: item.stack,
-        latestDeliveryId: item.id,
-        status: item.status,
-        preview: item.preview,
-        lastModifiedAt: item.updatedAt,
-      }),
-    );
+    const repositories = await this.runtime.listRepositories(ownerId, companyId);
+    return repositories
+      .filter((repository) => repository.status === "ACTIVE")
+      .map((repository) => {
+        const latest = byRepo.get(repository.id);
+        return EngineeringProjectRegistryEntrySchema.parse({
+          repositoryId: repository.id,
+          companyId: repository.companyId,
+          repositoryName: repository.displayName,
+          projectName: latest?.projectName ?? repository.displayName,
+          stack: latest?.stack.length
+            ? latest.stack
+            : [...new Set([
+                ...repository.metadata.frameworks,
+                ...repository.metadata.languages,
+              ])].slice(0, 20),
+          defaultBranch: repository.defaultBranch,
+          repositoryStatus: repository.status,
+          latestDeliveryId: latest?.id ?? null,
+          status: latest?.status ?? null,
+          preview: latest?.preview ?? null,
+          lastModifiedAt: latest?.updatedAt ?? repository.updatedAt,
+        });
+      });
   }
 
   private async initializeRepository(
@@ -918,6 +997,7 @@ export class EngineeringDeliveryService {
       ].slice(0, 50),
       completedAt: this.now().toISOString(),
     });
+    await this.notifyTerminal(context, delivery.id);
   }
   private async require(ownerId: string, companyId: string, id: string) {
     const delivery = await this.store.find(ownerId, companyId, id);

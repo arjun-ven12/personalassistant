@@ -234353,7 +234353,8 @@ var EngineeringCapabilitySchema = external_exports.enum([
   "repository.prepare_commit",
   "repository.integrate_commit",
   "repository.resolve_additive_docs_conflict",
-  "repository.merge_candidate"
+  "repository.merge_candidate",
+  "repository.revert_commit"
 ]);
 var EngineeringErrorCodeSchema = external_exports.enum([
   "REPOSITORY_NOT_FOUND",
@@ -234881,6 +234882,13 @@ var EngineeringTransportOperationSchema = external_exports.discriminatedUnion("c
   external_exports.object({
     capability: external_exports.literal("repository.run_command"),
     input: external_exports.object({ command: EngineeringCommandDefinitionSchema }).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.revert_commit"),
+    input: external_exports.object({
+      targetCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/),
+      expectedHead: external_exports.string().regex(/^[0-9a-f]{40,64}$/)
+    }).strict()
   }).strict(),
   external_exports.object({
     capability: external_exports.literal("repository.install_dependencies"),
@@ -241669,6 +241677,11 @@ var EngineeringControlCenterSchema = external_exports.object({
   ).max(6),
   completedTasks: external_exports.number().int().nonnegative(),
   blockedTasks: external_exports.number().int().nonnegative(),
+  blocker: external_exports.object({
+    category: external_exports.enum(["CAPABILITY_UNAVAILABLE", "REPOSITORY_PERMISSION", "POLICY_APPROVAL_REQUIRED", "MODEL_PROVIDER_UNAVAILABLE", "VALIDATION_FAILURE", "MERGE_CONFLICT", "OWNER_CLARIFICATION_REQUIRED", "DEVICE_OFFLINE"]),
+    message: external_exports.string().min(1).max(300),
+    action: external_exports.string().min(1).max(300)
+  }).strict().nullable(),
   totalTasks: external_exports.number().int().nonnegative(),
   timeline: external_exports.array(
     external_exports.object({
@@ -241682,12 +241695,94 @@ var EngineeringControlCenterSchema = external_exports.object({
 }).strict();
 var EngineeringProjectRegistryEntrySchema = external_exports.object({
   repositoryId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid(),
+  repositoryName: external_exports.string().min(1).max(120),
   projectName: external_exports.string().min(1).max(100),
   stack: external_exports.array(external_exports.string().min(1).max(80)).max(20),
-  latestDeliveryId: external_exports.string().uuid(),
-  status: EngineeringDeliveryStatusSchema,
+  defaultBranch: external_exports.string().min(1).max(200),
+  repositoryStatus: EngineeringRepositoryStatusSchema,
+  latestDeliveryId: external_exports.string().uuid().nullable(),
+  status: EngineeringDeliveryStatusSchema.nullable(),
   preview: EngineeringPreviewResultSchema.nullable(),
   lastModifiedAt: external_exports.iso.datetime()
+}).strict();
+
+// ../../packages/shared/src/engineering-project-session.ts
+var CreateEngineeringProjectSessionRequestSchema = external_exports.object({
+  repositoryId: external_exports.string().uuid(),
+  idempotencyKey: external_exports.string().trim().min(8).max(200)
+}).strict();
+var SendEngineeringProjectMessageRequestSchema = external_exports.object({
+  instruction: external_exports.string().trim().min(3).max(2e3),
+  idempotencyKey: external_exports.string().trim().min(8).max(200)
+}).strict();
+var EngineeringProjectInstructionClassificationSchema = external_exports.enum([
+  "MODIFY_CURRENT_REQUIREMENT",
+  "ADD_REQUIREMENT",
+  "QUESTION",
+  "CONTROL_ACTION",
+  "NEW_INDEPENDENT_REQUEST"
+]);
+var EngineeringProjectSessionRequestStatusSchema = external_exports.enum([
+  "QUEUED",
+  "READY",
+  "STARTED",
+  "COMPLETED",
+  "CANCELLED",
+  "BLOCKED"
+]);
+var EngineeringProjectSessionRequestSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  sessionId: external_exports.string().uuid(),
+  repositoryId: external_exports.string().uuid(),
+  instruction: external_exports.string().trim().min(3).max(2e3),
+  classification: external_exports.literal("NEW_INDEPENDENT_REQUEST"),
+  status: EngineeringProjectSessionRequestStatusSchema,
+  deliveryId: external_exports.string().uuid().nullable(),
+  idempotencyKey: external_exports.string().min(8).max(200),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var UpdateEngineeringProjectSessionQueueRequestSchema = external_exports.object({
+  requestId: external_exports.string().uuid(),
+  action: external_exports.enum(["CANCEL", "MOVE_UP", "MOVE_DOWN", "START_NEXT"])
+}).strict();
+var EngineeringProjectSessionMessageSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  role: external_exports.enum(["OWNER", "ALEXA"]),
+  text: external_exports.string().min(1).max(2e3),
+  deliveryId: external_exports.string().uuid().nullable(),
+  state: external_exports.enum(["QUEUED", "ACTIVE", "COMPLETE", "BLOCKED"]).nullable(),
+  idempotencyKey: external_exports.string().min(8).max(200).nullable(),
+  classification: EngineeringProjectInstructionClassificationSchema.nullable().default(null),
+  createdAt: external_exports.iso.datetime()
+}).strict();
+var EngineeringProjectSessionSchema = external_exports.object({
+  schemaVersion: external_exports.literal("1"),
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid(),
+  repositoryId: external_exports.string().uuid(),
+  conversationId: external_exports.string().uuid(),
+  projectName: external_exports.string().min(1).max(120),
+  messages: external_exports.array(EngineeringProjectSessionMessageSchema).max(500),
+  deliveryIds: external_exports.array(external_exports.string().uuid()).max(250),
+  activeDeliveryId: external_exports.string().uuid().nullable(),
+  queuedRequests: external_exports.array(EngineeringProjectSessionRequestSchema).max(100).default([]),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var EngineeringProjectSessionViewSchema = external_exports.object({
+  session: EngineeringProjectSessionSchema,
+  runs: external_exports.array(external_exports.object({
+    deliveryId: external_exports.string().uuid(),
+    status: external_exports.string().max(40),
+    request: external_exports.string().max(8e3),
+    filesChanged: external_exports.number().int().nonnegative(),
+    costUsd: external_exports.string().regex(/^\d+(\.\d{1,8})?$/),
+    durationMs: external_exports.number().int().nonnegative(),
+    updatedAt: external_exports.iso.datetime()
+  }).strict()).max(250)
 }).strict();
 
 // ../../packages/shared/src/infrastructure.ts
@@ -250979,6 +251074,13 @@ var dispatchReadOnlyCapability = async (request, limits, signal, engineeringRunt
             leaseExpiresAt: transport.input.leaseExpiresAt
           });
           break;
+        case "repository.revert_commit":
+          output = await engineeringRuntime2.revertCommit({
+            ...common,
+            targetCommit: transport.input.targetCommit,
+            expectedHead: transport.input.expectedHead
+          });
+          break;
         case "repository.run_command":
           output = await engineeringRuntime2.runCommand({
             ...common,
@@ -251628,6 +251730,37 @@ var assertNotIgnored = (relativePath) => {
       "Generated and dependency directories are excluded by default."
     );
 };
+var matchesExactProjectScaffold = async (root, files) => {
+  const expectedFiles = new Set(Object.keys(files));
+  const expectedDirectories = new Set(
+    Object.keys(files).map((relativePath) => import_node_path8.default.dirname(relativePath)).filter((relativePath) => relativePath !== ".")
+  );
+  const actualFiles = /* @__PURE__ */ new Set();
+  const visit = async (directory, prefix = "") => {
+    const entries = await (0, import_promises8.readdir)(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
+      if (entry.isSymbolicLink()) return false;
+      if (entry.isDirectory()) {
+        if (!expectedDirectories.has(relativePath)) return false;
+        if (!await visit(import_node_path8.default.join(directory, entry.name), relativePath)) return false;
+        continue;
+      }
+      if (!entry.isFile() || !expectedFiles.has(relativePath)) return false;
+      actualFiles.add(relativePath);
+    }
+    return true;
+  };
+  try {
+    if (!await visit(root) || actualFiles.size !== expectedFiles.size) return false;
+    for (const [relativePath, content] of Object.entries(files))
+      if (await (0, import_promises8.readFile)(import_node_path8.default.join(root, relativePath), "utf8") !== content)
+        return false;
+    return true;
+  } catch {
+    return false;
+  }
+};
 var DockerEngineeringDependencyRunner = class {
   constructor(dockerExecutable = "/usr/local/bin/docker") {
     this.dockerExecutable = dockerExecutable;
@@ -251825,12 +251958,6 @@ var NativeEngineeringRuntime = class {
         "PATH_OUTSIDE_REPOSITORY",
         "The registered development root is too broad or sensitive."
       );
-    if (await (0, import_promises8.lstat)(target).catch(() => null))
-      throw new NativeEngineeringRuntimeError(
-        "INCONSISTENT_STATE",
-        "The project directory already exists; initialization will not overwrite it."
-      );
-    await (0, import_promises8.mkdir)(import_node_path8.default.join(target, "src"), { recursive: true, mode: 448 });
     const files = input.template === "REACT_VITE_TYPESCRIPT" ? {
       "package.json": `${JSON.stringify({ name: input.projectSlug, private: true, version: "0.0.0", type: "module", scripts: { dev: "vite", build: "tsc --noEmit -p tsconfig.app.json && vite build", lint: "eslint .", typecheck: "tsc --noEmit -p tsconfig.app.json --pretty false" }, dependencies: { "@vitejs/plugin-react": "^5.0.2", vite: "^7.1.5", typescript: "^5.9.2", react: "^19.1.1", "react-dom": "^19.1.1" }, devDependencies: { "@eslint/js": "^9.35.0", "@types/react": "^19.1.12", "@types/react-dom": "^19.1.9", eslint: "^9.35.0", "eslint-plugin-react-hooks": "^5.2.0", "eslint-plugin-react-refresh": "^0.4.20", globals: "^16.3.0", "typescript-eslint": "^8.43.0" } }, null, 2)}
 `,
@@ -251852,14 +251979,24 @@ var NativeEngineeringRuntime = class {
       "src/index.ts": "export const ready = true;\n",
       ".gitignore": "node_modules\ndist\n.env\n.env.*\n!.env.example\n"
     };
-    for (const [relative, content] of Object.entries(files)) {
-      const destination = import_node_path8.default.join(target, relative);
-      await (0, import_promises8.mkdir)(import_node_path8.default.dirname(destination), { recursive: true, mode: 448 });
-      await (0, import_promises8.writeFile)(destination, content, {
-        encoding: "utf8",
-        flag: "wx",
-        mode: 384
-      });
+    const existing = await (0, import_promises8.lstat)(target).catch(() => null);
+    if (existing) {
+      if (!existing.isDirectory() || !await matchesExactProjectScaffold(target, files))
+        throw new NativeEngineeringRuntimeError(
+          "INCONSISTENT_STATE",
+          "The project directory already exists and is not the exact incomplete governed scaffold."
+        );
+    } else {
+      await (0, import_promises8.mkdir)(import_node_path8.default.join(target, "src"), { recursive: true, mode: 448 });
+      for (const [relative, content] of Object.entries(files)) {
+        const destination = import_node_path8.default.join(target, relative);
+        await (0, import_promises8.mkdir)(import_node_path8.default.dirname(destination), { recursive: true, mode: 448 });
+        await (0, import_promises8.writeFile)(destination, content, {
+          encoding: "utf8",
+          flag: "wx",
+          mode: 384
+        });
+      }
     }
     if (!this.dependencyRunner)
       throw new NativeEngineeringRuntimeError(
@@ -251872,6 +252009,13 @@ var NativeEngineeringRuntime = class {
       operation: "INSTALL",
       packages: []
     });
+    if (installed.exitCode !== 0 && /cannot connect to the docker daemon|is the docker daemon running|no such image/i.test(
+      installed.stderr
+    ))
+      throw new NativeEngineeringRuntimeError(
+        "COMMAND_SANDBOX_UNAVAILABLE",
+        "The reviewed dependency container is unavailable. Start Docker Desktop and retry the exact build."
+      );
     if (installed.exitCode !== 0 || installed.timedOut)
       throw new NativeEngineeringRuntimeError(
         "DEPENDENCY_INSTALL_FAILED",
@@ -252671,6 +252815,41 @@ Alexa-Agent: ${input.agentId}`
       files,
       redactions: diff.redactions
     });
+  }
+  async revertCommit(input) {
+    await this.resolveRepository(input.repositoryRootPath);
+    if (!/^[0-9a-f]{40,64}$/.test(input.targetCommit) || !/^[0-9a-f]{40,64}$/.test(input.expectedHead))
+      throw new NativeEngineeringRuntimeError("GIT_ERROR", "Invalid governed revert identity.");
+    const worktree = await this.resolveWorktree(input.worktreeLocator);
+    const status = await this.gitStatus(input);
+    if (status.dirty)
+      throw new NativeEngineeringRuntimeError("DIRTY_REPOSITORY", "The isolated revert workspace must be clean.");
+    const head = (await runGit2(worktree, ["rev-parse", "HEAD"])).trim();
+    if (head !== input.expectedHead || input.targetCommit !== input.expectedHead)
+      throw new NativeEngineeringRuntimeError(
+        "INCONSISTENT_STATE",
+        "The revert target is not the current registered head; later dependent work requires owner review."
+      );
+    await runGit2(worktree, ["cat-file", "-e", `${input.targetCommit}^{commit}`]);
+    const result = await runBounded({
+      executable: GIT,
+      args: ["revert", "--no-commit", input.targetCommit],
+      cwd: worktree,
+      env: SAFE_GIT_ENV,
+      timeoutMs: 3e4,
+      maxOutputBytes: MAX_GIT_OUTPUT
+    });
+    if (result.exitCode !== 0) {
+      await runGit2(worktree, ["revert", "--abort"], 2e4).catch(() => void 0);
+      throw new NativeEngineeringRuntimeError(
+        "INCONSISTENT_STATE",
+        "The deterministic revert conflicted with current repository history."
+      );
+    }
+    const reverted = await this.gitStatus(input);
+    if (!reverted.dirty)
+      throw new NativeEngineeringRuntimeError("GIT_ERROR", "The target commit produced no reversible project change.");
+    return reverted;
   }
   async integrateCommit(input) {
     await this.resolveRepository(input.repositoryRootPath);

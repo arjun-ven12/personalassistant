@@ -48,6 +48,7 @@ export * from "./engineering-runtime.js";
 export * from "./engineering-orchestration.js";
 export * from "./engineering-integration.js";
 export * from "./engineering-delivery.js";
+export * from "./engineering-project-session.js";
 export * from "./infrastructure.js";
 export * from "./intent.js";
 export * from "./intent-recording.js";

@@ -21288,7 +21288,8 @@ var EngineeringCapabilitySchema = external_exports.enum([
   "repository.prepare_commit",
   "repository.integrate_commit",
   "repository.resolve_additive_docs_conflict",
-  "repository.merge_candidate"
+  "repository.merge_candidate",
+  "repository.revert_commit"
 ]);
 var EngineeringErrorCodeSchema = external_exports.enum([
   "REPOSITORY_NOT_FOUND",
@@ -21816,6 +21817,13 @@ var EngineeringTransportOperationSchema = external_exports.discriminatedUnion("c
   external_exports.object({
     capability: external_exports.literal("repository.run_command"),
     input: external_exports.object({ command: EngineeringCommandDefinitionSchema }).strict()
+  }).strict(),
+  external_exports.object({
+    capability: external_exports.literal("repository.revert_commit"),
+    input: external_exports.object({
+      targetCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/),
+      expectedHead: external_exports.string().regex(/^[0-9a-f]{40,64}$/)
+    }).strict()
   }).strict(),
   external_exports.object({
     capability: external_exports.literal("repository.install_dependencies"),
@@ -28594,6 +28602,11 @@ var EngineeringControlCenterSchema = external_exports.object({
   ).max(6),
   completedTasks: external_exports.number().int().nonnegative(),
   blockedTasks: external_exports.number().int().nonnegative(),
+  blocker: external_exports.object({
+    category: external_exports.enum(["CAPABILITY_UNAVAILABLE", "REPOSITORY_PERMISSION", "POLICY_APPROVAL_REQUIRED", "MODEL_PROVIDER_UNAVAILABLE", "VALIDATION_FAILURE", "MERGE_CONFLICT", "OWNER_CLARIFICATION_REQUIRED", "DEVICE_OFFLINE"]),
+    message: external_exports.string().min(1).max(300),
+    action: external_exports.string().min(1).max(300)
+  }).strict().nullable(),
   totalTasks: external_exports.number().int().nonnegative(),
   timeline: external_exports.array(
     external_exports.object({
@@ -28607,12 +28620,94 @@ var EngineeringControlCenterSchema = external_exports.object({
 }).strict();
 var EngineeringProjectRegistryEntrySchema = external_exports.object({
   repositoryId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid(),
+  repositoryName: external_exports.string().min(1).max(120),
   projectName: external_exports.string().min(1).max(100),
   stack: external_exports.array(external_exports.string().min(1).max(80)).max(20),
-  latestDeliveryId: external_exports.string().uuid(),
-  status: EngineeringDeliveryStatusSchema,
+  defaultBranch: external_exports.string().min(1).max(200),
+  repositoryStatus: EngineeringRepositoryStatusSchema,
+  latestDeliveryId: external_exports.string().uuid().nullable(),
+  status: EngineeringDeliveryStatusSchema.nullable(),
   preview: EngineeringPreviewResultSchema.nullable(),
   lastModifiedAt: external_exports.iso.datetime()
+}).strict();
+
+// ../../packages/shared/src/engineering-project-session.ts
+var CreateEngineeringProjectSessionRequestSchema = external_exports.object({
+  repositoryId: external_exports.string().uuid(),
+  idempotencyKey: external_exports.string().trim().min(8).max(200)
+}).strict();
+var SendEngineeringProjectMessageRequestSchema = external_exports.object({
+  instruction: external_exports.string().trim().min(3).max(2e3),
+  idempotencyKey: external_exports.string().trim().min(8).max(200)
+}).strict();
+var EngineeringProjectInstructionClassificationSchema = external_exports.enum([
+  "MODIFY_CURRENT_REQUIREMENT",
+  "ADD_REQUIREMENT",
+  "QUESTION",
+  "CONTROL_ACTION",
+  "NEW_INDEPENDENT_REQUEST"
+]);
+var EngineeringProjectSessionRequestStatusSchema = external_exports.enum([
+  "QUEUED",
+  "READY",
+  "STARTED",
+  "COMPLETED",
+  "CANCELLED",
+  "BLOCKED"
+]);
+var EngineeringProjectSessionRequestSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  sessionId: external_exports.string().uuid(),
+  repositoryId: external_exports.string().uuid(),
+  instruction: external_exports.string().trim().min(3).max(2e3),
+  classification: external_exports.literal("NEW_INDEPENDENT_REQUEST"),
+  status: EngineeringProjectSessionRequestStatusSchema,
+  deliveryId: external_exports.string().uuid().nullable(),
+  idempotencyKey: external_exports.string().min(8).max(200),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var UpdateEngineeringProjectSessionQueueRequestSchema = external_exports.object({
+  requestId: external_exports.string().uuid(),
+  action: external_exports.enum(["CANCEL", "MOVE_UP", "MOVE_DOWN", "START_NEXT"])
+}).strict();
+var EngineeringProjectSessionMessageSchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  role: external_exports.enum(["OWNER", "ALEXA"]),
+  text: external_exports.string().min(1).max(2e3),
+  deliveryId: external_exports.string().uuid().nullable(),
+  state: external_exports.enum(["QUEUED", "ACTIVE", "COMPLETE", "BLOCKED"]).nullable(),
+  idempotencyKey: external_exports.string().min(8).max(200).nullable(),
+  classification: EngineeringProjectInstructionClassificationSchema.nullable().default(null),
+  createdAt: external_exports.iso.datetime()
+}).strict();
+var EngineeringProjectSessionSchema = external_exports.object({
+  schemaVersion: external_exports.literal("1"),
+  id: external_exports.string().uuid(),
+  ownerId: external_exports.string().uuid(),
+  companyId: external_exports.string().uuid(),
+  repositoryId: external_exports.string().uuid(),
+  conversationId: external_exports.string().uuid(),
+  projectName: external_exports.string().min(1).max(120),
+  messages: external_exports.array(EngineeringProjectSessionMessageSchema).max(500),
+  deliveryIds: external_exports.array(external_exports.string().uuid()).max(250),
+  activeDeliveryId: external_exports.string().uuid().nullable(),
+  queuedRequests: external_exports.array(EngineeringProjectSessionRequestSchema).max(100).default([]),
+  createdAt: external_exports.iso.datetime(),
+  updatedAt: external_exports.iso.datetime()
+}).strict();
+var EngineeringProjectSessionViewSchema = external_exports.object({
+  session: EngineeringProjectSessionSchema,
+  runs: external_exports.array(external_exports.object({
+    deliveryId: external_exports.string().uuid(),
+    status: external_exports.string().max(40),
+    request: external_exports.string().max(8e3),
+    filesChanged: external_exports.number().int().nonnegative(),
+    costUsd: external_exports.string().regex(/^\d+(\.\d{1,8})?$/),
+    durationMs: external_exports.number().int().nonnegative(),
+    updatedAt: external_exports.iso.datetime()
+  }).strict()).max(250)
 }).strict();
 
 // ../../packages/shared/src/infrastructure.ts

@@ -440,6 +440,10 @@ export class EngineeringManagerService {
         ...objective.constraints,
         bounded(`Additional owner instruction: ${instruction}`, 1_000),
       ].slice(0, 30),
+      acceptanceCriteria: [
+        ...objective.acceptanceCriteria,
+        bounded(instruction, 1_000),
+      ].slice(0, 30),
       version: objective.version + 1,
       updatedAt: at,
     });
@@ -1763,215 +1767,278 @@ export class EngineeringManagerService {
   ) {
     const text =
       `${objective.title} ${objective.description} ${objective.acceptanceCriteria.join(" ")}`.toLowerCase();
-    const seeds: TaskSeed[] = [
-      {
-        key: "architecture",
-        title: "Inspect repository architecture and affected domains",
-        description: `Create a bounded map of ${repository.displayName} and identify relevant existing patterns.`,
-        type: "ARCHITECTURE",
-        role: "GENERALIST_ENGINEER",
-        dependencies: [],
-        skills: ["repository.analysis", "architecture.analysis"],
-        capabilities: ["repository.inspect"],
-        readOnly: true,
-      },
-    ];
-    const implementationKeys: string[] = [];
-    const add = (seed: TaskSeed) => {
-      if (!seeds.some((value) => value.key === seed.key)) seeds.push(seed);
-      if (
-        !seed.readOnly &&
-        !["TESTING", "DOCUMENTATION", "INTEGRATION_PREP"].includes(seed.type)
-      )
-        implementationKeys.push(seed.key);
-    };
-    if (/schema|database|migration|table|postgres|sql/.test(text))
-      add({
-        key: "database",
-        title: "Implement database changes",
-        description:
-          "Implement bounded development/test schema changes and migration validation without production operations.",
-        type: "DATABASE",
-        role: "DATABASE_ENGINEER",
-        dependencies: ["architecture"],
-        skills: ["database.design", "migration.safety"],
-        capabilities: [
-          "repository.search",
-          "repository.file_read",
-          "repository.file_patch",
-          "repository.file_create",
-          "repository.validate",
-        ],
-        risk: "HIGH",
-      });
-    if (
-      /api|endpoint|backend|server|service|preference|auth|billing|permission/.test(
+    const tinyEdit =
+      objective.riskLevel !== "HIGH" &&
+      objective.riskLevel !== "CRITICAL" &&
+      /\b(change|rename|replace|adjust|increase|decrease|update)\b/.test(text) &&
+      /\b(text|label|heading|button|cta|spacing|padding|margin|icon|color)\b/.test(
         text,
+      ) &&
+      !/\b(auth|permission|security|tenant|billing|payment|database|migration|dependency|delete|remove|rewrite)\b/.test(
+        text,
+      );
+    const seeds: TaskSeed[] = tinyEdit
+      ? [
+          {
+            key: "focused-edit",
+            title: "Inspect and apply the focused project change",
+            description: `Inspect the relevant code in ${repository.displayName}, apply only the requested small change, and run registered targeted validation.`,
+            type: "FRONTEND",
+            role: "GENERALIST_ENGINEER",
+            dependencies: [],
+            skills: ["frontend.implementation"],
+            capabilities: [
+              "repository.search",
+              "repository.file_read",
+              "repository.file_patch",
+              "repository.validate",
+            ],
+          },
+        ]
+      : [
+          {
+            key: "architecture",
+            title: "Inspect repository architecture and affected domains",
+            description: `Create a bounded map of ${repository.displayName} and identify relevant existing patterns.`,
+            type: "ARCHITECTURE",
+            role: "GENERALIST_ENGINEER",
+            dependencies: [],
+            skills: ["repository.analysis", "architecture.analysis"],
+            capabilities: ["repository.inspect"],
+            readOnly: true,
+          },
+        ];
+    if (!tinyEdit) {
+      const implementationKeys: string[] = [];
+      const add = (seed: TaskSeed) => {
+        if (!seeds.some((value) => value.key === seed.key)) seeds.push(seed);
+        if (
+          !seed.readOnly &&
+          !["TESTING", "DOCUMENTATION", "INTEGRATION_PREP"].includes(seed.type)
+        )
+          implementationKeys.push(seed.key);
+      };
+      const revertCommit = text.match(/governed revert commit ([0-9a-f]{40,64})/)?.[1];
+      if (revertCommit)
+        add({
+          key: "revert",
+          title: "Apply deterministic governed revert",
+          description: `Revert exact current head ${revertCommit}. The target and expected head must both equal this registered commit; fail closed if history moved.`,
+          type: "BACKEND",
+          role: "GENERALIST_ENGINEER",
+          dependencies: ["architecture"],
+          skills: ["git.revert", "change.validation"],
+          capabilities: ["repository.revert_commit", "repository.validate"],
+          risk: "HIGH",
+        });
+      if (/\b(install (?:the )?dependencies|install [@a-z0-9._/-]+|(?:add|remove) (?:the )?(?:dependency|package|library|framer motion|recharts|lodash))\b/.test(text))
+        add({
+          key: "dependencies",
+          title: "Apply the governed project dependency change",
+          description: "Inspect the registered package manager, perform only the requested project-scoped dependency operation, and validate the resulting manifest and lockfile.",
+          type: "BACKEND",
+          role: "GENERALIST_ENGINEER",
+          dependencies: ["architecture"],
+          skills: ["dependency.management"],
+          capabilities: [
+            "repository.file_read",
+            /\bremove\b/.test(text)
+              ? "repository.remove_dependency"
+              : /\binstall (?:the )?dependencies\b/.test(text)
+                ? "repository.install_dependencies"
+                : "repository.add_dependency",
+            "repository.validate",
+          ],
+          risk: "MEDIUM",
+        });
+      if (/schema|database|migration|table|postgres|sql/.test(text))
+        add({
+          key: "database",
+          title: "Implement database changes",
+          description:
+            "Implement bounded development/test schema changes and migration validation without production operations.",
+          type: "DATABASE",
+          role: "DATABASE_ENGINEER",
+          dependencies: ["architecture"],
+          skills: ["database.design", "migration.safety"],
+          capabilities: [
+            "repository.search",
+            "repository.file_read",
+            "repository.file_patch",
+            "repository.file_create",
+            "repository.validate",
+          ],
+          risk: "HIGH",
+        });
+      if (
+        /api|endpoint|backend|server|service|preference|auth|billing|permission/.test(
+          text,
+        )
       )
-    )
-      add({
-        key: "backend",
-        title: "Implement backend contract",
-        description:
-          "Implement the bounded backend behavior and publish its API contract artifact.",
-        type: "BACKEND",
-        role: "BACKEND_ENGINEER",
-        dependencies: seeds.some((value) => value.key === "database")
-          ? ["database"]
-          : ["architecture"],
-        skills: ["backend.implementation", "api.contract"],
-        capabilities: [
-          "repository.search",
-          "repository.file_read",
-          "repository.file_patch",
-          "repository.file_create",
-          "repository.validate",
-        ],
-      });
-    if (/ui|frontend|web|component|page|screen/.test(text))
-      add({
-        key: "frontend",
-        title: "Implement frontend behavior",
-        description:
-          "Implement the bounded UI using the structured backend contract when present.",
-        type: "FRONTEND",
-        role: "FRONTEND_ENGINEER",
-        dependencies: seeds.some((value) => value.key === "backend")
-          ? ["backend"]
-          : ["architecture"],
-        skills: ["frontend.implementation", "component.design"],
-        capabilities: [
-          "repository.search",
-          "repository.file_read",
-          "repository.file_patch",
-          "repository.file_create",
-          "repository.validate",
-        ],
-      });
-    if (/android|mobile/.test(text))
-      add({
-        key: "mobile",
-        title: "Implement mobile behavior",
-        description:
-          "Implement the bounded mobile change using registered Gradle validation only.",
-        type: "ANDROID",
-        role: "MOBILE_ENGINEER",
-        dependencies: ["architecture"],
-        skills: ["mobile.implementation"],
-        capabilities: [
-          "repository.search",
-          "repository.file_read",
-          "repository.file_patch",
-          "repository.file_create",
-          "repository.validate",
-        ],
-      });
-    if (/mac|native|electron/.test(text))
-      add({
-        key: "mac",
-        title: "Implement Mac/native behavior",
-        description:
-          "Implement the bounded registered Mac/native change without generic OS control.",
-        type: "MAC_NATIVE",
-        role: "MAC_NATIVE_ENGINEER",
-        dependencies: ["architecture"],
-        skills: ["mac.native"],
-        capabilities: [
-          "repository.search",
-          "repository.file_read",
-          "repository.file_patch",
-          "repository.file_create",
-          "repository.validate",
-        ],
-      });
-    if (/infra|docker|pipeline|ci/.test(text))
-      add({
-        key: "infrastructure",
-        title: "Implement development infrastructure change",
-        description: "Implement reviewed non-production infrastructure changes only.",
-        type: "INFRASTRUCTURE",
-        role: "DEVOPS_INFRASTRUCTURE_ENGINEER",
-        dependencies: ["architecture"],
-        skills: ["infrastructure.review"],
-        capabilities: [
-          "repository.search",
-          "repository.file_read",
-          "repository.file_patch",
-          "repository.file_create",
-          "repository.validate",
-        ],
-        risk: "HIGH",
-      });
-    if (!implementationKeys.length)
-      add({
-        key: "implementation",
-        title: "Implement bounded repository change",
-        description: "Implement only the stated objective and acceptance criteria.",
-        type: "BACKEND",
-        role: "GENERALIST_ENGINEER",
-        dependencies: ["architecture"],
-        skills: ["implementation"],
-        capabilities: [
-          "repository.search",
-          "repository.file_read",
-          "repository.file_patch",
-          "repository.file_create",
-          "repository.validate",
-        ],
-      });
-    seeds.push({
-      key: "testing",
-      title: "Add and run focused tests",
-      description:
-        "Add focused tests and run the repository's registered validation profile.",
-      type: "TESTING",
-      role: "TEST_QA_ENGINEER",
-      dependencies: [...implementationKeys],
-      skills: ["test.plan", "failure.analysis"],
-      capabilities: [
-        "repository.search",
-        "repository.file_read",
-        "repository.file_patch",
-        "repository.file_create",
-        "repository.validate",
-      ],
-    });
-    if (
-      objective.riskLevel === "HIGH" ||
-      objective.riskLevel === "CRITICAL" ||
-      /auth|security|tenant|billing|payment|permission/.test(text)
-    )
+        add({
+          key: "backend",
+          title: "Implement backend contract",
+          description:
+            "Implement the bounded backend behavior and publish its API contract artifact.",
+          type: "BACKEND",
+          role: "BACKEND_ENGINEER",
+          dependencies: seeds.some((value) => value.key === "database")
+            ? ["database"]
+            : ["architecture"],
+          skills: ["backend.implementation", "api.contract"],
+          capabilities: [
+            "repository.search",
+            "repository.file_read",
+            "repository.file_patch",
+            "repository.file_create",
+            "repository.validate",
+          ],
+        });
+      if (/ui|frontend|web|component|page|screen/.test(text))
+        add({
+          key: "frontend",
+          title: "Implement frontend behavior",
+          description:
+            "Implement the bounded UI using the structured backend contract when present.",
+          type: "FRONTEND",
+          role: "FRONTEND_ENGINEER",
+          dependencies: seeds.some((value) => value.key === "backend")
+            ? ["backend"]
+            : ["architecture"],
+          skills: ["frontend.implementation", "component.design"],
+          capabilities: [
+            "repository.search",
+            "repository.file_read",
+            "repository.file_patch",
+            "repository.file_create",
+            "repository.validate",
+          ],
+        });
+      if (/android|mobile/.test(text))
+        add({
+          key: "mobile",
+          title: "Implement mobile behavior",
+          description:
+            "Implement the bounded mobile change using registered Gradle validation only.",
+          type: "ANDROID",
+          role: "MOBILE_ENGINEER",
+          dependencies: ["architecture"],
+          skills: ["mobile.implementation"],
+          capabilities: [
+            "repository.search",
+            "repository.file_read",
+            "repository.file_patch",
+            "repository.file_create",
+            "repository.validate",
+          ],
+        });
+      if (/mac|native|electron/.test(text))
+        add({
+          key: "mac",
+          title: "Implement Mac/native behavior",
+          description:
+            "Implement the bounded registered Mac/native change without generic OS control.",
+          type: "MAC_NATIVE",
+          role: "MAC_NATIVE_ENGINEER",
+          dependencies: ["architecture"],
+          skills: ["mac.native"],
+          capabilities: [
+            "repository.search",
+            "repository.file_read",
+            "repository.file_patch",
+            "repository.file_create",
+            "repository.validate",
+          ],
+        });
+      if (/infra|docker|pipeline|ci/.test(text))
+        add({
+          key: "infrastructure",
+          title: "Implement development infrastructure change",
+          description: "Implement reviewed non-production infrastructure changes only.",
+          type: "INFRASTRUCTURE",
+          role: "DEVOPS_INFRASTRUCTURE_ENGINEER",
+          dependencies: ["architecture"],
+          skills: ["infrastructure.review"],
+          capabilities: [
+            "repository.search",
+            "repository.file_read",
+            "repository.file_patch",
+            "repository.file_create",
+            "repository.validate",
+          ],
+          risk: "HIGH",
+        });
+      if (!implementationKeys.length)
+        add({
+          key: "implementation",
+          title: "Implement bounded repository change",
+          description: "Implement only the stated objective and acceptance criteria.",
+          type: "BACKEND",
+          role: "GENERALIST_ENGINEER",
+          dependencies: ["architecture"],
+          skills: ["implementation"],
+          capabilities: [
+            "repository.search",
+            "repository.file_read",
+            "repository.file_patch",
+            "repository.file_create",
+            "repository.validate",
+          ],
+        });
       seeds.push({
-        key: "security",
-        title: "Perform independent security review",
+        key: "testing",
+        title: "Add and run focused tests",
         description:
-          "Review security, tenant, permission, and protected-path effects independently.",
-        type: "SECURITY",
-        role: "SECURITY_REVIEWER",
-        dependencies: ["testing"],
-        skills: ["threat.model", "permission.review"],
+          "Add focused tests and run the repository's registered validation profile.",
+        type: "TESTING",
+        role: "TEST_QA_ENGINEER",
+        dependencies: [...implementationKeys],
+        skills: ["test.plan", "failure.analysis"],
         capabilities: [
           "repository.search",
           "repository.file_read",
-          "repository.git_diff",
+          "repository.file_patch",
+          "repository.file_create",
+          "repository.validate",
         ],
-        readOnly: true,
-        risk: "HIGH",
       });
-    seeds.push({
-      key: "integration",
-      title: "Prepare structured integration handoff",
-      description:
-        "Summarize workspaces, base commits, diffs, validation, reviews, and open risks for Phase 27.3.",
-      type: "INTEGRATION_PREP",
-      role: "GENERALIST_ENGINEER",
-      dependencies: seeds.some((value) => value.key === "security")
-        ? ["security"]
-        : ["testing"],
-      skills: ["integration.preparation"],
-      capabilities: ["repository.git_status", "repository.git_diff"],
-      readOnly: true,
-    });
+      if (
+        objective.riskLevel === "HIGH" ||
+        objective.riskLevel === "CRITICAL" ||
+        /auth|security|tenant|billing|payment|permission/.test(text)
+      )
+        seeds.push({
+          key: "security",
+          title: "Perform independent security review",
+          description:
+            "Review security, tenant, permission, and protected-path effects independently.",
+          type: "SECURITY",
+          role: "SECURITY_REVIEWER",
+          dependencies: ["testing"],
+          skills: ["threat.model", "permission.review"],
+          capabilities: [
+            "repository.search",
+            "repository.file_read",
+            "repository.git_diff",
+          ],
+          readOnly: true,
+          risk: "HIGH",
+        });
+      seeds.push({
+        key: "integration",
+        title: "Prepare structured integration handoff",
+        description:
+          "Summarize workspaces, base commits, diffs, validation, reviews, and open risks for Phase 27.3.",
+        type: "INTEGRATION_PREP",
+        role: "GENERALIST_ENGINEER",
+        dependencies: seeds.some((value) => value.key === "security")
+          ? ["security"]
+          : ["testing"],
+        skills: ["integration.preparation"],
+        capabilities: ["repository.git_status", "repository.git_diff"],
+        readOnly: true,
+      });
+    }
     const limited = seeds.slice(0, 12);
     const idByKey = new Map(limited.map((seed) => [seed.key, crypto.randomUUID()]));
     const at = this.now().toISOString();

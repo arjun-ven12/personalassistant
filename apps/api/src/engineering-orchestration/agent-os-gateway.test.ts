@@ -32,6 +32,15 @@ describe("AgentOsEngineeringGateway", () => {
         () => agentStore.listAssignments(ownerId, companyId),
       )
       .find((item) => item.agentDefinitionId === "coding_agent")!;
+    const longCapabilityGrantProfileId = `profile-${"x".repeat(152)}`;
+    companyScope.run(
+      { ownerId, companyId, role: "OWNER", requestId: "agent-os-engineering" },
+      () =>
+        agentStore.saveAssignment({
+          ...assignment,
+          capabilityGrantProfileId: longCapabilityGrantProfileId,
+        }),
+    );
     const store = new InMemoryAgentOsStore();
     const agentOs = new AgentOsService(
       store,
@@ -88,7 +97,7 @@ describe("AgentOsEngineeringGateway", () => {
       description: "Implement the registered bounded endpoint.",
       acceptanceCriteria: ["Focused validation passes."],
       taskType: "BACKEND",
-      requiredSkills: ["patch.proposal"],
+      requiredSkills: ["patch.proposal", "test.validation"],
       requiredCapabilities: ["repository.file_patch", "repository.validate"],
       dependencies: [],
       riskLevel: "MEDIUM",
@@ -137,6 +146,11 @@ describe("AgentOsEngineeringGateway", () => {
       },
     });
     expect(running?.delegation?.memoryScopes).toContain(task.id);
+    expect(running?.delegation?.skillRefs).toHaveLength(3);
+    expect(running?.delegation?.skillRefs[2]).toHaveLength(120);
+    expect(running?.delegation?.skillRefs[2]).toMatch(
+      /^capability-profile:profile-x+:[a-f0-9]{64}$/,
+    );
     await gateway.complete({
       ownerId,
       sessionId: started.sessionId,

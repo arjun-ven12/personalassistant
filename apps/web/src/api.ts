@@ -433,6 +433,11 @@ import {
   EngineeringControlCenterSchema,
   EngineeringDeliverySchema,
   EngineeringProjectRegistryEntrySchema,
+  CreateEngineeringProjectSessionRequestSchema,
+  SendEngineeringProjectMessageRequestSchema,
+  EngineeringProjectSessionSchema,
+  EngineeringProjectSessionViewSchema,
+  UpdateEngineeringProjectSessionQueueRequestSchema,
   CreateSoftwareObjectiveRequestSchema,
   AddEngineeringInstructionRequestSchema,
 } from "@alexa-control/shared";
@@ -558,6 +563,39 @@ export const createApiClient = (baseUrl: string) => {
   };
 
   return {
+    getEngineeringProjectSessions: () =>
+      requestAndValidate(
+        baseUrl,
+        "/api/engineering-project-sessions",
+        z.object({ sessions: z.array(EngineeringProjectSessionSchema) }).strict(),
+      ),
+    createEngineeringProjectSession: (input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/engineering-project-sessions",
+        EngineeringProjectSessionViewSchema,
+        jsonBody(CreateEngineeringProjectSessionRequestSchema.parse(input)),
+      ),
+    getEngineeringProjectSession: (id: string) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/engineering-project-sessions/${encodeURIComponent(id)}`,
+        EngineeringProjectSessionViewSchema,
+      ),
+    sendEngineeringProjectMessage: (id: string, input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/engineering-project-sessions/${encodeURIComponent(id)}/messages`,
+        EngineeringProjectSessionViewSchema,
+        jsonBody(SendEngineeringProjectMessageRequestSchema.parse(input)),
+      ),
+    updateEngineeringProjectSessionQueue: (id: string, input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/engineering-project-sessions/${encodeURIComponent(id)}/queue`,
+        EngineeringProjectSessionViewSchema,
+        jsonBody(UpdateEngineeringProjectSessionQueueRequestSchema.parse(input)),
+      ),
     getEngineeringDeliveries: () =>
       requestAndValidate(
         baseUrl,

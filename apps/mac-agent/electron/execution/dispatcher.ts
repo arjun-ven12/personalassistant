@@ -263,6 +263,13 @@ export const dispatchReadOnlyCapability = async (
             leaseExpiresAt: transport.input.leaseExpiresAt,
           });
           break;
+        case "repository.revert_commit":
+          output = await engineeringRuntime.revertCommit({
+            ...common,
+            targetCommit: transport.input.targetCommit,
+            expectedHead: transport.input.expectedHead,
+          });
+          break;
         case "repository.run_command":
           output = await engineeringRuntime.runCommand({
             ...common,

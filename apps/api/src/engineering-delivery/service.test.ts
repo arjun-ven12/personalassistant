@@ -309,6 +309,25 @@ const fixture = () => {
 };
 
 describe("EngineeringDeliveryService", () => {
+  it("lists registered company projects before their first delivery", async () => {
+    const { service } = fixture();
+    const projects = await service.projects(ownerId, companyId);
+    expect(projects).toEqual([
+      expect.objectContaining({
+        repositoryId,
+        companyId,
+        repositoryName: "SaaS site",
+        projectName: "SaaS site",
+        stack: ["React", "Vite", "TypeScript"],
+        defaultBranch: "main",
+        repositoryStatus: "ACTIVE",
+        latestDeliveryId: null,
+        status: null,
+      }),
+    ]);
+    expect(await service.projects(ownerId, crypto.randomUUID())).toEqual([]);
+  });
+
   it("maps governed delivery failures to actionable non-500 statuses", () => {
     expect(new EngineeringDeliveryError("DELIVERY_NOT_FOUND", "missing")).toMatchObject(
       { statusCode: 404 },

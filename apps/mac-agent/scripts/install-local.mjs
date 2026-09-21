@@ -6,7 +6,6 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import {
-  APP_NAME,
   APP_EXECUTABLE,
   BUNDLE_ID,
   LEGACY_APP_EXECUTABLE,
