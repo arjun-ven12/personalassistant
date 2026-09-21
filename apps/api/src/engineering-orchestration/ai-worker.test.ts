@@ -212,4 +212,39 @@ describe("AIRouterEngineeringTaskWorker", () => {
     });
     expect(invoke).not.toHaveBeenCalled();
   });
+
+  it("preserves the actionable provider rejection from the final AIRouter attempt", async () => {
+    const executeStructured = vi.fn().mockResolvedValue({
+      outcome: "ROUTING_FAILED",
+      decision: { reason: "All eligible model attempts failed or were rejected." },
+      attempts: [
+        {
+          providerId: "openai",
+          modelId: "gpt-5.6-luna",
+          status: "FAILED",
+          reason: "Invalid structured-output schema for capability input.",
+        },
+      ],
+      structuredOutput: undefined,
+    });
+    const worker = new AIRouterEngineeringTaskWorker(
+      { executeStructured } as unknown as AIRouterService,
+      { invoke: vi.fn() },
+    );
+    await expect(
+      worker.execute({
+        objective,
+        task,
+        context,
+        modelTier: "LUNA",
+        workspaceId: task.workspaceId,
+        signal: new AbortController().signal,
+        transport,
+      }),
+    ).resolves.toMatchObject({
+      status: "FAILED",
+      failureCategory: "MODEL_FAILURE",
+      failureSummary: "Invalid structured-output schema for capability input.",
+    });
+  });
 });

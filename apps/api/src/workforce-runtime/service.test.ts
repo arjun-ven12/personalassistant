@@ -102,6 +102,17 @@ describe("WorkforceRuntimeService", () => {
     expect(activations).toEqual(["backend_agent:ACTIVE","backend_agent:DORMANT"]);
   });
 
+  it("dispatches reserved objective work into a real Agent OS and AIRouter execution", async () => {
+    const { service, counts } = setup();
+    const { task } = await create(service, { createdByAgentId: "engineering_manager" });
+    const started = await service.dispatch(ownerId, task.id, "objective-dispatch", "internal");
+    expect(started.task).toMatchObject({ status: "RUNNING", startedAt: at });
+    await vi.waitFor(async () => {
+      expect((await service.store.findTask(ownerId, task.id))?.status).toBe("COMPLETED");
+    });
+    expect(counts()).toMatchObject({ routerCalls: 1, osCalls: 1 });
+  });
+
   it("prevents child budget laundering and bounds hierarchy depth", async () => {
     const { service } = setup();
     const root = (await create(service,{ assignedAgentId: "backend_agent", createdByAgentId: "engineering_manager", economicBudget: 10 })).task;

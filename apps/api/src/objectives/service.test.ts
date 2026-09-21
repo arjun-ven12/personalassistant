@@ -10,7 +10,7 @@ import { ObjectiveEngineService } from "./service.js";
 const ownerId="11111111-1111-4111-8111-111111111111";
 const request={ownerId,requestId:"request-1",ipAddress:"127.0.0.1"};
 const farDeadline="2026-10-01T00:00:00.000Z";
-type RuntimeTask=Record<string,unknown>&{id:string;ownerId:string;status:string;actualCost:number;assignedAgentId:string|null;selection:Array<{agentId:string;estimatedCost:number;estimatedDurationMs:number}>;inputs:Record<string,unknown>;priority:string;economicBudget:number;reservedCredits:number};
+type RuntimeTask=Record<string,unknown>&{id:string;ownerId:string;status:string;actualCost:number;assignedAgentId:string|null;selection:Array<{agentId:string;estimatedCost:number;estimatedDurationMs:number}>;inputs:Record<string,unknown>;evidenceRefs:string[];priority:string;economicBudget:number;reservedCredits:number};
 type WorkflowComposeResult={graphs:Array<{id:string}>;nodes:Array<{errorCode?:string;semanticCapabilityId?:string;applicationId?:string}>};
 
 const objectiveBody=(title="Launch client portal",priority:"LOW"|"NORMAL"|"HIGH"|"URGENT"="NORMAL")=>({
@@ -33,12 +33,14 @@ const reusableWorkflows=()=>{
 
 const harness=(options:{withWorkflows?:boolean;capabilityGap?:boolean}={})=>{
   const store=new InMemoryExecutiveStore(); const tasks:RuntimeTask[]=[];
-  const createTask=vi.fn(({body}:{body:Record<string,unknown>})=>{const priority=typeof body.priority==="string"?body.priority:"NORMAL";const task={...body,id:crypto.randomUUID(),ownerId,status:"QUEUED",actualCost:0,assignedAgentId:null,selection:[],inputs:body.inputs as Record<string,unknown>,priority,economicBudget:Number(body.economicBudget ?? 0),reservedCredits:0} as RuntimeTask;tasks.push(task);return Promise.resolve({task});});
+  const createTask=vi.fn(({body}:{body:Record<string,unknown>})=>{const priority=typeof body.priority==="string"?body.priority:"NORMAL";const task={...body,id:crypto.randomUUID(),ownerId,status:"QUEUED",actualCost:0,assignedAgentId:null,selection:[],inputs:body.inputs as Record<string,unknown>,evidenceRefs:Array.isArray(body.evidenceRefs)?body.evidenceRefs.filter((item):item is string=>typeof item==="string"):[],priority,economicBudget:Number(body.economicBudget ?? 0),reservedCredits:0} as RuntimeTask;tasks.push(task);return Promise.resolve({task});});
   const schedule=vi.fn((_ownerId:string,taskId:string)=>{const task=tasks.find((item)=>item.id===taskId);if(task)task.status="RUNNING";return Promise.resolve({task});});
+  const dispatch=vi.fn(async (_ownerId:string,taskId:string)=>schedule(_ownerId,taskId));
   const dashboard=vi.fn(()=>Promise.resolve({summary:{registered:112},tasks}));
   const cancel=vi.fn((_ownerId:string,taskId:string)=>{const task=tasks.find((item)=>item.id===taskId);if(task){task.status="CANCELLED";task.reservedCredits=0;}return Promise.resolve({tasks});});
   const updateObjectiveBounds=vi.fn((_ownerId:string,taskId:string,patch:Record<string,unknown>)=>{const task=tasks.find((item)=>item.id===taskId);if(task){Object.assign(task,patch);if(patch.objectiveConstraints)task.inputs={...task.inputs,objectiveConstraints:patch.objectiveConstraints};}return Promise.resolve({task});});
-  const workforce={createTask,schedule,dashboard,cancel,updateObjectiveBounds} as unknown as WorkforceRuntimeService;
+  const attachDependencyEvidence=vi.fn((_ownerId:string,taskId:string,completedTask:RuntimeTask)=>{const task=tasks.find((item)=>item.id===taskId);if(task)task.evidenceRefs=[...new Set([...task.evidenceRefs,...completedTask.evidenceRefs])];return Promise.resolve(task);});
+  const workforce={createTask,schedule,dispatch,dashboard,cancel,updateObjectiveBounds,attachDependencyEvidence} as unknown as WorkforceRuntimeService;
   const audit=vi.fn(()=>Promise.resolve()) as unknown as GovernanceAuditWriter; const library=options.withWorkflows?reusableWorkflows():undefined;
   if(library&&options.capabilityGap)library.compose.mockImplementationOnce(()=>Promise.resolve({graphs:[{id:"55555555-5555-4555-8555-555555555555"}],nodes:[{errorCode:"CAPABILITY_NOT_DECLARED",semanticCapabilityId:"email.send",applicationId:"chatgpt"}]}));
   const createRequest=vi.fn(({body}:{body:{applicationId:string;requestedIntent:string}})=>Promise.resolve({requests:[{id:"66666666-6666-4666-8666-666666666666",applicationId:body.applicationId,requestedIntent:body.requestedIntent}]}));
@@ -62,9 +64,9 @@ describe("ObjectiveEngineService",()=>{
 
   it("maps required capabilities and bounded AI estimates into an outreach strategy before activation",async()=>{
     const {service}=harness();
-    const result=await service.create({...request,body:objectiveBody("Research leads and draft outreach")});
-    expect(result.projects[0]).toMatchObject({requiredCapabilities:["crm.search_leads","crm.read_lead"],estimatedAiCostCredits:12,capabilityReadiness:[{capabilityId:"crm.search_leads",status:"REQUEST_REQUIRED"},{capabilityId:"crm.read_lead",status:"REQUEST_REQUIRED"}]});
-    expect(result.projects[1]).toMatchObject({requiredCapabilities:["email.create_draft"],estimatedAiCostCredits:9,capabilityReadiness:[{capabilityId:"email.create_draft",status:"REQUEST_REQUIRED"}]});
+    const result=await service.create({...request,body:objectiveBody("Research leads and include a reason to contact")});
+    expect(result.projects[0]).toMatchObject({requiredCapabilities:[],estimatedAiCostCredits:6,capabilityReadiness:[]});
+    expect(result.projects[1]).toMatchObject({requiredCapabilities:["web.research"],estimatedAiCostCredits:11,capabilityReadiness:[{capabilityId:"web.research",status:"REQUEST_REQUIRED"}]});
   });
 
   it("activates idempotently through reusable workflows and the workforce scheduler without authority expansion",async()=>{

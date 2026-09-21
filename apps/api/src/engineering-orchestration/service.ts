@@ -852,8 +852,29 @@ export class EngineeringManagerService {
         context.companyId,
         objective.id,
       );
-      let recoveredAssignment = false;
+      let recoveredTask = false;
       for (const task of tasks) {
+        if (
+          task.status === "BLOCKED" &&
+          ["MODEL_FAILURE", "ENVIRONMENT_FAILURE"].includes(
+            task.lastFailureCategory ?? "",
+          ) &&
+          task.assignedAgentId &&
+          task.attempt < 4
+        ) {
+          await this.store.saveTask(
+            EngineeringTaskSchema.parse({
+              ...task,
+              status: "READY",
+              maxAttempts: Math.min(4, Math.max(task.maxAttempts, task.attempt + 1)),
+              lastFailureCategory: null,
+              lastFailureSummary: null,
+              updatedAt: this.now().toISOString(),
+            }),
+          );
+          recoveredTask = true;
+          continue;
+        }
         if (
           task.status !== "BLOCKED" ||
           task.lastFailureCategory !== "MISSING_CAPABILITY" ||
@@ -879,12 +900,12 @@ export class EngineeringManagerService {
             updatedAt: this.now().toISOString(),
           }),
         );
-        recoveredAssignment = true;
+        recoveredTask = true;
       }
-      if (!recoveredAssignment)
+      if (!recoveredTask)
         throw new EngineeringOrchestrationError(
           "INVALID_STATE",
-          "No newly eligible authorized engineering agent is available.",
+          "No recoverable task or newly eligible authorized engineering agent is available.",
         );
       for (const task of tasks) {
         if (

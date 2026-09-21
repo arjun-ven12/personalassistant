@@ -399,12 +399,32 @@ export class EngineeringDeliveryService {
         "INVALID_STATE",
         "A terminal delivery cannot accept in-flight instructions. Start a new modification objective for this repository.",
       );
-    await this.manager.addInstruction(
-      context,
+    const objectiveView = await this.manager.view(
+      context.ownerId,
+      context.companyId,
       delivery.objectiveId,
-      input.instruction,
-      input.idempotencyKey,
     );
+    if (
+      delivery.status === "OWNER_INPUT_REQUIRED" &&
+      objectiveView.objective.clarification?.status === "PENDING"
+    ) {
+      await this.manager.answerClarification(
+        context,
+        delivery.objectiveId,
+        objectiveView.objective.clarification.id,
+        {
+          answer: input.instruction,
+          idempotencyKey: input.idempotencyKey,
+        },
+      );
+    } else {
+      await this.manager.addInstruction(
+        context,
+        delivery.objectiveId,
+        input.instruction,
+        input.idempotencyKey,
+      );
+    }
     delivery = await this.update(delivery, {
       status: "IMPLEMENTING",
       instructionKeys: [...delivery.instructionKeys, input.idempotencyKey].slice(
@@ -563,6 +583,16 @@ export class EngineeringDeliveryService {
       delivery: refreshed,
       overallProgress: progress,
       blocker: (() => {
+        if (
+          view.objective.status === "NEEDS_CLARIFICATION" &&
+          view.objective.clarification?.status === "PENDING"
+        )
+          return {
+            category: "OWNER_CLARIFICATION_REQUIRED",
+            message: view.objective.clarification.question,
+            action:
+              "Answer this question in Add instruction. The same delivery will resume automatically.",
+          };
         const task = view.tasks.find((item) => ["BLOCKED", "FAILED"].includes(item.status));
         if (!task) return null;
         switch (task.lastFailureCategory) {
@@ -571,7 +601,13 @@ export class EngineeringDeliveryService {
           case "POLICY_DENIED":
             return { category: "POLICY_APPROVAL_REQUIRED", message: "Governance did not permit this change.", action: "Review the exact policy or approval request before retrying." };
           case "MODEL_FAILURE":
-            return { category: "MODEL_PROVIDER_UNAVAILABLE", message: "No eligible model completed this task.", action: "Check model-provider availability and routing, then retry." };
+            return {
+              category: "MODEL_PROVIDER_UNAVAILABLE",
+              message:
+                task.lastFailureSummary ?? "No eligible model completed this task.",
+              action:
+                "Resolve the displayed model-provider error, then Retry this run. Existing task and workspace state will be preserved.",
+            };
           case "AMBIGUOUS_REQUIREMENT":
           case "MISSING_CONTEXT":
             return { category: "OWNER_CLARIFICATION_REQUIRED", message: "The task needs more project context or a clearer requirement.", action: "Clarify the requested change in the project session, then retry." };

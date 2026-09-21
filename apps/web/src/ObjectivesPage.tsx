@@ -204,6 +204,12 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
   const runtimeTasks = new Map(
     workforceRuntime.data?.tasks.map((item) => [item.id, item]) ?? [],
   );
+  const objectiveTasks = projects
+    .map((project) =>
+      project.workforceTaskId ? runtimeTasks.get(project.workforceTaskId) : undefined,
+    )
+    .filter((task): task is NonNullable<typeof task> => Boolean(task));
+  const activeObjectiveTasks = objectiveTasks.filter((task) => task.status === "RUNNING");
   const workforcePreparation = projects
     .map((project) => ({
       project,
@@ -523,6 +529,40 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                     {item}
                   </p>
                 ))}
+                <section className="objective-workforce-prep" aria-label="Live autonomous execution">
+                  <header>
+                    <div>
+                      <h3>Live execution</h3>
+                      <small>Only persisted workforce, model, and evidence state is shown.</small>
+                    </div>
+                    <span>{activeObjectiveTasks.length} active agent{activeObjectiveTasks.length === 1 ? "" : "s"}</span>
+                  </header>
+                  {objectiveTasks.length ? objectiveTasks.map((task) => (
+                    <article key={task.id}>
+                      <div>
+                        <strong>{task.title}</strong>
+                        <small>{task.status.replaceAll("_", " ")} · {task.assignedAgentId ?? "No active specialist"}</small>
+                        {task.providerId && task.modelId ? (
+                          <small className="workforce-requirements">Model: {task.providerId} / {task.modelId} · request {task.aiRequestId ?? "recorded"}</small>
+                        ) : null}
+                        {task.requiredCapabilities.length ? (
+                          <small className="workforce-requirements">Tools: {task.requiredCapabilities.join(", ")}</small>
+                        ) : null}
+                      </div>
+                      <div>
+                        <strong>{task.resultSummary ?? (task.status === "RUNNING" ? "Agent OS execution is active." : "Waiting for executable work.")}</strong>
+                        <small>{task.evidenceRefs.filter((item) => item.startsWith("https://") || item.startsWith("artifact:")).length} evidence/artifact reference{task.evidenceRefs.length === 1 ? "" : "s"} · {task.actualCost} credits</small>
+                      </div>
+                    </article>
+                  )) : (
+                    <article>
+                      <div>
+                        <strong>No executable workforce task exists.</strong>
+                        <small>The objective cannot be represented as running until a task obtains a real execution lease.</small>
+                      </div>
+                    </article>
+                  )}
+                </section>
                 {["ACTIVE", "AT_RISK", "BLOCKED"].includes(current.status) ? (
                   <section className="objective-activation-progress" aria-label="Activation progress">
                     <div>

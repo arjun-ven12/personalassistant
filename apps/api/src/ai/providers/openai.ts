@@ -21,6 +21,22 @@ import type { AIProviderExecutionOptions } from "../provider.js";
 type OpenAIResponse = Record<string, unknown>;
 const supportsTemperature = (modelId: string) => !/^gpt-5(?:[.-]|$)/i.test(modelId);
 
+// OpenAI strict structured outputs reject schemas containing open-ended objects
+// (for example Zod records used for bounded capability inputs). Those responses
+// are still validated locally with the caller's Zod schema, so use non-strict
+// provider generation for that shape instead of rejecting every model attempt.
+const supportsStrictJsonSchema = (schema: unknown): boolean => {
+  if (!schema || typeof schema !== "object") return true;
+  if (Array.isArray(schema)) return schema.every(supportsStrictJsonSchema);
+  const value = schema as Record<string, unknown>;
+  if (
+    (value.type === "object" || value.properties) &&
+    value.additionalProperties !== false
+  )
+    return false;
+  return Object.values(value).every(supportsStrictJsonSchema);
+};
+
 const defaultModel = (modelId: string, enabled = true): AIModelDescriptor =>
   AIModelDescriptorSchema.parse({
     modelId,
@@ -252,12 +268,15 @@ export class OpenAIProvider implements AIProvider {
                 ? {
                     type: "json_schema",
                     name: schemaName ?? "structured_output",
-                    strict: true,
+                    strict: supportsStrictJsonSchema(jsonSchema),
                     schema: jsonSchema,
                   }
                 : { type: "json_object" },
             },
           }
+        : {}),
+      ...(request.metadata?.externalResearch === true
+        ? { tools: [{ type: "web_search" }] }
         : {}),
     };
   }

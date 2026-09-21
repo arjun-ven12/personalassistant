@@ -308,6 +308,45 @@ describe("EngineeringManagerService", () => {
     ).not.toBeNull();
   });
 
+  it("retries the same bounded task after an external model-provider blocker is fixed", async () => {
+    const { service, store } = await setup();
+    const planned = await create(service);
+    const architecture = planned.tasks.find(
+      (task) => task.taskType === "ARCHITECTURE",
+    )!;
+    store.saveTask(
+      EngineeringTaskSchema.parse({
+        ...architecture,
+        status: "BLOCKED",
+        attempt: architecture.maxAttempts,
+        lastFailureCategory: "MODEL_FAILURE",
+        lastFailureSummary: "Provider rejected the structured-output schema.",
+      }),
+    );
+    for (const task of planned.tasks.filter((item) => item.id !== architecture.id))
+      store.saveTask(
+        EngineeringTaskSchema.parse({
+          ...task,
+          status: "BLOCKED",
+          lastFailureCategory: "DEPENDENCY_NOT_READY",
+          lastFailureSummary: "A required predecessor did not complete.",
+        }),
+      );
+    store.saveObjective({
+      ...planned.objective,
+      status: "BLOCKED",
+      version: planned.objective.version + 1,
+    });
+
+    const recovered = await service.resume(context, planned.objective.id);
+
+    expect(recovered.tasks.find((task) => task.id === architecture.id)).toMatchObject({
+      status: "COMPLETE",
+      attempt: architecture.maxAttempts + 1,
+      lastFailureCategory: null,
+    });
+  });
+
   it("creates one scoped integration repair task and executes it through the existing worker/workspace path", async () => {
     const { service, store, runtime } = await setup();
     const planned = await create(service);

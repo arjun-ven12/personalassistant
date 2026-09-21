@@ -209,7 +209,8 @@ export class AIRouterEngineeringTaskWorker implements EngineeringTaskWorker {
       return {
         status: "FAILED" as const,
         failureCategory: "MODEL_FAILURE" as const,
-        failureSummary: response.decision.reason,
+        failureSummary:
+          response.attempts.at(-1)?.reason ?? response.decision.reason,
       };
     const proposal = AgentProposalSchema.parse(response.structuredOutput);
     let validationStatus:

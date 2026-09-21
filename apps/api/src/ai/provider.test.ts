@@ -176,6 +176,84 @@ describe("AI provider contract", () => {
     expect(requestBodies[1]).toHaveProperty("temperature", 0.35);
   });
 
+  it("uses non-strict provider generation for locally validated record schemas", async () => {
+    let requestBody: Record<string, unknown> | undefined;
+    const provider = new OpenAIProvider(
+      "test-key",
+      "gpt-5.6-luna",
+      "https://example.test/v1",
+      async (_input, init) => {
+        requestBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        return new Response(
+          JSON.stringify({
+            id: "resp_record",
+            output_text: '{"summary":"ok","input":{"path":"src/app.ts"}}',
+          }),
+          { status: 200 },
+        );
+      },
+    );
+    const schema = z.object({
+      summary: z.string(),
+      input: z.record(z.string(), z.unknown()),
+    });
+    const result = await provider.generateStructured({
+      purpose: "CODING",
+      input: [{ role: "user", content: [{ type: "text", text: "plan" }] }],
+      outputMode: "STRUCTURED",
+      timeoutMs: 1_000,
+      schemaName: "engineering_proposal",
+      schema,
+      jsonSchema: {
+        type: "object",
+        properties: {
+          summary: { type: "string" },
+          input: { type: "object", additionalProperties: {} },
+        },
+        required: ["summary", "input"],
+        additionalProperties: false,
+      },
+    });
+    expect(result.structuredOutput.input).toEqual({ path: "src/app.ts" });
+    expect(requestBody).toMatchObject({
+      text: { format: { type: "json_schema", strict: false } },
+    });
+  });
+
+  it("enables provider-native web search only for an explicitly classified research task", async () => {
+    let requestBody: Record<string, unknown> | undefined;
+    const provider = new OpenAIProvider(
+      "test-key",
+      "gpt-5.6-luna",
+      "https://example.test/v1",
+      async (_input, init) => {
+        requestBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        return new Response(
+          JSON.stringify({
+            id: "resp_research",
+            output_text:
+              '{"summary":"Sourced","confidence":0.9,"evidence":["https://example.test/source"]}',
+          }),
+          { status: 200 },
+        );
+      },
+    );
+    await provider.generateStructured({
+      purpose: "REASONING",
+      input: [{ role: "user", content: [{ type: "text", text: "research" }] }],
+      outputMode: "STRUCTURED",
+      timeoutMs: 1_000,
+      schemaName: "research_result",
+      schema: z.object({
+        summary: z.string(),
+        confidence: z.number(),
+        evidence: z.array(z.string()),
+      }),
+      metadata: { externalResearch: true },
+    });
+    expect(requestBody).toMatchObject({ tools: [{ type: "web_search" }] });
+  });
+
   it("normalizes provider failures", async () => {
     const provider = new OpenAIProvider(
       "test-key",

@@ -107,7 +107,12 @@ const capabilityByRole: Record<AgentRole, string[]> = {
   release: ["release.plan", "changelog.summary", "rollback.plan"],
 };
 const businessCapabilitiesByDepartment: Record<string, string[]> = {
-  Research: ["analytics.read_metric", "crm.search_leads", "crm.read_lead"],
+  Research: [
+    "web.research",
+    "analytics.read_metric",
+    "crm.search_leads",
+    "crm.read_lead",
+  ],
   Sales: [
     "crm.search_leads",
     "crm.read_lead",
