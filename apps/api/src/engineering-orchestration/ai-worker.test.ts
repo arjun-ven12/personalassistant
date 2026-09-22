@@ -163,6 +163,16 @@ describe("AIRouterEngineeringTaskWorker", () => {
     expect(executeStructured.mock.calls[0]![0]).toMatchObject({
       purpose: "CODING",
       requestedRole: "CODER",
+      jsonSchema: {
+        type: "object",
+        required: ["summary", "operations", "artifacts"],
+        properties: {
+          operations: { type: "array", items: {
+            required: ["capability", "input"],
+            properties: { capability: { enum: ["repository.file_create", "repository.validate"] } },
+          } },
+        },
+      },
       contextProfile: "AGENT_TASK",
       agentId: agentDefinitionId,
       agentDefinitionId,

@@ -1,4 +1,10 @@
 import { z } from "zod";
+import {
+  EngineeringSearchRequestSchema,
+  EngineeringFileReadRequestSchema,
+  EngineeringFileCreateRequestSchema,
+  EngineeringPatchSchema,
+} from "@alexa-control/shared";
 
 import type { AIRouterService } from "../ai/router/service.js";
 import type { EngineeringTaskWorker } from "./service.js";
@@ -56,6 +62,13 @@ const ReviewSchema = z
     summary: z.string().min(1).max(1_000),
   })
   .strict();
+
+const operationInputSchemas = {
+  "repository.search": EngineeringSearchRequestSchema,
+  "repository.file_read": EngineeringFileReadRequestSchema,
+  "repository.file_create": EngineeringFileCreateRequestSchema,
+  "repository.file_patch": z.object({ patch: EngineeringPatchSchema }).strict(),
+};
 
 export interface GovernedEngineeringActionGateway {
   invoke(input: {
@@ -133,6 +146,14 @@ export class AIRouterEngineeringTaskWorker implements EngineeringTaskWorker {
         failureCategory: "MISSING_CAPABILITY" as const,
         failureSummary: "No logical engineering agent assignment exists.",
       };
+    const allowedCapabilities = ProposedOperationSchema.shape.capability.options.filter(
+      (capability) => input.task.requiredCapabilities.includes(capability),
+    );
+    const proposalSchema = AgentProposalSchema.extend({
+      operations: z.array(ProposedOperationSchema.extend({
+        capability: z.enum(allowedCapabilities),
+      })).max(20),
+    });
     const response = await this.router.executeStructured(
       {
         requestId: crypto.randomUUID(),
@@ -158,6 +179,11 @@ export class AIRouterEngineeringTaskWorker implements EngineeringTaskWorker {
                     requiredCapabilities: input.task.requiredCapabilities,
                   },
                   context: input.context,
+                  capabilityInputSchemas: z.json().parse(Object.fromEntries(
+                    Object.entries(operationInputSchemas)
+                      .filter(([capability]) => input.task.requiredCapabilities.some((allowed) => allowed === capability))
+                      .map(([capability, schema]) => [capability, z.toJSONSchema(schema)]),
+                  )),
                 },
               },
             ],
@@ -213,7 +239,8 @@ export class AIRouterEngineeringTaskWorker implements EngineeringTaskWorker {
         agentDefinitionId: input.agentDefinitionId,
         companyAgentAssignmentId: input.task.assignedAgentId,
         taskClass: input.task.taskType,
-        schema: AgentProposalSchema,
+        schema: proposalSchema,
+        jsonSchema: z.toJSONSchema(proposalSchema),
         schemaName: "engineering_agent_proposal_v1",
       },
       { signal: input.signal },
@@ -328,6 +355,7 @@ export class AIRouterEngineeringTaskWorker implements EngineeringTaskWorker {
         agentDefinitionId: input.reviewerAgentDefinitionId,
         companyAgentAssignmentId: input.reviewerAgentId,
         schema: ReviewSchema,
+        jsonSchema: z.toJSONSchema(ReviewSchema),
         schemaName: "engineering_independent_review_v1",
       },
       { signal: input.signal },

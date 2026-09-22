@@ -300,6 +300,7 @@ const fixture = () => {
   );
   return {
     service,
+    manager,
     gateway,
     managerRunReady,
     integrationExecute,
@@ -309,6 +310,30 @@ const fixture = () => {
 };
 
 describe("EngineeringDeliveryService", () => {
+  it("shows the model failure even when a dependent blocked task appears first", async () => {
+    const { service, manager } = fixture();
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "blocked-provider-test",
+    });
+    const view = await manager.view(ownerId, companyId, objectiveId);
+    vi.spyOn(manager, "view").mockResolvedValue({
+      ...view,
+      objective: { ...view.objective, status: "BLOCKED" },
+      tasks: [
+        { ...task, status: "BLOCKED", lastFailureCategory: "DEPENDENCY_NOT_READY" },
+        { ...task, id: crypto.randomUUID(), status: "FAILED", lastFailureCategory: "MODEL_FAILURE", lastFailureSummary: "OpenAI structured output failed local schema validation." },
+      ],
+      readyForIntegration: false,
+    });
+    const current = await service.controlCenter(ownerId, companyId, created.delivery.id);
+    expect(current.blocker).toMatchObject({
+      category: "MODEL_PROVIDER_UNAVAILABLE",
+      message: "OpenAI structured output failed local schema validation.",
+    });
+  });
   it("lists registered company projects before their first delivery", async () => {
     const { service } = fixture();
     const projects = await service.projects(ownerId, companyId);

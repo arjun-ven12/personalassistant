@@ -593,7 +593,8 @@ export class EngineeringDeliveryService {
             action:
               "Answer this question in Add instruction. The same delivery will resume automatically.",
           };
-        const task = view.tasks.find((item) => ["BLOCKED", "FAILED"].includes(item.status));
+        const blockedTasks = view.tasks.filter((item) => ["BLOCKED", "FAILED"].includes(item.status));
+        const task = blockedTasks.find((item) => item.lastFailureCategory && item.lastFailureCategory !== "DEPENDENCY_NOT_READY") ?? blockedTasks[0];
         if (!task) return null;
         switch (task.lastFailureCategory) {
           case "MISSING_CAPABILITY":
