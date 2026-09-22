@@ -883,8 +883,7 @@ export class EngineeringManagerService {
         }
         if (
           task.status !== "BLOCKED" ||
-          task.lastFailureCategory !== "MISSING_CAPABILITY" ||
-          task.assignedAgentId
+          task.lastFailureCategory !== "MISSING_CAPABILITY"
         )
           continue;
         const assignedAgentId = await this.matchAgent(
@@ -901,6 +900,8 @@ export class EngineeringManagerService {
             ...task,
             assignedAgentId,
             status: "READY",
+            attempt: task.attempt >= task.maxAttempts ? 0 : task.attempt,
+            maxAttempts: task.attempt >= task.maxAttempts ? 3 : Math.min(4, Math.max(task.maxAttempts, task.attempt + 1)),
             lastFailureCategory: null,
             lastFailureSummary: null,
             updatedAt: this.now().toISOString(),
@@ -1304,7 +1305,10 @@ export class EngineeringManagerService {
         task.requiredCapabilities.some(
           (capability) => capability !== "repository.inspect",
         );
-      if (needsWorkspace && !task.workspaceId) {
+      const existingWorkspace = task.workspaceId
+        ? await this.runtimeStore.findWorkspace(context.ownerId, context.companyId, task.workspaceId)
+        : undefined;
+      if (needsWorkspace && (!task.workspaceId || existingWorkspace?.state === "CREATING")) {
         const workspace = await this.workspaces.create({
           ownerId: context.ownerId,
           companyId: context.companyId,
@@ -2524,7 +2528,7 @@ export class EngineeringManagerService {
   private classify(error: unknown): EngineeringFailureCategory {
     const value = error as { code?: string; category?: EngineeringFailureCategory };
     if (value.category) return value.category;
-    if (value.code?.includes("POLICY") || value.code?.includes("DENIED"))
+    if (value.code?.includes("POLICY") || value.code?.includes("DENIED") || value.code?.includes("APPROVAL"))
       return "POLICY_DENIED";
     if (value.code?.includes("CAPABILITY")) return "MISSING_CAPABILITY";
     if (value.code?.includes("TIMEOUT") || value.code?.includes("UNAVAILABLE"))

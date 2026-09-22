@@ -20,6 +20,29 @@ const agentId = "60000000-0000-4000-8000-000000000006";
 const now = "2026-09-16T00:00:00.000Z";
 
 describe("SignedExecutionEngineeringGateway", () => {
+  it("does not reuse a CREATING record as a completed worktree after approval interruption", async () => {
+    const runtime = new InMemoryEngineeringRuntimeStore();
+    runtime.createWorkspace(EngineeringWorkspaceSchema.parse({
+      schemaVersion: "1", id: workspaceId, ownerId, companyId, repositoryId,
+      taskId, agentId, idempotencyKey: taskId, branchName: "alexa/test",
+      worktreeLocator: `ew-${workspaceId}`, baseCommit: "a".repeat(40), headCommit: null,
+      state: "CREATING", leaseOwner: null, leaseExpiresAt: null, leaseGeneration: 0,
+      createdAt: now, updatedAt: now, expiresAt: null,
+    }));
+    const gateway = new SignedExecutionEngineeringGateway({} as ExecutionService, {} as ExecutionStore, runtime);
+    const dispatch = vi.spyOn(gateway as unknown as { dispatch: () => Promise<unknown> }, "dispatch")
+      .mockRejectedValueOnce(new Error("An exact matching explicit approval is required."))
+      .mockResolvedValueOnce({ output: {} });
+    const input = {
+      ownerId, companyId, repositoryId, taskId, agentId, idempotencyKey: taskId, slug: "test",
+      transport: { sessionId: crypto.randomUUID(), requestId: crypto.randomUUID(), ipAddress: "127.0.0.1", networkState: "PRIVATE_NETWORK" as const },
+    };
+    await expect(gateway.create(input)).rejects.toThrow("explicit approval");
+    expect(runtime.findWorkspace(ownerId, companyId, workspaceId)?.state).toBe("CREATING");
+    await expect(gateway.create(input)).resolves.toMatchObject({ id: workspaceId });
+    expect(runtime.findWorkspace(ownerId, companyId, workspaceId)?.state).toBe("READY");
+    expect(dispatch).toHaveBeenCalledTimes(2);
+  });
   it("resolves a registered command server-side and enqueues the finite request through the existing signed transport", async () => {
     const runtime = new InMemoryEngineeringRuntimeStore();
     runtime.saveRepository(

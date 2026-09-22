@@ -118,7 +118,24 @@ export class SignedExecutionEngineeringGateway
       input.repositoryId,
       input.idempotencyKey,
     );
-    if (existing) return { id: existing.id, baseCommit: existing.baseCommit };
+    if (existing) {
+      if (existing.state === "READY")
+        return { id: existing.id, baseCommit: existing.baseCommit };
+      if (existing.state !== "CREATING")
+        throw Object.assign(new Error("The existing engineering workspace is not ready for reuse."), { code: "WORKSPACE_NOT_READY" });
+      await this.dispatch({
+        ownerId: input.ownerId, companyId: input.companyId,
+        repositoryId: input.repositoryId, workspaceId: existing.id,
+        taskId: input.taskId, agentId: input.agentId,
+        capability: "repository.worktree_create",
+        operationInput: { branchName: existing.branchName, baseCommit: existing.baseCommit },
+        signal: new AbortController().signal, transport: input.transport,
+      });
+      await this.runtimeStore.saveWorkspace(EngineeringWorkspaceSchema.parse({
+        ...existing, state: "READY", updatedAt: this.now().toISOString(),
+      }));
+      return { id: existing.id, baseCommit: existing.baseCommit };
+    }
     const repository = await this.repository(
       input.ownerId,
       input.companyId,

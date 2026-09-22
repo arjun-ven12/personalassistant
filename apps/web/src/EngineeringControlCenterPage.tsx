@@ -578,6 +578,7 @@ export const EngineeringControlCenterPage = ({
               {data.delivery.status.replaceAll("_", " ")}
             </div>
           </div>
+          {control.error instanceof Error ? <p className="form-error" role="alert">{formatEngineeringLoadError(control.error, "Unable to update this engineering run.")}</p> : null}
           {data.blocker && ["BLOCKED", "FAILED", "OWNER_INPUT_REQUIRED"].includes(data.delivery.status) ? (
             <div className="panel engineering-blocker" role="alert">
               <div><p className="eyebrow">Blocked · {data.blocker.category.replaceAll("_", " ")}</p><h2>{data.blocker.message}</h2><p>{data.blocker.action}</p></div>

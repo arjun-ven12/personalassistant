@@ -311,7 +311,7 @@ describe("EngineeringManagerService", () => {
     ).not.toBeNull();
   });
 
-  it("retries the same bounded task after an external model-provider blocker is fixed", async () => {
+  it.each(["MODEL_FAILURE", "MISSING_CAPABILITY"] as const)("retries the same assigned bounded task after a %s blocker is fixed", async (failureCategory) => {
     const { service, store, agentStore, worker } = await setup();
     const planned = await create(service);
     const architecture = planned.tasks.find(
@@ -323,7 +323,7 @@ describe("EngineeringManagerService", () => {
         status: "BLOCKED",
         attempt: 4,
         maxAttempts: 4,
-        lastFailureCategory: "MODEL_FAILURE",
+        lastFailureCategory: failureCategory,
         lastFailureSummary: "Provider rejected the structured-output schema.",
       }),
     );

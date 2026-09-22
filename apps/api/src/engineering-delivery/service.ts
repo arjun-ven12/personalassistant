@@ -554,6 +554,9 @@ export class EngineeringDeliveryService {
     );
     const refreshed = EngineeringDeliverySchema.parse({
       ...delivery,
+      status: delivery.status === "BLOCKED" && view.objective.status === "RUNNING" &&
+        view.tasks.some((task) => ["ACTIVE", "REVIEWING"].includes(task.status))
+        ? "IMPLEMENTING" : delivery.status,
       features,
       modelUsage: usage,
       firstCodeAt:
@@ -598,7 +601,7 @@ export class EngineeringDeliveryService {
         if (!task) return null;
         switch (task.lastFailureCategory) {
           case "MISSING_CAPABILITY":
-            return { category: "CAPABILITY_UNAVAILABLE", message: "A required engineering capability or eligible agent is unavailable.", action: "Check the trusted Mac Agent, registered capabilities, and Engineering workforce; then retry." };
+            return { category: "CAPABILITY_UNAVAILABLE", message: task.lastFailureSummary ?? "A required engineering capability or eligible agent is unavailable.", action: "Retry rechecks the registered workforce and repository permissions. It preserves completed tasks and does not grant new capabilities." };
           case "POLICY_DENIED":
             return { category: "POLICY_APPROVAL_REQUIRED", message: "Governance did not permit this change.", action: "Review the exact policy or approval request before retrying." };
           case "MODEL_FAILURE":
