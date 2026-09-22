@@ -140,6 +140,66 @@ describe("AI provider contract", () => {
     expect(response.usage?.totalTokens).toBe(5);
   });
 
+  it("serializes bounded JSON task input instead of sending an empty OpenAI message", async () => {
+    let requestBody: Record<string, unknown> | undefined;
+    const provider = new OpenAIProvider(
+      "test-key",
+      "gpt-5.6-luna",
+      "https://example.test/v1",
+      async (_input, init) => {
+        requestBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        return new Response(JSON.stringify({ id: "resp_json", output_text: "ok" }), {
+          status: 200,
+        });
+      },
+    );
+    await provider.generate({
+      purpose: "CODING",
+      input: [
+        {
+          role: "user",
+          content: [{ type: "json", value: { task: "inspect repository" } }],
+        },
+      ],
+      timeoutMs: 1_000,
+    });
+    expect(requestBody).toMatchObject({
+      input: [
+        {
+          role: "user",
+          content: [{ type: "input_text", text: '{"task":"inspect repository"}' }],
+        },
+      ],
+    });
+  });
+
+  it("surfaces a bounded OpenAI validation message without provider secrets", async () => {
+    const provider = new OpenAIProvider(
+      "test-key",
+      "gpt-5.6-luna",
+      "https://example.test/v1",
+      async () =>
+        new Response(
+          JSON.stringify({
+            error: {
+              message: "Invalid input content. Bearer sk_should_not_be_exposed",
+            },
+          }),
+          { status: 400 },
+        ),
+    );
+    await expect(
+      provider.generate({
+        purpose: "CODING",
+        input: [{ role: "user", content: [{ type: "text", text: "hello" }] }],
+        timeoutMs: 1_000,
+      }),
+    ).rejects.toMatchObject({
+      code: "PROVIDER_ERROR",
+      message: "OpenAI returned HTTP 400: Invalid input content. Bearer [redacted]",
+    });
+  });
+
   it("omits unsupported temperature settings for GPT-5 models", async () => {
     const requestBodies: Record<string, unknown>[] = [];
     const fetchImpl: typeof fetch = async (_input, init) => {

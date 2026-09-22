@@ -20,6 +20,20 @@ import type { AIProviderExecutionOptions } from "../provider.js";
 
 type OpenAIResponse = Record<string, unknown>;
 const supportsTemperature = (modelId: string) => !/^gpt-5(?:[.-]|$)/i.test(modelId);
+const boundedProviderMessage = (value: unknown) =>
+  String(value)
+    .replace(/\b(?:sk|rk|sess|tok)_[A-Za-z0-9_-]+\b/g, "[redacted]")
+    .replace(/Bearer\s+\S+/gi, "Bearer [redacted]")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 300);
+
+const inputText = (part: AIInferenceRequest["input"][number]["content"][number]) => {
+  if (part.type === "text") return part.text;
+  if (part.type === "json" || part.type === "tool_result")
+    return JSON.stringify(part.value);
+  return null;
+};
 
 // OpenAI strict structured outputs reject schemas containing open-ended objects
 // (for example Zod records used for bounded capability inputs). Those responses
@@ -242,10 +256,11 @@ export class OpenAIProvider implements AIProvider {
         ...request.input.map((message) => ({
           role: message.role,
           content: message.content
-            .filter((part) => part.type === "text")
-            .map((part) => ({
+            .map(inputText)
+            .filter((text): text is string => Boolean(text))
+            .map((text) => ({
               type: "input_text",
-              text: part.type === "text" ? part.text : "",
+              text,
             })),
         })),
       ],
@@ -367,6 +382,22 @@ export class OpenAIProvider implements AIProvider {
         },
       );
       if (!response.ok) {
+        const errorPayload = (await response
+          .clone()
+          .json()
+          .catch(() => undefined)) as unknown;
+        const providerMessage =
+          errorPayload &&
+          typeof errorPayload === "object" &&
+          "error" in errorPayload &&
+          (errorPayload as { error?: unknown }).error &&
+          typeof (errorPayload as { error?: unknown }).error === "object" &&
+          typeof (errorPayload as { error: { message?: unknown } }).error.message ===
+            "string"
+            ? boundedProviderMessage(
+                (errorPayload as { error: { message: string } }).error.message,
+              )
+            : null;
         if (response.status === 401)
           throw new AIProviderError(
             "AUTHENTICATION_FAILED",
@@ -388,7 +419,9 @@ export class OpenAIProvider implements AIProvider {
           );
         throw new AIProviderError(
           "PROVIDER_ERROR",
-          `OpenAI returned HTTP ${response.status}.`,
+          providerMessage
+            ? `OpenAI returned HTTP ${response.status}: ${providerMessage}`
+            : `OpenAI returned HTTP ${response.status}.`,
           this.providerId,
           response.status >= 500,
         );

@@ -137,6 +137,7 @@ export class AIRouterEngineeringTaskWorker implements EngineeringTaskWorker {
       {
         requestId: crypto.randomUUID(),
         purpose: "CODING",
+        taskText: `${input.task.title}: ${input.task.description}`,
         requestedRole: routing(input.modelTier).requestedRole,
         risk: input.task.riskLevel === "CRITICAL" ? "CRITICAL" : input.task.riskLevel,
         complexityHint: routing(input.modelTier).complexityHint,
