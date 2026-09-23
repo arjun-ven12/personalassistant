@@ -57,6 +57,7 @@ class FakeGateway implements EngineeringIntegrationGateway {
   diffTruncated = false;
   diffRedactions: string[] = [];
   constructor(readonly runtime: InMemoryEngineeringRuntimeStore) {}
+  prepare() { return Promise.resolve(); }
   create(input: Parameters<EngineeringIntegrationGateway["create"]>[0]) {
     const id = crypto.randomUUID();
     this.runtime.createWorkspace(

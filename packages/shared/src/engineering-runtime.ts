@@ -195,6 +195,7 @@ export const EngineeringWorkspaceSchema = z
       .regex(/^[0-9a-f]{40,64}$/)
       .nullable(),
     state: EngineeringWorkspaceStateSchema,
+    dependenciesPreparedAt: z.iso.datetime().nullable().default(null),
     leaseOwner: SafeIdentifierSchema.nullable(),
     leaseExpiresAt: z.iso.datetime().nullable(),
     leaseGeneration: z.number().int().nonnegative(),

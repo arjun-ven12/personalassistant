@@ -23,6 +23,38 @@ const localRuntime = (
 });
 
 describe("AI provider contract", () => {
+  it.each([
+    [
+      {
+        status: "incomplete",
+        incomplete_details: { reason: "max_output_tokens" },
+        output_text: '{"summary":',
+      },
+      "configured output token limit",
+    ],
+    [
+      { status: "completed", output_text: '{"summary":123,"secret":"do-not-expose"}' },
+      "invalid_type at summary",
+    ],
+  ])("reports safe structured-output diagnostics", async (response, diagnostic) => {
+    const provider = new OpenAIProvider(
+      "test-key",
+      "gpt-5.6-luna",
+      "https://example.test/v1",
+      async () => new Response(JSON.stringify(response), { status: 200 }),
+    );
+    const result = provider.generateStructured({
+      purpose: "CODING",
+      input: [{ role: "user", content: [{ type: "text", text: "plan" }] }],
+      outputMode: "STRUCTURED",
+      timeoutMs: 1_000,
+      schemaName: "proposal",
+      schema: z.object({ summary: z.string() }),
+    });
+    await expect(result).rejects.toThrow(diagnostic);
+    await expect(result).rejects.not.toThrow("do-not-expose");
+  });
+
   it("resolves role mappings without exposing provider implementation details", async () => {
     const provider = new OllamaProvider(localRuntime());
     const providers = new AIProviderRegistry();

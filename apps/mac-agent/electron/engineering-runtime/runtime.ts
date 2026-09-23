@@ -380,7 +380,7 @@ export class DockerEngineeringDependencyRunner implements EngineeringDependencyR
     const args =
       input.packageManager === "pnpm"
         ? input.operation === "INSTALL"
-          ? ["install", "--ignore-scripts", "--registry=https://registry.npmjs.org"]
+          ? ["install", "--frozen-lockfile", "--ignore-scripts", "--registry=https://registry.npmjs.org"]
           : input.operation === "ADD"
             ? [
                 "add",
@@ -391,7 +391,7 @@ export class DockerEngineeringDependencyRunner implements EngineeringDependencyR
               ]
             : ["remove", ...input.packages, "--ignore-scripts"]
         : input.operation === "INSTALL"
-          ? ["install", "--ignore-scripts", "--registry=https://registry.npmjs.org"]
+          ? ["ci", "--ignore-scripts", "--registry=https://registry.npmjs.org"]
           : input.operation === "ADD"
             ? [
                 "install",
@@ -440,7 +440,7 @@ export class DockerEngineeringDependencyRunner implements EngineeringDependencyR
         ...args,
       ],
       env: { PATH: "/usr/local/bin:/usr/bin:/bin", HOME: "/var/empty" },
-      timeoutMs: 10 * 60_000,
+      timeoutMs: 9 * 60_000,
       maxOutputBytes: 131_072,
       ...(input.signal ? { signal: input.signal } : {}),
     }).catch(() => {

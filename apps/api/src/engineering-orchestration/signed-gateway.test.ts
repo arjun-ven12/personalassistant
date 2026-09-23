@@ -19,9 +19,51 @@ const taskId = "50000000-0000-4000-8000-000000000005";
 const agentId = "60000000-0000-4000-8000-000000000006";
 const now = "2026-09-16T00:00:00.000Z";
 
+const registerNodeProject = (runtime: InMemoryEngineeringRuntimeStore) => {
+  runtime.saveRepository(EngineeringRepositorySchema.parse({
+    schemaVersion: "1", id: repositoryId, ownerId, companyId,
+    displayName: "Portfolio", workspaceLocatorId: "repo-main", defaultBranch: "main",
+    protectedBranches: ["main"], protectedPaths: [], generatedPaths: [],
+    commandProfileId: "node-default", capabilityProfileId: "engineering-default",
+    authorizedAgentIds: [agentId],
+    metadata: { languages: ["TypeScript"], packageManagers: ["pnpm"], frameworks: ["React"], importantFiles: ["package.json", "pnpm-lock.yaml"] },
+    status: "ACTIVE", createdAt: now, updatedAt: now,
+  }));
+  runtime.saveCommandProfile(EngineeringCommandProfileSchema.parse({
+    schemaVersion: "1", id: "node-default", ownerId, companyId, displayName: "Node",
+    commands: [{ id: "lint", executable: "pnpm", args: ["run", "lint"], kind: "LINT", timeoutMs: 60_000, maxOutputBytes: 16_384, networkPolicy: "DENY" }],
+    validationOrder: ["lint"], dependencyManager: "pnpm", status: "ACTIVE",
+    createdAt: now, updatedAt: now,
+  }));
+};
+
+const installed = (exitCode = 0) => ({ output: {
+  packageManager: "pnpm", operation: "INSTALL", packages: [], exitCode,
+  durationMs: 1, stdout: "", stderr: "", timedOut: false, lockfileChanged: false,
+} });
+
 describe("SignedExecutionEngineeringGateway", () => {
+  it("prepares a new isolated worktree before marking it ready", async () => {
+    const runtime = new InMemoryEngineeringRuntimeStore();
+    registerNodeProject(runtime);
+    const gateway = new SignedExecutionEngineeringGateway({} as ExecutionService, {} as ExecutionStore, runtime, () => new Date(now));
+    const dispatch = vi.spyOn(gateway as unknown as { dispatch: (input: { capability: string }) => Promise<unknown> }, "dispatch")
+      .mockResolvedValueOnce({ output: { baseCommit: "a".repeat(40), branch: "main", dirty: false } })
+      .mockResolvedValueOnce({ output: {} })
+      .mockResolvedValueOnce(installed());
+    const input = { ownerId, companyId, repositoryId, taskId, agentId, idempotencyKey: taskId, slug: "frontend", transport: { sessionId: crypto.randomUUID(), requestId: crypto.randomUUID(), ipAddress: "127.0.0.1", networkState: "PRIVATE_NETWORK" as const } };
+    const created = await gateway.create(input);
+    expect(runtime.findWorkspace(ownerId, companyId, created.id)).toMatchObject({ state: "READY", dependenciesPreparedAt: now });
+    expect(dispatch.mock.calls.map(([call]) => call.capability)).toEqual([
+      "repository.inspect", "repository.worktree_create", "repository.install_dependencies",
+    ]);
+    await gateway.create(input);
+    expect(dispatch).toHaveBeenCalledTimes(3);
+  });
+
   it("does not reuse a CREATING record as a completed worktree after approval interruption", async () => {
     const runtime = new InMemoryEngineeringRuntimeStore();
+    registerNodeProject(runtime);
     runtime.createWorkspace(EngineeringWorkspaceSchema.parse({
       schemaVersion: "1", id: workspaceId, ownerId, companyId, repositoryId,
       taskId, agentId, idempotencyKey: taskId, branchName: "alexa/test",
@@ -29,10 +71,12 @@ describe("SignedExecutionEngineeringGateway", () => {
       state: "CREATING", leaseOwner: null, leaseExpiresAt: null, leaseGeneration: 0,
       createdAt: now, updatedAt: now, expiresAt: null,
     }));
-    const gateway = new SignedExecutionEngineeringGateway({} as ExecutionService, {} as ExecutionStore, runtime);
-    const dispatch = vi.spyOn(gateway as unknown as { dispatch: () => Promise<unknown> }, "dispatch")
+    const gateway = new SignedExecutionEngineeringGateway({} as ExecutionService, {} as ExecutionStore, runtime, () => new Date(now));
+    const dispatch = vi.spyOn(gateway as unknown as { dispatch: (input: { capability: string }) => Promise<unknown> }, "dispatch")
       .mockRejectedValueOnce(new Error("An exact matching explicit approval is required."))
-      .mockResolvedValueOnce({ output: {} });
+      .mockResolvedValueOnce({ output: { exists: false, baseCommit: null, headCommit: null, dirty: false, branch: null } })
+      .mockResolvedValueOnce({ output: {} })
+      .mockResolvedValueOnce(installed());
     const input = {
       ownerId, companyId, repositoryId, taskId, agentId, idempotencyKey: taskId, slug: "test",
       transport: { sessionId: crypto.randomUUID(), requestId: crypto.randomUUID(), ipAddress: "127.0.0.1", networkState: "PRIVATE_NETWORK" as const },
@@ -40,8 +84,39 @@ describe("SignedExecutionEngineeringGateway", () => {
     await expect(gateway.create(input)).rejects.toThrow("explicit approval");
     expect(runtime.findWorkspace(ownerId, companyId, workspaceId)?.state).toBe("CREATING");
     await expect(gateway.create(input)).resolves.toMatchObject({ id: workspaceId });
-    expect(runtime.findWorkspace(ownerId, companyId, workspaceId)?.state).toBe("READY");
-    expect(dispatch).toHaveBeenCalledTimes(2);
+    expect(runtime.findWorkspace(ownerId, companyId, workspaceId)).toMatchObject({ state: "READY", dependenciesPreparedAt: now });
+    expect(dispatch.mock.calls.map(([call]) => call.capability)).toEqual([
+      "repository.worktree_inspect", "repository.worktree_inspect", "repository.worktree_create", "repository.install_dependencies",
+    ]);
+  });
+
+  it("prepares dependencies before offline validation and recovers a created worktree after install failure", async () => {
+    const runtime = new InMemoryEngineeringRuntimeStore();
+    registerNodeProject(runtime);
+    runtime.createWorkspace(EngineeringWorkspaceSchema.parse({
+      schemaVersion: "1", id: workspaceId, ownerId, companyId, repositoryId,
+      taskId, agentId, idempotencyKey: taskId, branchName: "alexa/test",
+      worktreeLocator: `ew-${workspaceId}`, baseCommit: "a".repeat(40), headCommit: null,
+      state: "CREATING", leaseOwner: null, leaseExpiresAt: null, leaseGeneration: 0,
+      createdAt: now, updatedAt: now, expiresAt: null,
+    }));
+    const gateway = new SignedExecutionEngineeringGateway({} as ExecutionService, {} as ExecutionStore, runtime, () => new Date(now));
+    const dispatch = vi.spyOn(gateway as unknown as { dispatch: (input: { capability: string }) => Promise<unknown> }, "dispatch")
+      .mockResolvedValueOnce({ output: { exists: true, baseCommit: "a".repeat(40), headCommit: "a".repeat(40), dirty: false, branch: "alexa/test" } })
+      .mockResolvedValueOnce(installed(1))
+      .mockResolvedValueOnce({ output: { exists: true, baseCommit: "a".repeat(40), headCommit: "a".repeat(40), dirty: false, branch: "alexa/test" } })
+      .mockResolvedValueOnce(installed())
+      .mockResolvedValueOnce({ output: { commandId: "lint", exitCode: 0, stdout: "ok", stderr: "", startedAt: now, completedAt: now, durationMs: 1, timedOut: false, cancelled: false, truncated: false, networkIsolated: true } });
+    const transport = { sessionId: crypto.randomUUID(), requestId: crypto.randomUUID(), ipAddress: "127.0.0.1", networkState: "PRIVATE_NETWORK" as const };
+    const input = { ownerId, companyId, repositoryId, taskId, agentId, idempotencyKey: taskId, slug: "test", transport };
+    await expect(gateway.create(input)).rejects.toThrow("Governed dependency preparation failed");
+    expect(runtime.findWorkspace(ownerId, companyId, workspaceId)).toMatchObject({ state: "CREATING", dependenciesPreparedAt: null });
+    await expect(gateway.create(input)).resolves.toMatchObject({ id: workspaceId });
+    const validation = await gateway.invoke({ ownerId, companyId, repositoryId, workspaceId, taskId, agentId, capability: "repository.validate", operationInput: {}, signal: new AbortController().signal, transport });
+    expect("validationStatus" in validation && validation.validationStatus).toBe("PASS");
+    expect(dispatch.mock.calls.map(([call]) => call.capability)).toEqual([
+      "repository.worktree_inspect", "repository.install_dependencies", "repository.worktree_inspect", "repository.install_dependencies", "repository.run_command",
+    ]);
   });
   it("resolves a registered command server-side and enqueues the finite request through the existing signed transport", async () => {
     const runtime = new InMemoryEngineeringRuntimeStore();
@@ -90,6 +165,7 @@ describe("SignedExecutionEngineeringGateway", () => {
           },
         ],
         validationOrder: ["test"],
+        dependencyManager: "pnpm",
         status: "ACTIVE",
         createdAt: now,
         updatedAt: now,
@@ -150,7 +226,9 @@ describe("SignedExecutionEngineeringGateway", () => {
             operationId: transportRequest?.operationId,
             capability: transportRequest?.capability,
             output:
-              transportRequest?.capability === "repository.integrate_commit"
+              transportRequest?.capability === "repository.install_dependencies"
+                ? installed().output
+                : transportRequest?.capability === "repository.integrate_commit"
                 ? {
                     integrated: true,
                     commit: "b".repeat(40),
@@ -228,6 +306,21 @@ describe("SignedExecutionEngineeringGateway", () => {
     });
     expect(JSON.stringify(transportRequest)).not.toContain("attacker.invalid");
     expect(result.output).toMatchObject({ commandId: "test", exitCode: 0 });
+
+    const dependencyResult = await gateway.invoke({
+      ownerId, companyId, repositoryId, workspaceId, taskId, agentId,
+      capability: "repository.install_dependencies",
+      operationInput: { packageManager: "npm" },
+      signal: new AbortController().signal,
+      transport: { sessionId: crypto.randomUUID(), requestId: crypto.randomUUID(), ipAddress: "100.64.0.1", networkState: "PRIVATE_NETWORK" },
+    });
+    expect(transportRequest).toMatchObject({
+      engineeringWorkspaceId: workspaceId,
+      capability: "repository.install_dependencies",
+      input: { packageManager: "pnpm" },
+    });
+    expect(await new EngineeringTransportScopeVerifier(runtime).verify({ ownerId, request: transportRequest as never })).toBe(true);
+    expect(dependencyResult.output).toMatchObject({ operation: "INSTALL", exitCode: 0, lockfileChanged: false });
 
     const integrationWorkspaceId = crypto.randomUUID();
     const objectiveId = crypto.randomUUID();

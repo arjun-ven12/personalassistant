@@ -1,9 +1,11 @@
 import {
   EngineeringCommandResultSchema,
   EngineeringCommandDefinitionSchema,
+  EngineeringDependencyOperationResultSchema,
   EngineeringTransportRequestSchema,
   EngineeringTransportResultSchema,
   EngineeringValidationReportSchema,
+  EngineeringWorktreeInspectionSchema,
   EngineeringWorkspaceSchema,
   type EngineeringCapability,
   type EngineeringTransportRequest,
@@ -43,6 +45,10 @@ export class SignedExecutionEngineeringGateway
     readonly now: () => Date = () => new Date(),
     readonly waitTimeoutMs = 120_000,
   ) {}
+
+  prepare(input: Parameters<EngineeringWorkspaceGateway["prepare"]>[0]) {
+    return this.prepareDependencies(input);
+  }
 
   async initializeProject(input: {
     ownerId: string;
@@ -119,20 +125,38 @@ export class SignedExecutionEngineeringGateway
       input.idempotencyKey,
     );
     if (existing) {
-      if (existing.state === "READY")
-        return { id: existing.id, baseCommit: existing.baseCommit };
-      if (existing.state !== "CREATING")
+      if (existing.state !== "CREATING" && existing.state !== "READY")
         throw Object.assign(new Error("The existing engineering workspace is not ready for reuse."), { code: "WORKSPACE_NOT_READY" });
-      await this.dispatch({
-        ownerId: input.ownerId, companyId: input.companyId,
-        repositoryId: input.repositoryId, workspaceId: existing.id,
-        taskId: input.taskId, agentId: input.agentId,
-        capability: "repository.worktree_create",
-        operationInput: { branchName: existing.branchName, baseCommit: existing.baseCommit },
-        signal: new AbortController().signal, transport: input.transport,
-      });
+      if (existing.agentId !== input.agentId || existing.taskId !== input.taskId)
+        throw Object.assign(new Error("The existing worktree belongs to another task or agent."), { code: "REPOSITORY_NOT_AUTHORIZED" });
+      if (existing.state === "CREATING") {
+        const inspection = EngineeringWorktreeInspectionSchema.parse((await this.dispatch({
+          ownerId: input.ownerId, companyId: input.companyId,
+          repositoryId: input.repositoryId, workspaceId: existing.id,
+          taskId: input.taskId, agentId: input.agentId,
+          capability: "repository.worktree_inspect", operationInput: {},
+          signal: new AbortController().signal, transport: input.transport,
+        })).output);
+        if (inspection.exists) {
+          if (inspection.baseCommit !== existing.baseCommit || inspection.branch !== existing.branchName)
+            throw Object.assign(new Error("The saved worktree no longer matches its registered base and branch."), { code: "INCONSISTENT_STATE" });
+        } else {
+          await this.dispatch({
+            ownerId: input.ownerId, companyId: input.companyId,
+            repositoryId: input.repositoryId, workspaceId: existing.id,
+            taskId: input.taskId, agentId: input.agentId,
+            capability: "repository.worktree_create",
+            operationInput: { branchName: existing.branchName, baseCommit: existing.baseCommit },
+            signal: new AbortController().signal, transport: input.transport,
+          });
+        }
+      }
+      await this.prepareDependencies({ ...input, workspaceId: existing.id, signal: new AbortController().signal });
+      const prepared = await this.runtimeStore.findWorkspace(input.ownerId, input.companyId, existing.id);
+      if (!prepared?.dependenciesPreparedAt)
+        throw Object.assign(new Error("Dependency preparation did not persist."), { code: "INCONSISTENT_STATE" });
       await this.runtimeStore.saveWorkspace(EngineeringWorkspaceSchema.parse({
-        ...existing, state: "READY", updatedAt: this.now().toISOString(),
+        ...prepared, state: "READY", updatedAt: this.now().toISOString(),
       }));
       return { id: existing.id, baseCommit: existing.baseCommit };
     }
@@ -202,8 +226,8 @@ export class SignedExecutionEngineeringGateway
       expiresAt: null,
     });
     const stored = await this.runtimeStore.createWorkspace(workspace);
-    if (stored.state === "READY")
-      return { id: stored.id, baseCommit: stored.baseCommit };
+    if (stored.id !== workspace.id)
+      throw Object.assign(new Error("The existing worktree must be recovered through its saved identity."), { code: "INCONSISTENT_STATE" });
     await this.dispatch({
       ownerId: input.ownerId,
       companyId: input.companyId,
@@ -216,9 +240,13 @@ export class SignedExecutionEngineeringGateway
       signal: new AbortController().signal,
       transport: input.transport,
     });
+    await this.prepareDependencies({ ...input, workspaceId: stored.id, signal: new AbortController().signal });
+    const prepared = await this.runtimeStore.findWorkspace(input.ownerId, input.companyId, stored.id);
+    if (!prepared?.dependenciesPreparedAt)
+      throw Object.assign(new Error("Dependency preparation did not persist."), { code: "INCONSISTENT_STATE" });
     await this.runtimeStore.saveWorkspace(
       EngineeringWorkspaceSchema.parse({
-        ...stored,
+        ...prepared,
         state: "READY",
         updatedAt: this.now().toISOString(),
       }),
@@ -241,6 +269,16 @@ export class SignedExecutionEngineeringGateway
     if (input.capability === "repository.validate") return this.validate(input);
     const result = await this.dispatch(input);
     const output = result.output as Record<string, unknown>;
+    if (input.workspaceId &&
+      (["repository.file_create", "repository.file_patch"].includes(input.capability) &&
+        typeof output.path === "string" &&
+        ["package.json", "pnpm-lock.yaml", "package-lock.json"].includes(output.path))) {
+      const workspace = await this.runtimeStore.findWorkspace(input.ownerId, input.companyId, input.workspaceId);
+      if (workspace)
+        await this.runtimeStore.saveWorkspace(EngineeringWorkspaceSchema.parse({
+          ...workspace, dependenciesPreparedAt: null, updatedAt: this.now().toISOString(),
+        }));
+    }
     const revertedFiles = input.capability === "repository.revert_commit" && Array.isArray(output.entries)
       ? output.entries.flatMap((entry: unknown) => {
           if (!entry || typeof entry !== "object" || !("path" in entry)) return [];
@@ -307,6 +345,7 @@ export class SignedExecutionEngineeringGateway
     );
     if (!profile || profile.status !== "ACTIVE")
       return { output: {}, validationStatus: "NOT_CONFIGURED" as const };
+    await this.prepareDependencies({ ...input, workspaceId: input.workspaceId });
     const steps: Array<{
       commandId: string;
       kind: "LINT" | "TYPECHECK" | "TEST" | "BUILD" | "OTHER";
@@ -372,6 +411,40 @@ export class SignedExecutionEngineeringGateway
       validationStatus: "PASS" as const,
       validationReportId: report.id,
     };
+  }
+
+  private async prepareDependencies(input: {
+    ownerId: string;
+    companyId: string;
+    repositoryId: string;
+    workspaceId: string;
+    taskId: string;
+    agentId: string;
+    signal: AbortSignal;
+    transport: Transport;
+  }) {
+    const workspace = await this.runtimeStore.findWorkspace(input.ownerId, input.companyId, input.workspaceId);
+    if (!workspace || workspace.repositoryId !== input.repositoryId || workspace.taskId !== input.taskId || workspace.agentId !== input.agentId)
+      throw Object.assign(new Error("Dependency preparation workspace scope is invalid."), { code: "WORKSPACE_NOT_FOUND" });
+    const repository = await this.repository(input.ownerId, input.companyId, input.repositoryId);
+    const profile = await this.runtimeStore.findCommandProfile(input.ownerId, input.companyId, repository.commandProfileId);
+    if (!profile || profile.status !== "ACTIVE")
+      throw Object.assign(new Error("An active registered command profile is required for dependency preparation."), { code: "COMMAND_NOT_ALLOWED" });
+    if (workspace.dependenciesPreparedAt && workspace.dependenciesPreparedAt >= profile.updatedAt) return;
+    if (profile.dependencyManager) {
+      const result = EngineeringDependencyOperationResultSchema.parse((await this.dispatch({
+        ...input,
+        capability: "repository.install_dependencies",
+        operationInput: { packageManager: profile.dependencyManager },
+      })).output);
+      if (result.exitCode !== 0 || result.timedOut || result.lockfileChanged)
+        throw Object.assign(new Error("Governed dependency preparation failed. Check the package lockfile and reviewed dependency container before retrying."), { code: "DEPENDENCY_INSTALL_FAILED" });
+    } else if (repository.metadata.packageManagers.length > 0) {
+      throw Object.assign(new Error("Register a supported dependency manager before running offline project validation."), { code: "COMMAND_NOT_ALLOWED" });
+    }
+    await this.runtimeStore.saveWorkspace(EngineeringWorkspaceSchema.parse({
+      ...workspace, dependenciesPreparedAt: this.now().toISOString(), updatedAt: this.now().toISOString(),
+    }));
   }
 
   private async dispatch(input: {
@@ -598,7 +671,10 @@ export class SignedExecutionEngineeringGateway
       requestId: input.request.requestId,
       ...(input.transport.deviceId ? { deviceId: input.transport.deviceId } : {}),
     });
-    const deadline = this.now().getTime() + this.waitTimeoutMs;
+    const deadline = this.now().getTime() +
+      (input.request.capability === "repository.install_dependencies"
+        ? Math.max(this.waitTimeoutMs, 11 * 60_000)
+        : this.waitTimeoutMs);
     while (this.now().getTime() < deadline) {
       if (input.signal.aborted) {
         await this.executionStore.cancel(

@@ -42,6 +42,14 @@ snapshot worktree. Dependency outputs are bounded typed artifacts such as API co
 schema summaries, test expectations, and migration notes; raw conversations and
 private reasoning are not persisted.
 
+When a registered command profile names a dependency manager, worktree setup
+uses the signed, governed dependency-install capability before marking the
+workspace ready. The reviewed dependency container installs from the lockfile
+without lifecycle scripts. Offline validation checks the persisted preparation
+state and prepares older worktrees before another model call or offline check.
+A failed install leaves a creating worktree recoverable with the same identity;
+it never relaxes validation network isolation.
+
 Before execution, the existing memory store supplies at most twelve stable
 repository/semantic/procedural/agent summaries from the same company and
 repository scope. After passing governed validation, only bounded stable typed
@@ -68,6 +76,14 @@ server-owned values, and enqueues operations through the existing
 not accept raw commands, executable paths, repository roots, environments, or
 caller-computed approval/risk state. Mutating tasks cannot complete without a
 passing registered validation sequence.
+
+The worker returns bounded capability observations to AIRouter between up to six
+read-only or twelve mutating proposal rounds, with the original objective and
+remaining round budget. File patches must reference a hash observed from a real read of
+that path; invented hashes never reach execution. Mutations invalidate prior
+validation, and task completion still requires passing registered checks. Tool
+observations are untrusted data, not execution authority. Cancellation and the
+task cost ceiling are checked between rounds.
 
 ## Recovery and control
 
@@ -108,6 +124,16 @@ second execution.
 
 Unknown transport, provider, repository, command, capability, policy, network,
 or lease state fails closed.
+
+Routine isolated-worktree creation, lockfile-only dependency preparation, and
+registered LINT/TYPECHECK/TEST/BUILD commands honor their registered
+session-approval baseline when the enabled
+workspace grants the corresponding permissions. Execution still verifies the
+company, repository, agent, capability profile, exact registered command, signed
+device transport, and emergency stop. Explicit tool overrides remain stronger;
+other commands, package add/remove, protected changes, merge, and push do not
+inherit this exception. Owner Retry rechecks policy without discarding completed
+tasks or granting capabilities.
 
 ## Deliberate limitations
 

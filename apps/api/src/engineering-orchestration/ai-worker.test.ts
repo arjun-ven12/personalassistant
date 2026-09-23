@@ -1,4 +1,5 @@
 import {
+  AIRouterRequestSchema,
   EngineeringContextPackageSchema,
   EngineeringObjectiveSchema,
   EngineeringTaskSchema,
@@ -114,6 +115,117 @@ const transport = {
 };
 
 describe("AIRouterEngineeringTaskWorker", () => {
+  it.each([
+    "Patch hunks overlap or exceed the current file.",
+    "The patch target changed after it was read.",
+  ])("recovers signed atomic patch rejection: %s", async (message) => {
+    const hash = "a".repeat(64);
+    const read = { capability: "repository.file_read", input: { path: "src/App.tsx" } };
+    const patch = { capability: "repository.file_patch", input: { patch: { path: "src/App.tsx", expectedSha256: hash, hunks: [{ startLine: 1, endLine: 1, replacement: "updated" }] } } };
+    const proposal = (operations: unknown[]) => ({ requestId: crypto.randomUUID(), outcome: "SUCCESS", decision: { reason: "test" }, structuredOutput: { summary: "Update", operations, artifacts: [] } });
+    const executeStructured = vi.fn()
+      .mockResolvedValueOnce(proposal([read]))
+      .mockResolvedValueOnce(proposal([patch]))
+      .mockResolvedValueOnce(proposal([patch])) // stale read cannot be reused
+      .mockResolvedValueOnce(proposal([read]))
+      .mockResolvedValueOnce(proposal([patch, { capability: "repository.validate", input: {} }]));
+    const invoke = vi.fn<GovernedEngineeringActionGateway["invoke"]>()
+      .mockResolvedValueOnce({ output: { path: "src/App.tsx", content: "original", sha256: hash } })
+      .mockRejectedValueOnce(Object.assign(new Error(message), { code: "CAPABILITY_RESULT_INVALID" }))
+      .mockResolvedValueOnce({ output: { path: "src/App.tsx", content: "original", sha256: hash } })
+      .mockResolvedValueOnce({ output: {}, filesChanged: ["src/App.tsx"] })
+      .mockResolvedValueOnce({ output: {}, validationStatus: "PASS" });
+    const worker = new AIRouterEngineeringTaskWorker({ executeStructured } as unknown as AIRouterService, { invoke });
+    const result = await worker.execute({ objective, task: { ...task, requiredCapabilities: ["repository.file_read", "repository.file_patch", "repository.validate"] }, agentDefinitionId, context, modelTier: "LUNA", workspaceId: task.workspaceId, signal: new AbortController().signal, transport });
+    expect(invoke.mock.calls.map(([call]) => call.capability)).toEqual(["repository.file_read", "repository.file_patch", "repository.file_read", "repository.file_patch", "repository.validate"]);
+    expect(result).toMatchObject({ status: "SUCCEEDED", validationStatus: "PASS" });
+  });
+
+  it("runs declared validation at the round boundary instead of endlessly browsing", async () => {
+    const response = (operations: unknown[]) => ({ requestId: crypto.randomUUID(), outcome: "SUCCESS", decision: { reason: "test" }, structuredOutput: { summary: "Implemented", operations, artifacts: [] } });
+    const executeStructured = vi.fn().mockResolvedValueOnce(response([{ capability: "repository.file_create", input: { path: "src/new.ts", content: "export {};" } }])).mockResolvedValue(response([]));
+    const invoke = vi.fn<GovernedEngineeringActionGateway["invoke"]>().mockResolvedValueOnce({ output: {}, filesChanged: ["src/new.ts"] }).mockResolvedValueOnce({ output: {}, validationStatus: "PASS", validationReportId: crypto.randomUUID() });
+    const worker = new AIRouterEngineeringTaskWorker({ executeStructured } as unknown as AIRouterService, { invoke });
+    const result = await worker.execute({ objective, task: { ...task, requiredCapabilities: ["repository.file_create", "repository.validate"] }, agentDefinitionId, context, modelTier: "LUNA", workspaceId: task.workspaceId, signal: new AbortController().signal, transport });
+    expect(executeStructured).toHaveBeenCalledTimes(12);
+    expect(invoke.mock.calls.map(([call]) => call.capability)).toEqual(["repository.file_create", "repository.validate"]);
+    expect(result).toMatchObject({ status: "SUCCEEDED", validationStatus: "PASS" });
+  });
+
+  it("returns file evidence to the model and rejects invented patch hashes before execution", async () => {
+    const hash = "a".repeat(64);
+    const proposal = (operations: unknown[]) => ({
+      requestId: crypto.randomUUID(),
+      outcome: "SUCCESS",
+      decision: { reason: "test", economic: { estimatedCostUsd: "0.01" } },
+      usage: { inputTokens: 10, outputTokens: 5 },
+      structuredOutput: { summary: "Update file", operations, artifacts: [] },
+    });
+    const patch = (expectedSha256: string) => ({
+      capability: "repository.file_patch",
+      input: {
+        patch: {
+          path: "src/App.tsx",
+          expectedSha256,
+          hunks: [{ startLine: 1, endLine: 1, replacement: "updated" }],
+        },
+      },
+    });
+    const executeStructured = vi
+      .fn()
+      .mockResolvedValueOnce(proposal([patch("invented")]))
+      .mockResolvedValueOnce(
+        proposal([
+          { capability: "repository.file_read", input: { path: "src/App.tsx" } },
+        ]),
+      )
+      .mockResolvedValueOnce(
+        proposal([patch(hash), { capability: "repository.validate", input: {} }]),
+      );
+    const invoke = vi
+      .fn<GovernedEngineeringActionGateway["invoke"]>()
+      .mockResolvedValueOnce({
+        output: { path: "src/App.tsx", content: "original", sha256: hash },
+      })
+      .mockResolvedValueOnce({ output: {}, filesChanged: ["src/App.tsx"] })
+      .mockResolvedValueOnce({ output: {}, validationStatus: "PASS" });
+    const worker = new AIRouterEngineeringTaskWorker(
+      { executeStructured } as unknown as AIRouterService,
+      { invoke },
+    );
+    const result = await worker.execute({
+      objective,
+      task: {
+        ...task,
+        requiredCapabilities: [
+          "repository.file_read",
+          "repository.file_patch",
+          "repository.validate",
+        ],
+      },
+      agentDefinitionId,
+      context,
+      modelTier: "LUNA",
+      workspaceId: task.workspaceId,
+      signal: new AbortController().signal,
+      transport,
+    });
+    expect(invoke.mock.calls.map(([call]) => call.capability)).toEqual([
+      "repository.file_read",
+      "repository.file_patch",
+      "repository.validate",
+    ]);
+    const thirdRequest = executeStructured.mock.calls[2]![0] as { input: unknown };
+    expect(AIRouterRequestSchema.shape.maxOutputTokens.safeParse((thirdRequest as { maxOutputTokens?: number }).maxOutputTokens).success).toBe(true);
+    expect(JSON.stringify(thirdRequest.input)).toContain(hash);
+    expect(result).toMatchObject({
+      status: "SUCCEEDED",
+      inputTokens: 30,
+      outputTokens: 15,
+      costUsd: "0.03",
+      filesChanged: ["src/App.tsx"],
+    });
+  });
   it("routes reasoning through AIRouter and sends only declared finite operations to governance", async () => {
     const executeStructured = vi.fn().mockResolvedValue({
       requestId: crypto.randomUUID(),
@@ -167,10 +279,15 @@ describe("AIRouterEngineeringTaskWorker", () => {
         type: "object",
         required: ["summary", "operations", "artifacts"],
         properties: {
-          operations: { type: "array", items: {
-            required: ["capability", "input"],
-            properties: { capability: { enum: ["repository.file_create", "repository.validate"] } },
-          } },
+          operations: {
+            type: "array",
+            items: {
+              required: ["capability", "input"],
+              properties: {
+                capability: { enum: ["repository.file_create", "repository.validate"] },
+              },
+            },
+          },
         },
       },
       contextProfile: "AGENT_TASK",

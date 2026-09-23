@@ -35,7 +35,13 @@ const audit = () => undefined;
 class FakeWorkspaceGateway implements EngineeringWorkspaceGateway {
   readonly created: string[] = [];
   readonly cancelled: string[] = [];
+  readonly prepared: string[] = [];
+  prepareError: Error | null = null;
   constructor(readonly runtime: InMemoryEngineeringRuntimeStore) {}
+  prepare(input: Parameters<EngineeringWorkspaceGateway["prepare"]>[0]) {
+    this.prepared.push(input.workspaceId);
+    return this.prepareError ? Promise.reject(this.prepareError) : Promise.resolve();
+  }
   create(input: {
     ownerId: string;
     companyId: string;
@@ -258,6 +264,33 @@ const runToTerminal = async (
 };
 
 describe("EngineeringManagerService", () => {
+  it("recovers the original authorized worktree agent after a legacy reassignment", async () => {
+    const { service, store, runtime, workspaces, worker } = await setup();
+    const planned = await create(service);
+    const task = planned.tasks.find((item) => item.taskType === "FRONTEND")!;
+    const workspace = await workspaces.create({ ownerId, companyId, repositoryId, taskId: task.id, agentId: task.assignedAgentId!, idempotencyKey: task.id });
+    const wrongAgent = planned.tasks.find((item) => item.assignedAgentId !== task.assignedAgentId)!.assignedAgentId;
+    for (const other of planned.tasks) store.saveTask({ ...other, status: other.id === task.id ? "BLOCKED" : "COMPLETE" });
+    store.saveTask({ ...task, workspaceId: workspace.id, assignedAgentId: wrongAgent, status: "BLOCKED", lastFailureCategory: "POLICY_DENIED", lastFailureSummary: "Scope mismatch" });
+    store.saveObjective({ ...planned.objective, status: "BLOCKED" });
+    await service.resume(context, planned.objective.id);
+    expect(worker.starts.find((item) => item.id === task.id)?.assignedAgentId).toBe(task.assignedAgentId);
+    expect(runtime.findWorkspace(ownerId, companyId, workspace.id)?.agentId).toBe(task.assignedAgentId);
+    expect(workspaces.created).toHaveLength(1);
+  });
+
+  it("blocks before a paid worker call when governed dependency preparation fails", async () => {
+    const { service, workspaces, worker } = await setup();
+    workspaces.prepareError = Object.assign(new Error("Governed dependency preparation failed."), { code: "DEPENDENCY_INSTALL_FAILED" });
+    const planned = await create(service, "Change the CTA text from Get Started to Contact Me.");
+    const finished = await runToTerminal(service, planned.objective.id);
+    expect(finished.objective.status).toBe("BLOCKED");
+    expect(worker.starts).toHaveLength(0);
+    expect(workspaces.created).toHaveLength(1);
+    expect(new Set(workspaces.prepared)).toEqual(new Set(workspaces.created));
+    expect(finished.tasks[0]).toMatchObject({ lastFailureCategory: "ENVIRONMENT_FAILURE", modelPolicy: { currentTier: "LUNA" } });
+  });
+
   it("matches authorized company assignments independently of organizational grouping", async () => {
     const { service, agentStore } = await setup();
     const assignments = agentStore.listAssignments(ownerId, companyId);

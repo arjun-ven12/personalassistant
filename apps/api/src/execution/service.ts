@@ -528,7 +528,10 @@ export class ExecutionService {
       status: "PENDING",
       createdAt: createdAt.toISOString(),
       expiresAt: new Date(
-        createdAt.getTime() + this.limits.requestTtlSeconds * 1_000,
+        createdAt.getTime() +
+          (engineeringInput?.capability === "repository.install_dependencies"
+            ? 600
+            : this.limits.requestTtlSeconds) * 1_000,
       ).toISOString(),
       claimedAt: null,
       startedAt: null,

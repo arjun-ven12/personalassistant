@@ -143,6 +143,67 @@ describe("InMemoryGovernanceStore and RegistryService", () => {
 describe("RiskEngine", () => {
   const engine = new RiskEngine();
 
+  it("allows registered dependency preparation within a session but keeps package changes explicit", () => {
+    const tool = BUILT_IN_TOOLS.find((entry) => entry.name === "repository.install_dependencies")!;
+    const permitted = { ...workspace, permissions: { ...workspace.permissions, runScripts: true } };
+    const request = {
+      schemaVersion: "1", companyId: crypto.randomUUID(), repositoryId: crypto.randomUUID(),
+      engineeringWorkspaceId: crypto.randomUUID(), workspaceLocatorId: workspace.id,
+      worktreeLocator: "ew-test", taskId: crypto.randomUUID(), agentId: crypto.randomUUID(),
+      operationId: crypto.randomUUID(), idempotencyKey: crypto.randomUUID(), requestId: crypto.randomUUID(),
+      capability: "repository.install_dependencies", input: { packageManager: "pnpm" },
+    };
+    const evaluate = (selectedTool = tool, selectedWorkspace = permitted) => engine.evaluate({
+      tool: selectedTool, workspace: selectedWorkspace,
+      action: action(selectedTool.name, { workspaceId: workspace.id, arguments: { ...request, capability: selectedTool.name } }),
+    });
+    expect(evaluate().approvalRequirement).toBe("session");
+    expect(evaluate(tool, workspace).approvalRequirement).toBe("explicit");
+    expect(evaluate({ ...tool, approvalRequirement: "explicit" }).approvalRequirement).toBe("explicit");
+    expect(evaluate({ ...tool, riskLevel: "high" }).approvalRequirement).toBe("recent_authentication");
+    const adding = BUILT_IN_TOOLS.find((entry) => entry.name === "repository.add_dependency")!;
+    expect(evaluate(adding).approvalRequirement).toBe("explicit");
+  });
+
+  it.each(["repository.file_create", "repository.file_patch"] as const)("honors registered session approval for scoped %s without weakening overrides", (capability) => {
+    const tool = BUILT_IN_TOOLS.find((entry) => entry.name === capability)!;
+    const permitted = { ...workspace, permissions: { ...workspace.permissions, write: true, createFile: true, modifyFile: true } };
+    const request = {
+      schemaVersion: "1", companyId: crypto.randomUUID(), repositoryId: crypto.randomUUID(),
+      engineeringWorkspaceId: crypto.randomUUID(), workspaceLocatorId: workspace.id,
+      worktreeLocator: "ew-test", taskId: crypto.randomUUID(), agentId: crypto.randomUUID(),
+      operationId: crypto.randomUUID(), idempotencyKey: crypto.randomUUID(), requestId: crypto.randomUUID(), capability,
+      input: { ...(capability === "repository.file_create" ? { path: "src/page.tsx", content: "hello" } : { patch: { path: "src/page.tsx", expectedSha256: "a".repeat(64), hunks: [{ startLine: 1, endLine: 1, replacement: "after" }] } }), protectedPaths: [], protectedPathApproved: false },
+    };
+    const evaluate = (selectedTool = tool, selectedWorkspace = permitted) => engine.evaluate({ tool: selectedTool, action: action(capability, { workspaceId: workspace.id, arguments: request }), workspace: selectedWorkspace });
+    expect(evaluate().approvalRequirement).toBe("session");
+    expect(evaluate({ ...tool, approvalRequirement: "explicit" }).approvalRequirement).toBe("explicit");
+    expect(evaluate(tool, { ...permitted, permissions: { ...permitted.permissions, write: false } }).approvalRequirement).toBe("explicit");
+    expect(evaluate({ ...tool, riskLevel: "high" }).approvalRequirement).toBe("recent_authentication");
+  });
+
+  it("uses session approval only for scoped routine Engineering commands while preserving stronger controls", () => {
+    const tool = BUILT_IN_TOOLS.find((entry) => entry.name === "repository.run_command")!;
+    const permitted = { ...workspace, permissions: { ...workspace.permissions, runScripts: true } };
+    const request = {
+      schemaVersion: "1", companyId: crypto.randomUUID(), repositoryId: crypto.randomUUID(),
+      engineeringWorkspaceId: crypto.randomUUID(), workspaceLocatorId: workspace.id,
+      worktreeLocator: "ew-test", taskId: crypto.randomUUID(), agentId: crypto.randomUUID(),
+      operationId: crypto.randomUUID(), idempotencyKey: crypto.randomUUID(), requestId: crypto.randomUUID(),
+      capability: "repository.run_command",
+      input: { command: { id: "test", executable: "pnpm", args: ["test"], kind: "TEST", timeoutMs: 60000, maxOutputBytes: 4096, networkPolicy: "DENY" } },
+    };
+    const evaluate = (argumentsValue: unknown, selectedTool = tool) => engine.evaluate({
+      tool: selectedTool, action: action(tool.name, { workspaceId: workspace.id, arguments: argumentsValue as ProposedAction["arguments"] }), workspace: permitted,
+    });
+    expect(evaluate(request).approvalRequirement).toBe("session");
+    expect(evaluate({ ...request, engineeringWorkspaceId: null }).approvalRequirement).toBe("explicit");
+    expect(evaluate({ ...request, input: { command: { ...request.input.command, kind: "OTHER" } } }).approvalRequirement).toBe("explicit");
+    expect(evaluate(request, { ...tool, approvalRequirement: "explicit" }).approvalRequirement).toBe("explicit");
+    expect(evaluate(request, { ...tool, riskLevel: "high" }).approvalRequirement).toBe("recent_authentication");
+    expect(engine.evaluate({ tool, action: action(tool.name, { workspaceId: workspace.id, arguments: request }), workspace }).approvalRequirement).toBe("explicit");
+  });
+
   it.each([
     ["security.view", "read_only", "none"],
     ["app.open", "low", "session"],

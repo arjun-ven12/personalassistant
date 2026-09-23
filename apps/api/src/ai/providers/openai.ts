@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/require-await */
+import { z } from "zod";
 import {
   AIInferenceResponseSchema,
   AIModelDescriptorSchema,
@@ -203,14 +204,39 @@ export class OpenAIProvider implements AIProvider {
       parsed.timeoutMs,
       options.signal,
     );
+    if (response.status === "incomplete") {
+      const details = z
+        .object({ reason: z.string() })
+        .safeParse(response.incomplete_details);
+      const reason =
+        details.success && details.data.reason === "max_output_tokens"
+          ? "the configured output token limit was reached"
+          : "the provider interrupted generation";
+      throw new AIProviderError(
+        "OUTPUT_VALIDATION_FAILED",
+        `OpenAI structured response is incomplete: ${reason}. No operations from this response were executed.`,
+        this.providerId,
+        false,
+      );
+    }
     const outputText = this.outputText(response);
     let value: T;
     try {
       value = request.schema.parse(JSON.parse(outputText));
-    } catch {
+    } catch (error) {
+      const diagnostic =
+        error instanceof z.ZodError
+          ? error.issues
+              .slice(0, 3)
+              .map(
+                (issue) =>
+                  `${issue.code} at ${issue.path.map((part) => (typeof part === "number" ? part : ["operations", "summary", "artifacts", "capability", "input", "type", "title", "contract"].includes(String(part)) ? part : "field")).join(".") || "root"}`,
+              )
+              .join("; ")
+          : "invalid or truncated JSON";
       throw new AIProviderError(
         "OUTPUT_VALIDATION_FAILED",
-        "OpenAI structured output failed local schema validation.",
+        `OpenAI structured output failed local schema validation: ${diagnostic}.`,
         this.providerId,
         true,
       );

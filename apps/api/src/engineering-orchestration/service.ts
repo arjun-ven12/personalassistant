@@ -93,6 +93,22 @@ export interface EngineeringWorkspaceGateway {
       deviceId?: string;
     };
   }): Promise<{ id: string; baseCommit: string }>;
+  prepare(input: {
+    ownerId: string;
+    companyId: string;
+    repositoryId: string;
+    workspaceId: string;
+    taskId: string;
+    agentId: string;
+    signal: AbortSignal;
+    transport: {
+      sessionId: string;
+      requestId: string;
+      ipAddress: string;
+      networkState: NetworkVerificationState;
+      deviceId?: string;
+    };
+  }): Promise<void>;
   cancelExecutions(input: {
     ownerId: string;
     companyId: string;
@@ -236,6 +252,9 @@ export class UnavailableEngineeringWorkspaceGateway implements EngineeringWorksp
         { code: "ENGINEERING_WORKSPACE_GATEWAY_UNAVAILABLE" },
       ),
     );
+  }
+  prepare(): Promise<void> {
+    return Promise.reject(Object.assign(new Error("The governed dependency preparation gateway is unavailable."), { code: "ENGINEERING_WORKSPACE_GATEWAY_UNAVAILABLE" }));
   }
   cancelExecutions() {
     return Promise.resolve();
@@ -859,20 +878,24 @@ export class EngineeringManagerService {
       );
       let recoveredTask = false;
       for (const task of tasks) {
-        const pendingWorkspace = task.lastFailureCategory === "POLICY_DENIED"
-          ? await this.runtimeStore.findWorkspaceByIdempotencyKey(context.ownerId, context.companyId, task.repositoryId, task.id)
-          : undefined;
+        const pendingWorkspace = await this.runtimeStore.findWorkspaceByIdempotencyKey(context.ownerId, context.companyId, task.repositoryId, task.id);
         if (
           task.status === "BLOCKED" &&
-          (["MODEL_FAILURE", "ENVIRONMENT_FAILURE"].includes(
+          (["MODEL_FAILURE", "ENVIRONMENT_FAILURE", "IMPLEMENTATION_ERROR"].includes(
             task.lastFailureCategory ?? "",
-          ) || pendingWorkspace?.state === "CREATING") &&
+          ) || (pendingWorkspace && ["CREATING", "READY", "DIRTY"].includes(pendingWorkspace.state))) &&
           task.assignedAgentId
         ) {
+          const boundAgentId = pendingWorkspace?.agentId;
+          const recoveredAgentId = boundAgentId
+            ? await this.matchAgent(objective, task.assignedRole, task.requiredSkills, task.requiredCapabilities, task.taskType, task.riskLevel, null, boundAgentId)
+            : task.assignedAgentId;
+          if (!recoveredAgentId) continue;
           const startsNewRecoveryCycle = task.attempt >= task.maxAttempts;
           await this.store.saveTask(
             EngineeringTaskSchema.parse({
               ...task,
+              assignedAgentId: recoveredAgentId,
               status: "READY",
               attempt: startsNewRecoveryCycle ? 0 : task.attempt,
               maxAttempts: startsNewRecoveryCycle
@@ -898,6 +921,8 @@ export class EngineeringManagerService {
           task.requiredCapabilities,
           task.taskType,
           task.riskLevel,
+          null,
+          pendingWorkspace?.agentId ?? undefined,
         );
         if (!assignedAgentId) continue;
         await this.store.saveTask(
@@ -1315,6 +1340,8 @@ export class EngineeringManagerService {
       const existingWorkspace = task.workspaceId
         ? await this.runtimeStore.findWorkspace(context.ownerId, context.companyId, task.workspaceId)
         : undefined;
+      if (existingWorkspace && existingWorkspace.agentId !== task.assignedAgentId)
+        throw Object.assign(new Error("The task agent does not match its isolated workspace. Retry to revalidate the original authorized assignment."), { category: "POLICY_DENIED" });
       if (needsWorkspace && (!task.workspaceId || existingWorkspace?.state === "CREATING")) {
         const workspace = await this.workspaces.create({
           ownerId: context.ownerId,
@@ -1354,6 +1381,23 @@ export class EngineeringManagerService {
           { workspaceId: workspace.id },
         );
       }
+      if (task.workspaceId && !task.readOnly)
+        await this.workspaces.prepare({
+          ownerId: context.ownerId,
+          companyId: context.companyId,
+          repositoryId: task.repositoryId,
+          workspaceId: task.workspaceId,
+          taskId: task.id,
+          agentId: task.assignedAgentId!,
+          signal: controller.signal,
+          transport: {
+            sessionId: context.sessionId,
+            requestId: context.requestId,
+            ipAddress: context.ipAddress,
+            networkState: context.networkState,
+            ...(context.deviceId ? { deviceId: context.deviceId } : {}),
+          },
+        });
       const contextPackage = await this.contextFor(objective, task);
       const agentDefinitionId = await this.agentDefinitionId(
         objective,
@@ -1741,10 +1785,14 @@ export class EngineeringManagerService {
     summary: string,
   ) {
     const retry = !NON_RETRYABLE.has(category) && task.attempt < task.maxAttempts;
-    const escalatedTier = retry
+    const escalatedTier = retry && category !== "ENVIRONMENT_FAILURE" && category !== "DEPENDENCY_NOT_READY"
       ? this.escalate(task.modelPolicy.currentTier, task.riskLevel)
       : task.modelPolicy.currentTier;
-    const reassign = retry && task.attempt >= 2;
+    // A worktree is bound to its original agent; reassignment cannot transfer authority.
+    const boundWorkspace = task.workspaceId
+      ? await this.runtimeStore.findWorkspace(objective.ownerId, objective.companyId, task.workspaceId)
+      : await this.runtimeStore.findWorkspaceByIdempotencyKey(objective.ownerId, objective.companyId, task.repositoryId, task.id);
+    const reassign = retry && task.attempt >= 2 && !boundWorkspace;
     const agentId = reassign
       ? await this.matchAgent(
           objective,
@@ -2353,6 +2401,7 @@ export class EngineeringManagerService {
     taskType: EngineeringTaskType,
     riskLevel: EngineeringTask["riskLevel"],
     exclude?: string | null,
+    requiredAssignmentId?: string,
   ) {
     const repository = await this.runtimeStore.findRepository(
       objective.ownerId,
@@ -2383,6 +2432,7 @@ export class EngineeringManagerService {
       (candidate) =>
         candidate.assignment &&
         candidate.assignment.id !== exclude &&
+        (!requiredAssignmentId || candidate.assignment.id === requiredAssignmentId) &&
         candidate.assignment.companyId === objective.companyId &&
         candidate.agent.status === "available" &&
         repository?.authorizedAgentIds.includes(candidate.assignment.id),
@@ -2538,6 +2588,7 @@ export class EngineeringManagerService {
     if (value.code?.includes("POLICY") || value.code?.includes("DENIED") || value.code?.includes("APPROVAL"))
       return "POLICY_DENIED";
     if (value.code?.includes("CAPABILITY")) return "MISSING_CAPABILITY";
+    if (value.code === "DEPENDENCY_INSTALL_FAILED") return "ENVIRONMENT_FAILURE";
     if (value.code?.includes("TIMEOUT") || value.code?.includes("UNAVAILABLE"))
       return "ENVIRONMENT_FAILURE";
     return "IMPLEMENTATION_ERROR";

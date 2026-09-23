@@ -121,6 +121,11 @@ Administrators must build and review these local images:
 Validation runs the repository profile's ordered subset and stops on the first
 failure. Results distinguish pass/fail/error/cancelled, retain bounded raw output,
 and provide lightweight file/message extraction for common compiler/test output.
+For Node projects, the governed dependency container prepares each new isolated
+worktree from its registered lockfile before offline checks run. A successful
+preparation is recorded on the workspace; an interrupted or failed preparation
+must succeed on Retry before the workspace is ready. Package additions and
+removals retain their separate approval requirements.
 
 ## Persistence, leases, and recovery
 

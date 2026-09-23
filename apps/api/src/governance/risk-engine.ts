@@ -8,6 +8,7 @@ import type {
   RiskLevel,
   ToolDefinition,
 } from "@alexa-control/shared";
+import { EngineeringTransportRequestSchema } from "@alexa-control/shared";
 
 export interface RiskEvaluation {
   riskLevel: RiskLevel;
@@ -191,12 +192,27 @@ export class RiskEngine {
       };
     }
 
+    const engineeringRequest = EngineeringTransportRequestSchema.safeParse(input.action.arguments);
+    const routineEngineering = riskLevel === "medium" && input.tool.approvalRequirement === "session" &&
+      Boolean(input.workspace?.enabled && input.workspace.id === input.action.workspaceId) &&
+      engineeringRequest.success && engineeringRequest.data.workspaceLocatorId === input.workspace?.id &&
+      engineeringRequest.data.capability === input.tool.name &&
+      Boolean(engineeringRequest.data.engineeringWorkspaceId && engineeringRequest.data.worktreeLocator) &&
+      ((engineeringRequest.data.capability === "repository.worktree_create" && input.workspace?.permissions.write && input.workspace.gitPermissions.createBranch) ||
+        (engineeringRequest.data.capability === "repository.install_dependencies" && input.workspace?.permissions.runScripts) ||
+        (engineeringRequest.data.capability === "repository.file_patch" && input.workspace?.permissions.write && input.workspace.permissions.modifyFile && !engineeringRequest.data.input.protectedPathApproved) ||
+        (engineeringRequest.data.capability === "repository.file_create" && input.workspace?.permissions.write && input.workspace.permissions.createFile && !engineeringRequest.data.input.protectedPathApproved) ||
+        (engineeringRequest.data.capability === "repository.run_command" &&
+          input.workspace?.permissions.runScripts &&
+          ["LINT", "TYPECHECK", "TEST", "BUILD"].includes(engineeringRequest.data.input.command.kind)));
     const approvalRequirement = maxApproval(
       input.tool.approvalRequirement,
-      minimumApprovalForRisk(riskLevel),
+      routineEngineering ? "session" : minimumApprovalForRisk(riskLevel),
     );
     if (riskLevel === "high") {
       matchedRules.push("risk.high.requires_recent_authentication");
+    } else if (routineEngineering) {
+      matchedRules.push("engineering.registered_workspace.routine_session_approval");
     } else if (riskLevel === "medium") {
       matchedRules.push("risk.medium.requires_explicit_approval");
     } else if (riskLevel === "low") {
