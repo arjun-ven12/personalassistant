@@ -603,7 +603,7 @@ export class EngineeringDeliveryService {
           case "MISSING_CAPABILITY":
             return { category: "CAPABILITY_UNAVAILABLE", message: task.lastFailureSummary ?? "A required engineering capability or eligible agent is unavailable.", action: "Retry rechecks the registered workforce and repository permissions. It preserves completed tasks and does not grant new capabilities." };
           case "POLICY_DENIED":
-            return { category: "POLICY_APPROVAL_REQUIRED", message: "Governance did not permit this change.", action: "Review the exact policy or approval request before retrying." };
+            return { category: "POLICY_APPROVAL_REQUIRED", message: task.lastFailureSummary ?? "Governance did not permit this change.", action: "Open Approvals and review this project's pending operation. After approval, Retry the same run; all permissions are checked again." };
           case "MODEL_FAILURE":
             return {
               category: "MODEL_PROVIDER_UNAVAILABLE",

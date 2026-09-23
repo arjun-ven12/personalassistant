@@ -643,6 +643,26 @@ export class ExecutionService {
     return undefined;
   }
 
+  async findApprovedWorktreeCreation(ownerId: string, expected: EngineeringTransportRequest): Promise<EngineeringTransportRequest | undefined> {
+    if (expected.capability !== "repository.worktree_create") return undefined;
+    for (const approval of await this.governance.store.listApprovals(ownerId, "APPROVED")) {
+      if (approval.toolName !== expected.capability || approval.action.toolName !== expected.capability ||
+          approval.action.workspaceId !== expected.workspaceLocatorId) continue;
+      const parsed = EngineeringTransportRequestSchema.safeParse(approval.action.arguments);
+      if (!parsed.success || parsed.data.capability !== "repository.worktree_create") continue;
+      const candidate = parsed.data;
+      if (approval.action.actionId !== candidate.operationId ||
+          candidate.companyId !== expected.companyId || candidate.repositoryId !== expected.repositoryId ||
+          candidate.workspaceLocatorId !== expected.workspaceLocatorId || candidate.engineeringWorkspaceId !== expected.engineeringWorkspaceId ||
+          candidate.worktreeLocator !== expected.worktreeLocator || candidate.taskId !== expected.taskId ||
+          candidate.agentId !== expected.agentId || candidate.idempotencyKey !== expected.idempotencyKey ||
+          candidate.input.branchName !== expected.input.branchName || candidate.input.baseCommit !== expected.input.baseCommit) continue;
+      const exact = await this.governance.approvals.findMatchingApproved(ownerId, approval.action);
+      if (exact?.status === "APPROVED") return candidate;
+    }
+    return undefined;
+  }
+
   async createNativeProviderExecution(input: {
     ownerId: string;
     sessionId: string;

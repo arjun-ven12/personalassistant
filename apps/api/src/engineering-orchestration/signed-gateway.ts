@@ -572,11 +572,14 @@ export class SignedExecutionEngineeringGateway
       capability: input.capability,
       input: operationInput,
     });
+    const approved = request.capability === "repository.worktree_create"
+      ? await this.executions.findApprovedWorktreeCreation(input.ownerId, request)
+      : undefined;
     return this.enqueueAndWait({
       ownerId: input.ownerId,
       transport: input.transport,
       signal: input.signal,
-      request,
+      request: approved ?? request,
     });
   }
 

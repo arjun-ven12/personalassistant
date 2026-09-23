@@ -114,6 +114,26 @@ const setup = async (emergencyStopActive = false) => {
 };
 
 describe("ExecutionService policy integration", () => {
+  it("reuses only an exact approved worktree creation across retries", async () => {
+    const { service, approvals, ownerId } = await setup();
+    const request = {
+      schemaVersion: "1" as const, companyId: crypto.randomUUID(), repositoryId: crypto.randomUUID(),
+      engineeringWorkspaceId: crypto.randomUUID(), workspaceLocatorId: "eng-approved-retry",
+      worktreeLocator: "ew-approved-retry", taskId: crypto.randomUUID(), agentId: crypto.randomUUID(),
+      operationId: crypto.randomUUID(), idempotencyKey: crypto.randomUUID(), requestId: crypto.randomUUID(),
+      capability: "repository.worktree_create" as const,
+      input: { branchName: "alexa/test", baseCommit: "a".repeat(40) },
+    };
+    const approval = await approvals.create({ ownerId,
+      action: { actionId: request.operationId, toolName: request.capability, workspaceId: request.workspaceLocatorId, arguments: request },
+      riskLevel: "medium", approvalRequirement: "explicit", ipAddress: "127.0.0.1", requestId: crypto.randomUUID(),
+    });
+    await expect(service.findApprovedWorktreeCreation(ownerId, request)).resolves.toBeUndefined();
+    await approvals.approve(ownerId, approval.id, crypto.randomUUID(), { ipAddress: "127.0.0.1", requestId: crypto.randomUUID() });
+    await expect(service.findApprovedWorktreeCreation(ownerId, { ...request, operationId: crypto.randomUUID(), requestId: crypto.randomUUID() })).resolves.toEqual(request);
+    await expect(service.findApprovedWorktreeCreation(ownerId, { ...request, companyId: crypto.randomUUID() })).resolves.toBeUndefined();
+    await expect(service.findApprovedWorktreeCreation(ownerId, { ...request, input: { ...request.input, baseCommit: "b".repeat(40) } })).resolves.toBeUndefined();
+  });
   it("recovers only the exact approved project-initialization request", async () => {
     const { service, approvals, ownerId } = await setup();
     const companyId = crypto.randomUUID();

@@ -57,6 +57,7 @@ const NON_RETRYABLE = new Set<EngineeringFailureCategory>([
 ]);
 
 export class EngineeringOrchestrationError extends Error {
+  readonly statusCode: number;
   constructor(
     readonly code:
       | "OBJECTIVE_NOT_FOUND"
@@ -71,6 +72,7 @@ export class EngineeringOrchestrationError extends Error {
   ) {
     super(message);
     this.name = "EngineeringOrchestrationError";
+    this.statusCode = code.endsWith("NOT_FOUND") ? 404 : code === "REPOSITORY_NOT_AUTHORIZED" ? 403 : 409;
   }
 }
 
@@ -857,11 +859,14 @@ export class EngineeringManagerService {
       );
       let recoveredTask = false;
       for (const task of tasks) {
+        const pendingWorkspace = task.lastFailureCategory === "POLICY_DENIED"
+          ? await this.runtimeStore.findWorkspaceByIdempotencyKey(context.ownerId, context.companyId, task.repositoryId, task.id)
+          : undefined;
         if (
           task.status === "BLOCKED" &&
-          ["MODEL_FAILURE", "ENVIRONMENT_FAILURE"].includes(
+          (["MODEL_FAILURE", "ENVIRONMENT_FAILURE"].includes(
             task.lastFailureCategory ?? "",
-          ) &&
+          ) || pendingWorkspace?.state === "CREATING") &&
           task.assignedAgentId
         ) {
           const startsNewRecoveryCycle = task.attempt >= task.maxAttempts;
@@ -912,7 +917,9 @@ export class EngineeringManagerService {
       if (!recoveredTask)
         throw new EngineeringOrchestrationError(
           "INVALID_STATE",
-          "No recoverable task or newly eligible authorized engineering agent is available.",
+          tasks.some((task) => task.lastFailureCategory === "POLICY_DENIED")
+            ? "This run is waiting for policy approval. Open Approvals and resolve the pending Engineering operation before retrying."
+            : "No recoverable task or newly eligible authorized engineering agent is available.",
         );
       for (const task of tasks) {
         if (
