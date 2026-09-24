@@ -153,6 +153,7 @@ export const EngineeringControlCenterSchema = z
   .object({
     delivery: EngineeringDeliverySchema,
     overallProgress: z.number().min(0).max(100),
+    recoveryAvailable: z.boolean(),
     activeAgents: z
       .array(
         z
@@ -173,7 +174,7 @@ export const EngineeringControlCenterSchema = z
     completedTasks: z.number().int().nonnegative(),
     blockedTasks: z.number().int().nonnegative(),
     blocker: z.object({
-      category: z.enum(["CAPABILITY_UNAVAILABLE", "REPOSITORY_PERMISSION", "POLICY_APPROVAL_REQUIRED", "MODEL_PROVIDER_UNAVAILABLE", "VALIDATION_FAILURE", "MERGE_CONFLICT", "OWNER_CLARIFICATION_REQUIRED", "DEVICE_OFFLINE"]),
+      category: z.enum(["CAPABILITY_UNAVAILABLE", "REPOSITORY_PERMISSION", "POLICY_APPROVAL_REQUIRED", "MODEL_PROVIDER_UNAVAILABLE", "VALIDATION_FAILURE", "MERGE_CONFLICT", "INTEGRATION_EVIDENCE_MISMATCH", "INTEGRATION_SCOPE_MISMATCH", "INTEGRATION_REPAIR_PENDING", "REVIEWER_UNAVAILABLE", "DEPENDENCY_PREPARATION_FAILED", "OWNER_CLARIFICATION_REQUIRED", "DEVICE_OFFLINE"]),
       message: z.string().min(1).max(300),
       action: z.string().min(1).max(300),
     }).strict().nullable(),

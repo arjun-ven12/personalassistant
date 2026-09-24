@@ -94,7 +94,7 @@ describe("AgentOsEngineeringGateway", () => {
       repositoryId,
       workspaceId: crypto.randomUUID(),
       title: "Implement endpoint",
-      description: "Implement the registered bounded endpoint.",
+      description: `Implement the registered bounded endpoint. ${"x".repeat(1_200)}`,
       acceptanceCriteria: ["Focused validation passes."],
       taskType: "BACKEND",
       requiredSkills: ["patch.proposal", "test.validation"],
@@ -146,6 +146,7 @@ describe("AgentOsEngineeringGateway", () => {
       },
     });
     expect(running?.delegation?.memoryScopes).toContain(task.id);
+    expect(running?.inputSummary).toHaveLength(1_000);
     expect(running?.delegation?.skillRefs).toHaveLength(3);
     expect(running?.delegation?.skillRefs[2]).toHaveLength(120);
     expect(running?.delegation?.skillRefs[2]).toMatch(

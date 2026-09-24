@@ -82,7 +82,7 @@ export const registerEngineeringDeliveryRoutes = (
       await context.engineeringDelivery.create(scoped(request), request.body),
     ),
   );
-  for (const action of ["run", "pause", "resume", "cancel"] as const)
+  for (const action of ["run", "pause", "resume", "recover", "cancel"] as const)
     app.post(
       `/api/engineering-deliveries/:deliveryId/${action}`,
       { preHandler: mutate },
@@ -96,6 +96,8 @@ export const registerEngineeringDeliveryRoutes = (
               ? await service.pause(scoped(request), id)
               : action === "resume"
                 ? await service.resume(scoped(request), id)
+                : action === "recover"
+                  ? await service.recover(scoped(request), id)
                 : await service.cancel(scoped(request), id);
         return EngineeringControlCenterSchema.parse(value);
       },

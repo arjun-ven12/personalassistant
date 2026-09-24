@@ -234460,6 +234460,7 @@ var EngineeringWorkspaceSchema = external_exports.object({
   baseCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/),
   headCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/).nullable(),
   state: EngineeringWorkspaceStateSchema,
+  dependenciesPreparedAt: external_exports.iso.datetime().nullable().default(null),
   leaseOwner: SafeIdentifierSchema.nullable(),
   leaseExpiresAt: external_exports.iso.datetime().nullable(),
   leaseGeneration: external_exports.number().int().nonnegative(),
@@ -234493,6 +234494,7 @@ var EngineeringFileReadRequestSchema = external_exports.object({
 }).strict().refine((value) => value.endLine === void 0 || value.endLine >= value.startLine, {
   message: "endLine must not precede startLine."
 });
+var EngineeringGitDiffRequestSchema = external_exports.object({ maxBytes: external_exports.number().int().min(1024).max(524288).default(131072) }).strict();
 var EngineeringFileReadResultSchema = external_exports.object({
   path: EngineeringRelativePathSchema,
   startLine: external_exports.number().int().positive(),
@@ -234831,7 +234833,7 @@ var EngineeringTransportOperationSchema = external_exports.discriminatedUnion("c
   }).strict(),
   external_exports.object({
     capability: external_exports.literal("repository.git_diff"),
-    input: external_exports.object({ maxBytes: external_exports.number().int().min(1024).max(524288) }).strict()
+    input: EngineeringGitDiffRequestSchema
   }).strict(),
   external_exports.object({
     capability: external_exports.literal("repository.integration_diff"),
@@ -241662,6 +241664,7 @@ var EngineeringDeliverySchema = external_exports.object({
 var EngineeringControlCenterSchema = external_exports.object({
   delivery: EngineeringDeliverySchema,
   overallProgress: external_exports.number().min(0).max(100),
+  recoveryAvailable: external_exports.boolean(),
   activeAgents: external_exports.array(
     external_exports.object({
       agentId: external_exports.string().min(3).max(120),
@@ -241678,7 +241681,7 @@ var EngineeringControlCenterSchema = external_exports.object({
   completedTasks: external_exports.number().int().nonnegative(),
   blockedTasks: external_exports.number().int().nonnegative(),
   blocker: external_exports.object({
-    category: external_exports.enum(["CAPABILITY_UNAVAILABLE", "REPOSITORY_PERMISSION", "POLICY_APPROVAL_REQUIRED", "MODEL_PROVIDER_UNAVAILABLE", "VALIDATION_FAILURE", "MERGE_CONFLICT", "OWNER_CLARIFICATION_REQUIRED", "DEVICE_OFFLINE"]),
+    category: external_exports.enum(["CAPABILITY_UNAVAILABLE", "REPOSITORY_PERMISSION", "POLICY_APPROVAL_REQUIRED", "MODEL_PROVIDER_UNAVAILABLE", "VALIDATION_FAILURE", "MERGE_CONFLICT", "INTEGRATION_EVIDENCE_MISMATCH", "INTEGRATION_SCOPE_MISMATCH", "INTEGRATION_REPAIR_PENDING", "REVIEWER_UNAVAILABLE", "DEPENDENCY_PREPARATION_FAILED", "OWNER_CLARIFICATION_REQUIRED", "DEVICE_OFFLINE"]),
     message: external_exports.string().min(1).max(300),
     action: external_exports.string().min(1).max(300)
   }).strict().nullable(),
@@ -251773,13 +251776,13 @@ var DockerEngineeringDependencyRunner = class {
         "This package manager has no reviewed dependency image."
       );
     const before = await this.lockHash(input.cwd, input.packageManager);
-    const args = input.packageManager === "pnpm" ? input.operation === "INSTALL" ? ["install", "--ignore-scripts", "--registry=https://registry.npmjs.org"] : input.operation === "ADD" ? [
+    const args = input.packageManager === "pnpm" ? input.operation === "INSTALL" ? ["install", "--frozen-lockfile", "--ignore-scripts", "--registry=https://registry.npmjs.org"] : input.operation === "ADD" ? [
       "add",
       ...input.development ? ["--save-dev"] : [],
       ...input.packages,
       "--ignore-scripts",
       "--registry=https://registry.npmjs.org"
-    ] : ["remove", ...input.packages, "--ignore-scripts"] : input.operation === "INSTALL" ? ["install", "--ignore-scripts", "--registry=https://registry.npmjs.org"] : input.operation === "ADD" ? [
+    ] : ["remove", ...input.packages, "--ignore-scripts"] : input.operation === "INSTALL" ? ["ci", "--ignore-scripts", "--registry=https://registry.npmjs.org"] : input.operation === "ADD" ? [
       "install",
       ...input.development ? ["--save-dev"] : ["--save"],
       ...input.packages,
@@ -251824,7 +251827,7 @@ var DockerEngineeringDependencyRunner = class {
         ...args
       ],
       env: { PATH: "/usr/local/bin:/usr/bin:/bin", HOME: "/var/empty" },
-      timeoutMs: 10 * 6e4,
+      timeoutMs: 9 * 6e4,
       maxOutputBytes: 131072,
       ...input.signal ? { signal: input.signal } : {}
     }).catch(() => {

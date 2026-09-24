@@ -199,7 +199,7 @@ export const EngineeringControlCenterPage = ({
     },
   });
   const control = useMutation({
-    mutationFn: (action: "pause" | "resume" | "cancel") =>
+    mutationFn: (action: "pause" | "resume" | "recover" | "cancel") =>
       apiClient.controlEngineeringDelivery(selectedId!, action),
     onSuccess: refresh,
   });
@@ -582,7 +582,7 @@ export const EngineeringControlCenterPage = ({
           {data.blocker && ["BLOCKED", "FAILED", "OWNER_INPUT_REQUIRED"].includes(data.delivery.status) ? (
             <div className="panel engineering-blocker" role="alert">
               <div><p className="eyebrow">Blocked · {data.blocker.category.replaceAll("_", " ")}</p><h2>{data.blocker.message}</h2><p>{data.blocker.action}</p></div>
-              <button disabled={control.isPending || data.delivery.status !== "BLOCKED"} onClick={() => control.mutate("resume")} type="button"><RotateCcw size={15} /> Retry</button>
+              <button disabled={control.isPending || (data.delivery.status !== "BLOCKED" && !(data.delivery.status === "FAILED" && ["INTEGRATION_EVIDENCE_MISMATCH", "INTEGRATION_SCOPE_MISMATCH", "INTEGRATION_REPAIR_PENDING", "REVIEWER_UNAVAILABLE", "MODEL_PROVIDER_UNAVAILABLE", "DEPENDENCY_PREPARATION_FAILED"].includes(data.blocker.category)))} onClick={() => control.mutate("resume")} type="button"><RotateCcw size={15} /> Retry</button>
             </div>
           ) : null}
           <div className="metric-grid engineering-metrics">
@@ -737,6 +737,11 @@ export const EngineeringControlCenterPage = ({
               <span>Owner actions</span>
             </div>
             <div className="engineering-actions">
+              {data.recoveryAvailable ? (
+                <button disabled={control.isPending} onClick={() => control.mutate("recover")} type="button">
+                  <RotateCcw size={15} /> Recover stalled task
+                </button>
+              ) : null}
               <button
                 disabled={
                   control.isPending ||

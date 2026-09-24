@@ -79,7 +79,8 @@ export class AgentOsEngineeringGateway implements EngineeringAgentOsGateway {
           managerAgentId: input.objective.managerAgentId,
           specialistAgentId: assignment.agentDefinitionId,
           delegationId: input.task.id,
-          task: `${input.task.title}: ${input.task.description}`.slice(0, 4_000),
+          // Agent OS stores this as a bounded session summary; the full task remains in Engineering.
+          task: `${input.task.title}: ${input.task.description}`.slice(0, 1_000),
           contextSummary: [
             `company=${input.objective.companyId}`,
             `repository=${input.objective.repositoryId}`,

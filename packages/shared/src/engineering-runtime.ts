@@ -249,6 +249,10 @@ export const EngineeringFileReadRequestSchema = z
     message: "endLine must not precede startLine.",
   });
 
+export const EngineeringGitDiffRequestSchema = z
+  .object({ maxBytes: z.number().int().min(1_024).max(524_288).default(131_072) })
+  .strict();
+
 export const EngineeringFileReadResultSchema = z
   .object({
     path: EngineeringRelativePathSchema,
@@ -746,7 +750,7 @@ const EngineeringTransportOperationSchema = z.discriminatedUnion("capability", [
   z
     .object({
       capability: z.literal("repository.git_diff"),
-      input: z.object({ maxBytes: z.number().int().min(1_024).max(524_288) }).strict(),
+      input: EngineeringGitDiffRequestSchema,
     })
     .strict(),
   z

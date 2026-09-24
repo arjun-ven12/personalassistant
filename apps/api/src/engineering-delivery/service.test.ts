@@ -2,10 +2,12 @@ import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import {
   EngineeringCommandProfileSchema,
+  EngineeringDeliverySchema,
   EngineeringObjectiveSchema,
   EngineeringRepositorySchema,
   EngineeringTaskResultSchema,
   EngineeringTaskSchema,
+  EngineeringWorkspaceSchema,
 } from "@alexa-control/shared";
 
 import { InMemoryEngineeringRuntimeStore } from "../engineering-runtime/store.js";
@@ -152,6 +154,14 @@ const context = {
 const fixture = () => {
   const store = new InMemoryEngineeringDeliveryStore();
   const runtime = new InMemoryEngineeringRuntimeStore();
+  runtime.createWorkspace(EngineeringWorkspaceSchema.parse({
+    schemaVersion: "1", id: workspaceId, ownerId, companyId, repositoryId,
+    taskId: objectiveId, agentId, idempotencyKey: "integration-workspace",
+    branchName: "alexa/integration", worktreeLocator: `ew-${workspaceId}`,
+    baseCommit: "a".repeat(40), headCommit: null, state: "READY",
+    leaseOwner: null, leaseExpiresAt: null, leaseGeneration: 0,
+    createdAt: at, updatedAt: at, expiresAt: null,
+  }));
   runtime.saveRepository(
     EngineeringRepositorySchema.parse({
       schemaVersion: "1",
@@ -245,6 +255,7 @@ const fixture = () => {
     view: vi.fn(() => Promise.resolve(view())),
     pause: vi.fn(),
     resume: vi.fn(),
+    recover: vi.fn(),
     cancel: vi.fn(),
     addInstruction: vi.fn(),
   } as unknown as EngineeringManagerService;
@@ -300,6 +311,7 @@ const fixture = () => {
   );
   return {
     service,
+    store,
     manager,
     gateway,
     managerRunReady,
@@ -310,6 +322,157 @@ const fixture = () => {
 };
 
 describe("EngineeringDeliveryService", () => {
+  it("shows the exact escalated repair conflict instead of a generic failure", async () => {
+    const { service, store } = fixture();
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "integration-conflict-message",
+    });
+    await vi.waitFor(() => {
+      expect(["DONE", "DONE_WITH_WARNINGS"]).toContain(store.find(ownerId, companyId, created.delivery.id)?.status);
+    });
+    store.save(EngineeringDeliverySchema.parse({
+      ...created.delivery, status: "FAILED", integrationRunId: runId,
+      warnings: ["Integration ended in CONFLICTED."],
+    }));
+    vi.spyOn(service.integration, "view").mockResolvedValue({
+      run: { id: runId, status: "CONFLICTED", conflicts: [{ path: "src/main.tsx", status: "ESCALATED" }] },
+      candidate: null, reviews: [],
+    } as unknown as Awaited<ReturnType<EngineeringIntegrationService["view"]>>);
+    expect((await service.controlCenter(ownerId, companyId, created.delivery.id)).blocker)
+      .toMatchObject({ category: "MERGE_CONFLICT", message: expect.stringContaining("src/main.tsx") as unknown });
+  });
+
+  it("acknowledges a blocked run before its long scheduler retry finishes", async () => {
+    const { service, store, manager } = fixture();
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "asynchronous-blocked-retry",
+    });
+    await vi.waitFor(() => {
+      expect(["DONE", "DONE_WITH_WARNINGS"]).toContain(store.find(ownerId, companyId, created.delivery.id)?.status);
+    });
+    store.save(EngineeringDeliverySchema.parse({ ...created.delivery, status: "BLOCKED" }));
+    vi.spyOn(manager, "resume").mockImplementation(() =>
+      new Promise<Awaited<ReturnType<EngineeringManagerService["resume"]>>>(() => {}));
+    const resumed = await service.resume(context, created.delivery.id);
+    expect(resumed.delivery.status).toBe("IMPLEMENTING");
+  });
+
+  it("executes a bounded integration repair before publishing the existing candidate", async () => {
+    const { service, store, managerRunReady } = fixture();
+    const integrationExecute = vi.spyOn(service.integration, "execute").mockResolvedValueOnce({
+      run: { id: runId, status: "REPAIRING", integrationWorkspaceId: workspaceId },
+      candidate: null,
+      reviews: [{ verdict: "CHANGES_REQUIRED" }],
+    } as Awaited<ReturnType<EngineeringIntegrationService["execute"]>>);
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "integration-repair-loop",
+    });
+    await vi.waitFor(() => {
+      expect(["DONE", "DONE_WITH_WARNINGS"]).toContain(store.find(ownerId, companyId, created.delivery.id)?.status);
+    });
+    expect(managerRunReady).toHaveBeenCalledTimes(2);
+    expect(integrationExecute).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ["Source workspace changes differ from the completed task result.", "INTEGRATION_EVIDENCE_MISMATCH"],
+    ["Governed dependency preparation failed. Check the package lockfile and reviewed dependency container before retrying.", "DEPENDENCY_PREPARATION_FAILED"],
+  ])("retries a completed objective after recoverable integration failure: %s", async (warning, category) => {
+    const { service, store, manager } = fixture();
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "integration-evidence-retry",
+    });
+    await vi.waitFor(() => {
+      expect(["DONE", "DONE_WITH_WARNINGS"]).toContain(store.find(ownerId, companyId, created.delivery.id)?.status);
+    });
+    store.save(EngineeringDeliverySchema.parse({
+      ...created.delivery,
+      status: "FAILED",
+      integrationRunId: null,
+      warnings: [warning],
+    }));
+    const blocked = await service.controlCenter(ownerId, companyId, created.delivery.id);
+    expect(blocked.blocker?.category).toBe(category);
+    const managerResume = vi.spyOn(manager, "resume");
+    const resumed = await service.resume(context, created.delivery.id);
+    expect(resumed.delivery.id).toBe(created.delivery.id);
+    expect(managerResume).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["The company, repository, workspace, agent, or capability scope is invalid.", "INTEGRATION_SCOPE_MISMATCH"],
+    ["No independent repository-authorized reviewer is available.", "REVIEWER_UNAVAILABLE"],
+  ])("retries a failed integration with its original scoped run: %s", async (warning, category) => {
+    const { service, store, manager, integrationExecute } = fixture();
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "integration-scope-retry",
+    });
+    await vi.waitFor(() => {
+      expect(["DONE", "DONE_WITH_WARNINGS"]).toContain(store.find(ownerId, companyId, created.delivery.id)?.status);
+    });
+    store.save(EngineeringDeliverySchema.parse({
+      ...created.delivery, status: "FAILED", integrationRunId: runId,
+      warnings: [warning],
+    }));
+    vi.spyOn(service.integration, "view").mockResolvedValue({
+      run: { id: runId, status: "FAILED", objectiveId: created.delivery.objectiveId, repositoryId },
+      candidate: null,
+    } as Awaited<ReturnType<EngineeringIntegrationService["view"]>>);
+    const blocked = await service.controlCenter(ownerId, companyId, created.delivery.id);
+    expect(blocked.blocker?.category).toBe(category);
+    const managerResume = vi.spyOn(manager, "resume");
+    const resumed = await service.resume(context, created.delivery.id);
+    expect(resumed.delivery.id).toBe(created.delivery.id);
+    expect(managerResume).not.toHaveBeenCalled();
+    expect(integrationExecute).toHaveBeenCalledWith(
+      context, runId, expect.stringMatching(/^delivery-/),
+    );
+  });
+
+  it("offers governed recovery only for an expired active task lease", async () => {
+    const { service, store, manager } = fixture();
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "expired-lease-recovery",
+    });
+    const stalled = EngineeringDeliverySchema.parse({
+      ...created.delivery, status: "IMPLEMENTING",
+    });
+    store.save(stalled);
+    const currentView = await manager.view(ownerId, companyId, objectiveId);
+    vi.spyOn(manager, "view").mockResolvedValue({
+      ...currentView,
+      objective: { ...currentView.objective, status: "RUNNING" },
+      tasks: [EngineeringTaskSchema.parse({
+        ...task, status: "ACTIVE", leaseOwner: "crashed-worker",
+        leaseExpiresAt: "2026-09-17T09:59:59.000Z", leaseGeneration: 1,
+      })],
+    });
+    const recover = vi.fn(() => new Promise<Awaited<ReturnType<EngineeringManagerService["recover"]>>>(() => {}));
+    vi.spyOn(manager, "recover").mockImplementation(recover);
+    expect((await service.controlCenter(ownerId, companyId, stalled.id)).recoveryAvailable).toBe(true);
+    await service.recover(context, stalled.id);
+    expect(recover).toHaveBeenCalledWith(context, objectiveId);
+    await expect(service.recover({ ...context, companyId: crypto.randomUUID() }, stalled.id))
+      .rejects.toMatchObject({ code: "DELIVERY_NOT_FOUND" });
+  });
   it("shows the model failure even when a dependent blocked task appears first", async () => {
     const { service, manager } = fixture();
     const created = await service.create(context, {

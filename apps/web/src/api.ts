@@ -623,7 +623,7 @@ export const createApiClient = (baseUrl: string) => {
       ),
     controlEngineeringDelivery: (
       id: string,
-      action: "run" | "pause" | "resume" | "cancel",
+      action: "run" | "pause" | "resume" | "recover" | "cancel",
     ) =>
       requestAndValidate(
         baseUrl,

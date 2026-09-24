@@ -37,12 +37,29 @@ const registerNodeProject = (runtime: InMemoryEngineeringRuntimeStore) => {
   }));
 };
 
-const installed = (exitCode = 0) => ({ output: {
+const installed = (exitCode: number | null = 0) => ({ output: {
   packageManager: "pnpm", operation: "INSTALL", packages: [], exitCode,
   durationMs: 1, stdout: "", stderr: "", timedOut: false, lockfileChanged: false,
 } });
 
 describe("SignedExecutionEngineeringGateway", () => {
+  it("retries one unexpected dependency-container exit before marking the worktree ready", async () => {
+    const runtime = new InMemoryEngineeringRuntimeStore();
+    registerNodeProject(runtime);
+    const gateway = new SignedExecutionEngineeringGateway({} as ExecutionService, {} as ExecutionStore, runtime, () => new Date(now));
+    const dispatch = vi.spyOn(gateway as unknown as { dispatch: (input: { capability: string }) => Promise<unknown> }, "dispatch")
+      .mockResolvedValueOnce({ output: { baseCommit: "a".repeat(40), branch: "main", dirty: false } })
+      .mockResolvedValueOnce({ output: {} })
+      .mockResolvedValueOnce(installed(null))
+      .mockResolvedValueOnce(installed());
+    const input = { ownerId, companyId, repositoryId, taskId, agentId, idempotencyKey: taskId, slug: "frontend", transport: { sessionId: crypto.randomUUID(), requestId: crypto.randomUUID(), ipAddress: "127.0.0.1", networkState: "PRIVATE_NETWORK" as const } };
+    const created = await gateway.create(input);
+    expect(runtime.findWorkspace(ownerId, companyId, created.id)).toMatchObject({ state: "READY", dependenciesPreparedAt: now });
+    expect(dispatch.mock.calls.map(([call]) => call.capability)).toEqual([
+      "repository.inspect", "repository.worktree_create", "repository.install_dependencies", "repository.install_dependencies",
+    ]);
+  });
+
   it("prepares a new isolated worktree before marking it ready", async () => {
     const runtime = new InMemoryEngineeringRuntimeStore();
     registerNodeProject(runtime);

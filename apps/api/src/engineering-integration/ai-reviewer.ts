@@ -2,6 +2,7 @@ import { z } from "zod";
 import { EngineeringAcceptanceEvidenceSchema } from "@alexa-control/shared";
 
 import type { AIRouterService } from "../ai/router/service.js";
+import type { AgentStore } from "../agents/store.js";
 import type { EngineeringIntegrationReviewer } from "./service.js";
 
 const ReviewOutputSchema = z
@@ -27,9 +28,14 @@ const ReviewOutputSchema = z
 
 /** Independent review is advisory only; it cannot execute capabilities or mutate the candidate. */
 export class AIRouterEngineeringIntegrationReviewer implements EngineeringIntegrationReviewer {
-  constructor(readonly router: AIRouterService) {}
+  constructor(readonly router: AIRouterService, readonly agents: AgentStore) {}
 
   async review(input: Parameters<EngineeringIntegrationReviewer["review"]>[0]) {
+    const assignment = (await this.agents.listAssignments(input.run.ownerId, input.run.companyId))
+      .find((item) => item.id === input.reviewerAgentId &&
+        item.companyId === input.run.companyId &&
+        ["ACTIVE", "DORMANT"].includes(item.status));
+    if (!assignment) throw new Error("The independent reviewer has no active company assignment.");
     const response = await this.router.executeStructured(
       {
         requestId: crypto.randomUUID(),
@@ -60,6 +66,16 @@ export class AIRouterEngineeringIntegrationReviewer implements EngineeringIntegr
                     changeMap: input.run.changeMap,
                   },
                   acceptanceCriteria: input.acceptanceCriteria,
+                  integrationValidation: {
+                    reportId: input.validationReport.id,
+                    status: input.validationReport.status,
+                    steps: input.validationReport.steps.map((step) => ({
+                      commandId: step.commandId,
+                      kind: step.kind,
+                      status: step.status,
+                      exitCode: step.result?.exitCode ?? null,
+                    })),
+                  },
                   filesChanged: input.filesChanged,
                   combinedPatch: input.combinedPatch,
                   taskResults: input.taskResults.map((result) => ({
@@ -83,7 +99,8 @@ export class AIRouterEngineeringIntegrationReviewer implements EngineeringIntegr
           "Security review must flag protected-path, dependency, secret, authorization, tenant-scope, and unsafe-execution risks.",
           "Return findings and evidence summaries only; never include chain-of-thought or secrets.",
         ],
-        maxOutputTokens: 2_048,
+        // Reasoning tokens share this budget with the structured review response.
+        maxOutputTokens: 8_192,
         maxAttempts: 2,
         maxCloudEscalations: 1,
         economicContext: {
@@ -98,9 +115,12 @@ export class AIRouterEngineeringIntegrationReviewer implements EngineeringIntegr
         },
         objectiveId: input.run.objectiveId,
         taskId: input.run.id,
-        agentId: input.reviewerAgentId,
+        agentId: assignment.agentDefinitionId,
+        agentDefinitionId: assignment.agentDefinitionId,
+        companyAgentAssignmentId: assignment.id,
         taskClass: input.security ? "SECURITY" : "INTEGRATION_PREP",
         schema: ReviewOutputSchema,
+        jsonSchema: z.toJSONSchema(ReviewOutputSchema),
         schemaName: input.security
           ? "engineering_integration_security_review_v1"
           : "engineering_integration_review_v1",
@@ -120,7 +140,7 @@ export class AIRouterEngineeringIntegrationReviewer implements EngineeringIntegr
           regressionRisk: 0,
           acceptanceCoverage: 0,
         },
-        findings: [response.decision.reason.slice(0, 1_000)],
+        findings: [(response.attempts.at(-1)?.reason ?? response.decision.reason).slice(0, 1_000)],
         evidence: [],
         acceptanceEvidence: [],
         providerId: response.providerId ?? null,

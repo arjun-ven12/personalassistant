@@ -2587,6 +2587,7 @@ export class EngineeringManagerService {
     if (value.category) return value.category;
     if (value.code?.includes("POLICY") || value.code?.includes("DENIED") || value.code?.includes("APPROVAL"))
       return "POLICY_DENIED";
+    if (value.code === "CAPABILITY_RESULT_INVALID") return "IMPLEMENTATION_ERROR";
     if (value.code?.includes("CAPABILITY")) return "MISSING_CAPABILITY";
     if (value.code === "DEPENDENCY_INSTALL_FAILED") return "ENVIRONMENT_FAILURE";
     if (value.code?.includes("TIMEOUT") || value.code?.includes("UNAVAILABLE"))

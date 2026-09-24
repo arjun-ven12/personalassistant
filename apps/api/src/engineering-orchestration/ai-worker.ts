@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   EngineeringSearchRequestSchema,
   EngineeringFileReadRequestSchema,
+  EngineeringGitDiffRequestSchema,
   EngineeringFileCreateRequestSchema,
   EngineeringPatchSchema,
 } from "@alexa-control/shared";
@@ -69,7 +70,12 @@ const operationInputSchemas = {
   "repository.file_read": EngineeringFileReadRequestSchema,
   "repository.file_create": EngineeringFileCreateRequestSchema,
   "repository.file_patch": z.object({ patch: EngineeringPatchSchema }).strict(),
+  "repository.git_status": z.object({}).strict(),
+  "repository.git_diff": EngineeringGitDiffRequestSchema,
 };
+
+const decimalCost = (amount: number) =>
+  amount.toFixed(8).replace(/\.?0+$/, "");
 
 export interface GovernedEngineeringActionGateway {
   invoke(input: {
@@ -167,6 +173,7 @@ export class AIRouterEngineeringTaskWorker implements EngineeringTaskWorker {
     let inputTokens = 0;
     let outputTokens = 0;
     let costUsd = 0;
+    let noActionRounds = 0;
     const maxRounds = input.task.readOnly ? 6 : 12;
     for (let round = 0; round < maxRounds; round += 1) {
       input.signal.throwIfAborted();
@@ -178,7 +185,7 @@ export class AIRouterEngineeringTaskWorker implements EngineeringTaskWorker {
           failureSummary: "The engineering task budget is exhausted.",
           inputTokens,
           outputTokens,
-          costUsd: String(costUsd),
+          costUsd: decimalCost(costUsd),
         };
       const response = await this.router.executeStructured(
         {
@@ -254,6 +261,11 @@ export class AIRouterEngineeringTaskWorker implements EngineeringTaskWorker {
             "Keep proposals compact: change at most one file per round using focused hunks, not a full-project rewrite. Return a short summary and artifacts: [] until the final validated result. Always include summary, operations and artifacts.",
             "Use the original objective, not just the generic task title. Reuse prior observations instead of repeatedly searching or rereading unchanged files. Reserve the final round for repository.validate; do not claim completion until all requested sections and criteria are implemented.",
             "Never invent expectedSha256. Copy it from a prior file_read result for that exact path. Do not patch a file in the same round as its first read. Run repository.validate after changes; finish only after it passes.",
+            "If a file_read reports that its path does not exist, use repository.search or known repository paths to find the real file; do not repeatedly read an invented path.",
+            "If file_create reports that the target exists, read that exact file and use file_patch with its returned hash; do not create it again.",
+            ...(input.task.taskType === "TESTING" ? [
+              "This is a testing task. Add focused tests for the objective without rewriting implementation source. Preserve package.json as valid JSON and retain existing scripts; change it only if needed to run the tests.",
+            ] : []),
           ],
           maxOutputTokens: input.task.readOnly ? 4_096 : 8_192,
           timeoutMs: input.task.readOnly ? 45_000 : 120_000,
@@ -307,6 +319,7 @@ export class AIRouterEngineeringTaskWorker implements EngineeringTaskWorker {
       costUsd += Number(response.decision.economic?.estimatedCostUsd ?? "0");
       let diffSummary = proposal.summary;
       let rejectedOperation = false;
+      let executedThisRound = 0;
       for (const operation of proposal.operations) {
         if (!input.task.requiredCapabilities.includes(operation.capability))
           return {
@@ -331,6 +344,14 @@ export class AIRouterEngineeringTaskWorker implements EngineeringTaskWorker {
         }
         let result: Awaited<ReturnType<GovernedEngineeringActionGateway["invoke"]>>;
         try {
+          // JSON Schema advertises defaults to the model, but it does not apply
+          // them to the returned JSON. Apply the shared boundary schema before
+          // signing a read request for the Mac Agent.
+          const operationInput = operation.capability === "repository.file_read"
+            ? EngineeringFileReadRequestSchema.parse(operation.input)
+            : operation.capability === "repository.git_diff"
+              ? EngineeringGitDiffRequestSchema.parse(operation.input)
+              : operation.input;
           result = await this.gateway.invoke({
             ownerId: input.objective.ownerId,
             companyId: input.objective.companyId,
@@ -339,11 +360,52 @@ export class AIRouterEngineeringTaskWorker implements EngineeringTaskWorker {
             taskId: input.task.id,
             agentId: input.task.assignedAgentId,
             capability: operation.capability,
-            operationInput: operation.input,
+            operationInput,
             signal: input.signal,
             transport: input.transport,
           });
+          executedThisRound += 1;
         } catch (error) {
+          if (
+            operation.capability === "repository.file_create" &&
+            error instanceof Error &&
+            "code" in error &&
+            ["INCONSISTENT_STATE", "CAPABILITY_RESULT_INVALID"].includes(String(error.code)) &&
+            error.message === "The create target already exists."
+          ) {
+            const requested = EngineeringFileCreateRequestSchema.parse(operation.input);
+            observations.push({
+              capability: operation.capability,
+              output: JSON.stringify({
+                path: requested.path,
+                status: "ALREADY_EXISTS",
+                nextStep: "Read the existing file and patch it using its returned sha256; do not create it again.",
+              }),
+            });
+            if (observations.length > 12) observations.shift();
+            rejectedOperation = true;
+            break;
+          }
+          if (
+            operation.capability === "repository.file_read" &&
+            error instanceof Error &&
+            "code" in error &&
+            error.code === "CAPABILITY_RESULT_INVALID" &&
+            error.message === "The requested repository file does not exist."
+          ) {
+            const requested = EngineeringFileReadRequestSchema.parse(operation.input);
+            observations.push({
+              capability: operation.capability,
+              output: JSON.stringify({
+                path: requested.path,
+                status: "NOT_FOUND",
+                nextStep: "Search the registered repository for the actual file path before reading it.",
+              }),
+            });
+            if (observations.length > 12) observations.shift();
+            rejectedOperation = true;
+            break;
+          }
           if (
             operation.capability !== "repository.file_patch" ||
             !(error instanceof Error) ||
@@ -406,10 +468,29 @@ export class AIRouterEngineeringTaskWorker implements EngineeringTaskWorker {
         if (result.validationStatus) validationStatus = result.validationStatus;
         if (result.validationReportId) validationReportId = result.validationReportId;
       }
+      if (!input.task.readOnly && filesChanged.size === 0 && executedThisRound === 0) {
+        noActionRounds += 1;
+        if (proposal.operations.length === 0)
+          observations.push({
+            capability: "engineering.proposal",
+            output: "No repository action was proposed or executed. Search or read the relevant registered files before proposing a patch; a prose-only completion cannot satisfy this task.",
+          });
+        if (observations.length > 12) observations.shift();
+        if (noActionRounds >= 3)
+          return {
+            status: "FAILED" as const,
+            failureCategory: "IMPLEMENTATION_ERROR" as const,
+            failureSummary: "Three model rounds produced no executable repository action. Review the task scope and the last rejected capability proposal before retrying.",
+            inputTokens,
+            outputTokens,
+            costUsd: decimalCost(costUsd),
+          };
+      } else noActionRounds = 0;
       if (
         round === maxRounds - 1 &&
         !input.task.readOnly &&
         filesChanged.size > 0 &&
+        validationStatus !== "PASS" &&
         input.task.requiredCapabilities.includes("repository.validate")
       ) {
         const validation = await this.gateway.invoke({
@@ -437,7 +518,7 @@ export class AIRouterEngineeringTaskWorker implements EngineeringTaskWorker {
             validationReportId,
             inputTokens,
             outputTokens,
-            costUsd: String(costUsd),
+            costUsd: decimalCost(costUsd),
           };
       }
       if (
@@ -457,7 +538,7 @@ export class AIRouterEngineeringTaskWorker implements EngineeringTaskWorker {
         aiRequestId: response.requestId,
         inputTokens,
         outputTokens,
-        costUsd: String(costUsd),
+        costUsd: decimalCost(costUsd),
         artifacts: proposal.artifacts,
       };
     }
@@ -467,7 +548,7 @@ export class AIRouterEngineeringTaskWorker implements EngineeringTaskWorker {
       failureSummary: `The bounded engineering action loop exhausted ${maxRounds} rounds before producing validated work.`,
       inputTokens,
       outputTokens,
-      costUsd: String(costUsd),
+      costUsd: decimalCost(costUsd),
     };
   }
 

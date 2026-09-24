@@ -7,7 +7,7 @@ import {
   EngineeringWorkspaceSchema,
   type EngineeringCapability,
 } from "@alexa-control/shared";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { InMemoryEngineeringOrchestrationStore } from "../engineering-orchestration/store.js";
 import { InMemoryEngineeringRuntimeStore } from "../engineering-runtime/store.js";
@@ -25,6 +25,7 @@ const companyId = "20000000-0000-4000-8000-000000000002";
 const otherCompanyId = "30000000-0000-4000-8000-000000000003";
 const repositoryId = "40000000-0000-4000-8000-000000000004";
 const authorId = "50000000-0000-4000-8000-000000000005";
+const secondAuthorId = "51000000-0000-4000-8000-000000000005";
 const reviewerId = "60000000-0000-4000-8000-000000000006";
 const securityReviewerId = "70000000-0000-4000-8000-000000000007";
 const managerId = "80000000-0000-4000-8000-000000000008";
@@ -56,6 +57,7 @@ class FakeGateway implements EngineeringIntegrationGateway {
   failAfterMerge = false;
   diffTruncated = false;
   diffRedactions: string[] = [];
+  readonly calls: Array<{ capability: EngineeringCapability; workspaceId: string | null; agentId: string }> = [];
   constructor(readonly runtime: InMemoryEngineeringRuntimeStore) {}
   prepare() { return Promise.resolve(); }
   create(input: Parameters<EngineeringIntegrationGateway["create"]>[0]) {
@@ -94,7 +96,9 @@ class FakeGateway implements EngineeringIntegrationGateway {
     operationInput: Record<string, unknown>;
     taskId: string;
     workspaceId: string | null;
+    agentId: string;
   }) {
+    this.calls.push({ capability: input.capability, workspaceId: input.workspaceId, agentId: input.agentId });
     if (input.capability === "repository.inspect")
       return Promise.resolve({
         output: { baseCommit: this.currentBase, branch: "main", dirty: false },
@@ -273,7 +277,7 @@ class FakeReviewer implements EngineeringIntegrationReviewer {
 }
 
 const setup = (taskCount = 3, risk: "MEDIUM" | "HIGH" = "MEDIUM",
-  clock: () => Date = () => new Date("2026-09-16T00:00:10.000Z")) => {
+  clock: () => Date = () => new Date("2026-09-16T00:00:10.000Z"), distinctAuthors = false) => {
   const orchestration = new InMemoryEngineeringOrchestrationStore();
   const runtime = new InMemoryEngineeringRuntimeStore();
   const store = new InMemoryEngineeringIntegrationStore();
@@ -296,7 +300,9 @@ const setup = (taskCount = 3, risk: "MEDIUM" | "HIGH" = "MEDIUM",
       generatedPaths: ["dist/**"],
       commandProfileId: "node-default",
       capabilityProfileId: "engineering-default",
-      authorizedAgentIds: [authorId, reviewerId, securityReviewerId, managerId],
+      authorizedAgentIds: distinctAuthors
+        ? [authorId, secondAuthorId, reviewerId, securityReviewerId, managerId]
+        : [authorId, reviewerId, securityReviewerId, managerId],
       metadata: {
         languages: ["TypeScript"],
         packageManagers: ["pnpm"],
@@ -353,6 +359,7 @@ const setup = (taskCount = 3, risk: "MEDIUM" | "HIGH" = "MEDIUM",
           ? ("TESTING" as const)
           : ("BACKEND" as const);
     const dependencies = index === 0 ? [] : [tasks[index - 1]!.id];
+    const taskAuthorId = distinctAuthors && index === taskCount - 1 ? secondAuthorId : authorId;
     const task = EngineeringTaskSchema.parse({
       schemaVersion: "1",
       id: taskId,
@@ -371,7 +378,7 @@ const setup = (taskCount = 3, risk: "MEDIUM" | "HIGH" = "MEDIUM",
       dependencies,
       riskLevel: risk,
       estimatedDifficulty: "MEDIUM",
-      assignedAgentId: authorId,
+      assignedAgentId: taskAuthorId,
       assignedRole:
         type === "DATABASE"
           ? "DATABASE_ENGINEER"
@@ -416,7 +423,7 @@ const setup = (taskCount = 3, risk: "MEDIUM" | "HIGH" = "MEDIUM",
         companyId,
         repositoryId,
         taskId,
-        agentId: authorId,
+        agentId: taskAuthorId,
         idempotencyKey: `task-${index}-workspace`,
         branchName: `alexa/${taskId.replaceAll("-", "").slice(0, 12)}-123456-task`,
         worktreeLocator: `ew-${workspaceId}`,
@@ -439,7 +446,7 @@ const setup = (taskCount = 3, risk: "MEDIUM" | "HIGH" = "MEDIUM",
         companyId,
         objectiveId,
         taskId,
-        agentId: authorId,
+        agentId: taskAuthorId,
         workspaceId,
         workspaceBaseCommit: baseCommit,
         filesChanged: [index === 1 ? "src/shared.ts" : `src/change-${index}.ts`],
@@ -890,6 +897,36 @@ describe("EngineeringIntegrationService", () => {
     const complete = await service.execute(context, first.run.id, "worker-scale");
     expect(complete.run.taskIds).toHaveLength(10);
     expect(gateway.integrations).toBe(10);
+  });
+
+  it("uses the integration worktree's registered agent when task-result order differs from dependency order", async () => {
+    const { service, gateway, runtime, orchestration, objectiveId } = await setup(2, "MEDIUM", undefined, true);
+    const listTasks = orchestration.listTasks.bind(orchestration);
+    vi.spyOn(orchestration, "listTasks").mockImplementation((...args) => [...listTasks(...args)].reverse());
+    const created = await service.create(context, { objectiveId, idempotencyKey: "distinct-integration-agent" });
+    const workspace = runtime.findWorkspace(ownerId, companyId, created.run.integrationWorkspaceId);
+    expect(workspace?.agentId).toBe(secondAuthorId);
+    await service.execute(context, created.run.id, "worker-distinct-agent");
+    const inspection = gateway.calls.find((call) => call.capability === "repository.worktree_inspect" && call.workspaceId === workspace?.id);
+    expect(inspection?.agentId).toBe(workspace?.agentId);
+  });
+
+  it("revalidates a failed reviewed head without cherry-picking its commits twice", async () => {
+    const { service, gateway, objectiveId } = await setup(2);
+    service.setReviewerSelector({ select: () => Promise.resolve(undefined) });
+    const created = await service.create(context, {
+      objectiveId, idempotencyKey: "reviewer-retry-existing-head",
+    });
+    await expect(service.execute(context, created.run.id, "delivery-test-reviewer")).rejects.toThrow(
+      "No independent repository-authorized reviewer is available.",
+    );
+    const firstIntegrations = gateway.calls.filter((call) => call.capability === "repository.integrate_commit").length;
+    expect(firstIntegrations).toBe(2);
+    service.setReviewerSelector({ select: () => Promise.resolve(reviewerId) });
+    const resumed = await service.execute(context, created.run.id, "delivery-test-reviewer");
+    expect(resumed.run.status).toBe("READY");
+    expect(gateway.calls.filter((call) => call.capability === "repository.integrate_commit")).toHaveLength(firstIntegrations);
+    expect(gateway.validations).toBe(3);
   });
 });
 

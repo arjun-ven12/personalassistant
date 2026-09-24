@@ -432,13 +432,19 @@ export class SignedExecutionEngineeringGateway
       throw Object.assign(new Error("An active registered command profile is required for dependency preparation."), { code: "COMMAND_NOT_ALLOWED" });
     if (workspace.dependenciesPreparedAt && workspace.dependenciesPreparedAt >= profile.updatedAt) return;
     if (profile.dependencyManager) {
-      const result = EngineeringDependencyOperationResultSchema.parse((await this.dispatch({
-        ...input,
-        capability: "repository.install_dependencies",
-        operationInput: { packageManager: profile.dependencyManager },
-      })).output);
-      if (result.exitCode !== 0 || result.timedOut || result.lockfileChanged)
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const result = EngineeringDependencyOperationResultSchema.parse((await this.dispatch({
+          ...input,
+          capability: "repository.install_dependencies",
+          operationInput: { packageManager: profile.dependencyManager },
+        })).output);
+        if (result.exitCode === 0 && !result.timedOut && !result.lockfileChanged) break;
+        if (result.exitCode === null && !result.timedOut && !result.lockfileChanged && !input.signal.aborted) {
+          if (attempt === 0) continue;
+          throw Object.assign(new Error("The dependency container exited unexpectedly. Check Docker Desktop resources, then retry this same run."), { code: "DEPENDENCY_INSTALL_FAILED" });
+        }
         throw Object.assign(new Error("Governed dependency preparation failed. Check the package lockfile and reviewed dependency container before retrying."), { code: "DEPENDENCY_INSTALL_FAILED" });
+      }
     } else if (repository.metadata.packageManagers.length > 0) {
       throw Object.assign(new Error("Register a supported dependency manager before running offline project validation."), { code: "COMMAND_NOT_ALLOWED" });
     }

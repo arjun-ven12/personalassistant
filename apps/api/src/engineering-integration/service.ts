@@ -21,6 +21,7 @@ import {
   type EngineeringIntegrationRun,
   type EngineeringTask,
   type EngineeringTaskResult,
+  type EngineeringValidationReport,
   type NetworkVerificationState,
 } from "@alexa-control/shared";
 import type { z } from "zod";
@@ -103,6 +104,7 @@ export interface EngineeringIntegrationReviewer {
     reviewerAgentId: string;
     security: boolean;
     taskResults: EngineeringTaskResult[];
+    validationReport: EngineeringValidationReport;
     acceptanceCriteria: string[];
     filesChanged: string[];
     combinedPatch: string;
@@ -793,13 +795,21 @@ export class EngineeringIntegrationService {
           "Completed task evidence changed after planning.",
         );
       const resultByTask = new Map(selected.map((result) => [result.taskId, result]));
-      const agentId = run.integrationOrder
-        .map((id) => resultByTask.get(id)?.agentId)
-        .find(Boolean);
-      if (!agentId)
+      const [integrationWorkspace, integrationRepository] = await Promise.all([
+        this.runtime.findWorkspace(context.ownerId, context.companyId, run.integrationWorkspaceId),
+        this.runtime.findRepository(context.ownerId, context.companyId, run.repositoryId),
+      ]);
+      const agentId = integrationWorkspace?.agentId;
+      if (
+        !integrationWorkspace ||
+        integrationWorkspace.repositoryId !== run.repositoryId ||
+        integrationWorkspace.taskId !== run.objectiveId ||
+        !agentId ||
+        !integrationRepository?.authorizedAgentIds.includes(agentId)
+      )
         throw new EngineeringIntegrationError(
           "INTEGRATION_NOT_READY",
-          "Integration agent identity is unavailable.",
+          "Integration workspace agent identity is unavailable or no longer authorized.",
         );
       if (run.contractFindings.length) {
         if (this.manager)
@@ -842,16 +852,23 @@ export class EngineeringIntegrationService {
       if (
         initialState.exists !== true ||
         initialState.branch !== run.integrationBranch ||
-        initialState.dirty !== false
+        initialState.dirty !== false ||
+        typeof initialState.headCommit !== "string"
       )
         throw new EngineeringIntegrationError(
           "INTEGRATION_NOT_READY",
           "Integration worktree identity or cleanliness changed.",
         );
-      if (
-        initialState.headCommit !== run.baseCommit &&
-        !["INTEGRATING", "VALIDATING", "REVIEWING", "REPAIRING", "CONFLICTED", "FAILED"].includes(claimed.status)
-      )
+      const previousValidation = claimed.status === "FAILED" && run.validationReportId
+        ? await this.runtime.findValidation(context.ownerId, context.companyId, run.validationReportId)
+        : undefined;
+      const resumeValidatedHead = initialState.headCommit !== run.baseCommit &&
+        claimed.status === "FAILED" && previousValidation?.status === "PASS" &&
+        previousValidation.workspaceId === run.integrationWorkspaceId &&
+        run.conflicts.every((conflict) => conflict.status === "RESOLVED");
+      if (initialState.headCommit !== run.baseCommit &&
+        !resumeValidatedHead &&
+        !["INTEGRATING", "VALIDATING", "REVIEWING", "REPAIRING", "CONFLICTED"].includes(claimed.status))
         throw new EngineeringIntegrationError(
           "STALE_CANDIDATE",
           "Integration worktree moved before initial execution.",
@@ -883,8 +900,8 @@ export class EngineeringIntegrationService {
             generation,
           );
       }
-      let headCommit = run.baseCommit;
-      for (const taskId of run.integrationOrder) {
+      let headCommit = resumeValidatedHead ? initialState.headCommit : run.baseCommit;
+      if (!resumeValidatedHead) for (const taskId of run.integrationOrder) {
         if (controller.signal.aborted)
           throw new EngineeringIntegrationError(
             "LEASE_LOST",
@@ -1089,7 +1106,9 @@ export class EngineeringIntegrationService {
         {
           ...run,
           status: "VALIDATING",
-          integrationDurationMs: Math.max(0, integrationFinished - started),
+          integrationDurationMs: resumeValidatedHead
+            ? run.integrationDurationMs
+            : Math.max(0, integrationFinished - started),
           updatedAt: this.now().toISOString(),
         },
         workerId,
@@ -1221,12 +1240,21 @@ export class EngineeringIntegrationService {
           "REVIEW_FAILED",
           "No independent repository-authorized reviewer is available.",
         );
+      const reviewValidationReport = await this.runtime.findValidation(
+        context.ownerId, context.companyId, validation.validationReportId,
+      );
+      if (!reviewValidationReport || reviewValidationReport.status !== "PASS")
+        throw new EngineeringIntegrationError(
+          "REVIEW_FAILED",
+          "The passed integration validation report is unavailable for independent review.",
+        );
       const review = await this.performReview(
         run,
         reviewerAgentId,
         headCommit,
         false,
         selected,
+        reviewValidationReport,
         objective.acceptanceCriteria,
         filesChanged,
         diff.patch,
@@ -1267,6 +1295,7 @@ export class EngineeringIntegrationService {
           headCommit,
           true,
           selected,
+          reviewValidationReport,
           objective.acceptanceCriteria,
           filesChanged,
           diff.patch,
@@ -1521,6 +1550,7 @@ export class EngineeringIntegrationService {
     headCommit: string,
     security: boolean,
     taskResults: EngineeringTaskResult[],
+    validationReport: EngineeringValidationReport,
     acceptanceCriteria: string[],
     filesChanged: string[],
     combinedPatch: string,
@@ -1532,6 +1562,7 @@ export class EngineeringIntegrationService {
       reviewerAgentId,
       security,
       taskResults,
+      validationReport,
       acceptanceCriteria,
       filesChanged,
       combinedPatch,

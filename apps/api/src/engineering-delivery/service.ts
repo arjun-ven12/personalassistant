@@ -71,6 +71,21 @@ const terminal = new Set([
   "OWNER_INPUT_REQUIRED",
   "CANCELLED",
 ]);
+const recoverableIntegrationWarnings = new Set([
+  "Source workspace changes differ from the completed task result.",
+  "Governed dependency preparation failed. Check the package lockfile and reviewed dependency container before retrying.",
+  "The dependency container exited unexpectedly. Check Docker Desktop resources, then retry this same run.",
+]);
+const recoverableIntegrationScopeWarning =
+  "The company, repository, workspace, agent, or capability scope is invalid.";
+const recoverableReviewWarning =
+  "No independent repository-authorized reviewer is available.";
+const recoverableExistingRunWarnings = new Set([
+  recoverableIntegrationScopeWarning,
+  recoverableReviewWarning,
+  "Independent integration review requires changes.",
+  "Integration ended in REPAIRING.",
+]);
 
 export class EngineeringDeliveryService {
   readonly terminalListeners = new Set<(context: EngineeringDeliveryContext, deliveryId: string) => Promise<void>>();
@@ -267,11 +282,30 @@ export class EngineeringDeliveryService {
       status: "INTEGRATING",
       integrationRunId: integrationView.run.id,
     });
-    const integrated = await this.integration.execute(
+    let integrated = await this.integration.execute(
       context,
       integrationView.run.id,
       `delivery-${delivery.id.slice(0, 8)}`,
     );
+    for (let repairCycle = 0; integrated.run.status === "REPAIRING" && repairCycle < 3; repairCycle += 1) {
+      const repaired = await this.manager.runReady(
+        context,
+        delivery.objectiveId,
+        `delivery-repair-${delivery.id.slice(0, 8)}-${repairCycle}`,
+      );
+      if (repaired.objective.status !== "COMPLETED") {
+        const status = repaired.objective.status === "NEEDS_CLARIFICATION"
+          ? "OWNER_INPUT_REQUIRED" : "BLOCKED";
+        await this.update(delivery, { status });
+        await this.notifyTerminal(context, delivery.id);
+        return this.controlCenter(context.ownerId, context.companyId, delivery.id);
+      }
+      integrated = await this.integration.execute(
+        context,
+        integrationView.run.id,
+        `delivery-repair-${delivery.id.slice(0, 8)}-${repairCycle}`,
+      );
+    }
     if (
       integrated.run.status !== "READY" ||
       !integrated.candidate ||
@@ -310,7 +344,7 @@ export class EngineeringDeliveryService {
       context.companyId,
       repository.commandProfileId,
     );
-    const agentId = repository.authorizedAgentIds[0];
+    const agentId = await this.previewAgent(context, delivery, integrated.run.integrationWorkspaceId);
     let preview = null;
     const warnings = [...delivery.warnings];
     if (profile?.developmentServers[0] && agentId) {
@@ -447,14 +481,58 @@ export class EngineeringDeliveryService {
   }
   async resume(context: EngineeringDeliveryContext, id: string) {
     const delivery = await this.require(context.ownerId, context.companyId, id);
-    if (!["PAUSED", "BLOCKED"].includes(delivery.status))
+    const recoverableIntegrationFailure = delivery.status === "FAILED" &&
+      !delivery.integrationRunId &&
+      recoverableIntegrationWarnings.has(delivery.warnings.at(-1) ?? "");
+    const recoverableExistingRunFailure = delivery.status === "FAILED" &&
+      !!delivery.integrationRunId &&
+      recoverableExistingRunWarnings.has(delivery.warnings.at(-1) ?? "");
+    if (!["PAUSED", "BLOCKED"].includes(delivery.status) &&
+        !recoverableIntegrationFailure && !recoverableExistingRunFailure)
       throw new EngineeringDeliveryError(
         "INVALID_STATE",
-        "Only a paused or recoverable blocked delivery can resume.",
+        "Only a paused or recoverable delivery can resume.",
       );
-    await this.manager.resume(context, delivery.objectiveId);
-    await this.update(delivery, { status: "IMPLEMENTING" });
-    void this.drive(context, id).catch((error) => this.fail(context, id, error));
+    if (recoverableIntegrationFailure || recoverableExistingRunFailure) {
+      const view = await this.manager.view(context.ownerId, context.companyId, delivery.objectiveId);
+      if (view.objective.status !== "COMPLETED" &&
+          !(delivery.warnings.at(-1) === "Integration ended in REPAIRING." &&
+            ["READY", "RUNNING"].includes(view.objective.status)))
+        throw new EngineeringDeliveryError("INVALID_STATE", "The engineering objective is not complete.");
+      if (recoverableExistingRunFailure) {
+        const integration = await this.integration.view(
+          context.ownerId, context.companyId, delivery.integrationRunId!,
+        );
+        if (!["FAILED", "REPAIRING"].includes(integration.run.status) ||
+            integration.run.objectiveId !== delivery.objectiveId ||
+            integration.run.repositoryId !== delivery.repositoryId ||
+            integration.candidate)
+          throw new EngineeringDeliveryError("INVALID_STATE", "The failed integration run cannot be safely retried.");
+        if (delivery.warnings.at(-1) === "Independent integration review requires changes.") {
+          const review = integration.reviews.at(-1);
+          if (!review || review.verdict !== "BLOCK" || review.providerId || review.modelId)
+            throw new EngineeringDeliveryError("INVALID_STATE", "The independent review requires changes before retrying.");
+        }
+      }
+    }
+    await this.update(delivery, { status: "IMPLEMENTING", completedAt: null });
+    const continuation = recoverableIntegrationFailure || recoverableExistingRunFailure
+      ? this.drive(context, id)
+      : Promise.resolve().then(() => this.manager.resume(context, delivery.objectiveId))
+          .then(() => this.drive(context, id));
+    void continuation.catch((error) => this.fail(context, id, error));
+    return this.controlCenter(context.ownerId, context.companyId, id);
+  }
+  async recover(context: EngineeringDeliveryContext, id: string) {
+    const delivery = await this.require(context.ownerId, context.companyId, id);
+    if (delivery.status !== "IMPLEMENTING")
+      throw new EngineeringDeliveryError("INVALID_STATE", "Only a stalled implementation can be recovered.");
+    const view = await this.manager.view(context.ownerId, context.companyId, delivery.objectiveId);
+    if (!view.tasks.some((task) => task.status === "ACTIVE" && task.leaseExpiresAt && new Date(task.leaseExpiresAt).getTime() <= this.now().getTime()))
+      throw new EngineeringDeliveryError("INVALID_STATE", "No expired engineering task lease is available for recovery.");
+    void this.manager.recover(context, delivery.objectiveId)
+      .then(() => this.drive(context, id))
+      .catch((error) => this.fail(context, id, error));
     return this.controlCenter(context.ownerId, context.companyId, id);
   }
   async cancel(context: EngineeringDeliveryContext, id: string) {
@@ -503,7 +581,7 @@ export class EngineeringDeliveryService {
     ]);
     const profile = await this.runtime.findCommandProfile(context.ownerId, context.companyId, repository.commandProfileId);
     const server = profile?.developmentServers[0];
-    const agentId = repository.authorizedAgentIds[0];
+    const agentId = await this.previewAgent(context, delivery, integration.run.integrationWorkspaceId);
     if (!server || !agentId)
       throw new EngineeringDeliveryError("INVALID_STATE", "A registered development server and authorized Mac Agent are required.");
     const result = await this.gateway.invoke({
@@ -566,6 +644,11 @@ export class EngineeringDeliveryService {
     });
     if (JSON.stringify(refreshed) !== JSON.stringify(delivery))
       await this.store.save(refreshed);
+    const escalatedConflict = refreshed.status === "FAILED" && refreshed.integrationRunId &&
+      refreshed.warnings.at(-1) === "Integration ended in CONFLICTED."
+      ? (await this.integration.view(ownerId, companyId, refreshed.integrationRunId))
+          .run.conflicts.find((conflict) => conflict.status === "ESCALATED")
+      : undefined;
     const progress = view.tasks.length
       ? Math.round(
           (view.tasks.reduce(
@@ -585,6 +668,10 @@ export class EngineeringDeliveryService {
     return EngineeringControlCenterSchema.parse({
       delivery: refreshed,
       overallProgress: progress,
+      recoveryAvailable: refreshed.status === "IMPLEMENTING" && view.tasks.some(
+        (task) => task.status === "ACTIVE" && task.leaseExpiresAt &&
+          new Date(task.leaseExpiresAt).getTime() <= this.now().getTime(),
+      ),
       blocker: (() => {
         if (
           view.objective.status === "NEEDS_CLARIFICATION" &&
@@ -598,7 +685,63 @@ export class EngineeringDeliveryService {
           };
         const blockedTasks = view.tasks.filter((item) => ["BLOCKED", "FAILED"].includes(item.status));
         const task = blockedTasks.find((item) => item.lastFailureCategory && item.lastFailureCategory !== "DEPENDENCY_NOT_READY") ?? blockedTasks[0];
-        if (!task) return null;
+        if (!task) {
+          if (escalatedConflict) return {
+            category: "MERGE_CONFLICT",
+            message: `The reviewed repair conflicts with existing changes in ${escalatedConflict.path}.`,
+            action: "The same-base repair cannot be merged safely. Review the integration conflict; a repair based on the integrated head is required before this run can finish.",
+          };
+          if (refreshed.status === "FAILED" && refreshed.integrationRunId &&
+              refreshed.warnings.at(-1) === "Integration ended in REPAIRING.") return {
+            category: "INTEGRATION_REPAIR_PENDING",
+            message: "The independent reviewer requested a bounded code repair.",
+            action: "Retry resumes the existing repair task, then revalidates and reviews the same integration run.",
+          };
+          if (refreshed.status === "FAILED" && refreshed.integrationRunId &&
+              refreshed.warnings.at(-1) === "Independent integration review requires changes.") return {
+            category: "MODEL_PROVIDER_UNAVAILABLE",
+            message: "Independent integration review did not complete successfully.",
+            action: "Resolve the review failure, then Retry this run. A completed review still requires its findings to be addressed.",
+          };
+          if (
+            refreshed.status === "FAILED" && refreshed.integrationRunId &&
+            refreshed.warnings.at(-1) === recoverableIntegrationScopeWarning
+          ) return {
+            category: "INTEGRATION_SCOPE_MISMATCH",
+            message: "The integration worktree's signed agent scope did not match the operation.",
+            action: "Retry this same run after the agent binding is repaired. The signed scope check remains enforced.",
+          };
+          if (
+            refreshed.status === "FAILED" && refreshed.integrationRunId &&
+            refreshed.warnings.at(-1) === recoverableReviewWarning
+          ) return {
+            category: "REVIEWER_UNAVAILABLE",
+            message: "No independent repository-authorized reviewer could be selected.",
+            action: "Retry this same run after a separate review agent is available. Authors cannot review their own changes.",
+          };
+          if (
+            ["FAILED", "BLOCKED"].includes(refreshed.status) &&
+            !refreshed.integrationRunId &&
+            [
+              "Governed dependency preparation failed. Check the package lockfile and reviewed dependency container before retrying.",
+              "The dependency container exited unexpectedly. Check Docker Desktop resources, then retry this same run.",
+            ].includes(refreshed.warnings.at(-1) ?? "")
+          ) return {
+            category: "DEPENDENCY_PREPARATION_FAILED",
+            message: "The isolated integration workspace could not finish preparing dependencies.",
+            action: "Check Docker Desktop and available memory, then Retry this same run. Its completed tasks remain intact.",
+          };
+          if (
+            ["FAILED", "BLOCKED"].includes(refreshed.status) &&
+            !refreshed.integrationRunId &&
+            refreshed.warnings.at(-1) === "Source workspace changes differ from the completed task result."
+          ) return {
+            category: "INTEGRATION_EVIDENCE_MISMATCH",
+            message: "An isolated worktree contains changes outside its completed task result.",
+            action: "Check the changed-file evidence in that worktree, then Retry this same run. Completed tasks are preserved.",
+          };
+          return null;
+        }
         switch (task.lastFailureCategory) {
           case "MISSING_CAPABILITY":
             return { category: "CAPABILITY_UNAVAILABLE", message: task.lastFailureSummary ?? "A required engineering capability or eligible agent is unavailable.", action: "Retry rechecks the registered workforce and repository permissions. It preserves completed tasks and does not grant new capabilities." };
@@ -909,6 +1052,18 @@ export class EngineeringDeliveryService {
     return repository;
   }
 
+  private async previewAgent(context: EngineeringDeliveryContext, delivery: EngineeringDelivery, workspaceId: string) {
+    const [workspace, repository] = await Promise.all([
+      this.runtime.findWorkspace(context.ownerId, context.companyId, workspaceId),
+      this.requireRepository(context, delivery.repositoryId),
+    ]);
+    if (!workspace || !workspace.agentId || workspace.repositoryId !== delivery.repositoryId ||
+        workspace.taskId !== delivery.objectiveId ||
+        !repository.authorizedAgentIds.includes(workspace.agentId))
+      throw new EngineeringDeliveryError("INVALID_STATE", "The preview workspace has no matching authorized agent.");
+    return workspace.agentId;
+  }
+
   private async previewAction(
     context: EngineeringDeliveryContext,
     delivery: EngineeringDelivery,
@@ -930,7 +1085,7 @@ export class EngineeringDeliveryService {
       ),
       this.requireRepository(context, delivery.repositoryId),
     ]);
-    const agentId = repository.authorizedAgentIds[0];
+    const agentId = await this.previewAgent(context, delivery, view.run.integrationWorkspaceId);
     if (!agentId)
       throw new EngineeringDeliveryError(
         "INVALID_STATE",

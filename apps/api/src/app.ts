@@ -1196,7 +1196,7 @@ export const buildApi = async ({
     resolvedEngineeringOrchestrationStore,
     resolvedEngineeringRuntimeStore,
     signedEngineeringGateway,
-    new AIRouterEngineeringIntegrationReviewer(canonicalRouter),
+    new AIRouterEngineeringIntegrationReviewer(canonicalRouter, agentStore),
     governanceAudit,
     now,
   );
@@ -1749,11 +1749,11 @@ export const buildApi = async ({
         companyId: input.companyId,
         objectiveId: input.objectiveId,
         taskType: input.security ? "SECURITY" : "INTEGRATION_PREP",
-        role: input.security ? "SECURITY_REVIEWER" : "GENERALIST_ENGINEER",
+        role: input.security ? "SECURITY_REVIEWER" : "REVIEWER",
         skills: input.security
-          ? ["security", "review", "repository"]
-          : ["integration", "review", "repository"],
-        capabilities: ["repository.inspect", "repository.git_diff"],
+          ? ["security", "review"]
+          : ["review"],
+        capabilities: input.security ? ["security.review"] : ["maintainability.review"],
         riskLevel: input.security ? "CRITICAL" : "HIGH",
         eligibleAgentDefinitionIds: assignments.map(({ agent }) => agent.id),
       });
@@ -1762,7 +1762,12 @@ export const buildApi = async ({
         const match = assignments.find(({ agent }) => agent.id === score.agentId);
         if (match?.assignment) return match.assignment.id;
       }
-      return undefined;
+      // Integration review reads a bounded signed diff; it does not require
+      // repository file capabilities. AIRouter still enforces the model budget.
+      return assignments
+        .filter(({ agent }) => agent.role === (input.security ? "security" : "review") &&
+          agent.capabilities.includes(input.security ? "security.review" : "maintainability.review"))
+        .sort((left, right) => left.agent.id.localeCompare(right.agent.id))[0]?.assignment?.id;
     },
   });
   const engineeringDelivery = new EngineeringDeliveryService(
