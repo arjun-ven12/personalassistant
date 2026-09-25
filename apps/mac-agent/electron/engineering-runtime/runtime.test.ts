@@ -525,11 +525,19 @@ describe("NativeEngineeringRuntime", () => {
       baseCommit: inspection.baseCommit,
     });
     expect(prepared.files).toEqual(["source.ts"]);
+    await expect(runtime.integrateCommit({
+      repositoryRootPath: repositoryRoot,
+      worktreeLocator: integrationLocator,
+      commit: prepared.commit,
+      sourceWorktreeLocator: taskLocator,
+      expectedHead: "f".repeat(40),
+    })).rejects.toMatchObject({ code: "INCONSISTENT_STATE" });
     const integrated = await runtime.integrateCommit({
       repositoryRootPath: repositoryRoot,
       worktreeLocator: integrationLocator,
       commit: prepared.commit,
       sourceWorktreeLocator: taskLocator,
+      expectedHead: inspection.baseCommit,
     });
     expect(integrated).toMatchObject({ integrated: true, conflictPaths: [] });
     expect(
@@ -828,10 +836,18 @@ describe("NativeEngineeringRuntime", () => {
       packageManager: "pnpm",
       operation: "INSTALL",
       packages: [],
+      bootstrapLockfile: true,
     });
     expect(
       JSON.parse(await readFile(path.join(projectRoot, "package.json"), "utf8")),
-    ).toMatchObject({ name: "saas-site", private: true });
+    ).toMatchObject({ name: "saas-site", private: true, scripts: {
+      test: "node --test tests/*.test.mjs",
+    } });
+    expect(await readFile(path.join(projectRoot, "tests/app.test.mjs"), "utf8"))
+      .toContain("renderToStaticMarkup(createElement(App))");
+    expect((await execute("/usr/bin/git", ["check-ignore", ".pnpm-store/cache-file"], {
+      cwd: projectRoot,
+    })).stdout.trim()).toBe(".pnpm-store/cache-file");
     expect(
       (
         await execute("/usr/bin/git", ["log", "-1", "--pretty=%s"], {
@@ -870,6 +886,8 @@ describe("NativeEngineeringRuntime", () => {
       message:
         "The reviewed dependency container is unavailable. Start Docker Desktop and retry the exact build.",
     });
+    await mkdir(path.join(projectRoot, ".pnpm-store", "v11"), { recursive: true });
+    await writeFile(path.join(projectRoot, ".pnpm-store", "v11", "index.db"), "cache");
 
     const recoveredRuntime = new NativeEngineeringRuntime(
       worktreeRoot,
@@ -877,6 +895,31 @@ describe("NativeEngineeringRuntime", () => {
       new TestDependencyRunner(),
     );
     await expect(recoveredRuntime.initializeProject(request)).resolves.toMatchObject({
+      branch: "main",
+      dirty: false,
+    });
+
+    const legacyRequest = {
+      ...request,
+      repositoryRootPath: path.join(developmentRoot, "legacy-site"),
+      projectSlug: "legacy-site",
+    };
+    await expect(unavailableRuntime.initializeProject(legacyRequest)).rejects.toMatchObject({
+      code: "COMMAND_SANDBOX_UNAVAILABLE",
+    });
+    const legacyPackagePath = path.join(legacyRequest.repositoryRootPath, "package.json");
+    const legacyPackage = JSON.parse(await readFile(legacyPackagePath, "utf8")) as {
+      scripts: Record<string, string>;
+    };
+    delete legacyPackage.scripts.test;
+    await writeFile(legacyPackagePath, `${JSON.stringify(legacyPackage, null, 2)}\n`);
+    await writeFile(path.join(legacyRequest.repositoryRootPath, "src/main.tsx"),
+      "import { StrictMode } from 'react';\nimport { createRoot } from 'react-dom/client';\nimport './styles.css';\n\nconst App = () => <main><h1>Project ready</h1></main>;\n\ncreateRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>);\n");
+    await writeFile(path.join(legacyRequest.repositoryRootPath, ".gitignore"),
+      "node_modules\ndist\n.env\n.env.*\n!.env.example\n");
+    await rm(path.join(legacyRequest.repositoryRootPath, "src/App.tsx"));
+    await rm(path.join(legacyRequest.repositoryRootPath, "tests"), { recursive: true });
+    await expect(recoveredRuntime.initializeProject(legacyRequest)).resolves.toMatchObject({
       branch: "main",
       dirty: false,
     });

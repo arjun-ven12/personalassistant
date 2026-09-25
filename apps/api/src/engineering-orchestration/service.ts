@@ -85,6 +85,9 @@ export interface EngineeringWorkspaceGateway {
     agentId: string;
     idempotencyKey: string;
     slug: string;
+    repairBaseCommit?: string | null;
+    repairIntegrationWorkspaceId?: string | null;
+    repairObjectiveId?: string | null;
     transport: {
       sessionId: string;
       requestId: string;
@@ -497,6 +500,8 @@ export class EngineeringManagerService {
       parentTaskId: string;
       category: string;
       summary: string;
+      repairBaseCommit?: string;
+      repairIntegrationWorkspaceId?: string;
     },
   ) {
     if (
@@ -506,6 +511,8 @@ export class EngineeringManagerService {
       input.cycle > 3 ||
       input.summary.length < 1 ||
       input.summary.length > 1_000
+      || (input.repairBaseCommit !== undefined && !/^[0-9a-f]{40,64}$/.test(input.repairBaseCommit))
+      || Boolean(input.repairBaseCommit) !== Boolean(input.repairIntegrationWorkspaceId)
     )
       throw new EngineeringOrchestrationError(
         "INVALID_STATE",
@@ -523,7 +530,9 @@ export class EngineeringManagerService {
     if (existing) {
       if (
         existing.objectiveId !== input.objectiveId ||
-        existing.parentTaskId !== input.parentTaskId
+        existing.parentTaskId !== input.parentTaskId ||
+        existing.repairBaseCommit !== (input.repairBaseCommit ?? null) ||
+        existing.repairIntegrationWorkspaceId !== (input.repairIntegrationWorkspaceId ?? null)
       )
         throw new EngineeringOrchestrationError(
           "IDEMPOTENCY_CONFLICT",
@@ -559,8 +568,10 @@ export class EngineeringManagerService {
         "INVALID_STATE",
         "Repair requires a completed scoped parent task and active repository.",
       );
-    const taskType = parent.readOnly ? ("BACKEND" as const) : parent.taskType;
-    const role = parent.readOnly
+    const testingParent = parent.taskType === "TESTING";
+    const taskType = testingParent ? ("INTEGRATION_PREP" as const)
+      : parent.readOnly ? ("BACKEND" as const) : parent.taskType;
+    const role = parent.readOnly || testingParent
       ? ("GENERALIST_ENGINEER" as const)
       : parent.assignedRole;
     const capabilities = [
@@ -603,6 +614,8 @@ export class EngineeringManagerService {
       parentTaskId: parent.id,
       repositoryId: repository.id,
       workspaceId: null,
+      repairBaseCommit: input.repairBaseCommit ?? null,
+      repairIntegrationWorkspaceId: input.repairIntegrationWorkspaceId ?? null,
       title: `Repair integration ${input.category.toLowerCase().replaceAll("_", " ")}`,
       description:
         `Fix only the smallest validated integration failure. ${input.summary}`.slice(
@@ -876,8 +889,104 @@ export class EngineeringManagerService {
         context.companyId,
         objective.id,
       );
+      const results = await this.store.listResults(
+        context.ownerId,
+        context.companyId,
+        objective.id,
+      );
       let recoveredTask = false;
       for (const task of tasks) {
+        // Older graphs assigned a second mutating test worktree from the clean
+        // base. It cannot run feature tests against its completed predecessor's
+        // unintegrated changes. Reuse real passing TEST evidence only when the
+        // predecessor also changed a test file; integration still validates the
+        // combined candidate and the failed QA worktree is never included.
+        if (
+          task.status === "BLOCKED" &&
+          task.taskType === "TESTING" &&
+          task.lastFailureCategory === "TEST_FAILURE" &&
+          task.assignedAgentId &&
+          task.dependencies.length > 0
+        ) {
+          const upstream = task.dependencies.map((id) => ({
+            task: tasks.find((candidate) => candidate.id === id),
+            result: results.find((candidate) => candidate.taskId === id),
+          }));
+          const validated = await Promise.all(
+            upstream.map(async ({ task: parent, result }) => {
+              if (
+                parent?.status !== "COMPLETE" ||
+                result?.status !== "SUCCEEDED" ||
+                result.validationStatus !== "PASS" ||
+                !result.validationReportId
+              ) return false;
+              const report = await this.runtimeStore.findValidation(
+                context.ownerId,
+                context.companyId,
+                result.validationReportId,
+              );
+              return report?.status === "PASS" &&
+                report.workspaceId === result.workspaceId &&
+                report.steps.some((step) => step.kind === "TEST" && step.status === "PASS");
+            }),
+          );
+          if (
+            validated.every(Boolean) &&
+            upstream.some(({ result }) =>
+              result?.filesChanged.some((path) =>
+                /(^|\/)(?:tests?\/|__tests__\/|[^/]+\.(?:test|spec)\.)/.test(path),
+              ),
+            )
+          ) {
+            const at = this.now().toISOString();
+            await this.store.saveResult(EngineeringTaskResultSchema.parse({
+              schemaVersion: "1",
+              id: crypto.randomUUID(),
+              ownerId: objective.ownerId,
+              companyId: objective.companyId,
+              objectiveId: objective.id,
+              taskId: task.id,
+              agentId: task.assignedAgentId,
+              workspaceId: null,
+              workspaceBaseCommit: null,
+              filesChanged: [],
+              diffSummary: "Passing registered test validation and focused test changes were supplied by completed dependency tasks.",
+              validationStatus: "PASS",
+              validationReportId: null,
+              reviewStatus: "NOT_REQUIRED",
+              modelProvider: null,
+              modelName: null,
+              modelTier: task.modelPolicy.currentTier,
+              inputTokens: 0,
+              outputTokens: 0,
+              costUsd: "0.0",
+              attempts: Math.max(1, task.attempt),
+              durationMs: 0,
+              status: "SUCCEEDED",
+              failureCategory: null,
+              warnings: ["Prior passing TEST reports reused; the combined candidate must pass validation and independent review."],
+              completedAt: at,
+            }));
+            await this.store.saveTask(EngineeringTaskSchema.parse({
+              ...task,
+              workspaceId: null,
+              readOnly: true,
+              status: "COMPLETE",
+              lastFailureCategory: null,
+              lastFailureSummary: null,
+              completedAt: at,
+              updatedAt: at,
+            }));
+            await this.event(
+              objective,
+              task.id,
+              "TASK_COMPLETED",
+              "Redundant QA task closed using passing upstream test reports; combined integration validation remains required.",
+            );
+            recoveredTask = true;
+            continue;
+          }
+        }
         const pendingWorkspace = await this.runtimeStore.findWorkspaceByIdempotencyKey(context.ownerId, context.companyId, task.repositoryId, task.id);
         if (
           task.status === "BLOCKED" &&
@@ -1351,6 +1460,9 @@ export class EngineeringManagerService {
           agentId: task.assignedAgentId,
           idempotencyKey: task.id,
           slug: task.taskType.toLowerCase().replaceAll("_", "-"),
+          repairBaseCommit: task.repairBaseCommit,
+          repairIntegrationWorkspaceId: task.repairIntegrationWorkspaceId,
+          repairObjectiveId: task.repairBaseCommit ? task.objectiveId : null,
           transport: {
             sessionId: context.sessionId,
             requestId: context.requestId,
@@ -2105,20 +2217,15 @@ export class EngineeringManagerService {
         });
       seeds.push({
         key: "testing",
-        title: "Add and run focused tests",
+        title: "Review focused test evidence",
         description:
-          "Add focused tests and run the repository's registered validation profile.",
+          "Review the completed implementation tasks' focused test and validation evidence. Do not create a second test patch against the unintegrated base; combined integration validation remains authoritative.",
         type: "TESTING",
         role: "TEST_QA_ENGINEER",
         dependencies: [...implementationKeys],
         skills: ["test.plan", "failure.analysis"],
-        capabilities: [
-          "repository.search",
-          "repository.file_read",
-          "repository.file_patch",
-          "repository.file_create",
-          "repository.validate",
-        ],
+        capabilities: ["repository.search", "repository.file_read"],
+        readOnly: true,
       });
       if (
         objective.riskLevel === "HIGH" ||

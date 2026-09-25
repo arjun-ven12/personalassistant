@@ -13,6 +13,7 @@ import {
   EngineeringMergeCandidateSchema,
   MergeEngineeringCandidateRequestSchema,
   EngineeringPreparedCommitSchema,
+  EngineeringTaskResultSchema,
   type EngineeringAcceptanceEvidenceSchema,
   type EngineeringCapability,
   type EngineeringChangeMapEntry,
@@ -166,6 +167,8 @@ export interface EngineeringIntegrationRepairManager {
     parentTaskId: string;
     category: string;
     summary: string;
+    repairBaseCommit?: string;
+    repairIntegrationWorkspaceId?: string;
   }): Promise<EngineeringTask>;
 }
 
@@ -503,7 +506,8 @@ export class EngineeringIntegrationService {
       string,
       Map<string, EngineeringChangeMapEntry["kinds"][number]>
     >();
-    for (const result of mutating) {
+    for (let index = 0; index < mutating.length; index += 1) {
+      let result = mutating[index]!;
       const workspace = await this.runtime.findWorkspace(
         context.ownerId,
         context.companyId,
@@ -540,13 +544,75 @@ export class EngineeringIntegrationService {
           })
         ).output,
       );
+      const sourcePaths = status.entries.map((entry) => entry.path).sort();
+      const recordedPaths = [...result.filesChanged].sort();
+      if (
+        status.dirty && !status.truncated &&
+        status.branch === workspace.branchName &&
+        !status.entries.some((entry) => entry.kind === "CONFLICTED") &&
+        JSON.stringify(sourcePaths) !== JSON.stringify(recordedPaths) &&
+        recordedPaths.length > 0 &&
+        recordedPaths.every((path) => sourcePaths.includes(path)) &&
+        result.validationReportId
+      ) {
+        // Retried task attempts can leave earlier changes in the same bound
+        // worktree. Reconcile only a strict path superset after a fresh signed
+        // validation, and prove the bounded diff did not change during it.
+        const inspectDiff = async () => EngineeringDiffResultSchema.parse((await this.gateway.invoke({
+          ownerId: context.ownerId, companyId: context.companyId,
+          repositoryId: repository.id, workspaceId: workspace.id,
+          taskId: result.taskId, agentId: result.agentId,
+          capability: "repository.git_diff", operationInput: { maxBytes: 524_288 },
+          signal: new AbortController().signal, transport: context,
+        })).output);
+        const before = await inspectDiff();
+        if (!before.truncated && before.redactions.length === 0) {
+          const validation = await this.gateway.invoke({
+            ownerId: context.ownerId, companyId: context.companyId,
+            repositoryId: repository.id, workspaceId: workspace.id,
+            taskId: result.taskId, agentId: result.agentId,
+            capability: "repository.validate", operationInput: {},
+            signal: new AbortController().signal, transport: context,
+          });
+          const report = validation.validationReportId
+            ? await this.runtime.findValidation(context.ownerId, context.companyId, validation.validationReportId)
+            : undefined;
+          const after = await inspectDiff();
+          const afterStatus = EngineeringGitStatusSchema.parse((await this.gateway.invoke({
+            ownerId: context.ownerId, companyId: context.companyId,
+            repositoryId: repository.id, workspaceId: workspace.id,
+            taskId: result.taskId, agentId: result.agentId,
+            capability: "repository.git_status", operationInput: {},
+            signal: new AbortController().signal, transport: context,
+          })).output);
+          if (
+            validation.validationStatus === "PASS" && report?.status === "PASS" &&
+            report.workspaceId === workspace.id &&
+            afterStatus.dirty && !afterStatus.truncated &&
+            afterStatus.branch === workspace.branchName &&
+            JSON.stringify(afterStatus.entries) === JSON.stringify(status.entries) &&
+            !after.truncated && after.redactions.length === 0 &&
+            before.patch === after.patch &&
+            JSON.stringify(before.files) === JSON.stringify(after.files)
+          ) {
+            result = EngineeringTaskResultSchema.parse({
+              ...result,
+              filesChanged: sourcePaths,
+              validationReportId: report.id,
+              warnings: [...result.warnings, "Retry worktree paths reconciled against a fresh signed validation."].slice(0, 30),
+            });
+            await this.orchestration.saveResult(result);
+            mutating[index] = result;
+            selected[selected.findIndex((item) => item.taskId === result.taskId)] = result;
+          }
+        }
+      }
       if (
         !status.dirty ||
         status.truncated ||
         status.branch !== workspace.branchName ||
         status.entries.some((entry) => entry.kind === "CONFLICTED") ||
-        JSON.stringify(status.entries.map((entry) => entry.path).sort()) !==
-          JSON.stringify([...result.filesChanged].sort())
+        JSON.stringify(sourcePaths) !== JSON.stringify([...result.filesChanged].sort())
       )
         throw new EngineeringIntegrationError(
           "INTEGRATION_NOT_READY",
@@ -727,8 +793,15 @@ export class EngineeringIntegrationService {
       const selected = latestSuccessfulResults(tasks, allResults).filter(
         (value): value is EngineeringTaskResult => Boolean(value),
       );
+      if (claimed.status === "CONFLICTED") {
+        const recovered = await this.recoverConflictedRepair(
+          context, run, tasks, workerId, generation);
+        if (recovered) return recovered;
+        if (run.repairTaskIds.length)
+          return this.view(context.ownerId, context.companyId, run.id);
+      }
       if (claimed.status === "REPAIRING") {
-        const pendingId = run.repairTaskIds.find((id) => !run.taskIds.includes(id));
+        const pendingId = [...run.repairTaskIds].reverse().find((id) => !run.taskIds.includes(id));
         const pendingTask = tasks.find((task) => task.id === pendingId);
         const pendingResult = selected.find((result) => result.taskId === pendingId);
         if (pendingId && (!pendingTask || ["FAILED", "BLOCKED", "CANCELLED"].includes(pendingTask.status))) {
@@ -744,7 +817,8 @@ export class EngineeringIntegrationService {
         if (pendingId && pendingResult && pendingTask) {
           const workspace = await this.runtime.findWorkspace(context.ownerId, context.companyId, pendingResult.workspaceId!);
           const repository = await this.runtime.findRepository(context.ownerId, context.companyId, run.repositoryId);
-          if (!workspace || !repository || workspace.baseCommit !== run.baseCommit ||
+          if (!workspace || !repository ||
+              workspace.baseCommit !== (pendingTask.repairBaseCommit ?? run.baseCommit) ||
               workspace.taskId !== pendingTask.id || workspace.agentId !== pendingResult.agentId ||
               !repository.authorizedAgentIds.includes(pendingResult.agentId))
             throw new EngineeringIntegrationError("INTEGRATION_NOT_READY", "Repair workspace lost its registered common-base scope.");
@@ -862,12 +936,30 @@ export class EngineeringIntegrationService {
       const previousValidation = claimed.status === "FAILED" && run.validationReportId
         ? await this.runtime.findValidation(context.ownerId, context.companyId, run.validationReportId)
         : undefined;
+      const pendingRepairId = run.integrationOrder.at(-1);
+      const pendingRepair = tasks.find((task) => task.id === pendingRepairId);
+      const pendingEvidence = run.repairEvidence.find((item) => item.taskId === pendingRepairId);
       const resumeValidatedHead = initialState.headCommit !== run.baseCommit &&
         claimed.status === "FAILED" && previousValidation?.status === "PASS" &&
         previousValidation.workspaceId === run.integrationWorkspaceId &&
-        run.conflicts.every((conflict) => conflict.status === "RESOLVED");
+        !(pendingRepair?.repairBaseCommit && pendingEvidence?.validationReportId === run.validationReportId) &&
+        run.conflicts.every((conflict) => ["RESOLVED", "SUPERSEDED"].includes(conflict.status));
+      const pendingValidation = pendingEvidence?.validationReportId
+        ? await this.runtime.findValidation(context.ownerId, context.companyId,
+          pendingEvidence.validationReportId) : null;
+      const reviewedRepair = pendingRepair?.repairBaseCommit === initialState.headCommit &&
+        pendingRepair.repairIntegrationWorkspaceId === run.integrationWorkspaceId &&
+        !!pendingEvidence?.reviewId && !!pendingEvidence.validationReportId &&
+        (await this.store.listReviews(context.ownerId, context.companyId, run.id))
+          .some((review) => review.id === pendingEvidence.reviewId &&
+            review.verdict === "CHANGES_REQUIRED" && review.headCommit === initialState.headCommit) &&
+        pendingValidation?.status === "PASS" &&
+        pendingValidation.workspaceId === run.integrationWorkspaceId;
+      const startIndex = reviewedRepair && pendingRepairId
+        ? run.integrationOrder.indexOf(pendingRepairId)
+        : resumeValidatedHead ? run.integrationOrder.length : 0;
       if (initialState.headCommit !== run.baseCommit &&
-        !resumeValidatedHead &&
+        !resumeValidatedHead && !reviewedRepair &&
         !["INTEGRATING", "VALIDATING", "REVIEWING", "REPAIRING", "CONFLICTED"].includes(claimed.status))
         throw new EngineeringIntegrationError(
           "STALE_CANDIDATE",
@@ -900,8 +992,8 @@ export class EngineeringIntegrationService {
             generation,
           );
       }
-      let headCommit = resumeValidatedHead ? initialState.headCommit : run.baseCommit;
-      if (!resumeValidatedHead) for (const taskId of run.integrationOrder) {
+      let headCommit = startIndex > 0 ? initialState.headCommit : run.baseCommit;
+      for (const taskId of run.integrationOrder.slice(startIndex)) {
         if (controller.signal.aborted)
           throw new EngineeringIntegrationError(
             "LEASE_LOST",
@@ -909,6 +1001,10 @@ export class EngineeringIntegrationService {
           );
         await this.renew(run, workerId, generation);
         const result = resultByTask.get(taskId);
+        const sourceTask = tasks.find((task) => task.id === taskId);
+        if (sourceTask?.repairBaseCommit && headCommit !== sourceTask.repairBaseCommit)
+          throw new EngineeringIntegrationError("STALE_CANDIDATE",
+            "The reviewed integration head changed before applying its scoped repair.");
         if (!result?.workspaceId)
           throw new EngineeringIntegrationError(
             "INTEGRATION_NOT_READY",
@@ -951,6 +1047,11 @@ export class EngineeringIntegrationService {
               operationInput: {
                 commit: prepared.commit,
                 sourceWorkspaceId: result.workspaceId,
+                ...(sourceTask?.repairBaseCommit
+                  ? { repairTaskId: taskId,
+                      repairBaseCommit: sourceTask.repairBaseCommit,
+                      expectedHead: sourceTask.repairBaseCommit }
+                  : {}),
               },
               signal: controller.signal,
               transport: context,
@@ -1160,7 +1261,8 @@ export class EngineeringIntegrationService {
           return await this.scheduleRepair(context, run, workerId, generation, category,
             "Combined registered validation failed after integration.",
             validation.validationReportId ?? null, null, report?.steps.flatMap((step) =>
-              step.failures.map((failure) => failure.file).filter((file): file is string => Boolean(file))) ?? []);
+              step.failures.map((failure) => failure.file).filter((file): file is string => Boolean(file))) ?? [],
+            headCommit);
         }
         throw new EngineeringIntegrationError("VALIDATION_FAILED", "Full registered repository validation did not pass.");
       }
@@ -1271,7 +1373,7 @@ export class EngineeringIntegrationService {
           return await this.scheduleRepair(context, run, workerId, generation,
             "REVIEW_CHANGES_REQUIRED", review.findings.join("; ").slice(0, 1_000) ||
             "Independent integration review requested changes.",
-            validation.validationReportId, review.id, []);
+            validation.validationReportId, review.id, [], headCommit);
         throw new EngineeringIntegrationError("REVIEW_FAILED", "Independent integration review requires changes.");
       }
       let securityReview: EngineeringIntegrationReview | null = null;
@@ -1317,7 +1419,7 @@ export class EngineeringIntegrationService {
             return await this.scheduleRepair(context, run, workerId, generation,
               "REVIEW_CHANGES_REQUIRED", securityReview.findings.join("; ").slice(0, 1_000) ||
               "Independent security review requested changes.", validation.validationReportId,
-              securityReview.id, []);
+              securityReview.id, [], headCommit);
           throw new EngineeringIntegrationError("REVIEW_FAILED", "Security review blocked the merge candidate.");
         }
       }
@@ -1333,7 +1435,7 @@ export class EngineeringIntegrationService {
         if (this.manager)
           return await this.scheduleRepair(context, run, workerId, generation,
             "REVIEW_CHANGES_REQUIRED", "Acceptance criteria lack independently cited evidence.",
-            validation.validationReportId, review.id, []);
+            validation.validationReportId, review.id, [], headCommit);
         throw new EngineeringIntegrationError("REVIEW_FAILED", "Acceptance criteria lack independently cited evidence.");
       }
       await this.assertHead(context, run, agentId, headCommit, controller.signal);
@@ -1540,6 +1642,69 @@ export class EngineeringIntegrationService {
     });
   }
 
+  private async recoverConflictedRepair(
+    context: EngineeringIntegrationContext,
+    run: EngineeringIntegrationRun,
+    tasks: EngineeringTask[],
+    workerId: string,
+    generation: number,
+  ) {
+    const failedRepairId = run.repairTaskIds.at(-1);
+    const evidence = run.repairEvidence.at(-1);
+    const failedTask = tasks.find((task) => task.id === failedRepairId);
+    const conflicts = run.conflicts.filter((conflict) => conflict.status === "ESCALATED");
+    if (!this.manager || !failedRepairId || !evidence || evidence.taskId !== failedRepairId ||
+        !failedTask || failedTask.status !== "COMPLETE" ||
+        failedTask.parentTaskId !== evidence.parentTaskId ||
+        !run.integrationOrder.includes(failedRepairId) ||
+        !evidence.reviewId || !conflicts.length ||
+        conflicts.length !== run.conflicts.filter((conflict) => conflict.status !== "RESOLVED" && conflict.status !== "SUPERSEDED").length ||
+        conflicts.some((conflict) => !conflict.taskIds.includes(failedRepairId)))
+      return null;
+    const review = (await this.store.listReviews(context.ownerId, context.companyId, run.id))
+      .find((item) => item.id === evidence.reviewId);
+    if (!review || review.verdict !== "CHANGES_REQUIRED") return null;
+    const workspace = await this.runtime.findWorkspace(
+      context.ownerId, context.companyId, run.integrationWorkspaceId);
+    const repository = await this.runtime.findRepository(
+      context.ownerId, context.companyId, run.repositoryId);
+    if (!workspace?.agentId || workspace.taskId !== run.objectiveId ||
+        workspace.repositoryId !== run.repositoryId ||
+        !repository?.authorizedAgentIds.includes(workspace.agentId)) return null;
+    await this.assertHead(context, run, workspace.agentId, review.headCommit,
+      new AbortController().signal);
+    const taskIds = run.taskIds.filter((id) => id !== failedRepairId);
+    const sourceWorkspaceIds = run.sourceWorkspaceIds.filter((_, index) =>
+      run.taskIds[index] !== failedRepairId);
+    const changeMap = run.changeMap.flatMap((entry) => {
+      const remaining = entry.taskIds.filter((id) => id !== failedRepairId);
+      return remaining.length ? [{ ...entry, taskIds: remaining,
+        overlap: remaining.length > 1 ? "SAME_FILE" as const : "NONE" as const }] : [];
+    });
+    const superseded = EngineeringIntegrationRunSchema.parse({
+      ...run,
+      taskIds,
+      sourceWorkspaceIds,
+      integrationOrder: run.integrationOrder.filter((id) => id !== failedRepairId),
+      changeMap,
+      contractFindings: checkGeneratedContracts(changeMap, repository.metadata.contractBindings),
+      conflicts: run.conflicts.map((conflict) => conflict.status === "ESCALATED"
+        ? { ...conflict, status: "SUPERSEDED" as const,
+            summary: "Conflicting repair retained as evidence; a new repair is based on the reviewed integration head." }
+        : conflict),
+    });
+    const paths = conflicts.map((conflict) => conflict.path);
+    const repaired = await this.scheduleRepair(context, superseded, workerId, generation,
+      "CONFLICT_RESOLUTION_DEFECT",
+      `Preserve the already integrated implementation. Address the independent review findings without replacing unrelated work. Conflicting paths: ${paths.join(", ")}. ${evidence.summary}`.slice(0, 1_000),
+      evidence.validationReportId, evidence.reviewId, paths,
+      review.headCommit, evidence.parentTaskId);
+    await this.auditEvent(context, "ENGINEERING_INTEGRATION_REPAIR_SUPERSEDED",
+      "Conflicting repair retained as evidence; a scoped integrated-head repair was scheduled.",
+      { integrationRunId: run.id, supersededTaskId: failedRepairId, conflictCount: conflicts.length });
+    return repaired;
+  }
+
   list(ownerId: string, companyId: string, limit = 100) {
     return this.store.listRuns(ownerId, companyId, Math.min(Math.max(limit, 1), 100));
   }
@@ -1629,6 +1794,8 @@ export class EngineeringIntegrationService {
     validationReportId: string | null,
     reviewId: string | null,
     failedFiles: string[],
+    repairHeadCommit?: string,
+    parentTaskId?: string,
   ) {
     if (!this.manager)
       throw new EngineeringIntegrationError("INTEGRATION_NOT_READY", "Engineering Manager repair service is unavailable.");
@@ -1641,15 +1808,26 @@ export class EngineeringIntegrationService {
         { integrationRunId: run.id, repairCycles: run.repairCycles });
       return this.view(context.ownerId, context.companyId, blocked.id);
     }
-    const responsible = [...run.integrationOrder].reverse().find((id) =>
+    const responsible = parentTaskId ?? [...run.integrationOrder].reverse().find((id) =>
       failedFiles.some((file) => run.changeMap.some((entry) => entry.path === file && entry.taskIds.includes(id)))) ??
       run.integrationOrder.at(-1);
     if (!responsible)
       throw new EngineeringIntegrationError("INTEGRATION_NOT_READY", "Responsible engineering task cannot be identified.");
+    if (repairHeadCommit) {
+      const integrationWorkspace = await this.runtime.findWorkspace(
+        context.ownerId, context.companyId, run.integrationWorkspaceId);
+      if (!integrationWorkspace?.agentId || integrationWorkspace.repositoryId !== run.repositoryId ||
+          integrationWorkspace.taskId !== run.objectiveId)
+        throw new EngineeringIntegrationError("INTEGRATION_NOT_READY", "Repair integration workspace identity changed.");
+      await this.assertHead(context, run, integrationWorkspace.agentId,
+        repairHeadCommit, new AbortController().signal);
+    }
     const cycle = run.repairCycles + 1;
     const task = await this.manager.createIntegrationRepairTask(context, {
       objectiveId: run.objectiveId, integrationRunId: run.id, cycle,
       parentTaskId: responsible, category, summary,
+      ...(repairHeadCommit ? { repairBaseCommit: repairHeadCommit } : {}),
+      ...(repairHeadCommit ? { repairIntegrationWorkspaceId: run.integrationWorkspaceId } : {}),
     });
     const repairing = await this.saveFenced({ ...run,
       status: "REPAIRING", repairCycles: cycle,

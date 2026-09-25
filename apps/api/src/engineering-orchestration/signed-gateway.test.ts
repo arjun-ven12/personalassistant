@@ -78,6 +78,86 @@ describe("SignedExecutionEngineeringGateway", () => {
     expect(dispatch).toHaveBeenCalledTimes(3);
   });
 
+  it("pins a repair worktree to its registered integrated head and rejects a changed retry base", async () => {
+    const runtime = new InMemoryEngineeringRuntimeStore();
+    registerNodeProject(runtime);
+    const integrationId = crypto.randomUUID();
+    const objectiveId = crypto.randomUUID();
+    runtime.createWorkspace(EngineeringWorkspaceSchema.parse({
+      schemaVersion: "1", id: integrationId, ownerId, companyId, repositoryId,
+      taskId: objectiveId, agentId, idempotencyKey: "integration-repair-test",
+      branchName: "alexa/integration-repair", worktreeLocator: `ew-${integrationId}`,
+      baseCommit: "a".repeat(40), headCommit: null, state: "READY",
+      leaseOwner: null, leaseExpiresAt: null, leaseGeneration: 0,
+      createdAt: now, updatedAt: now, expiresAt: null,
+    }));
+    const gateway = new SignedExecutionEngineeringGateway({} as ExecutionService, {} as ExecutionStore, runtime, () => new Date(now));
+    const dispatch = vi.spyOn(gateway as unknown as { dispatch: (input: { capability: string; operationInput: Record<string, unknown> }) => Promise<unknown> }, "dispatch")
+      .mockResolvedValueOnce({ output: { exists: true, baseCommit: "b".repeat(40), headCommit: "b".repeat(40), branch: "alexa/integration-repair", dirty: false } })
+      .mockResolvedValueOnce({ output: { baseCommit: "a".repeat(40), branch: "main", dirty: false } })
+      .mockResolvedValueOnce({ output: {} })
+      .mockResolvedValueOnce(installed());
+    const input = { ownerId, companyId, repositoryId, taskId, agentId, idempotencyKey: taskId,
+      slug: "repair", repairBaseCommit: "b".repeat(40), repairIntegrationWorkspaceId: integrationId,
+      repairObjectiveId: objectiveId,
+      transport: { sessionId: crypto.randomUUID(), requestId: crypto.randomUUID(), ipAddress: "127.0.0.1", networkState: "PRIVATE_NETWORK" as const } };
+    const created = await gateway.create(input);
+    expect(created.baseCommit).toBe("b".repeat(40));
+    expect(dispatch.mock.calls[2]?.[0].operationInput.baseCommit).toBe("b".repeat(40));
+    await expect(gateway.create({ ...input, idempotencyKey: "wrong-objective-repair",
+      repairObjectiveId: crypto.randomUUID() }))
+      .rejects.toMatchObject({ code: "WORKSPACE_NOT_FOUND" });
+    await expect(gateway.create({ ...input, repairBaseCommit: "c".repeat(40) }))
+      .rejects.toMatchObject({ code: "INCONSISTENT_STATE" });
+  });
+
+  it("accepts only an exact task-bound integrated-head repair source", async () => {
+    const runtime = new InMemoryEngineeringRuntimeStore();
+    registerNodeProject(runtime);
+    const integrationId = crypto.randomUUID();
+    const objectiveId = crypto.randomUUID();
+    const base = "a".repeat(40);
+    const repairBase = "b".repeat(40);
+    for (const workspace of [
+      { id: integrationId, taskId: objectiveId, idempotencyKey: "integration-test", baseCommit: base },
+      { id: workspaceId, taskId, idempotencyKey: taskId, baseCommit: repairBase,
+        repairIntegrationWorkspaceId: integrationId },
+    ]) runtime.createWorkspace(EngineeringWorkspaceSchema.parse({
+      schemaVersion: "1", ...workspace, ownerId, companyId, repositoryId, agentId,
+      branchName: `alexa/${workspace.taskId.replaceAll("-", "").slice(0, 12)}-123456-repair`,
+      worktreeLocator: `ew-${workspace.id}`, headCommit: null, state: "READY",
+      leaseOwner: null, leaseExpiresAt: null, leaseGeneration: 0,
+      createdAt: now, updatedAt: now, expiresAt: null,
+    }));
+    const gateway = new SignedExecutionEngineeringGateway({} as ExecutionService, {} as ExecutionStore, runtime, () => new Date(now));
+    const enqueue = vi.spyOn(gateway as unknown as { enqueueAndWait: (input: unknown) => Promise<unknown> }, "enqueueAndWait")
+      .mockResolvedValue({ schemaVersion: "1", operationId: crypto.randomUUID(),
+        capability: "repository.integrate_commit", output: { integrated: true,
+          commit: "c".repeat(40), headCommit: "d".repeat(40), conflictPaths: [] } });
+    const transport = { sessionId: crypto.randomUUID(), requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1", networkState: "PRIVATE_NETWORK" as const };
+    const request = { ownerId, companyId, repositoryId, workspaceId: integrationId,
+      taskId: objectiveId, agentId, capability: "repository.integrate_commit" as const,
+      operationInput: { commit: "c".repeat(40), sourceWorkspaceId: workspaceId,
+        repairTaskId: taskId, repairBaseCommit: repairBase, expectedHead: repairBase },
+      signal: new AbortController().signal, transport };
+    await expect(gateway.invoke(request)).resolves.toMatchObject({ output: { integrated: true } });
+    expect(enqueue).toHaveBeenCalledTimes(1);
+    const signedRequest = (enqueue.mock.calls[0]?.[0] as { request: unknown }).request;
+    expect(await new EngineeringTransportScopeVerifier(runtime).verify({ ownerId,
+      request: signedRequest as never })).toBe(true);
+    const source = runtime.findWorkspace(ownerId, companyId, workspaceId)!;
+    runtime.saveWorkspace(EngineeringWorkspaceSchema.parse({ ...source,
+      repairIntegrationWorkspaceId: null }));
+    expect(await new EngineeringTransportScopeVerifier(runtime).verify({ ownerId,
+      request: signedRequest as never })).toBe(false);
+    runtime.saveWorkspace(source);
+    await expect(gateway.invoke({ ...request, operationInput: { ...request.operationInput,
+      repairBaseCommit: "e".repeat(40) } })).rejects.toMatchObject({ code: "WORKSPACE_NOT_FOUND" });
+    await expect(gateway.invoke({ ...request, taskId })).rejects.toMatchObject({ code: "WORKSPACE_NOT_FOUND" });
+    expect(enqueue).toHaveBeenCalledTimes(1);
+  });
+
   it("does not reuse a CREATING record as a completed worktree after approval interruption", async () => {
     const runtime = new InMemoryEngineeringRuntimeStore();
     registerNodeProject(runtime);

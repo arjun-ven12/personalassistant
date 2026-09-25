@@ -1,6 +1,7 @@
 import {
   EngineeringRepositorySchema,
   EngineeringTaskSchema,
+  EngineeringValidationReportSchema,
   EngineeringWorkspaceSchema,
   type EngineeringTask,
 } from "@alexa-control/shared";
@@ -433,6 +434,22 @@ describe("EngineeringManagerService", () => {
       ),
     ).rejects.toMatchObject({ code: "OBJECTIVE_NOT_FOUND" });
   });
+  it("does not inherit a test-only role for an integration repair that may need source changes", async () => {
+    const { service } = await setup();
+    const planned = await create(service);
+    const completed = await runToTerminal(service, planned.objective.id);
+    const parent = completed.tasks.find((item) => item.taskType === "TESTING" && item.status === "COMPLETE")!;
+    const repair = await service.createIntegrationRepairTask(context, {
+      objectiveId: planned.objective.id,
+      integrationRunId: crypto.randomUUID(),
+      cycle: 1,
+      parentTaskId: parent.id,
+      category: "CONFLICT_RESOLUTION_DEFECT",
+      summary: "Fix the reviewed implementation without replacing integrated work.",
+    });
+    expect(repair.taskType).toBe("INTEGRATION_PREP");
+    expect(repair.assignedRole).toBe("GENERALIST_ENGINEER");
+  });
   it("decomposes a simple feature into a bounded dependency graph and passes contracts structurally", async () => {
     const { service, worker } = await setup();
     const planned = await create(service);
@@ -453,6 +470,55 @@ describe("EngineeringManagerService", () => {
     const frontendStart = worker.starts.find((task) => task.taskType === "FRONTEND");
     const backendStart = worker.starts.find((task) => task.taskType === "BACKEND");
     expect(frontendStart?.dependencies).toContain(backendStart?.id);
+  });
+
+  it("recovers legacy QA only from a changed test and a passing registered TEST report", async () => {
+    const { service, store, runtime } = await setup();
+    const planned = await create(service, "Build a personal portfolio web page with tests.");
+    const completed = await runToTerminal(service, planned.objective.id);
+    const frontend = completed.tasks.find((item) => item.taskType === "FRONTEND")!;
+    const testing = completed.tasks.find((item) => item.taskType === "TESTING")!;
+    expect(testing.dependencies).toContain(frontend.id);
+    const frontendResult = completed.results.find((item) => item.taskId === frontend.id)!;
+    store.saveResult({ ...frontendResult, filesChanged: ["src/App.tsx", "tests/app.test.mjs"] });
+    runtime.saveValidation(EngineeringValidationReportSchema.parse({
+      id: frontendResult.validationReportId,
+      workspaceId: frontendResult.workspaceId,
+      status: "PASS",
+      steps: [{ commandId: "test", kind: "TEST", status: "PASS", result: null, failures: [] }],
+      durationMs: 1,
+      createdAt: new Date().toISOString(),
+    }), ownerId, companyId);
+    expect(runtime.findValidation(ownerId, companyId, frontendResult.validationReportId!)).toMatchObject({ status: "PASS", workspaceId: frontendResult.workspaceId });
+    for (const dependencyId of testing.dependencies.filter((id) => id !== frontend.id)) {
+      const result = completed.results.find((item) => item.taskId === dependencyId)!;
+      runtime.saveValidation(EngineeringValidationReportSchema.parse({
+        id: result.validationReportId,
+        workspaceId: result.workspaceId,
+        status: "PASS",
+        steps: [{ commandId: "test", kind: "TEST", status: "PASS", result: null, failures: [] }],
+        durationMs: 1,
+        createdAt: new Date().toISOString(),
+      }), ownerId, companyId);
+    }
+    store.saveTask(EngineeringTaskSchema.parse({
+      ...testing,
+      status: "BLOCKED",
+      lastFailureCategory: "TEST_FAILURE",
+      lastFailureSummary: "Tests in the isolated base worktree failed.",
+    }));
+    store.saveObjective({ ...completed.objective, status: "BLOCKED" });
+
+    const resumed = await service.resume(context, planned.objective.id);
+    const recovered = resumed.tasks.find((item) => item.id === testing.id)!;
+    expect(recovered).toMatchObject({ status: "COMPLETE", readOnly: true, workspaceId: null });
+    expect(resumed.results.find((item) => item.taskId === testing.id)).toMatchObject({
+      status: "SUCCEEDED",
+      filesChanged: [],
+      workspaceId: null,
+      costUsd: "0.0",
+    });
+    expect(resumed.events.some((item) => item.type === "TASK_COMPLETED" && item.taskId === testing.id)).toBe(true);
   });
 
   it("uses one governed worker for a narrow text edit while retaining validation and integration readiness", async () => {

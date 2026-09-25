@@ -144,6 +144,11 @@ const waitForBackend = async (apiBaseUrl) => {
 
 const waitForAgentConnection = async (launchedAt) => {
   for (let attempt = 0; attempt < 30; attempt += 1) {
+    if (!(await isRunning())) {
+      throw new Error(
+        "Updated trusted Mac Agent exited before it reported ONLINE; the previous app will be restored.",
+      );
+    }
     for (const operationalLogPath of operationalLogPaths) {
       try {
         const entries = (await readFile(operationalLogPath, "utf8"))

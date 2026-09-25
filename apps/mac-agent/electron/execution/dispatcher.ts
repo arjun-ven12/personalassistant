@@ -243,6 +243,7 @@ export const dispatchReadOnlyCapability = async (
             ...common,
             commit: transport.input.commit,
             sourceWorktreeLocator: transport.input.sourceWorktreeLocator,
+            ...(transport.input.expectedHead ? { expectedHead: transport.input.expectedHead } : {}),
           });
           break;
         case "repository.resolve_additive_docs_conflict":

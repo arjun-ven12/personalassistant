@@ -179,6 +179,8 @@ export const EngineeringTaskSchema = z
     parentTaskId: z.string().uuid().nullable(),
     repositoryId: z.string().uuid(),
     workspaceId: z.string().uuid().nullable(),
+    repairBaseCommit: z.string().regex(/^[0-9a-f]{40,64}$/).nullable().default(null),
+    repairIntegrationWorkspaceId: z.string().uuid().nullable().default(null),
     title: z.string().min(1).max(255),
     description: z.string().min(1).max(4_000),
     acceptanceCriteria: z.array(z.string().min(1).max(1_000)).min(1).max(20),

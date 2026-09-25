@@ -50,6 +50,7 @@ class FakeGateway implements EngineeringIntegrationGateway {
   headCommit = baseCommit;
   integrationBranch = "";
   readonly filesByTask = new Map<string, string>();
+  readonly extraFilesByTask = new Map<string, string[]>();
   validations = 0;
   failFinalValidation = false;
   failValidationCalls = new Set<number>();
@@ -123,17 +124,26 @@ class FakeGateway implements EngineeringIntegrationGateway {
         output: {
           branch: workspace?.branchName,
           entries: [
-            {
-              path: this.filesByTask.get(input.taskId),
+            ...[this.filesByTask.get(input.taskId), ...(this.extraFilesByTask.get(input.taskId) ?? [])].map((path) => ({
+              path,
               originalPath: null,
               kind: "MODIFIED",
-            },
+            })),
           ],
           dirty: true,
           truncated: false,
         },
       });
     }
+    if (input.capability === "repository.git_diff")
+      return Promise.resolve({ output: {
+        patch: `signed source diff ${input.taskId}`,
+        files: [this.filesByTask.get(input.taskId), ...(this.extraFilesByTask.get(input.taskId) ?? [])].map((path) => ({
+          path, additions: 1, deletions: 0, binary: false,
+        })),
+        truncated: false,
+        redactions: [],
+      } });
     if (input.capability === "repository.prepare_commit")
       return Promise.resolve({
         output: {
@@ -497,6 +507,8 @@ const attachRepairManager = (fixture: Awaited<ReturnType<typeof setup>>) => {
     const objective = fixture.orchestration.findObjective(ownerId, companyId, input.objectiveId)!;
     const task = EngineeringTaskSchema.parse({ ...parent,
       id: crypto.randomUUID(), parentTaskId: parent.id, workspaceId: null,
+      repairBaseCommit: input.repairBaseCommit ?? null,
+      repairIntegrationWorkspaceId: input.repairIntegrationWorkspaceId ?? null,
       title: `Repair ${input.category}`, description: input.summary,
       status: "READY", attempt: 0, leaseOwner: null, leaseExpiresAt: null,
       leaseGeneration: 0, startedAt: null, completedAt: null,
@@ -518,7 +530,8 @@ const completeRepair = (fixture: Awaited<ReturnType<typeof setup>>, taskId: stri
     schemaVersion: "1", id: workspaceId, ownerId, companyId, repositoryId,
     taskId, agentId: task.assignedAgentId, idempotencyKey: taskId,
     branchName: `alexa/${taskId.replaceAll("-", "").slice(0, 12)}-123456-repair`,
-    worktreeLocator: `ew-${workspaceId}`, baseCommit, headCommit: null,
+    worktreeLocator: `ew-${workspaceId}`, baseCommit: task.repairBaseCommit ?? baseCommit, headCommit: null,
+    repairIntegrationWorkspaceId: task.repairIntegrationWorkspaceId,
     state: "COMPLETED", leaseOwner: null, leaseExpiresAt: null, leaseGeneration: 0,
     createdAt: at, updatedAt: at, expiresAt: null,
   }));
@@ -527,7 +540,7 @@ const completeRepair = (fixture: Awaited<ReturnType<typeof setup>>, taskId: stri
   fixture.orchestration.saveResult(EngineeringTaskResultSchema.parse({
     schemaVersion: "1", id: crypto.randomUUID(), ownerId, companyId,
     objectiveId: task.objectiveId, taskId, agentId: task.assignedAgentId,
-    workspaceId, workspaceBaseCommit: baseCommit, filesChanged: [changedFile],
+    workspaceId, workspaceBaseCommit: task.repairBaseCommit ?? baseCommit, filesChanged: [changedFile],
     diffSummary: "Bounded integration repair", validationStatus: "PASS",
     validationReportId: crypto.randomUUID(), reviewStatus: "NOT_REQUIRED",
     modelProvider: "test", modelName: "terra", modelTier: "TERRA",
@@ -541,6 +554,35 @@ const completeRepair = (fixture: Awaited<ReturnType<typeof setup>>, taskId: stri
 };
 
 describe("EngineeringIntegrationService", () => {
+  it("reconciles earlier retry edits only after signed source revalidation", async () => {
+    const fixture = await setup();
+    const task = fixture.tasks[0]!;
+    fixture.gateway.extraFilesByTask.set(task.id, ["tests/app.test.mjs"]);
+    const created = await fixture.service.create(context, {
+      objectiveId: fixture.objectiveId,
+      idempotencyKey: "retry-source-evidence",
+    });
+    expect(created.run.status).toBe("PLANNING");
+    const result = fixture.orchestration.listResults(ownerId, companyId, fixture.objectiveId)
+      .find((item) => item.taskId === task.id)!;
+    expect(result.filesChanged).toEqual(["src/change-0.ts", "tests/app.test.mjs"]);
+    expect(result.warnings).toContain("Retry worktree paths reconciled against a fresh signed validation.");
+    expect(fixture.gateway.calls.filter((call) => call.capability === "repository.validate")).toHaveLength(1);
+  });
+
+  it("keeps retry evidence mismatch blocked when source revalidation fails", async () => {
+    const fixture = await setup();
+    fixture.gateway.extraFilesByTask.set(fixture.tasks[0]!.id, ["tests/app.test.mjs"]);
+    fixture.gateway.failValidationCalls.add(1);
+    await expect(fixture.service.create(context, {
+      objectiveId: fixture.objectiveId,
+      idempotencyKey: "retry-source-evidence-denied",
+    })).rejects.toMatchObject({ code: "INTEGRATION_NOT_READY" });
+    const result = fixture.orchestration.listResults(ownerId, companyId, fixture.objectiveId)
+      .find((item) => item.taskId === fixture.tasks[0]!.id)!;
+    expect(result.filesChanged).toEqual(["src/change-0.ts"]);
+  });
+
   it("integrates completed work in deterministic dependency order, validates, independently reviews, and emits a merge candidate", async () => {
     const { service, reviewer, objectiveId, tasks } = await setup();
     const created = await service.create(context, {
@@ -785,6 +827,85 @@ describe("EngineeringIntegrationService", () => {
     expect(ready.run.status).toBe("READY");
     expect(ready.candidate?.tasksIncluded).toContain(repairId);
     expect(Number(ready.run.repairCostUsd)).toBeCloseTo(0.001);
+  });
+
+  it("supersedes a conflicting same-base repair with a bounded integrated-head repair", async () => {
+    const fixture = await setup();
+    attachRepairManager(fixture);
+    fixture.reviewer.verdict = "CHANGES_REQUIRED";
+    const created = await fixture.service.create(context, {
+      objectiveId: fixture.objectiveId, idempotencyKey: "integrated-head-repair",
+    });
+    const first = await fixture.service.execute(context, created.run.id, "worker-review-repair");
+    expect(first.run.status).toBe("REPAIRING");
+    const originalHead = fixture.gateway.headCommit;
+    const firstRepairId = first.run.repairTaskIds[0]!;
+    expect(fixture.orchestration.findTask(ownerId, companyId, firstRepairId)?.repairBaseCommit).toBe(originalHead);
+    completeRepair(fixture, firstRepairId, "src/change-0.ts");
+    fixture.reviewer.verdict = "PASS";
+    fixture.gateway.conflictAt = fixture.gateway.integrations + 1;
+    const conflicted = await fixture.service.execute(context, created.run.id, "worker-conflicted-repair");
+    expect(conflicted.run.status).toBe("CONFLICTED");
+    const second = await fixture.service.execute(context, created.run.id, "worker-recover-repair");
+    expect(second.run.status).toBe("REPAIRING");
+    expect(second.run.repairCycles).toBe(2);
+    expect(second.run.integrationOrder).not.toContain(firstRepairId);
+    expect(second.run.conflicts[0]?.status).toBe("SUPERSEDED");
+    const replacementId = second.run.repairTaskIds.at(-1)!;
+    expect(fixture.orchestration.findTask(ownerId, companyId, replacementId)?.repairBaseCommit).toBe(originalHead);
+    completeRepair(fixture, replacementId, "src/change-0.ts");
+    fixture.gateway.conflictAt = Number.MAX_SAFE_INTEGER;
+    const ready = await fixture.service.execute(context, created.run.id, "worker-integrate-replacement");
+    expect(ready.run.status).toBe("READY");
+    expect(ready.candidate?.tasksIncluded).toContain(replacementId);
+    expect(ready.candidate?.tasksIncluded).not.toContain(firstRepairId);
+  });
+
+  it("resumes a second reviewed repair from the exact integration head without replaying earlier commits", async () => {
+    const fixture = await setup();
+    attachRepairManager(fixture);
+    fixture.reviewer.verdict = "CHANGES_REQUIRED";
+    const created = await fixture.service.create(context, {
+      objectiveId: fixture.objectiveId, idempotencyKey: "sequential-reviewed-repairs",
+    });
+    const first = await fixture.service.execute(context, created.run.id, "worker-first-review");
+    expect(first.run.status).toBe("REPAIRING");
+    const firstRepairId = first.run.repairTaskIds.at(-1)!;
+    completeRepair(fixture, firstRepairId, "src/change-0.ts");
+    const second = await fixture.service.execute(context, created.run.id, "worker-second-review");
+    expect(second.run.status).toBe("REPAIRING");
+    const secondRepairId = second.run.repairTaskIds.at(-1)!;
+    const reviewedHead = fixture.gateway.headCommit;
+    expect(fixture.orchestration.findTask(ownerId, companyId, secondRepairId)?.repairBaseCommit)
+      .toBe(reviewedHead);
+    completeRepair(fixture, secondRepairId, "src/change-0.ts");
+    fixture.reviewer.verdict = "PASS";
+    const integrationsBefore = fixture.gateway.integrations;
+    const ready = await fixture.service.execute(context, created.run.id, "worker-final-review");
+    expect(ready.run.status).toBe("READY");
+    expect(ready.candidate?.tasksIncluded).toContain(secondRepairId);
+    expect(fixture.gateway.integrations).toBe(integrationsBefore + 1);
+  });
+
+  it("rejects a failed repair retry when its reviewed integration head has moved", async () => {
+    const fixture = await setup();
+    attachRepairManager(fixture);
+    fixture.reviewer.verdict = "CHANGES_REQUIRED";
+    const created = await fixture.service.create(context, {
+      objectiveId: fixture.objectiveId, idempotencyKey: "moved-reviewed-repair-head",
+    });
+    const repairing = await fixture.service.execute(context, created.run.id, "worker-repair-review");
+    completeRepair(fixture, repairing.run.repairTaskIds.at(-1)!, "src/change-0.ts");
+    const next = await fixture.service.execute(context, created.run.id, "worker-next-review");
+    expect(next.run.status).toBe("REPAIRING");
+    const repairId = next.run.repairTaskIds.at(-1)!;
+    completeRepair(fixture, repairId, "src/change-0.ts");
+    fixture.store.saveRun({ ...next.run, status: "FAILED",
+      leaseOwner: null, leaseExpiresAt: null });
+    fixture.gateway.headCommit = "e".repeat(40);
+    await expect(fixture.service.execute(context, created.run.id, "worker-moved-head"))
+      .rejects.toMatchObject({ code: "STALE_CANDIDATE" });
+    expect(fixture.gateway.appliedCommits.size).toBeGreaterThan(1);
   });
 
   it("blocks and escalates after the configured repair-cycle ceiling", async () => {

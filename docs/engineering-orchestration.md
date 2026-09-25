@@ -42,6 +42,15 @@ snapshot worktree. Dependency outputs are bounded typed artifacts such as API co
 schema summaries, test expectations, and migration notes; raw conversations and
 private reasoning are not persisted.
 
+Implementation agents add focused tests in the same isolated worktree as their
+change. The dependent QA task reviews the prior test and validation evidence
+read-only; it does not write feature tests against a separate clean-base
+worktree. The combined integration candidate still must pass the full registered
+validation profile and independent review. Legacy blocked QA tasks can reuse
+prior test evidence only when every dependency has a passing persisted TEST
+report and at least one dependency changed a test file. The failed QA worktree
+is excluded from integration and the reuse is recorded as a task event.
+
 When a registered command profile names a dependency manager, worktree setup
 uses the signed, governed dependency-install capability before marking the
 workspace ready. The reviewed dependency container installs from the lockfile

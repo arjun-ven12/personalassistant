@@ -233,6 +233,8 @@ describe.skipIf(!connectionString)("PostgreSQL store adapters", () => {
         now.toISOString(),
       ),
     ).toMatchObject({ status: "CLAIMED", attemptCount: 1 });
+    expect(await execution.heartbeat(executionRequest.id, device.id, now.toISOString())).toBe(true);
+    expect((await execution.find(executionRequest.id))?.agentLastHeartbeatAt).toBe(now.toISOString());
     expect(
       await execution.transition(
         executionRequest.id,

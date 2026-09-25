@@ -233953,6 +233953,7 @@ var AuditEventTypeSchema = external_exports.enum([
   "ENGINEERING_INTEGRATION_VALIDATION_EXECUTED",
   "ENGINEERING_INTEGRATION_REVIEW_EXECUTED",
   "ENGINEERING_INTEGRATION_REPAIR_CREATED",
+  "ENGINEERING_INTEGRATION_REPAIR_SUPERSEDED",
   "ENGINEERING_INTEGRATION_REPAIR_BLOCKED",
   "ENGINEERING_MERGE_CANDIDATE_READY",
   "ENGINEERING_MERGE_CANDIDATE_STALE",
@@ -234458,6 +234459,7 @@ var EngineeringWorkspaceSchema = external_exports.object({
   branchName: external_exports.string().regex(/^alexa\/[a-z0-9][a-z0-9-]{0,119}$/),
   worktreeLocator: SafeIdentifierSchema,
   baseCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/),
+  repairIntegrationWorkspaceId: external_exports.string().uuid().nullable().default(null),
   headCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/).nullable(),
   state: EngineeringWorkspaceStateSchema,
   dependenciesPreparedAt: external_exports.iso.datetime().nullable().default(null),
@@ -234855,7 +234857,8 @@ var EngineeringTransportOperationSchema = external_exports.discriminatedUnion("c
     input: external_exports.object({
       commit: external_exports.string().regex(/^[0-9a-f]{40,64}$/),
       sourceWorkspaceId: external_exports.string().uuid(),
-      sourceWorktreeLocator: external_exports.string().regex(/^ew-[0-9a-f-]{36}$/)
+      sourceWorktreeLocator: external_exports.string().regex(/^ew-[0-9a-f-]{36}$/),
+      expectedHead: external_exports.string().regex(/^[0-9a-f]{40,64}$/).optional()
     }).strict()
   }).strict(),
   external_exports.object({
@@ -241184,6 +241187,8 @@ var EngineeringTaskSchema = external_exports.object({
   parentTaskId: external_exports.string().uuid().nullable(),
   repositoryId: external_exports.string().uuid(),
   workspaceId: external_exports.string().uuid().nullable(),
+  repairBaseCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/).nullable().default(null),
+  repairIntegrationWorkspaceId: external_exports.string().uuid().nullable().default(null),
   title: external_exports.string().min(1).max(255),
   description: external_exports.string().min(1).max(4e3),
   acceptanceCriteria: external_exports.array(external_exports.string().min(1).max(1e3)).min(1).max(20),
@@ -241391,7 +241396,7 @@ var EngineeringIntegrationConflictSchema = external_exports.object({
   taskIds: external_exports.array(external_exports.string().uuid()).min(2).max(30),
   type: EngineeringConflictTypeSchema,
   riskLevel: external_exports.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
-  status: external_exports.enum(["DETECTED", "RESOLVED", "ESCALATED"]),
+  status: external_exports.enum(["DETECTED", "RESOLVED", "ESCALATED", "SUPERSEDED"]),
   attempts: external_exports.number().int().min(0).max(2),
   resolverModel: external_exports.string().max(160).nullable(),
   resolverProviderId: external_exports.string().max(80).nullable().default(null),
@@ -241681,7 +241686,7 @@ var EngineeringControlCenterSchema = external_exports.object({
   completedTasks: external_exports.number().int().nonnegative(),
   blockedTasks: external_exports.number().int().nonnegative(),
   blocker: external_exports.object({
-    category: external_exports.enum(["CAPABILITY_UNAVAILABLE", "REPOSITORY_PERMISSION", "POLICY_APPROVAL_REQUIRED", "MODEL_PROVIDER_UNAVAILABLE", "VALIDATION_FAILURE", "MERGE_CONFLICT", "INTEGRATION_EVIDENCE_MISMATCH", "INTEGRATION_SCOPE_MISMATCH", "INTEGRATION_REPAIR_PENDING", "REVIEWER_UNAVAILABLE", "DEPENDENCY_PREPARATION_FAILED", "OWNER_CLARIFICATION_REQUIRED", "DEVICE_OFFLINE"]),
+    category: external_exports.enum(["CAPABILITY_UNAVAILABLE", "REPOSITORY_PERMISSION", "POLICY_APPROVAL_REQUIRED", "MODEL_PROVIDER_UNAVAILABLE", "BUDGET_EXCEEDED", "VALIDATION_FAILURE", "REVIEW_CHANGES_REQUIRED", "MERGE_CONFLICT", "INTEGRATION_EVIDENCE_MISMATCH", "INTEGRATION_SCOPE_MISMATCH", "INTEGRATION_REPAIR_PENDING", "REVIEWER_UNAVAILABLE", "DEPENDENCY_PREPARATION_FAILED", "PREVIEW_FAILED", "OWNER_CLARIFICATION_REQUIRED", "DEVICE_OFFLINE"]),
     message: external_exports.string().min(1).max(300),
     action: external_exports.string().min(1).max(300)
   }).strict().nullable(),
@@ -251056,7 +251061,8 @@ var dispatchReadOnlyCapability = async (request, limits, signal, engineeringRunt
           output = await engineeringRuntime2.integrateCommit({
             ...common,
             commit: transport.input.commit,
-            sourceWorktreeLocator: transport.input.sourceWorktreeLocator
+            sourceWorktreeLocator: transport.input.sourceWorktreeLocator,
+            ...transport.input.expectedHead ? { expectedHead: transport.input.expectedHead } : {}
           });
           break;
         case "repository.resolve_additive_docs_conflict":
@@ -251543,6 +251549,40 @@ var EXECUTABLES = {
 };
 var DEPENDENCY_IMAGE = "alexa-engineering-node:1";
 var PREVIEW_NETWORK = "alexa-engineering-preview";
+var PREVIEW_RELAY = `
+const http = require("node:http");
+const net = require("node:net");
+const target = process.env.ALEXA_PREVIEW_TARGET;
+const port = Number(process.env.ALEXA_PREVIEW_PORT);
+const server = http.createServer((request, response) => {
+  const upstream = http.request({
+    hostname: target, port, method: request.method, path: request.url,
+    // Preserve the localhost Host header. Vite rejects the internal Docker
+    // container name, while the relay still connects only to the fixed target.
+    headers: request.headers,
+  }, (result) => {
+    response.writeHead(result.statusCode || 502, result.headers);
+    result.pipe(response);
+  });
+  upstream.on("error", () => {
+    if (!response.headersSent) response.writeHead(502);
+    response.end();
+  });
+  request.pipe(upstream);
+});
+server.on("upgrade", (request, socket, head) => {
+  const upstream = net.connect(port, target, () => {
+    const headers = Object.entries(request.headers)
+      .map(([name, value]) => name + ": " + value).join("\\r\\n");
+    upstream.write(request.method + " " + request.url + " HTTP/1.1\\r\\n" +
+      headers + "\\r\\n\\r\\n");
+    if (head.length) upstream.write(head);
+    socket.pipe(upstream).pipe(socket);
+  });
+  upstream.on("error", () => socket.destroy());
+});
+server.listen(port, "0.0.0.0");
+`;
 var SECRET_PATTERNS = [
   [
     "private-key",
@@ -251745,6 +251785,7 @@ var matchesExactProjectScaffold = async (root, files) => {
       const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
       if (entry.isSymbolicLink()) return false;
       if (entry.isDirectory()) {
+        if (relativePath === ".pnpm-store") continue;
         if (!expectedDirectories.has(relativePath)) return false;
         if (!await visit(import_node_path8.default.join(directory, entry.name), relativePath)) return false;
         continue;
@@ -251775,8 +251816,13 @@ var DockerEngineeringDependencyRunner = class {
         "COMMAND_SANDBOX_UNAVAILABLE",
         "This package manager has no reviewed dependency image."
       );
+    if (input.bootstrapLockfile && (input.packageManager !== "pnpm" || input.operation !== "INSTALL" || input.packages.length !== 0 || await (0, import_promises8.lstat)(import_node_path8.default.join(input.cwd, "pnpm-lock.yaml")).catch(() => null)))
+      throw new NativeEngineeringRuntimeError(
+        "INCONSISTENT_STATE",
+        "Lockfile bootstrap is permitted only for a new pnpm scaffold without a lockfile."
+      );
     const before = await this.lockHash(input.cwd, input.packageManager);
-    const args = input.packageManager === "pnpm" ? input.operation === "INSTALL" ? ["install", "--frozen-lockfile", "--ignore-scripts", "--registry=https://registry.npmjs.org"] : input.operation === "ADD" ? [
+    const args = input.packageManager === "pnpm" ? input.operation === "INSTALL" ? ["install", input.bootstrapLockfile ? "--no-frozen-lockfile" : "--frozen-lockfile", "--ignore-scripts", "--registry=https://registry.npmjs.org"] : input.operation === "ADD" ? [
       "add",
       ...input.development ? ["--save-dev"] : [],
       ...input.packages,
@@ -251962,10 +252008,34 @@ var NativeEngineeringRuntime = class {
         "The registered development root is too broad or sensitive."
       );
     const files = input.template === "REACT_VITE_TYPESCRIPT" ? {
-      "package.json": `${JSON.stringify({ name: input.projectSlug, private: true, version: "0.0.0", type: "module", scripts: { dev: "vite", build: "tsc --noEmit -p tsconfig.app.json && vite build", lint: "eslint .", typecheck: "tsc --noEmit -p tsconfig.app.json --pretty false" }, dependencies: { "@vitejs/plugin-react": "^5.0.2", vite: "^7.1.5", typescript: "^5.9.2", react: "^19.1.1", "react-dom": "^19.1.1" }, devDependencies: { "@eslint/js": "^9.35.0", "@types/react": "^19.1.12", "@types/react-dom": "^19.1.9", eslint: "^9.35.0", "eslint-plugin-react-hooks": "^5.2.0", "eslint-plugin-react-refresh": "^0.4.20", globals: "^16.3.0", "typescript-eslint": "^8.43.0" } }, null, 2)}
+      "package.json": `${JSON.stringify({ name: input.projectSlug, private: true, version: "0.0.0", type: "module", scripts: { dev: "vite", build: "tsc --noEmit -p tsconfig.app.json && vite build", lint: "eslint .", typecheck: "tsc --noEmit -p tsconfig.app.json --pretty false", test: "node --test tests/*.test.mjs" }, dependencies: { "@vitejs/plugin-react": "^5.0.2", vite: "^7.1.5", typescript: "^5.9.2", react: "^19.1.1", "react-dom": "^19.1.1" }, devDependencies: { "@eslint/js": "^9.35.0", "@types/react": "^19.1.12", "@types/react-dom": "^19.1.9", eslint: "^9.35.0", "eslint-plugin-react-hooks": "^5.2.0", "eslint-plugin-react-refresh": "^0.4.20", globals: "^16.3.0", "typescript-eslint": "^8.43.0" } }, null, 2)}
 `,
       "index.html": '<div id="root"></div><script type="module" src="/src/main.tsx"></script>\n',
-      "src/main.tsx": "import { StrictMode } from 'react';\nimport { createRoot } from 'react-dom/client';\nimport './styles.css';\n\nconst App = () => <main><h1>Project ready</h1></main>;\n\ncreateRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>);\n",
+      "src/main.tsx": "import { StrictMode } from 'react';\nimport { createRoot } from 'react-dom/client';\nimport { App } from './App';\nimport './styles.css';\n\ncreateRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>);\n",
+      "src/App.tsx": "export const App = () => <main><h1>Project ready</h1></main>;\n",
+      "tests/app.test.mjs": `import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { createServer } from 'vite';
+
+const server = await createServer({
+  server: { middlewareMode: true },
+  optimizeDeps: { noDiscovery: true, include: [] },
+  appType: 'custom',
+});
+try {
+  const { App } = await server.ssrLoadModule('/src/App.tsx');
+  test('the app renders a main landmark and heading', () => {
+    const html = renderToStaticMarkup(createElement(App));
+    assert.match(html, /<main>/);
+    assert.match(html, /<h1>/);
+    assert.match(html, /Project ready/);
+  });
+} finally {
+  await server.close();
+}
+`,
       "src/styles.css": ":root { font-family: Inter, system-ui, sans-serif; color-scheme: dark; }\nbody { margin: 0; min-width: 320px; min-height: 100vh; }\n",
       "tsconfig.json": `${JSON.stringify({ files: [], references: [{ path: "./tsconfig.app.json" }] }, null, 2)}
 `,
@@ -251973,18 +252043,32 @@ var NativeEngineeringRuntime = class {
 `,
       "vite.config.ts": "import { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react';\nexport default defineConfig({ plugins: [react()] });\n",
       "eslint.config.js": "import js from '@eslint/js';\nimport globals from 'globals';\nimport reactHooks from 'eslint-plugin-react-hooks';\nimport reactRefresh from 'eslint-plugin-react-refresh';\nimport tseslint from 'typescript-eslint';\nexport default tseslint.config({ ignores: ['dist'] }, { extends: [js.configs.recommended, ...tseslint.configs.recommended], files: ['**/*.{ts,tsx}'], languageOptions: { ecmaVersion: 2020, globals: globals.browser }, plugins: { 'react-hooks': reactHooks, 'react-refresh': reactRefresh }, rules: { ...reactHooks.configs.recommended.rules, 'react-refresh/only-export-components': ['warn', { allowConstantExport: true }] } });\n",
-      ".gitignore": "node_modules\ndist\n.env\n.env.*\n!.env.example\n"
+      ".gitignore": "node_modules\n.pnpm-store\ndist\n.env\n.env.*\n!.env.example\n"
     } : {
-      "package.json": `${JSON.stringify({ name: input.projectSlug, private: true, version: "0.0.0", type: "module", scripts: { typecheck: "tsc --noEmit", build: "tsc" }, devDependencies: { typescript: "^5.9.2" } }, null, 2)}
+      "package.json": `${JSON.stringify({ name: input.projectSlug, private: true, version: "0.0.0", type: "module", scripts: { typecheck: "tsc --noEmit", test: "pnpm run build && node --test tests/*.test.mjs", build: "tsc" }, devDependencies: { typescript: "^5.9.2" } }, null, 2)}
 `,
       "tsconfig.json": `${JSON.stringify({ compilerOptions: { target: "ES2022", module: "NodeNext", moduleResolution: "NodeNext", strict: true, outDir: "dist" }, include: ["src"] }, null, 2)}
 `,
       "src/index.ts": "export const ready = true;\n",
-      ".gitignore": "node_modules\ndist\n.env\n.env.*\n!.env.example\n"
+      "tests/index.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { ready } from '../dist/index.js';\ntest('the compiled project exports its readiness contract', () => { assert.equal(ready, true); });\n",
+      ".gitignore": "node_modules\n.pnpm-store\ndist\n.env\n.env.*\n!.env.example\n"
     };
+    const legacyFiles = { ...files };
+    if (input.template === "REACT_VITE_TYPESCRIPT") {
+      legacyFiles["package.json"] = `${JSON.stringify({ name: input.projectSlug, private: true, version: "0.0.0", type: "module", scripts: { dev: "vite", build: "tsc --noEmit -p tsconfig.app.json && vite build", lint: "eslint .", typecheck: "tsc --noEmit -p tsconfig.app.json --pretty false" }, dependencies: { "@vitejs/plugin-react": "^5.0.2", vite: "^7.1.5", typescript: "^5.9.2", react: "^19.1.1", "react-dom": "^19.1.1" }, devDependencies: { "@eslint/js": "^9.35.0", "@types/react": "^19.1.12", "@types/react-dom": "^19.1.9", eslint: "^9.35.0", "eslint-plugin-react-hooks": "^5.2.0", "eslint-plugin-react-refresh": "^0.4.20", globals: "^16.3.0", "typescript-eslint": "^8.43.0" } }, null, 2)}
+`;
+      legacyFiles["src/main.tsx"] = "import { StrictMode } from 'react';\nimport { createRoot } from 'react-dom/client';\nimport './styles.css';\n\nconst App = () => <main><h1>Project ready</h1></main>;\n\ncreateRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>);\n";
+      delete legacyFiles["src/App.tsx"];
+      delete legacyFiles["tests/app.test.mjs"];
+    } else {
+      legacyFiles["package.json"] = `${JSON.stringify({ name: input.projectSlug, private: true, version: "0.0.0", type: "module", scripts: { typecheck: "tsc --noEmit", build: "tsc" }, devDependencies: { typescript: "^5.9.2" } }, null, 2)}
+`;
+      delete legacyFiles["tests/index.test.mjs"];
+    }
+    legacyFiles[".gitignore"] = "node_modules\ndist\n.env\n.env.*\n!.env.example\n";
     const existing = await (0, import_promises8.lstat)(target).catch(() => null);
     if (existing) {
-      if (!existing.isDirectory() || !await matchesExactProjectScaffold(target, files))
+      if (!existing.isDirectory() || !await matchesExactProjectScaffold(target, files) && !await matchesExactProjectScaffold(target, legacyFiles))
         throw new NativeEngineeringRuntimeError(
           "INCONSISTENT_STATE",
           "The project directory already exists and is not the exact incomplete governed scaffold."
@@ -252010,7 +252094,8 @@ var NativeEngineeringRuntime = class {
       cwd: target,
       packageManager: "pnpm",
       operation: "INSTALL",
-      packages: []
+      packages: [],
+      bootstrapLockfile: true
     });
     if (installed.exitCode !== 0 && /cannot connect to the docker daemon|is the docker daemon running|no such image/i.test(
       installed.stderr
@@ -252092,10 +252177,12 @@ var NativeEngineeringRuntime = class {
       );
     await this.ensurePreviewNetwork();
     const container = `alexa-preview-${input.previewId.replaceAll("-", "")}`;
+    const relay = `${container}-relay`;
     await this.removePreviewContainer(container);
+    await this.removePreviewContainer(relay);
     const executable = input.server.executable === "pnpm" ? EXECUTABLES.pnpm : EXECUTABLES.npm;
     const args = [
-      ...input.server.args,
+      ...input.server.executable === "pnpm" && input.server.args.at(-1) === "--" ? input.server.args.slice(0, -1) : input.server.args,
       ...input.server.hostFlag ? [input.server.hostFlag, "0.0.0.0"] : [],
       ...input.server.portFlag ? [input.server.portFlag, String(port)] : []
     ];
@@ -252114,8 +252201,6 @@ var NativeEngineeringRuntime = class {
         "never",
         "--network",
         PREVIEW_NETWORK,
-        "-p",
-        `127.0.0.1:${port}:${port}`,
         "--memory",
         "2g",
         "--cpus",
@@ -252147,6 +252232,12 @@ var NativeEngineeringRuntime = class {
       }
     );
     child.unref();
+    try {
+      await this.startPreviewRelay(relay, container, port);
+    } catch (error51) {
+      await this.removePreviewContainer(container);
+      throw error51;
+    }
     const starting = EngineeringPreviewResultSchema.parse({
       previewId: input.previewId,
       serverId: input.server.id,
@@ -252172,7 +252263,10 @@ var NativeEngineeringRuntime = class {
         });
         this.#previews.set(input.previewId, ready);
         const timer = setTimeout(
-          () => void this.removePreviewContainer(container),
+          () => void Promise.all([
+            this.removePreviewContainer(container),
+            this.removePreviewContainer(relay)
+          ]),
           input.server.maxLifetimeMs
         );
         timer.unref();
@@ -252181,6 +252275,7 @@ var NativeEngineeringRuntime = class {
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
     await this.removePreviewContainer(container);
+    await this.removePreviewContainer(relay);
     const failed = EngineeringPreviewResultSchema.parse({
       ...starting,
       state: "FAILED",
@@ -252223,6 +252318,9 @@ var NativeEngineeringRuntime = class {
     const current = this.#previews.get(input.previewId);
     await this.removePreviewContainer(
       `alexa-preview-${input.previewId.replaceAll("-", "")}`
+    );
+    await this.removePreviewContainer(
+      `alexa-preview-${input.previewId.replaceAll("-", "")}-relay`
     );
     const result = EngineeringPreviewResultSchema.parse({
       previewId: input.previewId,
@@ -252275,13 +252373,76 @@ var NativeEngineeringRuntime = class {
       maxOutputBytes: 4096
     }).catch(() => void 0);
   }
+  async startPreviewRelay(name, target, port) {
+    const started = await runBounded({
+      executable: this.dockerExecutable,
+      args: [
+        "run",
+        "-d",
+        "--rm",
+        "--name",
+        name,
+        "--pull",
+        "never",
+        "--network",
+        "bridge",
+        "-p",
+        `127.0.0.1:${port}:${port}`,
+        "--memory",
+        "128m",
+        "--cpus",
+        "0.5",
+        "--pids-limit",
+        "64",
+        "--cap-drop",
+        "ALL",
+        "--security-opt",
+        "no-new-privileges",
+        "--read-only",
+        "--user",
+        `${process.getuid?.() ?? 65534}:${process.getgid?.() ?? 65534}`,
+        "--env",
+        `ALEXA_PREVIEW_TARGET=${target}`,
+        "--env",
+        `ALEXA_PREVIEW_PORT=${port}`,
+        DEPENDENCY_IMAGE,
+        "/usr/local/bin/node",
+        "-e",
+        PREVIEW_RELAY
+      ],
+      env: { PATH: "/usr/local/bin:/usr/bin:/bin", HOME: "/var/empty" },
+      timeoutMs: 15e3,
+      maxOutputBytes: 4096
+    }).catch(() => null);
+    if (started?.exitCode !== 0) {
+      await this.removePreviewContainer(name);
+      throw new NativeEngineeringRuntimeError(
+        "COMMAND_SANDBOX_UNAVAILABLE",
+        "The bounded localhost preview relay could not start."
+      );
+    }
+    const connected = await runBounded({
+      executable: this.dockerExecutable,
+      args: ["network", "connect", PREVIEW_NETWORK, name],
+      env: { PATH: "/usr/local/bin:/usr/bin:/bin", HOME: "/var/empty" },
+      timeoutMs: 1e4,
+      maxOutputBytes: 4096
+    }).catch(() => null);
+    if (connected?.exitCode !== 0) {
+      await this.removePreviewContainer(name);
+      throw new NativeEngineeringRuntimeError(
+        "COMMAND_SANDBOX_UNAVAILABLE",
+        "The localhost preview relay could not join the isolated preview network."
+      );
+    }
+  }
   async healthy(url2) {
     try {
       const response = await fetch(url2, {
         signal: AbortSignal.timeout(1e3),
         redirect: "error"
       });
-      return response.status >= 200 && response.status < 500;
+      return response.status >= 200 && response.status < 400;
     } catch {
       return false;
     }
@@ -252883,6 +253044,11 @@ Alexa-Agent: ${input.agentId}`
         headCommit: (await runGit2(worktree, ["rev-parse", "HEAD"])).trim(),
         conflictPaths: []
       });
+    if (input.expectedHead && (await runGit2(worktree, ["rev-parse", "HEAD"])).trim() !== input.expectedHead)
+      throw new NativeEngineeringRuntimeError(
+        "INCONSISTENT_STATE",
+        "The integration head moved before applying its reviewed repair commit."
+      );
     const show = await runBounded({
       executable: GIT,
       args: ["-c", "color.ui=false", "show", "--format=", "--binary", input.commit],

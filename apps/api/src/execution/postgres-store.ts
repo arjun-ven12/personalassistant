@@ -120,7 +120,7 @@ export class PostgresExecutionStore implements ExecutionStore {
 
   async cancel(id: string, ownerId: string, at: string) {
     const result = await this.pool.query<{ record: unknown }>(
-      `UPDATE execution_requests SET status='CANCELLED',completed_at=$3,version=version+1,
+      `UPDATE execution_requests SET status='CANCELLED',completed_at=$3::text::timestamptz,version=version+1,
        record=record || jsonb_build_object('status','CANCELLED','completedAt',$3::text,
        'cancellationRequestedAt',$3::text,'failureCode','CAPABILITY_CANCELLED')
        WHERE id=$1 AND owner_id=$2 AND status = ANY($4::text[]) RETURNING record`,
@@ -194,11 +194,11 @@ export class PostgresExecutionStore implements ExecutionStore {
   async heartbeat(id: string, deviceId: string, at: string) {
     const result = await this.pool.query(
       `UPDATE execution_requests
-       SET agent_last_heartbeat_at=$3,
-           record=record || jsonb_build_object('agentLastHeartbeatAt',$3::text),
+       SET agent_last_heartbeat_at=$3::timestamptz,
+           record=record || jsonb_build_object('agentLastHeartbeatAt',$5::text),
            version=version+1
        WHERE id=$1 AND device_id=$2 AND status = ANY($4::text[])`,
-      [id, deviceId, at, ["CLAIMED", "RUNNING"]],
+      [id, deviceId, at, ["CLAIMED", "RUNNING"], at],
     );
     return result.rowCount === 1;
   }

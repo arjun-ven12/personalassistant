@@ -190,6 +190,7 @@ export const EngineeringWorkspaceSchema = z
     branchName: z.string().regex(/^alexa\/[a-z0-9][a-z0-9-]{0,119}$/),
     worktreeLocator: SafeIdentifierSchema,
     baseCommit: z.string().regex(/^[0-9a-f]{40,64}$/),
+    repairIntegrationWorkspaceId: z.string().uuid().nullable().default(null),
     headCommit: z
       .string()
       .regex(/^[0-9a-f]{40,64}$/)
@@ -784,6 +785,7 @@ const EngineeringTransportOperationSchema = z.discriminatedUnion("capability", [
           commit: z.string().regex(/^[0-9a-f]{40,64}$/),
           sourceWorkspaceId: z.string().uuid(),
           sourceWorktreeLocator: z.string().regex(/^ew-[0-9a-f-]{36}$/),
+          expectedHead: z.string().regex(/^[0-9a-f]{40,64}$/).optional(),
         })
         .strict(),
     })

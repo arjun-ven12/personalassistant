@@ -531,7 +531,10 @@ export class ExecutionService {
         createdAt.getTime() +
           (engineeringInput?.capability === "repository.install_dependencies"
             ? 600
-            : this.limits.requestTtlSeconds) * 1_000,
+            : engineeringInput?.capability === "repository.dev_server_start" ||
+                engineeringInput?.capability === "repository.dev_server_restart"
+              ? Math.max(this.limits.requestTtlSeconds, 300)
+              : this.limits.requestTtlSeconds) * 1_000,
       ).toISOString(),
       claimedAt: null,
       startedAt: null,

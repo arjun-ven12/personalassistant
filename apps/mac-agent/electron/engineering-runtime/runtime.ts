@@ -71,6 +71,43 @@ const EXECUTABLES = {
 } as const;
 const DEPENDENCY_IMAGE = "alexa-engineering-node:1";
 const PREVIEW_NETWORK = "alexa-engineering-preview";
+// Docker Desktop does not publish localhost ports from an --internal bridge.
+// This fixed, read-only relay is the only container on the published bridge;
+// it forwards exclusively to the named preview container on the internal bridge.
+const PREVIEW_RELAY = `
+const http = require("node:http");
+const net = require("node:net");
+const target = process.env.ALEXA_PREVIEW_TARGET;
+const port = Number(process.env.ALEXA_PREVIEW_PORT);
+const server = http.createServer((request, response) => {
+  const upstream = http.request({
+    hostname: target, port, method: request.method, path: request.url,
+    // Preserve the localhost Host header. Vite rejects the internal Docker
+    // container name, while the relay still connects only to the fixed target.
+    headers: request.headers,
+  }, (result) => {
+    response.writeHead(result.statusCode || 502, result.headers);
+    result.pipe(response);
+  });
+  upstream.on("error", () => {
+    if (!response.headersSent) response.writeHead(502);
+    response.end();
+  });
+  request.pipe(upstream);
+});
+server.on("upgrade", (request, socket, head) => {
+  const upstream = net.connect(port, target, () => {
+    const headers = Object.entries(request.headers)
+      .map(([name, value]) => name + ": " + value).join("\\r\\n");
+    upstream.write(request.method + " " + request.url + " HTTP/1.1\\r\\n" +
+      headers + "\\r\\n\\r\\n");
+    if (head.length) upstream.write(head);
+    socket.pipe(upstream).pipe(socket);
+  });
+  upstream.on("error", () => socket.destroy());
+});
+server.listen(port, "0.0.0.0");
+`;
 const SECRET_PATTERNS: Array<[string, RegExp]> = [
   [
     "private-key",
@@ -326,6 +363,7 @@ const matchesExactProjectScaffold = async (
       const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
       if (entry.isSymbolicLink()) return false;
       if (entry.isDirectory()) {
+        if (relativePath === ".pnpm-store") continue;
         if (!expectedDirectories.has(relativePath)) return false;
         if (!(await visit(path.join(directory, entry.name), relativePath))) return false;
         continue;
@@ -362,6 +400,7 @@ export interface EngineeringDependencyRunner {
     operation: "INSTALL" | "ADD" | "REMOVE";
     packages: string[];
     development?: boolean;
+    bootstrapLockfile?: boolean;
     signal?: AbortSignal;
   }): Promise<EngineeringDependencyOperationResult>;
 }
@@ -376,11 +415,19 @@ export class DockerEngineeringDependencyRunner implements EngineeringDependencyR
         "COMMAND_SANDBOX_UNAVAILABLE",
         "This package manager has no reviewed dependency image.",
       );
+    if (input.bootstrapLockfile &&
+        (input.packageManager !== "pnpm" || input.operation !== "INSTALL" ||
+          input.packages.length !== 0 ||
+          (await lstat(path.join(input.cwd, "pnpm-lock.yaml")).catch(() => null))))
+      throw new NativeEngineeringRuntimeError(
+        "INCONSISTENT_STATE",
+        "Lockfile bootstrap is permitted only for a new pnpm scaffold without a lockfile.",
+      );
     const before = await this.lockHash(input.cwd, input.packageManager);
     const args =
       input.packageManager === "pnpm"
         ? input.operation === "INSTALL"
-          ? ["install", "--frozen-lockfile", "--ignore-scripts", "--registry=https://registry.npmjs.org"]
+          ? ["install", input.bootstrapLockfile ? "--no-frozen-lockfile" : "--frozen-lockfile", "--ignore-scripts", "--registry=https://registry.npmjs.org"]
           : input.operation === "ADD"
             ? [
                 "add",
@@ -609,11 +656,37 @@ export class NativeEngineeringRuntime {
     const files: Record<string, string> =
       input.template === "REACT_VITE_TYPESCRIPT"
         ? {
-            "package.json": `${JSON.stringify({ name: input.projectSlug, private: true, version: "0.0.0", type: "module", scripts: { dev: "vite", build: "tsc --noEmit -p tsconfig.app.json && vite build", lint: "eslint .", typecheck: "tsc --noEmit -p tsconfig.app.json --pretty false" }, dependencies: { "@vitejs/plugin-react": "^5.0.2", vite: "^7.1.5", typescript: "^5.9.2", react: "^19.1.1", "react-dom": "^19.1.1" }, devDependencies: { "@eslint/js": "^9.35.0", "@types/react": "^19.1.12", "@types/react-dom": "^19.1.9", eslint: "^9.35.0", "eslint-plugin-react-hooks": "^5.2.0", "eslint-plugin-react-refresh": "^0.4.20", globals: "^16.3.0", "typescript-eslint": "^8.43.0" } }, null, 2)}\n`,
+            "package.json": `${JSON.stringify({ name: input.projectSlug, private: true, version: "0.0.0", type: "module", scripts: { dev: "vite", build: "tsc --noEmit -p tsconfig.app.json && vite build", lint: "eslint .", typecheck: "tsc --noEmit -p tsconfig.app.json --pretty false", test: "node --test tests/*.test.mjs" }, dependencies: { "@vitejs/plugin-react": "^5.0.2", vite: "^7.1.5", typescript: "^5.9.2", react: "^19.1.1", "react-dom": "^19.1.1" }, devDependencies: { "@eslint/js": "^9.35.0", "@types/react": "^19.1.12", "@types/react-dom": "^19.1.9", eslint: "^9.35.0", "eslint-plugin-react-hooks": "^5.2.0", "eslint-plugin-react-refresh": "^0.4.20", globals: "^16.3.0", "typescript-eslint": "^8.43.0" } }, null, 2)}\n`,
             "index.html":
               '<div id="root"></div><script type="module" src="/src/main.tsx"></script>\n',
             "src/main.tsx":
-              "import { StrictMode } from 'react';\nimport { createRoot } from 'react-dom/client';\nimport './styles.css';\n\nconst App = () => <main><h1>Project ready</h1></main>;\n\ncreateRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>);\n",
+              "import { StrictMode } from 'react';\nimport { createRoot } from 'react-dom/client';\nimport { App } from './App';\nimport './styles.css';\n\ncreateRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>);\n",
+            "src/App.tsx":
+              "export const App = () => <main><h1>Project ready</h1></main>;\n",
+            "tests/app.test.mjs":
+              `import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { createServer } from 'vite';
+
+const server = await createServer({
+  server: { middlewareMode: true },
+  optimizeDeps: { noDiscovery: true, include: [] },
+  appType: 'custom',
+});
+try {
+  const { App } = await server.ssrLoadModule('/src/App.tsx');
+  test('the app renders a main landmark and heading', () => {
+    const html = renderToStaticMarkup(createElement(App));
+    assert.match(html, /<main>/);
+    assert.match(html, /<h1>/);
+    assert.match(html, /Project ready/);
+  });
+} finally {
+  await server.close();
+}
+`,
             "src/styles.css":
               ":root { font-family: Inter, system-ui, sans-serif; color-scheme: dark; }\nbody { margin: 0; min-width: 320px; min-height: 100vh; }\n",
             "tsconfig.json": `${JSON.stringify({ files: [], references: [{ path: "./tsconfig.app.json" }] }, null, 2)}\n`,
@@ -622,17 +695,31 @@ export class NativeEngineeringRuntime {
               "import { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react';\nexport default defineConfig({ plugins: [react()] });\n",
             "eslint.config.js":
               "import js from '@eslint/js';\nimport globals from 'globals';\nimport reactHooks from 'eslint-plugin-react-hooks';\nimport reactRefresh from 'eslint-plugin-react-refresh';\nimport tseslint from 'typescript-eslint';\nexport default tseslint.config({ ignores: ['dist'] }, { extends: [js.configs.recommended, ...tseslint.configs.recommended], files: ['**/*.{ts,tsx}'], languageOptions: { ecmaVersion: 2020, globals: globals.browser }, plugins: { 'react-hooks': reactHooks, 'react-refresh': reactRefresh }, rules: { ...reactHooks.configs.recommended.rules, 'react-refresh/only-export-components': ['warn', { allowConstantExport: true }] } });\n",
-            ".gitignore": "node_modules\ndist\n.env\n.env.*\n!.env.example\n",
+            ".gitignore": "node_modules\n.pnpm-store\ndist\n.env\n.env.*\n!.env.example\n",
           }
         : {
-            "package.json": `${JSON.stringify({ name: input.projectSlug, private: true, version: "0.0.0", type: "module", scripts: { typecheck: "tsc --noEmit", build: "tsc" }, devDependencies: { typescript: "^5.9.2" } }, null, 2)}\n`,
+            "package.json": `${JSON.stringify({ name: input.projectSlug, private: true, version: "0.0.0", type: "module", scripts: { typecheck: "tsc --noEmit", test: "pnpm run build && node --test tests/*.test.mjs", build: "tsc" }, devDependencies: { typescript: "^5.9.2" } }, null, 2)}\n`,
             "tsconfig.json": `${JSON.stringify({ compilerOptions: { target: "ES2022", module: "NodeNext", moduleResolution: "NodeNext", strict: true, outDir: "dist" }, include: ["src"] }, null, 2)}\n`,
             "src/index.ts": "export const ready = true;\n",
-            ".gitignore": "node_modules\ndist\n.env\n.env.*\n!.env.example\n",
+            "tests/index.test.mjs": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { ready } from '../dist/index.js';\ntest('the compiled project exports its readiness contract', () => { assert.equal(ready, true); });\n",
+            ".gitignore": "node_modules\n.pnpm-store\ndist\n.env\n.env.*\n!.env.example\n",
           };
+    const legacyFiles: Record<string, string> = { ...files };
+    if (input.template === "REACT_VITE_TYPESCRIPT") {
+      legacyFiles["package.json"] = `${JSON.stringify({ name: input.projectSlug, private: true, version: "0.0.0", type: "module", scripts: { dev: "vite", build: "tsc --noEmit -p tsconfig.app.json && vite build", lint: "eslint .", typecheck: "tsc --noEmit -p tsconfig.app.json --pretty false" }, dependencies: { "@vitejs/plugin-react": "^5.0.2", vite: "^7.1.5", typescript: "^5.9.2", react: "^19.1.1", "react-dom": "^19.1.1" }, devDependencies: { "@eslint/js": "^9.35.0", "@types/react": "^19.1.12", "@types/react-dom": "^19.1.9", eslint: "^9.35.0", "eslint-plugin-react-hooks": "^5.2.0", "eslint-plugin-react-refresh": "^0.4.20", globals: "^16.3.0", "typescript-eslint": "^8.43.0" } }, null, 2)}\n`;
+      legacyFiles["src/main.tsx"] = "import { StrictMode } from 'react';\nimport { createRoot } from 'react-dom/client';\nimport './styles.css';\n\nconst App = () => <main><h1>Project ready</h1></main>;\n\ncreateRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>);\n";
+      delete legacyFiles["src/App.tsx"];
+      delete legacyFiles["tests/app.test.mjs"];
+    } else {
+      legacyFiles["package.json"] = `${JSON.stringify({ name: input.projectSlug, private: true, version: "0.0.0", type: "module", scripts: { typecheck: "tsc --noEmit", build: "tsc" }, devDependencies: { typescript: "^5.9.2" } }, null, 2)}\n`;
+      delete legacyFiles["tests/index.test.mjs"];
+    }
+    legacyFiles[".gitignore"] = "node_modules\ndist\n.env\n.env.*\n!.env.example\n";
     const existing = await lstat(target).catch(() => null);
     if (existing) {
-      if (!existing.isDirectory() || !(await matchesExactProjectScaffold(target, files)))
+      if (!existing.isDirectory() ||
+          !(await matchesExactProjectScaffold(target, files)) &&
+          !(await matchesExactProjectScaffold(target, legacyFiles)))
         throw new NativeEngineeringRuntimeError(
           "INCONSISTENT_STATE",
           "The project directory already exists and is not the exact incomplete governed scaffold.",
@@ -659,6 +746,7 @@ export class NativeEngineeringRuntime {
       packageManager: "pnpm",
       operation: "INSTALL",
       packages: [],
+      bootstrapLockfile: true,
     });
     if (
       installed.exitCode !== 0 &&
@@ -776,11 +864,15 @@ export class NativeEngineeringRuntime {
       );
     await this.ensurePreviewNetwork();
     const container = `alexa-preview-${input.previewId.replaceAll("-", "")}`;
+    const relay = `${container}-relay`;
     await this.removePreviewContainer(container);
+    await this.removePreviewContainer(relay);
     const executable =
       input.server.executable === "pnpm" ? EXECUTABLES.pnpm : EXECUTABLES.npm;
     const args = [
-      ...input.server.args,
+      ...(input.server.executable === "pnpm" && input.server.args.at(-1) === "--"
+        ? input.server.args.slice(0, -1)
+        : input.server.args),
       ...(input.server.hostFlag ? [input.server.hostFlag, "0.0.0.0"] : []),
       ...(input.server.portFlag ? [input.server.portFlag, String(port)] : []),
     ];
@@ -799,8 +891,6 @@ export class NativeEngineeringRuntime {
         "never",
         "--network",
         PREVIEW_NETWORK,
-        "-p",
-        `127.0.0.1:${port}:${port}`,
         "--memory",
         "2g",
         "--cpus",
@@ -832,6 +922,12 @@ export class NativeEngineeringRuntime {
       },
     );
     child.unref();
+    try {
+      await this.startPreviewRelay(relay, container, port);
+    } catch (error) {
+      await this.removePreviewContainer(container);
+      throw error;
+    }
     const starting = EngineeringPreviewResultSchema.parse({
       previewId: input.previewId,
       serverId: input.server.id,
@@ -857,7 +953,10 @@ export class NativeEngineeringRuntime {
         });
         this.#previews.set(input.previewId, ready);
         const timer = setTimeout(
-          () => void this.removePreviewContainer(container),
+          () => void Promise.all([
+            this.removePreviewContainer(container),
+            this.removePreviewContainer(relay),
+          ]),
           input.server.maxLifetimeMs,
         );
         timer.unref();
@@ -866,6 +965,7 @@ export class NativeEngineeringRuntime {
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
     await this.removePreviewContainer(container);
+    await this.removePreviewContainer(relay);
     const failed = EngineeringPreviewResultSchema.parse({
       ...starting,
       state: "FAILED",
@@ -910,6 +1010,9 @@ export class NativeEngineeringRuntime {
     const current = this.#previews.get(input.previewId);
     await this.removePreviewContainer(
       `alexa-preview-${input.previewId.replaceAll("-", "")}`,
+    );
+    await this.removePreviewContainer(
+      `alexa-preview-${input.previewId.replaceAll("-", "")}-relay`,
     );
     const result = EngineeringPreviewResultSchema.parse({
       previewId: input.previewId,
@@ -968,13 +1071,53 @@ export class NativeEngineeringRuntime {
     }).catch(() => undefined);
   }
 
+  private async startPreviewRelay(name: string, target: string, port: number) {
+    const started = await runBounded({
+      executable: this.dockerExecutable,
+      args: [
+        "run", "-d", "--rm", "--name", name, "--pull", "never",
+        "--network", "bridge", "-p", `127.0.0.1:${port}:${port}`,
+        "--memory", "128m", "--cpus", "0.5", "--pids-limit", "64",
+        "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
+        "--read-only", "--user", `${process.getuid?.() ?? 65534}:${process.getgid?.() ?? 65534}`,
+        "--env", `ALEXA_PREVIEW_TARGET=${target}`,
+        "--env", `ALEXA_PREVIEW_PORT=${port}`,
+        DEPENDENCY_IMAGE, "/usr/local/bin/node", "-e", PREVIEW_RELAY,
+      ],
+      env: { PATH: "/usr/local/bin:/usr/bin:/bin", HOME: "/var/empty" },
+      timeoutMs: 15_000,
+      maxOutputBytes: 4_096,
+    }).catch(() => null);
+    if (started?.exitCode !== 0) {
+      await this.removePreviewContainer(name);
+      throw new NativeEngineeringRuntimeError(
+        "COMMAND_SANDBOX_UNAVAILABLE",
+        "The bounded localhost preview relay could not start.",
+      );
+    }
+    const connected = await runBounded({
+      executable: this.dockerExecutable,
+      args: ["network", "connect", PREVIEW_NETWORK, name],
+      env: { PATH: "/usr/local/bin:/usr/bin:/bin", HOME: "/var/empty" },
+      timeoutMs: 10_000,
+      maxOutputBytes: 4_096,
+    }).catch(() => null);
+    if (connected?.exitCode !== 0) {
+      await this.removePreviewContainer(name);
+      throw new NativeEngineeringRuntimeError(
+        "COMMAND_SANDBOX_UNAVAILABLE",
+        "The localhost preview relay could not join the isolated preview network.",
+      );
+    }
+  }
+
   private async healthy(url: string) {
     try {
       const response = await fetch(url, {
         signal: AbortSignal.timeout(1_000),
         redirect: "error",
       });
-      return response.status >= 200 && response.status < 500;
+      return response.status >= 200 && response.status < 400;
     } catch {
       return false;
     }
@@ -1673,6 +1816,7 @@ export class NativeEngineeringRuntime {
     worktreeLocator: string;
     commit: string;
     sourceWorktreeLocator: string;
+    expectedHead?: string;
   }) {
     await this.resolveRepository(input.repositoryRootPath);
     if (!/^[0-9a-f]{40,64}$/.test(input.commit))
@@ -1702,6 +1846,12 @@ export class NativeEngineeringRuntime {
         headCommit: (await runGit(worktree, ["rev-parse", "HEAD"])).trim(),
         conflictPaths: [],
       });
+    if (input.expectedHead &&
+        ((await runGit(worktree, ["rev-parse", "HEAD"])).trim() !== input.expectedHead))
+      throw new NativeEngineeringRuntimeError(
+        "INCONSISTENT_STATE",
+        "The integration head moved before applying its reviewed repair commit.",
+      );
     const show = await runBounded({
       executable: GIT,
       args: ["-c", "color.ui=false", "show", "--format=", "--binary", input.commit],

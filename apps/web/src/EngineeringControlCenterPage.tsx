@@ -579,15 +579,15 @@ export const EngineeringControlCenterPage = ({
             </div>
           </div>
           {control.error instanceof Error ? <p className="form-error" role="alert">{formatEngineeringLoadError(control.error, "Unable to update this engineering run.")}</p> : null}
-          {data.blocker && ["BLOCKED", "FAILED", "OWNER_INPUT_REQUIRED"].includes(data.delivery.status) ? (
+          {data.blocker && ["BLOCKED", "FAILED", "DONE_WITH_WARNINGS", "OWNER_INPUT_REQUIRED"].includes(data.delivery.status) ? (
             <div className="panel engineering-blocker" role="alert">
-              <div><p className="eyebrow">Blocked · {data.blocker.category.replaceAll("_", " ")}</p><h2>{data.blocker.message}</h2><p>{data.blocker.action}</p></div>
-              <button disabled={control.isPending || (data.delivery.status !== "BLOCKED" && !(data.delivery.status === "FAILED" && ["INTEGRATION_EVIDENCE_MISMATCH", "INTEGRATION_SCOPE_MISMATCH", "INTEGRATION_REPAIR_PENDING", "REVIEWER_UNAVAILABLE", "MODEL_PROVIDER_UNAVAILABLE", "DEPENDENCY_PREPARATION_FAILED"].includes(data.blocker.category)))} onClick={() => control.mutate("resume")} type="button"><RotateCcw size={15} /> Retry</button>
+              <div><p className="eyebrow">Blocked · {data.blocker.category.replaceAll("_", " ")}</p><h2>{data.blocker.message}</h2><p>{data.blocker.action}</p>{data.blocker.category === "BUDGET_EXCEEDED" ? <a href="/ai?tab=usage">Open AI Usage</a> : null}</div>
+              {data.blocker.category !== "REVIEW_CHANGES_REQUIRED" ? <button disabled={control.isPending || (data.delivery.status !== "BLOCKED" && !(["FAILED", "DONE_WITH_WARNINGS"].includes(data.delivery.status) && ["INTEGRATION_EVIDENCE_MISMATCH", "INTEGRATION_SCOPE_MISMATCH", "INTEGRATION_REPAIR_PENDING", "REVIEWER_UNAVAILABLE", "MODEL_PROVIDER_UNAVAILABLE", "BUDGET_EXCEEDED", "DEPENDENCY_PREPARATION_FAILED", "PREVIEW_FAILED", "MERGE_CONFLICT"].includes(data.blocker.category)))} onClick={() => control.mutate("resume")} type="button"><RotateCcw size={15} /> Retry</button> : null}
             </div>
           ) : null}
           <div className="metric-grid engineering-metrics">
             <article>
-              <span>Overall</span>
+              <span>Task progress</span>
               <strong>{data.overallProgress}%</strong>
             </article>
             <article>

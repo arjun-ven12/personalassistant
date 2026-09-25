@@ -7,6 +7,7 @@ import {
   EngineeringRepositorySchema,
   EngineeringTaskResultSchema,
   EngineeringTaskSchema,
+  EngineeringValidationReportSchema,
   EngineeringWorkspaceSchema,
 } from "@alexa-control/shared";
 
@@ -226,6 +227,14 @@ const fixture = () => {
       updatedAt: at,
     }),
   );
+  runtime.saveValidation(EngineeringValidationReportSchema.parse({
+    id: "b0000000-0000-4000-8000-000000000011",
+    workspaceId,
+    status: "PASS",
+    steps: [{ commandId: "build", kind: "BUILD", status: "PASS", result: null, failures: [] }],
+    durationMs: 100,
+    createdAt: at,
+  }), ownerId, companyId);
   let complete = false;
   const view = () => ({
     objective: EngineeringObjectiveSchema.parse({
@@ -261,7 +270,8 @@ const fixture = () => {
   } as unknown as EngineeringManagerService;
   const integrationView = {
     run: { id: runId, status: "READY", integrationWorkspaceId: workspaceId },
-    candidate: { id: candidateId, status: "READY", filesChanged: ["src/App.tsx"] },
+    candidate: { id: candidateId, status: "READY", filesChanged: ["src/App.tsx"],
+      validationReportId: "b0000000-0000-4000-8000-000000000011" },
     reviews: [{ verdict: "PASS" }],
   };
   const integrationExecute = vi.fn(() => Promise.resolve(integrationView));
@@ -337,12 +347,51 @@ describe("EngineeringDeliveryService", () => {
       ...created.delivery, status: "FAILED", integrationRunId: runId,
       warnings: ["Integration ended in CONFLICTED."],
     }));
+    const repairTaskId = crypto.randomUUID();
     vi.spyOn(service.integration, "view").mockResolvedValue({
-      run: { id: runId, status: "CONFLICTED", conflicts: [{ path: "src/main.tsx", status: "ESCALATED" }] },
+      run: { id: runId, status: "CONFLICTED", repairCycles: 1, maxRepairCycles: 3,
+        repairTaskIds: [repairTaskId], conflicts: [{ path: "src/main.tsx", status: "ESCALATED", taskIds: [repairTaskId] }] },
       candidate: null, reviews: [],
     } as unknown as Awaited<ReturnType<EngineeringIntegrationService["view"]>>);
     expect((await service.controlCenter(ownerId, companyId, created.delivery.id)).blocker)
       .toMatchObject({ category: "MERGE_CONFLICT", message: expect.stringContaining("src/main.tsx") as unknown });
+  });
+
+  it("retries the same conflicted integration only when a bounded repair cycle remains", async () => {
+    const { service, store, manager, integrationExecute } = fixture();
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "conflicted-repair-retry",
+    });
+    await vi.waitFor(() => {
+      expect(["DONE", "DONE_WITH_WARNINGS"]).toContain(store.find(ownerId, companyId, created.delivery.id)?.status);
+    });
+    store.save(EngineeringDeliverySchema.parse({
+      ...created.delivery, status: "FAILED", integrationRunId: runId,
+      warnings: ["Integration ended in CONFLICTED."],
+    }));
+    const repairTaskId = crypto.randomUUID();
+    const integrationView = { run: { id: runId, status: "CONFLICTED",
+      objectiveId: created.delivery.objectiveId, repositoryId, repairCycles: 1,
+      maxRepairCycles: 3, repairTaskIds: [repairTaskId],
+      conflicts: [{ status: "ESCALATED", taskIds: [repairTaskId], path: "src/main.tsx" }] },
+      candidate: null, reviews: [] } as unknown as Awaited<ReturnType<EngineeringIntegrationService["view"]>>;
+    const view = vi.spyOn(service.integration, "view").mockResolvedValue(integrationView);
+    const managerResume = vi.spyOn(manager, "resume");
+    await service.resume(context, created.delivery.id);
+    expect(managerResume).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(integrationExecute).toHaveBeenCalledWith(
+      context, runId, expect.stringMatching(/^delivery-/)));
+    view.mockResolvedValue({ ...integrationView, run: { ...integrationView.run,
+      repairCycles: 3 } });
+    store.save(EngineeringDeliverySchema.parse({
+      ...created.delivery, status: "FAILED", integrationRunId: runId,
+      warnings: ["Integration ended in CONFLICTED."],
+    }));
+    await expect(service.resume(context, created.delivery.id))
+      .rejects.toMatchObject({ code: "INVALID_STATE" });
   });
 
   it("acknowledges a blocked run before its long scheduler retry finishes", async () => {
@@ -432,7 +481,7 @@ describe("EngineeringDeliveryService", () => {
     vi.spyOn(service.integration, "view").mockResolvedValue({
       run: { id: runId, status: "FAILED", objectiveId: created.delivery.objectiveId, repositoryId },
       candidate: null,
-    } as Awaited<ReturnType<EngineeringIntegrationService["view"]>>);
+    } as unknown as Awaited<ReturnType<EngineeringIntegrationService["view"]>>);
     const blocked = await service.controlCenter(ownerId, companyId, created.delivery.id);
     expect(blocked.blocker?.category).toBe(category);
     const managerResume = vi.spyOn(manager, "resume");
@@ -495,6 +544,125 @@ describe("EngineeringDeliveryService", () => {
     expect(current.blocker).toMatchObject({
       category: "MODEL_PROVIDER_UNAVAILABLE",
       message: "OpenAI structured output failed local schema validation.",
+    });
+  });
+  it("identifies an AI budget denial without mislabeling it as a provider outage", async () => {
+    const { service, manager } = fixture();
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "budget-blocker-test",
+    });
+    const view = await manager.view(ownerId, companyId, objectiveId);
+    vi.spyOn(manager, "view").mockResolvedValue({
+      ...view,
+      objective: { ...view.objective, status: "BLOCKED" },
+      tasks: [{
+        ...task, status: "FAILED", lastFailureCategory: "MODEL_FAILURE",
+        lastFailureSummary: "Budget policy 7753cac4-3337-43f6-8049-13542bbe5607 would be exceeded.",
+      }],
+      readyForIntegration: false,
+    });
+    expect((await service.controlCenter(ownerId, companyId, created.delivery.id)).blocker)
+      .toMatchObject({ category: "BUDGET_EXCEEDED", message: "The configured AI budget would be exceeded by the next model call." });
+  });
+  it("shows dependency preparation failures instead of reporting a trusted device offline", async () => {
+    const { service, manager } = fixture();
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "dependency-blocker-test",
+    });
+    const view = await manager.view(ownerId, companyId, objectiveId);
+    vi.spyOn(manager, "view").mockResolvedValue({
+      ...view,
+      objective: { ...view.objective, status: "BLOCKED" },
+      tasks: [{
+        ...task, status: "FAILED", lastFailureCategory: "ENVIRONMENT_FAILURE",
+        lastFailureSummary: "The dependency container exited unexpectedly. Check Docker Desktop resources, then retry this same run.",
+      }],
+      readyForIntegration: false,
+    });
+    const current = await service.controlCenter(ownerId, companyId, created.delivery.id);
+    expect(current.blocker).toMatchObject({
+      category: "DEPENDENCY_PREPARATION_FAILED",
+      message: "The dependency container exited unexpectedly. Check Docker Desktop resources, then retry this same run.",
+    });
+  });
+  it("shows the independent review's concrete blocker when review execution fails", async () => {
+    const { service, store } = fixture();
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "review-failure-detail-test",
+    });
+    await vi.waitFor(() => {
+      expect(["DONE", "DONE_WITH_WARNINGS"]).toContain(store.find(ownerId, companyId, created.delivery.id)?.status);
+    });
+    store.save(EngineeringDeliverySchema.parse({
+      ...created.delivery, status: "FAILED", integrationRunId: runId,
+      warnings: ["Independent integration review requires changes."],
+    }));
+    vi.spyOn(service.integration, "view").mockResolvedValue({
+      run: { id: runId, status: "FAILED", conflicts: [] },
+      candidate: null,
+      reviews: [{ verdict: "BLOCK", findings: ["OpenAI request timed out."], createdAt: "2026-09-24T10:00:00.000Z" }],
+    } as unknown as Awaited<ReturnType<EngineeringIntegrationService["view"]>>);
+    const blocked = await service.controlCenter(ownerId, companyId, created.delivery.id);
+    expect(blocked.blocker).toMatchObject({
+      category: "MODEL_PROVIDER_UNAVAILABLE",
+      message: "OpenAI request timed out.",
+    });
+  });
+  it("offers a scoped Retry for the stale-head repair replay failure", async () => {
+    const { service, store } = fixture();
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "repair-replay-blocker-test",
+    });
+    await vi.waitFor(() => {
+      expect(["DONE", "DONE_WITH_WARNINGS"]).toContain(store.find(ownerId, companyId, created.delivery.id)?.status);
+    });
+    store.save(EngineeringDeliverySchema.parse({
+      ...created.delivery, status: "FAILED", integrationRunId: runId,
+      warnings: ["The reviewed integration head changed before applying its scoped repair."],
+    }));
+    const blocked = await service.controlCenter(ownerId, companyId, created.delivery.id);
+    expect(blocked.blocker).toMatchObject({
+      category: "INTEGRATION_REPAIR_PENDING",
+      message: "A reviewed repair is ready to integrate from its recorded base commit.",
+    });
+  });
+  it("surfaces the independent finding after the bounded repair limit", async () => {
+    const { service, store } = fixture();
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "review-cap-blocker-test",
+    });
+    await vi.waitFor(() => {
+      expect(["DONE", "DONE_WITH_WARNINGS"]).toContain(store.find(ownerId, companyId, created.delivery.id)?.status);
+    });
+    store.save(EngineeringDeliverySchema.parse({
+      ...created.delivery, status: "BLOCKED", integrationRunId: runId,
+      warnings: ["Integration ended in BLOCKED."],
+    }));
+    vi.spyOn(service.integration, "view").mockResolvedValue({
+      run: { id: runId, status: "BLOCKED", conflicts: [], repairCycles: 3, maxRepairCycles: 3 },
+      candidate: null,
+      reviews: [{ verdict: "CHANGES_REQUIRED", findings: ["Configured tests did not run."],
+        createdAt: "2026-09-24T10:00:00.000Z" }],
+    } as unknown as Awaited<ReturnType<EngineeringIntegrationService["view"]>>);
+    const blocked = await service.controlCenter(ownerId, companyId, created.delivery.id);
+    expect(blocked.blocker).toMatchObject({
+      category: "REVIEW_CHANGES_REQUIRED",
+      message: "Configured tests did not run.",
     });
   });
   it("lists registered company projects before their first delivery", async () => {
@@ -699,6 +867,25 @@ describe("EngineeringDeliveryService", () => {
       }),
     );
     expect(createWorkspace).not.toHaveBeenCalled();
+
+    const fresh = await (
+      service as unknown as {
+        initializeRepository: (
+          context: EngineeringDeliveryContext,
+          rootId: string,
+          name: string,
+          stack: string[],
+        ) => Promise<{ id: string; commandProfileId: string }>;
+      }
+    ).initializeRepository(context, root.id, "Fresh Site", ["React", "Vite"]);
+    const freshProfile = runtime.findCommandProfile(ownerId, companyId, fresh.commandProfileId);
+    expect(freshProfile?.validationOrder).toEqual(["lint", "typecheck", "test", "build"]);
+    expect(freshProfile?.commands.find((command) => command.id === "test")).toMatchObject({
+      kind: "TEST",
+      args: ["run", "test"],
+      networkPolicy: "DENY",
+    });
+    expect(createWorkspace).toHaveBeenCalledOnce();
   });
 
   it("takes an existing natural-language objective through Luna work, integration, review, and healthy preview", async () => {
@@ -732,6 +919,13 @@ describe("EngineeringDeliveryService", () => {
     }
     expect(current.delivery.status).toBe("DONE");
     expect(current.delivery.preview?.url).toBe("http://localhost:4173");
+    expect(current.delivery.validation).toMatchObject({
+      lint: "NOT_CONFIGURED",
+      typecheck: "NOT_CONFIGURED",
+      tests: "NOT_CONFIGURED",
+      build: "PASS",
+      review: "PASS",
+    });
     expect(
       current.delivery.modelUsage.find((usage) => usage.tier === "LUNA")?.calls,
     ).toBe(1);
@@ -743,6 +937,56 @@ describe("EngineeringDeliveryService", () => {
     );
     expect(notificationDispatch).toHaveBeenCalledOnce();
     expect(notificationDispatch.mock.calls[0]?.[0].title).toContain("validation PASS");
+  });
+
+  it("retries preview startup from the same reviewed candidate without rerunning integration", async () => {
+    const { service, store, integrationExecute, gatewayInvoke } = fixture();
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS landing website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "preview-recovery",
+    });
+    await vi.waitFor(() => expect(store.find(ownerId, companyId, created.delivery.id)?.status).toBe("DONE"));
+    const completed = store.find(ownerId, companyId, created.delivery.id)!;
+    store.save(EngineeringDeliverySchema.parse({
+      ...completed,
+      status: "FAILED",
+      preview: null,
+      warnings: ["inconsistent types deduced for parameter $3"],
+    }));
+    expect((await service.controlCenter(ownerId, companyId, created.delivery.id)).blocker)
+      .toMatchObject({ category: "PREVIEW_FAILED" });
+    integrationExecute.mockClear();
+    gatewayInvoke.mockClear();
+
+    await service.resume(context, created.delivery.id);
+    await vi.waitFor(() => expect(store.find(ownerId, companyId, created.delivery.id)?.status).toBe("DONE"));
+    expect(integrationExecute).not.toHaveBeenCalled();
+    expect(gatewayInvoke).toHaveBeenCalledTimes(1);
+    expect(store.find(ownerId, companyId, created.delivery.id)?.candidateId).toBe(candidateId);
+  });
+
+  it("keeps a failed preview retryable instead of treating missing health as completion", async () => {
+    const { service, store, gatewayInvoke, integrationExecute } = fixture();
+    const healthy = await gatewayInvoke.getMockImplementation()!();
+    gatewayInvoke.mockResolvedValueOnce({
+      output: { ...healthy.output, state: "FAILED", healthStatus: "FAIL" },
+    });
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS landing website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "preview-health-recovery",
+    });
+    await vi.waitFor(() => expect(store.find(ownerId, companyId, created.delivery.id)?.status).toBe("FAILED"));
+    expect((await service.controlCenter(ownerId, companyId, created.delivery.id)).blocker)
+      .toMatchObject({ category: "PREVIEW_FAILED" });
+    integrationExecute.mockClear();
+
+    await service.resume(context, created.delivery.id);
+    await vi.waitFor(() => expect(store.find(ownerId, companyId, created.delivery.id)?.status).toBe("DONE"));
+    expect(integrationExecute).not.toHaveBeenCalled();
   });
 
   it("denies cross-company delivery reads and preserves request idempotency", async () => {

@@ -116,6 +116,9 @@ export class SignedExecutionEngineeringGateway
     agentId: string;
     idempotencyKey: string;
     slug: string;
+    repairBaseCommit?: string | null;
+    repairIntegrationWorkspaceId?: string | null;
+    repairObjectiveId?: string | null;
     transport: Transport;
   }) {
     const existing = await this.runtimeStore.findWorkspaceByIdempotencyKey(
@@ -125,6 +128,9 @@ export class SignedExecutionEngineeringGateway
       input.idempotencyKey,
     );
     if (existing) {
+      if (existing.baseCommit !== (input.repairBaseCommit ?? existing.baseCommit) ||
+          existing.repairIntegrationWorkspaceId !== (input.repairIntegrationWorkspaceId ?? null))
+        throw Object.assign(new Error("The repair base changed after workspace registration."), { code: "INCONSISTENT_STATE" });
       if (existing.state !== "CREATING" && existing.state !== "READY")
         throw Object.assign(new Error("The existing engineering workspace is not ready for reuse."), { code: "WORKSPACE_NOT_READY" });
       if (existing.agentId !== input.agentId || existing.taskId !== input.taskId)
@@ -169,6 +175,31 @@ export class SignedExecutionEngineeringGateway
       throw Object.assign(new Error("Agent assignment is outside repository scope."), {
         code: "REPOSITORY_NOT_AUTHORIZED",
       });
+    if (Boolean(input.repairBaseCommit) !== Boolean(input.repairIntegrationWorkspaceId))
+      throw Object.assign(new Error("Repair integration workspace and head must be bound together."), { code: "INCONSISTENT_STATE" });
+    if (Boolean(input.repairBaseCommit) !== Boolean(input.repairObjectiveId))
+      throw Object.assign(new Error("Repair objective scope is missing."), { code: "INCONSISTENT_STATE" });
+    if (input.repairBaseCommit && input.repairIntegrationWorkspaceId) {
+      const integration = await this.runtimeStore.findWorkspace(
+        input.ownerId, input.companyId, input.repairIntegrationWorkspaceId);
+      if (!integration || integration.repositoryId !== repository.id ||
+          !integration.idempotencyKey.startsWith("integration-") ||
+          !integration.taskId || integration.taskId !== input.repairObjectiveId || !integration.agentId ||
+          !repository.authorizedAgentIds.includes(integration.agentId) ||
+          !["READY", "DIRTY", "COMPLETED"].includes(integration.state))
+        throw Object.assign(new Error("Registered repair integration workspace is unavailable."), { code: "WORKSPACE_NOT_FOUND" });
+      const inspected = EngineeringWorktreeInspectionSchema.parse((await this.dispatch({
+        ownerId: input.ownerId, companyId: input.companyId,
+        repositoryId: input.repositoryId, workspaceId: integration.id,
+        taskId: integration.taskId, agentId: integration.agentId,
+        capability: "repository.worktree_inspect", operationInput: {},
+        signal: new AbortController().signal, transport: input.transport,
+      })).output);
+      if (!inspected.exists || inspected.dirty ||
+          inspected.branch !== integration.branchName ||
+          inspected.headCommit !== input.repairBaseCommit)
+        throw Object.assign(new Error("Reviewed integration head moved before repair workspace creation."), { code: "INCONSISTENT_STATE" });
+    }
     const inspection = await this.dispatch({
       ownerId: input.ownerId,
       companyId: input.companyId,
@@ -197,6 +228,8 @@ export class SignedExecutionEngineeringGateway
         ),
         { code: "DIRTY_REPOSITORY" },
       );
+    if (input.repairBaseCommit && !/^[0-9a-f]{40,64}$/.test(input.repairBaseCommit))
+      throw Object.assign(new Error("The registered repair base is invalid."), { code: "INCONSISTENT_STATE" });
     const id = crypto.randomUUID();
     const branchName =
       `alexa/${input.taskId.replaceAll("-", "").slice(0, 12)}-${id.replaceAll("-", "").slice(-6)}-${slug(input.slug)}`.slice(
@@ -215,7 +248,8 @@ export class SignedExecutionEngineeringGateway
       idempotencyKey: input.idempotencyKey,
       branchName,
       worktreeLocator: `ew-${id}`,
-      baseCommit: output.baseCommit,
+      baseCommit: input.repairBaseCommit ?? output.baseCommit,
+      repairIntegrationWorkspaceId: input.repairIntegrationWorkspaceId ?? null,
       headCommit: null,
       state: "CREATING",
       leaseOwner: null,
@@ -590,15 +624,30 @@ export class SignedExecutionEngineeringGateway
               sourceWorkspaceId,
             )
           : undefined;
+      const repairSource = input.capability === "repository.integrate_commit" &&
+        typeof input.operationInput.repairTaskId === "string" &&
+        typeof input.operationInput.repairBaseCommit === "string" &&
+        source?.taskId === input.operationInput.repairTaskId &&
+        source.idempotencyKey === source.taskId &&
+        source.repairIntegrationWorkspaceId === workspace?.id &&
+        source.baseCommit === input.operationInput.repairBaseCommit;
+      if (input.capability === "repository.integrate_commit" &&
+          ((repairSource && input.operationInput.expectedHead !== source?.baseCommit) ||
+            (!repairSource && input.operationInput.expectedHead !== undefined)))
+        throw Object.assign(new Error("The repair integration head binding is invalid."), {
+          code: "WORKSPACE_NOT_FOUND",
+        });
       if (
         !workspace ||
         !workspace.idempotencyKey.startsWith("integration-") ||
+        workspace.taskId !== input.taskId ||
+        workspace.agentId !== input.agentId ||
         !source ||
         !source.taskId ||
         source.taskId === workspace.taskId ||
         source.idempotencyKey.startsWith("integration-") ||
         source.repositoryId !== repository.id ||
-        source.baseCommit !== workspace.baseCommit ||
+        (source.baseCommit !== workspace.baseCommit && !repairSource) ||
         !source.agentId ||
         !repository.authorizedAgentIds.includes(source.agentId) ||
         source.id === workspace.id ||
@@ -613,6 +662,7 @@ export class SignedExecutionEngineeringGateway
         commit: input.operationInput.commit,
         sourceWorkspaceId: source.id,
         sourceWorktreeLocator: source.worktreeLocator,
+        ...(repairSource ? { expectedHead: source.baseCommit } : {}),
         ...(input.capability === "repository.resolve_additive_docs_conflict"
           ? {
               path: input.operationInput.path,
@@ -680,6 +730,9 @@ export class SignedExecutionEngineeringGateway
     const deadline = this.now().getTime() +
       (input.request.capability === "repository.install_dependencies"
         ? Math.max(this.waitTimeoutMs, 11 * 60_000)
+        : input.request.capability === "repository.dev_server_start" ||
+            input.request.capability === "repository.dev_server_restart"
+          ? Math.max(this.waitTimeoutMs, 4 * 60_000)
         : this.waitTimeoutMs);
     while (this.now().getTime() < deadline) {
       if (input.signal.aborted) {

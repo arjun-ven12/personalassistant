@@ -85,6 +85,8 @@ const recoverableExistingRunWarnings = new Set([
   recoverableReviewWarning,
   "Independent integration review requires changes.",
   "Integration ended in REPAIRING.",
+  "Integration ended in CONFLICTED.",
+  "The reviewed integration head changed before applying its scoped repair.",
 ]);
 
 export class EngineeringDeliveryService {
@@ -282,11 +284,15 @@ export class EngineeringDeliveryService {
       status: "INTEGRATING",
       integrationRunId: integrationView.run.id,
     });
-    let integrated = await this.integration.execute(
-      context,
-      integrationView.run.id,
-      `delivery-${delivery.id.slice(0, 8)}`,
-    );
+    let integrated = delivery.candidateId && integrationView.run.status === "READY" &&
+      integrationView.candidate?.status === "READY"
+      && integrationView.candidate.id === delivery.candidateId
+      ? integrationView
+      : await this.integration.execute(
+          context,
+          integrationView.run.id,
+          `delivery-${delivery.id.slice(0, 8)}`,
+        );
     for (let repairCycle = 0; integrated.run.status === "REPAIRING" && repairCycle < 3; repairCycle += 1) {
       const repaired = await this.manager.runReady(
         context,
@@ -321,16 +327,27 @@ export class EngineeringDeliveryService {
       await this.notifyTerminal(context, delivery.id);
       return this.controlCenter(context.ownerId, context.companyId, delivery.id);
     }
+    const validationReport = await this.runtime.findValidation(
+      context.ownerId,
+      context.companyId,
+      integrated.candidate.validationReportId,
+    );
+    const validationStatus = (kind: "LINT" | "TYPECHECK" | "TEST" | "BUILD") => {
+      const step = validationReport?.steps.find((item) => item.kind === kind);
+      return step?.status === "PASS" ? "PASS" as const
+        : step?.status === "FAIL" || step?.status === "ERROR" ? "FAIL" as const
+          : "NOT_CONFIGURED" as const;
+    };
     delivery = await this.update(delivery, {
       status: "PREVIEWING",
       candidateId: integrated.candidate.id,
       filesChanged: integrated.candidate.filesChanged,
       validatedAt: this.now().toISOString(),
       validation: {
-        lint: "PASS",
-        typecheck: "PASS",
-        tests: "PASS",
-        build: "PASS",
+        lint: validationStatus("LINT"),
+        typecheck: validationStatus("TYPECHECK"),
+        tests: validationStatus("TEST"),
+        build: validationStatus("BUILD"),
         review: integrated.reviews.some(
           (review) => review.verdict === "PASS_WITH_WARNINGS",
         )
@@ -366,8 +383,16 @@ export class EngineeringDeliveryService {
         transport: context,
       });
       preview = result.output as EngineeringDelivery["preview"];
-      if (preview?.state !== "RUNNING" || preview.healthStatus !== "PASS")
-        warnings.push("Local preview did not pass its bounded health check.");
+      if (preview?.state !== "RUNNING" || preview.healthStatus !== "PASS") {
+        delivery = await this.update(delivery, {
+          status: "FAILED",
+          preview,
+          warnings: [...warnings, "Local preview did not pass its bounded health check."].slice(0, 50),
+          completedAt: this.now().toISOString(),
+        });
+        await this.notifyTerminal(context, delivery.id);
+        return this.controlCenter(context.ownerId, context.companyId, delivery.id);
+      }
     } else
       warnings.push(
         "No registered development server profile is available for this repository.",
@@ -481,6 +506,15 @@ export class EngineeringDeliveryService {
   }
   async resume(context: EngineeringDeliveryContext, id: string) {
     const delivery = await this.require(context.ownerId, context.companyId, id);
+    const previewRecovery = ["FAILED", "DONE_WITH_WARNINGS"].includes(delivery.status) &&
+      !!delivery.integrationRunId && !!delivery.candidateId && !!delivery.validatedAt
+      ? await this.integration.view(context.ownerId, context.companyId, delivery.integrationRunId)
+      : null;
+    const recoverablePreviewFailure = previewRecovery?.run.status === "READY" &&
+      previewRecovery.candidate?.status === "READY" &&
+      previewRecovery.candidate.id === delivery.candidateId &&
+      (delivery.status === "FAILED" || delivery.preview?.healthStatus === "FAIL" ||
+        delivery.warnings.at(-1) === "Local preview did not pass its bounded health check.");
     const recoverableIntegrationFailure = delivery.status === "FAILED" &&
       !delivery.integrationRunId &&
       recoverableIntegrationWarnings.has(delivery.warnings.at(-1) ?? "");
@@ -488,22 +522,29 @@ export class EngineeringDeliveryService {
       !!delivery.integrationRunId &&
       recoverableExistingRunWarnings.has(delivery.warnings.at(-1) ?? "");
     if (!["PAUSED", "BLOCKED"].includes(delivery.status) &&
-        !recoverableIntegrationFailure && !recoverableExistingRunFailure)
+        !recoverableIntegrationFailure && !recoverableExistingRunFailure &&
+        !recoverablePreviewFailure)
       throw new EngineeringDeliveryError(
         "INVALID_STATE",
         "Only a paused or recoverable delivery can resume.",
       );
-    if (recoverableIntegrationFailure || recoverableExistingRunFailure) {
+    if (recoverableIntegrationFailure || recoverableExistingRunFailure || recoverablePreviewFailure) {
       const view = await this.manager.view(context.ownerId, context.companyId, delivery.objectiveId);
       if (view.objective.status !== "COMPLETED" &&
           !(delivery.warnings.at(-1) === "Integration ended in REPAIRING." &&
             ["READY", "RUNNING"].includes(view.objective.status)))
         throw new EngineeringDeliveryError("INVALID_STATE", "The engineering objective is not complete.");
-      if (recoverableExistingRunFailure) {
+      if (recoverableExistingRunFailure && !recoverablePreviewFailure) {
         const integration = await this.integration.view(
           context.ownerId, context.companyId, delivery.integrationRunId!,
         );
-        if (!["FAILED", "REPAIRING"].includes(integration.run.status) ||
+        const conflictedRepair = delivery.warnings.at(-1) === "Integration ended in CONFLICTED." &&
+          integration.run.status === "CONFLICTED" &&
+          integration.run.repairCycles < integration.run.maxRepairCycles &&
+          integration.run.repairTaskIds.length > 0 &&
+          integration.run.conflicts.some((conflict) => conflict.status === "ESCALATED" &&
+            conflict.taskIds.includes(integration.run.repairTaskIds.at(-1)!));
+        if ((!conflictedRepair && !["FAILED", "REPAIRING"].includes(integration.run.status)) ||
             integration.run.objectiveId !== delivery.objectiveId ||
             integration.run.repositoryId !== delivery.repositoryId ||
             integration.candidate)
@@ -515,8 +556,12 @@ export class EngineeringDeliveryService {
         }
       }
     }
-    await this.update(delivery, { status: "IMPLEMENTING", completedAt: null });
-    const continuation = recoverableIntegrationFailure || recoverableExistingRunFailure
+    await this.update(delivery, {
+      status: "IMPLEMENTING",
+      completedAt: null,
+      warnings: recoverablePreviewFailure ? delivery.warnings.slice(0, -1) : delivery.warnings,
+    });
+    const continuation = recoverableIntegrationFailure || recoverableExistingRunFailure || recoverablePreviewFailure
       ? this.drive(context, id)
       : Promise.resolve().then(() => this.manager.resume(context, delivery.objectiveId))
           .then(() => this.drive(context, id));
@@ -644,11 +689,18 @@ export class EngineeringDeliveryService {
     });
     if (JSON.stringify(refreshed) !== JSON.stringify(delivery))
       await this.store.save(refreshed);
-    const escalatedConflict = refreshed.status === "FAILED" && refreshed.integrationRunId &&
-      refreshed.warnings.at(-1) === "Integration ended in CONFLICTED."
-      ? (await this.integration.view(ownerId, companyId, refreshed.integrationRunId))
-          .run.conflicts.find((conflict) => conflict.status === "ESCALATED")
-      : undefined;
+    const integrationFailureView = ["FAILED", "BLOCKED", "DONE_WITH_WARNINGS"].includes(refreshed.status) && refreshed.integrationRunId
+      ? await this.integration.view(ownerId, companyId, refreshed.integrationRunId)
+      : null;
+    const escalatedConflict = integrationFailureView?.run.conflicts?.find(
+      (conflict) => conflict.status === "ESCALATED");
+    const recoverableRepairConflict = Boolean(escalatedConflict && integrationFailureView &&
+      integrationFailureView.run.repairCycles < integrationFailureView.run.maxRepairCycles &&
+      integrationFailureView.run.repairTaskIds.at(-1) &&
+      escalatedConflict.taskIds.includes(integrationFailureView.run.repairTaskIds.at(-1)!));
+    const latestReviewBlocker = integrationFailureView?.reviews?.filter(
+      (review) => review.verdict === "BLOCK" || review.verdict === "CHANGES_REQUIRED")
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0]?.findings[0];
     const progress = view.tasks.length
       ? Math.round(
           (view.tasks.reduce(
@@ -686,10 +738,30 @@ export class EngineeringDeliveryService {
         const blockedTasks = view.tasks.filter((item) => ["BLOCKED", "FAILED"].includes(item.status));
         const task = blockedTasks.find((item) => item.lastFailureCategory && item.lastFailureCategory !== "DEPENDENCY_NOT_READY") ?? blockedTasks[0];
         if (!task) {
+          if (["FAILED", "DONE_WITH_WARNINGS"].includes(refreshed.status) &&
+              (refreshed.status === "FAILED" || refreshed.preview?.healthStatus === "FAIL" ||
+                refreshed.warnings.at(-1) === "Local preview did not pass its bounded health check.") &&
+              refreshed.candidateId && refreshed.validatedAt &&
+              integrationFailureView?.run.status === "READY" &&
+              integrationFailureView.candidate?.status === "READY" &&
+              integrationFailureView.candidate.id === refreshed.candidateId) return {
+            category: "PREVIEW_FAILED",
+            message: "The reviewed candidate is ready, but its local preview did not finish starting.",
+            action: "Check the trusted Mac Agent and Docker Desktop, then Retry. The same validated candidate will be used; no code generation or merge is required.",
+          };
+          if (refreshed.status === "BLOCKED" && integrationFailureView?.run.status === "BLOCKED" &&
+              integrationFailureView.run.repairCycles >= integrationFailureView.run.maxRepairCycles &&
+              latestReviewBlocker) return {
+            category: "REVIEW_CHANGES_REQUIRED",
+            message: latestReviewBlocker.slice(0, 300),
+            action: "The bounded repair limit is reached. Review the independent findings and start a new governed modification; this run cannot be retried or merged automatically.",
+          };
           if (escalatedConflict) return {
-            category: "MERGE_CONFLICT",
+            category: recoverableRepairConflict ? "MERGE_CONFLICT" : "MERGE_CONFLICT_REVIEW_REQUIRED",
             message: `The reviewed repair conflicts with existing changes in ${escalatedConflict.path}.`,
-            action: "The same-base repair cannot be merged safely. Review the integration conflict; a repair based on the integrated head is required before this run can finish.",
+            action: recoverableRepairConflict
+              ? "Retry creates a bounded repair from the reviewed integration head. The conflicting repair remains in the audit history; validation and independent review still apply."
+              : "Automatic repair is not safely available. Review this integration conflict and its repair history before starting another governed change.",
           };
           if (refreshed.status === "FAILED" && refreshed.integrationRunId &&
               refreshed.warnings.at(-1) === "Integration ended in REPAIRING.") return {
@@ -698,9 +770,15 @@ export class EngineeringDeliveryService {
             action: "Retry resumes the existing repair task, then revalidates and reviews the same integration run.",
           };
           if (refreshed.status === "FAILED" && refreshed.integrationRunId &&
+              refreshed.warnings.at(-1) === "The reviewed integration head changed before applying its scoped repair.") return {
+            category: "INTEGRATION_REPAIR_PENDING",
+            message: "A reviewed repair is ready to integrate from its recorded base commit.",
+            action: "Retry this same run. The integration head and signed workspace will be checked again before applying the repair.",
+          };
+          if (refreshed.status === "FAILED" && refreshed.integrationRunId &&
               refreshed.warnings.at(-1) === "Independent integration review requires changes.") return {
             category: "MODEL_PROVIDER_UNAVAILABLE",
-            message: "Independent integration review did not complete successfully.",
+            message: latestReviewBlocker?.slice(0, 500) ?? "Independent integration review did not complete successfully.",
             action: "Resolve the review failure, then Retry this run. A completed review still requires its findings to be addressed.",
           };
           if (
@@ -742,12 +820,26 @@ export class EngineeringDeliveryService {
           };
           return null;
         }
+        if (task.lastFailureCategory === "ENVIRONMENT_FAILURE" &&
+            task.lastFailureSummary === "The dependency container exited unexpectedly. Check Docker Desktop resources, then retry this same run.")
+          return {
+            category: "DEPENDENCY_PREPARATION_FAILED",
+            message: task.lastFailureSummary,
+            action: "Check the trusted agent heartbeat and Docker Desktop, then Retry this same run. Validation remains offline and sandboxed.",
+          };
         switch (task.lastFailureCategory) {
           case "MISSING_CAPABILITY":
             return { category: "CAPABILITY_UNAVAILABLE", message: task.lastFailureSummary ?? "A required engineering capability or eligible agent is unavailable.", action: "Retry rechecks the registered workforce and repository permissions. It preserves completed tasks and does not grant new capabilities." };
           case "POLICY_DENIED":
             return { category: "POLICY_APPROVAL_REQUIRED", message: task.lastFailureSummary ?? "Governance did not permit this change.", action: "Open Approvals and review this project's pending operation. After approval, Retry the same run; all permissions are checked again." };
           case "MODEL_FAILURE":
+            if (/^Budget policy [0-9a-f-]+ would be exceeded\.$/i.test(task.lastFailureSummary ?? "") ||
+                task.lastFailureSummary === "The engineering task budget is exhausted.")
+              return {
+                category: "BUDGET_EXCEEDED",
+                message: "The configured AI budget would be exceeded by the next model call.",
+                action: "Review the AI budget policy or wait for its reset. Retry this same run after funding is available; completed work is preserved.",
+              };
             return {
               category: "MODEL_PROVIDER_UNAVAILABLE",
               message:
@@ -763,7 +855,7 @@ export class EngineeringDeliveryService {
           case "TEST_FAILURE":
           case "TYPE_ERROR":
           case "BUILD_FAILURE":
-            return { category: "VALIDATION_FAILURE", message: "Project validation failed.", action: "Open the run activity and validation details, fix the failure, then retry." };
+            return { category: "VALIDATION_FAILURE", message: task.lastFailureSummary?.slice(0, 300) ?? "Project validation failed.", action: "Inspect the affected file and validation report, then retry the same run. Completed work is preserved." };
           case "ENVIRONMENT_FAILURE":
             return { category: "DEVICE_OFFLINE", message: "The trusted engineering environment could not complete the task.", action: "Check Mac Agent connectivity and project access, then retry." };
           default:
@@ -946,7 +1038,7 @@ export class EngineeringDeliveryService {
           companyId: context.companyId,
           displayName: `${projectName} autonomous delivery`,
           commands: [
-            {
+            ...(stack.includes("React") ? [{
               id: "lint",
               executable: "pnpm",
               args: ["run", "lint"],
@@ -954,13 +1046,22 @@ export class EngineeringDeliveryService {
               timeoutMs: 120_000,
               maxOutputBytes: 262_144,
               networkPolicy: "DENY",
-            },
+            }] : []),
             {
               id: "typecheck",
               executable: "pnpm",
               args: ["run", "typecheck"],
               kind: "TYPECHECK",
               timeoutMs: 120_000,
+              maxOutputBytes: 262_144,
+              networkPolicy: "DENY",
+            },
+            {
+              id: "test",
+              executable: "pnpm",
+              args: ["run", "test"],
+              kind: "TEST",
+              timeoutMs: 180_000,
               maxOutputBytes: 262_144,
               networkPolicy: "DENY",
             },
@@ -974,14 +1075,16 @@ export class EngineeringDeliveryService {
               networkPolicy: "DENY",
             },
           ],
-          validationOrder: ["lint", "typecheck", "build"],
+          validationOrder: stack.includes("React")
+            ? ["lint", "typecheck", "test", "build"]
+            : ["typecheck", "test", "build"],
           dependencyManager: "pnpm",
           developmentServers: stack.includes("React")
             ? [
                 {
                   id: "vite",
                   executable: "pnpm",
-                  args: ["run", "dev", "--"],
+                  args: ["run", "dev"],
                   portFlag: "--port",
                   hostFlag: "--host",
                   healthPath: "/",

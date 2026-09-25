@@ -20904,6 +20904,7 @@ var AuditEventTypeSchema = external_exports.enum([
   "ENGINEERING_INTEGRATION_VALIDATION_EXECUTED",
   "ENGINEERING_INTEGRATION_REVIEW_EXECUTED",
   "ENGINEERING_INTEGRATION_REPAIR_CREATED",
+  "ENGINEERING_INTEGRATION_REPAIR_SUPERSEDED",
   "ENGINEERING_INTEGRATION_REPAIR_BLOCKED",
   "ENGINEERING_MERGE_CANDIDATE_READY",
   "ENGINEERING_MERGE_CANDIDATE_STALE",
@@ -21393,6 +21394,7 @@ var EngineeringWorkspaceSchema = external_exports.object({
   branchName: external_exports.string().regex(/^alexa\/[a-z0-9][a-z0-9-]{0,119}$/),
   worktreeLocator: SafeIdentifierSchema,
   baseCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/),
+  repairIntegrationWorkspaceId: external_exports.string().uuid().nullable().default(null),
   headCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/).nullable(),
   state: EngineeringWorkspaceStateSchema,
   dependenciesPreparedAt: external_exports.iso.datetime().nullable().default(null),
@@ -21790,7 +21792,8 @@ var EngineeringTransportOperationSchema = external_exports.discriminatedUnion("c
     input: external_exports.object({
       commit: external_exports.string().regex(/^[0-9a-f]{40,64}$/),
       sourceWorkspaceId: external_exports.string().uuid(),
-      sourceWorktreeLocator: external_exports.string().regex(/^ew-[0-9a-f-]{36}$/)
+      sourceWorktreeLocator: external_exports.string().regex(/^ew-[0-9a-f-]{36}$/),
+      expectedHead: external_exports.string().regex(/^[0-9a-f]{40,64}$/).optional()
     }).strict()
   }).strict(),
   external_exports.object({
@@ -28109,6 +28112,8 @@ var EngineeringTaskSchema = external_exports.object({
   parentTaskId: external_exports.string().uuid().nullable(),
   repositoryId: external_exports.string().uuid(),
   workspaceId: external_exports.string().uuid().nullable(),
+  repairBaseCommit: external_exports.string().regex(/^[0-9a-f]{40,64}$/).nullable().default(null),
+  repairIntegrationWorkspaceId: external_exports.string().uuid().nullable().default(null),
   title: external_exports.string().min(1).max(255),
   description: external_exports.string().min(1).max(4e3),
   acceptanceCriteria: external_exports.array(external_exports.string().min(1).max(1e3)).min(1).max(20),
@@ -28316,7 +28321,7 @@ var EngineeringIntegrationConflictSchema = external_exports.object({
   taskIds: external_exports.array(external_exports.string().uuid()).min(2).max(30),
   type: EngineeringConflictTypeSchema,
   riskLevel: external_exports.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
-  status: external_exports.enum(["DETECTED", "RESOLVED", "ESCALATED"]),
+  status: external_exports.enum(["DETECTED", "RESOLVED", "ESCALATED", "SUPERSEDED"]),
   attempts: external_exports.number().int().min(0).max(2),
   resolverModel: external_exports.string().max(160).nullable(),
   resolverProviderId: external_exports.string().max(80).nullable().default(null),
@@ -28606,7 +28611,7 @@ var EngineeringControlCenterSchema = external_exports.object({
   completedTasks: external_exports.number().int().nonnegative(),
   blockedTasks: external_exports.number().int().nonnegative(),
   blocker: external_exports.object({
-    category: external_exports.enum(["CAPABILITY_UNAVAILABLE", "REPOSITORY_PERMISSION", "POLICY_APPROVAL_REQUIRED", "MODEL_PROVIDER_UNAVAILABLE", "VALIDATION_FAILURE", "MERGE_CONFLICT", "INTEGRATION_EVIDENCE_MISMATCH", "INTEGRATION_SCOPE_MISMATCH", "INTEGRATION_REPAIR_PENDING", "REVIEWER_UNAVAILABLE", "DEPENDENCY_PREPARATION_FAILED", "OWNER_CLARIFICATION_REQUIRED", "DEVICE_OFFLINE"]),
+    category: external_exports.enum(["CAPABILITY_UNAVAILABLE", "REPOSITORY_PERMISSION", "POLICY_APPROVAL_REQUIRED", "MODEL_PROVIDER_UNAVAILABLE", "BUDGET_EXCEEDED", "VALIDATION_FAILURE", "REVIEW_CHANGES_REQUIRED", "MERGE_CONFLICT", "INTEGRATION_EVIDENCE_MISMATCH", "INTEGRATION_SCOPE_MISMATCH", "INTEGRATION_REPAIR_PENDING", "REVIEWER_UNAVAILABLE", "DEPENDENCY_PREPARATION_FAILED", "PREVIEW_FAILED", "OWNER_CLARIFICATION_REQUIRED", "DEVICE_OFFLINE"]),
     message: external_exports.string().min(1).max(300),
     action: external_exports.string().min(1).max(300)
   }).strict().nullable(),

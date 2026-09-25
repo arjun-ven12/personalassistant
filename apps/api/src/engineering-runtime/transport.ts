@@ -102,7 +102,11 @@ export class EngineeringTransportScopeVerifier implements EngineeringExecutionSc
         source.id === workspace.id ||
         source.repositoryId !== repository.id ||
         source.worktreeLocator !== request.input.sourceWorktreeLocator ||
-        source.baseCommit !== workspace.baseCommit ||
+        (source.baseCommit !== workspace.baseCommit &&
+          !(request.capability === "repository.integrate_commit" &&
+            source.repairIntegrationWorkspaceId === workspace.id &&
+            request.input.expectedHead === source.baseCommit &&
+            source.idempotencyKey === source.taskId)) ||
         !source.agentId ||
         !source.taskId ||
         source.taskId === workspace.taskId ||
@@ -110,6 +114,10 @@ export class EngineeringTransportScopeVerifier implements EngineeringExecutionSc
         !repository.authorizedAgentIds.includes(source.agentId) ||
         !["READY", "DIRTY", "COMPLETED"].includes(source.state)
       )
+        return false;
+      if (request.capability === "repository.integrate_commit" &&
+          source.baseCommit === workspace.baseCommit &&
+          request.input.expectedHead !== undefined)
         return false;
       if (
         request.capability === "repository.resolve_additive_docs_conflict" &&

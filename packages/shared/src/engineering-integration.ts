@@ -81,7 +81,7 @@ export const EngineeringIntegrationConflictSchema = z
     taskIds: z.array(z.string().uuid()).min(2).max(30),
     type: EngineeringConflictTypeSchema,
     riskLevel: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
-    status: z.enum(["DETECTED", "RESOLVED", "ESCALATED"]),
+    status: z.enum(["DETECTED", "RESOLVED", "ESCALATED", "SUPERSEDED"]),
     attempts: z.number().int().min(0).max(2),
     resolverModel: z.string().max(160).nullable(),
     resolverProviderId: z.string().max(80).nullable().default(null),
