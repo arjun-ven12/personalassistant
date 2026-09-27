@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import {
   CreateObjectiveRequestSchema,
   ExecutiveGoalSchema,
@@ -17,6 +19,8 @@ import {
   type ObjectiveProject,
   type ObjectiveWorkflowScore,
   type WorkforceRuntimeTask,
+  requiredIndependentSources,
+  independentSourceHosts,
 } from "@alexa-control/shared";
 
 import type { CapabilityStudioService } from "../capability-studio/service.js";
@@ -31,6 +35,12 @@ const TERMINAL = new Set(["COMPLETED", "FAILED", "CANCELLED", "EXPIRED"]);
 const STAGNATION_MIN_OBSERVATIONS=3;
 const STAGNATION_WINDOW_MS=7*24*60*60*1_000;
 const STAGNATION_DELTA_RATIO=0.02;
+const MAX_EVIDENCE_GAP_ROUNDS=5;
+const stableProjectId=(value:string)=>{
+  const hash=createHash("sha256").update(value).digest("hex");
+  const variant=((Number.parseInt(hash.slice(16,18),16)&0x3f)|0x80).toString(16).padStart(2,"0");
+  return `${hash.slice(0,8)}-${hash.slice(8,12)}-5${hash.slice(13,16)}-${variant}${hash.slice(18,20)}-${hash.slice(20,32)}`;
+};
 type ObjectiveNotificationSink={dispatch(input:{ownerId:string;eventId:string;category:"OBJECTIVE_AT_RISK"|"OBJECTIVE_BLOCKED"|"BUDGET_WARNING"|"IMPORTANT_OBJECTIVE_COMPLETED"|"WORKFLOW_FAILED"|"WORKFLOW_BLOCKED";severity:"NORMAL"|"HIGH"|"CRITICAL";objectKind:"OBJECTIVE"|"WORKFLOW";objectId:string;stateVersion:string;title:string}):Promise<void>};
 
 export class ObjectiveEngineService {
@@ -138,6 +148,7 @@ export class ObjectiveEngineService {
     if (objective.activationKey === input.idempotencyKey) return this.dashboard(input.ownerId);
     if (!['AWAITING_CONFIRMATION','PAUSED','BLOCKED'].includes(objective.status)) throw new ExecutionError(409,"OBJECTIVE_NOT_ACTIVATABLE","Only confirmed, paused, or blocked objectives can be activated.");
     const projects=(await this.store.listObjectiveProjects(input.ownerId)).filter((item)=>item.objectiveExecutionId===objective.id).sort((a,b)=>a.sequence-b.sequence);
+    if(await this.scheduleEvidenceGap(input.ownerId,objective.id,input.requestId,input.ipAddress)) return this.dashboard(input.ownerId);
     const at=this.now().toISOString();
     const taskIds:string[]=[];
     let blocked=false;
@@ -154,8 +165,8 @@ export class ObjectiveEngineService {
       }
       if (project.workforceTaskId) {
         taskIds.push(project.workforceTaskId);
-        if(readyForScheduling&&(project.status==="WAITING"||project.status==="QUEUED")) {
-          try { await this.workforce.dispatch(input.ownerId,project.workforceTaskId,input.requestId,input.ipAddress); await this.store.saveObjectiveProject(ObjectiveProjectSchema.parse({...project,status:"RUNNING",updatedAt:at})); }
+        if(readyForScheduling&&(project.status==="WAITING"||project.status==="QUEUED"||project.status==="FAILED")) {
+          try { if(project.status==="FAILED") await this.workforce.retryFailedUnstarted(input.ownerId,project.workforceTaskId,input.requestId,input.ipAddress); else await this.workforce.dispatch(input.ownerId,project.workforceTaskId,input.requestId,input.ipAddress); await this.store.saveObjectiveProject(ObjectiveProjectSchema.parse({...project,status:"RUNNING",updatedAt:at})); }
           catch (error) { blocked=true; blockerReasons.push(error instanceof Error?error.message:"The workforce task could not start."); }
         }
         continue;
@@ -309,6 +320,7 @@ export class ObjectiveEngineService {
     const completedIndex=projects.findIndex((item)=>item.workforceTaskId===completedTaskId);
     const next=completedIndex>=0?projects[completedIndex+1]:undefined;
     if(!next?.workforceTaskId||!["QUEUED","WAITING"].includes(next.status)) {
+      if(await this.scheduleEvidenceGap(ownerId,objectiveId,`objective-gap:${objectiveId}:${completedTaskId}`,"internal")) return;
       await this.refreshObjective(ownerId,objectiveId);
       return;
     }
@@ -324,18 +336,98 @@ export class ObjectiveEngineService {
     await this.refreshObjective(ownerId,objectiveId);
   }
 
+  private async scheduleEvidenceGap(ownerId:string,objectiveId:string,requestId:string,ipAddress:string) {
+    const objective=await this.requireObjective(ownerId,objectiveId);
+    const projects=(await this.store.listObjectiveProjects(ownerId)).filter((item)=>item.objectiveExecutionId===objectiveId).sort((a,b)=>a.sequence-b.sequence);
+    if(!projects.length||projects.some((item)=>!item.workforceTaskId)) return false;
+    const runtime=await this.workforce.dashboard(ownerId);
+    const tasks=new Map(runtime.tasks.map((item)=>[item.id,item]));
+    if(projects.some((item)=>tasks.get(item.workforceTaskId!)?.status!=="COMPLETED")) return false;
+    const metrics=(await this.store.listKpis(ownerId)).filter((item)=>item.goalId===objective.executiveGoalId&&item.unit.toLowerCase()==="count"&&/lead|compan|source|record|result|item/i.test(item.name));
+    const sourceRequirement=requiredIndependentSources(`${projects.map((item)=>item.outcome).join(" ")} ${metrics.map((item)=>item.name).join(" ")}`);
+    const shortfall=metrics.reduce((sum,item)=>sum+Math.max(0,item.target-item.currentValue),0);
+    if(shortfall===0) return false;
+    const rounds=projects.filter((item)=>item.title.startsWith("Close evidence gap ")).length;
+    const spent=runtime.tasks.filter((item)=>item.inputs.objectiveExecutionId===objectiveId).reduce((sum,item)=>sum+item.actualCost,0);
+    const remainingBudget=objective.budgetCredits-spent;
+    if(rounds>=MAX_EVIDENCE_GAP_ROUNDS||remainingBudget<2) return false;
+    const round=rounds+1;
+    const researchId=stableProjectId(`${objectiveId}:evidence-gap:${round}:research`);
+    const verifyId=stableProjectId(`${objectiveId}:evidence-gap:${round}:verify`);
+    if(projects.some((item)=>item.id===researchId||item.id===verifyId)) return false;
+    const priorLeads=runtime.tasks
+      .filter((item)=>item.inputs.objectiveExecutionId===objectiveId&&item.status==="COMPLETED")
+      .flatMap((item)=>item.verifiedLeads??[]);
+    const existingNames=[...new Set(priorLeads
+      .filter((lead)=>independentSourceHosts(lead.sourceUrls)>=sourceRequirement)
+      .map((lead)=>lead.companyName))].slice(0,20);
+    const partialNames=[...new Set(priorLeads
+      .filter((lead)=>independentSourceHosts(lead.sourceUrls)<sourceRequirement)
+      .map((lead)=>lead.companyName))].filter((name)=>!existingNames.includes(name)).slice(0,20);
+    const at=this.now().toISOString();
+    const researchBudget=Math.min(20,remainingBudget-1);
+    const verifyBudget=Math.min(10,remainingBudget-researchBudget);
+    const research=ObjectiveProjectSchema.parse({
+      id:researchId,ownerId,objectiveExecutionId:objectiveId,title:`Close evidence gap ${round}: research`,
+      outcome:`Find at least ${shortfall} additional current AI compan${shortfall===1?"y":"ies"} with company name, website, description, outreach reason, and ${sourceRequirement===2?"at least two independent retrieved HTTPS source hosts per company":"retrieved HTTPS sources"}. Exclude fully verified companies: ${existingNames.join(", ")||"none"}. You may complete missing source evidence for these partial records: ${partialNames.join(", ")||"none"}. Cite exact retrieved source URLs for each record; omit records without enough sources. Research only; do not send messages or create drafts.`.slice(0,1_000),
+      status:"QUEUED",sequence:projects.length,departmentId:"research",requiredSkills:["research","evidence_synthesis"],requiredCapabilities:["web.research"],capabilityReadiness:[{capabilityId:"web.research",status:"AVAILABLE"}],estimatedAiCostCredits:researchBudget,memoryScopeRefs:[],budgetCredits:researchBudget,workforceTaskId:null,workflowId:null,selectedWorkflowTemplateId:null,workflowSelection:[],createdAt:at,updatedAt:at,
+    });
+    const verify=ObjectiveProjectSchema.parse({
+      id:verifyId,ownerId,objectiveExecutionId:objectiveId,title:`Verify evidence gap ${round}`,
+      outcome:`Verify the new source-backed companies are distinct from ${existingNames.join(", ")||"previous results"} and satisfy the objective's declared count metric. Do not claim verification from prose alone.`.slice(0,1_000),
+      status:"QUEUED",sequence:projects.length+1,departmentId:"quality-review",requiredSkills:["review"],requiredCapabilities:[],capabilityReadiness:[],estimatedAiCostCredits:verifyBudget,memoryScopeRefs:[],budgetCredits:verifyBudget,workforceTaskId:null,workflowId:null,selectedWorkflowTemplateId:null,workflowSelection:[],createdAt:at,updatedAt:at,
+    });
+    await this.store.saveObjectiveProject(research);
+    await this.store.saveObjectiveProject(verify);
+    const createTask=async(project:ObjectiveProject)=>this.workforce.createTask({ownerId,requestId,ipAddress,body:{
+      idempotencyKey:`objective:${objectiveId}:project:${project.id}`,createdByAgentId:null,assignedAgentId:null,
+      type:"WORK",title:project.title,objective:project.outcome,
+      inputs:{objectiveExecutionId:objectiveId,executiveGoalId:objective.executiveGoalId,projectId:project.id,executionKind:this.executionKind(project)},
+      evidenceRefs:[`objective:${objectiveId}`],memoryScopeRefs:[],requiredSkills:project.requiredSkills,requiredCapabilities:project.requiredCapabilities,
+      preferredDepartmentId:project.departmentId,priority:"normal",riskLevel:"LOW",economicBudget:project.budgetCredits,maxRetries:1,expiresAt:null,
+    }});
+    const researchTask=(await createTask(research)).task;
+    const verifyTask=(await createTask(verify)).task;
+    await this.store.saveObjectiveProject(ObjectiveProjectSchema.parse({...research,workforceTaskId:researchTask.id,updatedAt:this.now().toISOString()}));
+    await this.store.saveObjectiveProject(ObjectiveProjectSchema.parse({...verify,workforceTaskId:verifyTask.id,updatedAt:this.now().toISOString()}));
+    const priorResearch=runtime.tasks.filter((item)=>item.inputs.objectiveExecutionId===objectiveId&&item.inputs.executionKind==="EXTERNAL_RESEARCH"&&item.status==="COMPLETED").at(-1);
+    if(priorResearch) {
+      await this.workforce.attachDependencyEvidence(ownerId,researchTask.id,priorResearch);
+      await this.workforce.attachDependencyEvidence(ownerId,verifyTask.id,priorResearch);
+    }
+    await this.event(ownerId,objectiveId,"REPLANNED","A bounded research and verification pair was added to close a measured evidence gap.",`objective-evidence-gap:${objectiveId}:${round}`,{round,shortfall,researchProjectId:research.id,verifyProjectId:verify.id});
+    await this.audit({eventType:"OBJECTIVE_STATE_CHANGED",ownerId,outcome:"SUCCESS",reason:"Verified count remained below target; bounded evidence-gap work was scheduled without expanding capability authority.",requestId,ipAddress,metadata:{objectiveId,round,shortfall}});
+    try {
+      await this.workforce.dispatch(ownerId,researchTask.id,requestId,ipAddress);
+      await this.store.saveObjectiveProject(ObjectiveProjectSchema.parse({...research,workforceTaskId:researchTask.id,status:"RUNNING",updatedAt:this.now().toISOString()}));
+    } catch {
+      await this.store.saveObjectiveProject(ObjectiveProjectSchema.parse({...research,workforceTaskId:researchTask.id,status:"WAITING",updatedAt:this.now().toISOString()}));
+    }
+    await this.refreshObjective(ownerId,objectiveId);
+    return true;
+  }
+
   private async recordEvidenceMetric(task:WorkforceRuntimeTask,objectiveId:string) {
     if(task.inputs.executionKind!=="EXTERNAL_RESEARCH") return;
-    const sourceCount=new Set(task.evidenceRefs.filter((item)=>/^https:\/\//i.test(item))).size;
-    if(sourceCount===0) return;
     const objective=await this.requireObjective(task.ownerId,objectiveId);
-    const metrics=(await this.store.listKpis(task.ownerId)).filter((item)=>
+    const [metrics,goals]=await Promise.all([this.store.listKpis(task.ownerId),this.store.listGoals(task.ownerId)]);
+    const relevantMetrics=metrics.filter((item)=>
       item.goalId===objective.executiveGoalId&&
       item.unit.toLowerCase()==="count"&&
       /lead|compan|source|record|result|item/i.test(item.name),
     );
+    const goal=goals.find((item)=>item.id===objective.executiveGoalId);
+    const sourceRequirement=requiredIndependentSources(`${goal?.description??""} ${relevantMetrics.map((item)=>item.name).join(" ")}`);
+    const runtime=await this.workforce.dashboard(task.ownerId);
+    const verifiedCompanies=new Set(runtime.tasks
+      .filter((item)=>item.status==="COMPLETED"&&item.inputs.objectiveExecutionId===objectiveId&&item.inputs.executionKind==="EXTERNAL_RESEARCH")
+      .flatMap((item)=>item.verifiedLeads??[])
+      .filter((lead)=>independentSourceHosts(lead.sourceUrls)>=sourceRequirement)
+      .map((lead)=>lead.companyName.trim().toLowerCase()));
+    const sourceCount=verifiedCompanies.size;
+    if(sourceCount===0) return;
     const at=this.now().toISOString();
-    for(const metric of metrics) {
+    for(const metric of relevantMetrics) {
       const value=Math.min(metric.target,Math.max(metric.currentValue,sourceCount));
       if(value===metric.currentValue) continue;
       await this.store.saveKpi(ExecutiveKpiSchema.parse({...metric,currentValue:value,source:"CALCULATED",updatedAt:at}));
@@ -362,6 +454,7 @@ export class ObjectiveEngineService {
       const executionProgress=Math.round(completed/owned.length*100);
       const kpis=metrics.filter((item)=>item.goalId===objective.executiveGoalId);
       const outcomeProgress=kpis.length?Math.round(kpis.reduce((sum,item)=>sum+this.metricProgress(item),0)/kpis.length*100):0;
+      const unmetOutcome=completed===owned.length&&outcomeProgress<100;
       const goal=goals.find((item)=>item.id===objective.executiveGoalId);
       const deadlineStatus=this.deadlineStatus(goal?.targetDate??null,remainingDurationMs,owned.length-completed);
       const budgetStatus=spent>=objective.budgetCredits?"EXHAUSTED" as const:projectedCost>objective.budgetCredits?"BUDGET_AT_RISK" as const:"ON_TRACK" as const;
@@ -372,9 +465,10 @@ export class ObjectiveEngineService {
       const effectiveObjective=trigger&&objective.lastReplanTrigger!==trigger?await this.requireObjective(ownerId,objective.id):objective;
       const hasActive=owned.some((project)=>project.workforceTaskId&&["RUNNING","REVIEW_REQUIRED"].includes(tasks.get(project.workforceTaskId)?.status??""));
       const executionUnavailable=completed<owned.length&&!hasActive&&!capabilityBlocked&&!interventionRequired&&!failed;
-      const blockers=[...(capabilityBlocked?["A required capability request is unresolved."]:[]),...(interventionRequired?["A project needs a specialist, governed capability, or economic reservation before it can continue."]:[]),...(failed?["A delegated project failed and requires bounded recovery."]:[]),...(executionUnavailable?["No executable workforce session is active. Retry after restoring the worker or model provider."]:[])];
+      const failedTask = owned.map((project)=>project.workforceTaskId?tasks.get(project.workforceTaskId):undefined).find((task)=>task?.status==="FAILED");
+      const blockers=[...(capabilityBlocked?["A required capability request is unresolved."]:[]),...(interventionRequired?["A project needs a specialist, governed capability, or economic reservation before it can continue."]:[]),...(failed?[failedTask?.failureMessage ?? "A delegated project failed and requires bounded recovery."]:[]),...(executionUnavailable?["No executable workforce session is active. Retry after restoring the worker or model provider."]:[]),...(unmetOutcome?[`All scheduled work finished, but verified outcomes are short: ${kpis.filter((item)=>item.currentValue<item.target).map((item)=>`${item.name} ${item.currentValue}/${item.target}`).join(", ")}. Retry to run bounded evidence-gap research if budget and attempts remain.`]:[])];
       const riskReasons=[...(budgetStatus!=="ON_TRACK"?[`Projected cost ${projectedCost} exceeds or exhausts the ${objective.budgetCredits}-credit budget.`]:[]),...(deadlineStatus!=="ON_TRACK"?[deadlineStatus==="OVERDUE"?"The objective deadline is overdue.":"Current bounded duration estimates put the deadline at risk."]:[]),...(stagnating?["The success metric has not moved meaningfully across the configured observation window."]:[])];
-      const status:ObjectiveExecution["status"]=completed===owned.length&&outcomeProgress>=100?"COMPLETED":capabilityBlocked||interventionRequired||executionUnavailable?"BLOCKED":failed||riskReasons.length?"AT_RISK":"ACTIVE";
+      const status:ObjectiveExecution["status"]=completed===owned.length&&outcomeProgress>=100?"COMPLETED":capabilityBlocked||interventionRequired||executionUnavailable||failed||unmetOutcome?"BLOCKED":riskReasons.length?"AT_RISK":"ACTIVE";
       const updated=ObjectiveExecutionSchema.parse({...effectiveObjective,status,executionProgress,outcomeProgress,spentCredits:spent,projectedCost,budgetStatus,deadlineStatus,riskReasons,updatedAt:at,completedAt:status==="COMPLETED"?at:null,blockers,lastReplanTrigger:trigger??effectiveObjective.lastReplanTrigger});
       await this.store.saveObjectiveExecution(updated);
       if(status!==objective.status||executionProgress!==objective.executionProgress||outcomeProgress!==objective.outcomeProgress) await this.event(ownerId,objective.id,"MONITORED","Objective state updated from bounded lifecycle evidence.",null,{status,executionProgress,outcomeProgress,budgetStatus,deadlineStatus});
@@ -493,9 +587,15 @@ export class ObjectiveEngineService {
     const count=Math.min(3,budget); const base=Math.floor(budget/count); const remainder=budget-base*count;
     const lower=`${title} ${outcome}`.toLowerCase();
     const externalResearch=/\b(research|find|discover|collect|search|browse|current|compare|source|verify externally)\b/.test(lower);
-    const communication=
-      /\b(send|email|message)\b/.test(lower) ||
-      /\bcontact\s+(?:them|these|the)\b/.test(lower);
+    const communicationRequested =
+      /\b(?:send|email|message|contact)\s+(?:an?\s+)?(?:email|message|them|these|the)\b/.test(lower) ||
+      /\b(?:draft|compose|write|prepare)\s+(?:an?\s+)?(?:email|message|outreach message)\b/.test(lower);
+    // Negative instructions and references to a contact reason are not authority
+    // to create even an unsent email draft.
+    const communicationForbidden =
+      /\b(?:do not|don't|never|without|no)\s+(?:\w+\s+){0,3}(?:send|email|message|contact|draft)\b/.test(lower) ||
+      /\breason\s+(?:they\s+may\s+be\s+relevant\s+)?(?:to\s+)?contact\b/.test(lower);
+    const communication = communicationRequested && !communicationForbidden;
     return [
       {title:`Define ${title}`,outcome:`Establish bounded requirements, evidence, and constraints for: ${outcome}`,departmentId:"research",requiredSkills:["analysis"],requiredCapabilities:[]},
       {title:`Deliver ${title}`,outcome:`Produce the reviewed deliverable needed to achieve: ${outcome}`,departmentId:externalResearch?"research":"development",requiredSkills:externalResearch?["research","evidence_synthesis"]:["planning"],requiredCapabilities:[...(externalResearch?["web.research"]:[]),...(communication?["email.create_draft"]:[])]},

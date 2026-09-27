@@ -1,5 +1,27 @@
 import { z } from "zod";
 
+export const requiredIndependentSources = (text: string): 1 | 2 =>
+  /\b(?:two|2)\s+independent\s+(?:https\s+)?source(?:s|\s+urls?)?\b/i.test(text) ? 2 : 1;
+
+export const independentSourceHosts = (urls: string[]): number => new Set(urls.flatMap((url) => {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" ? [parsed.hostname.replace(/^www\./, "")] : [];
+  } catch {
+    return [];
+  }
+})).size;
+
+export const bestSourcedCompanyRecords = <T extends { companyName: string; sourceUrls: string[] }>(records: T[]): T[] => {
+  const byCompany = new Map<string, T>();
+  for (const record of records) {
+    const key = record.companyName.trim().toLowerCase();
+    const existing = byCompany.get(key);
+    if (!existing || independentSourceHosts(record.sourceUrls) > independentSourceHosts(existing.sourceUrls)) byCompany.set(key, record);
+  }
+  return [...byCompany.values()];
+};
+
 export const ObjectiveExecutionStatusSchema = z.enum([
   "DRAFT", "PLANNING", "AWAITING_CONFIRMATION", "ACTIVE", "PAUSED",
   "AT_RISK", "BLOCKED", "COMPLETED", "FAILED", "CANCELLED",

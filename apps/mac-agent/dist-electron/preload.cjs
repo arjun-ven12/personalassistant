@@ -15290,7 +15290,7 @@ var AgentSessionRecordSchema = external_exports.object({
   delegation: external_exports.object({
     delegationId: external_exports.string().uuid(),
     managerAgentId: external_exports.string().min(3).max(120),
-    memoryScopes: external_exports.array(external_exports.string().min(1).max(40)).max(20),
+    memoryScopes: external_exports.array(external_exports.string().min(1).max(160)).max(20),
     capabilityRefs: external_exports.array(external_exports.string().min(3).max(120)).max(100),
     skillRefs: external_exports.array(external_exports.string().min(3).max(120)).max(100),
     contextTokenBudget: external_exports.number().int().min(1e3).max(1e5),
@@ -17040,6 +17040,14 @@ var WorkforceRuntimeTaskSchema = external_exports.object({
   objective: external_exports.string().trim().min(1).max(2e3),
   inputs: external_exports.record(external_exports.string().max(80), external_exports.json()).default({}),
   evidenceRefs: external_exports.array(boundedRef2).max(50),
+  verifiedLeads: external_exports.array(external_exports.object({
+    companyName: external_exports.string().min(1).max(160),
+    website: external_exports.string().url().max(500),
+    description: external_exports.string().min(1).max(2e3),
+    outreachReason: external_exports.string().min(1).max(2e3),
+    sourceUrls: external_exports.array(external_exports.string().url().max(500)).min(1).max(5)
+  }).strict()).max(20).default([]),
+  retrievedSourceUrls: external_exports.array(external_exports.string().url().max(500)).max(60).default([]),
   memoryScopeRefs: external_exports.array(boundedRef2).max(20),
   requiredSkills: external_exports.array(boundedRef2).max(30),
   requiredCapabilities: external_exports.array(boundedRef2).max(30),
@@ -17050,6 +17058,7 @@ var WorkforceRuntimeTaskSchema = external_exports.object({
   reservedCredits: external_exports.number().int().nonnegative().max(1e6),
   actualCost: external_exports.number().int().nonnegative().max(1e6),
   reservationId: external_exports.string().uuid().nullable(),
+  reservationAttempt: external_exports.number().int().nonnegative().max(1e4).default(0),
   status: WorkforceTaskStatusSchema,
   retryCount: external_exports.number().int().min(0).max(2),
   maxRetries: external_exports.number().int().min(0).max(2),
@@ -17057,10 +17066,14 @@ var WorkforceRuntimeTaskSchema = external_exports.object({
   requirement: SpecialistRequirementSchema.nullable().default(null),
   workforceGap: WorkforceGapResolutionSchema.nullable().default(null),
   resultSummary: external_exports.string().max(4e3).nullable(),
+  failureCode: external_exports.string().max(100).nullable().default(null),
+  failureMessage: external_exports.string().max(240).nullable().default(null),
   resultConfidence: external_exports.number().min(0).max(1).nullable(),
   aiRequestId: external_exports.string().uuid().nullable(),
   providerId: external_exports.string().max(80).nullable(),
   modelId: external_exports.string().max(160).nullable(),
+  runtimeActivity: external_exports.enum(["AGENT_OS_ACTIVE", "MODEL_REQUESTED", "MODEL_RESULT_VERIFIED", "RESEARCH_VERIFIED", "FAILED"]).nullable().default(null),
+  webSearchCallCount: external_exports.number().int().nonnegative().max(20).default(0),
   sandboxStatus: external_exports.enum(["NOT_REQUESTED", "PASSED", "FAILED", "UNAVAILABLE", "TIMED_OUT"]).nullable(),
   artifactCount: external_exports.number().int().nonnegative().max(100),
   createdAt: external_exports.iso.datetime(),
@@ -20892,6 +20905,7 @@ var AuditEventTypeSchema = external_exports.enum([
   "AGENT_CATALOG_MATCH_USED",
   "WORKFORCE_TASK_CREATED",
   "WORKFORCE_TASK_SCHEDULED",
+  "WORKFORCE_TASK_RETRIED",
   "WORKFORCE_TASK_REVIEWED",
   "WORKFORCE_TASK_CANCELLED",
   "WORKFORCE_RUNTIME_RECOVERED",
@@ -30896,7 +30910,11 @@ var AIRouterResponseSchema = external_exports.object({
   providerId: external_exports.string().max(80).optional(),
   modelId: external_exports.string().max(160).optional(),
   latencyMs: external_exports.number().nonnegative(),
-  usage: external_exports.record(external_exports.string(), external_exports.number().nonnegative()).optional()
+  usage: external_exports.record(external_exports.string(), external_exports.number().nonnegative()).optional(),
+  providerMetadata: external_exports.object({
+    webSearchCallCount: external_exports.number().int().nonnegative().max(20),
+    sourceUrls: external_exports.array(external_exports.string().url().max(500)).max(60)
+  }).strict().optional()
 }).strict();
 var AIRouterMetricsSchema = external_exports.object({
   total: external_exports.number().int().nonnegative(),

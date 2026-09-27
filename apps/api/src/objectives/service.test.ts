@@ -10,7 +10,7 @@ import { ObjectiveEngineService } from "./service.js";
 const ownerId="11111111-1111-4111-8111-111111111111";
 const request={ownerId,requestId:"request-1",ipAddress:"127.0.0.1"};
 const farDeadline="2026-10-01T00:00:00.000Z";
-type RuntimeTask=Record<string,unknown>&{id:string;ownerId:string;status:string;actualCost:number;assignedAgentId:string|null;selection:Array<{agentId:string;estimatedCost:number;estimatedDurationMs:number}>;inputs:Record<string,unknown>;evidenceRefs:string[];priority:string;economicBudget:number;reservedCredits:number};
+type RuntimeTask=Record<string,unknown>&{id:string;ownerId:string;status:string;actualCost:number;assignedAgentId:string|null;selection:Array<{agentId:string;estimatedCost:number;estimatedDurationMs:number}>;inputs:Record<string,unknown>;evidenceRefs:string[];verifiedLeads?:Array<{companyName:string;website:string;description:string;outreachReason:string;sourceUrls:string[]}>;priority:string;economicBudget:number;reservedCredits:number};
 type WorkflowComposeResult={graphs:Array<{id:string}>;nodes:Array<{errorCode?:string;semanticCapabilityId?:string;applicationId?:string}>};
 
 const objectiveBody=(title="Launch client portal",priority:"LOW"|"NORMAL"|"HIGH"|"URGENT"="NORMAL")=>({
@@ -67,6 +67,91 @@ describe("ObjectiveEngineService",()=>{
     const result=await service.create({...request,body:objectiveBody("Research leads and include a reason to contact")});
     expect(result.projects[0]).toMatchObject({requiredCapabilities:[],estimatedAiCostCredits:6,capabilityReadiness:[]});
     expect(result.projects[1]).toMatchObject({requiredCapabilities:["web.research"],estimatedAiCostCredits:11,capabilityReadiness:[{capabilityId:"web.research",status:"REQUEST_REQUIRED"}]});
+  });
+
+  it("does not infer email authority from a research-only outreach list or a negated draft instruction",async()=>{
+    const {service}=harness();
+    const result=await service.create({...request,body:{...objectiveBody("AI company outreach research"),outcome:"Research 5 current AI companies and create a sourced outreach list with a reason to contact each one. Do not send messages or create outreach drafts."}});
+    expect(result.projects[1]?.requiredCapabilities).toEqual(["web.research"]);
+  });
+
+  it("does not count source URLs as verified leads without structured records",async()=>{
+    const {service,store,tasks}=harness();
+    const body={...objectiveBody("Research 5 AI companies"),outcome:"Research 5 AI companies and produce a sourced list of verified leads.",metrics:[{name:"Verified leads",unit:"count",target:5,direction:"HIGHER_IS_BETTER" as const}]};
+    const draft=await service.create({...request,body});
+    await service.activate({...request,objectiveId:draft.objective!.id,idempotencyKey:"activate-verified-leads"});
+    const task=tasks[1]!;
+    task.status="COMPLETED";
+    task.evidenceRefs=["https://example.test/one","https://example.test/two"];
+    await service.handleWorkforceTaskChanged(task as unknown as WorkforceRuntimeTask);
+    expect(store.listKpis(ownerId)[0]?.currentValue).toBe(0);
+    task.verifiedLeads=[{companyName:"Example",website:"https://example.test",description:"AI company",outreachReason:"Relevant",sourceUrls:["https://example.test/one"]}];
+    await service.handleWorkforceTaskChanged(task as unknown as WorkforceRuntimeTask);
+    expect(store.listKpis(ownerId)[0]?.currentValue).toBe(1);
+  });
+
+  it("counts two-source records only when the sources are independent HTTPS hosts",async()=>{
+    const {service,store,tasks}=harness();
+    const body={...objectiveBody("Research AI companies"),outcome:"Research current AI companies with at least two independent HTTPS source URLs per company.",metrics:[{name:"Verified company records with two independent HTTPS sources",unit:"count",target:2,direction:"HIGHER_IS_BETTER" as const}]};
+    const draft=await service.create({...request,body});
+    await service.activate({...request,objectiveId:draft.objective!.id,idempotencyKey:"activate-two-source-leads"});
+    const task=tasks[1]!;
+    task.status="COMPLETED";
+    task.verifiedLeads=[
+      {companyName:"Single Source",website:"https://single.example",description:"AI company",outreachReason:"Relevant",sourceUrls:["https://single.example/about","https://www.single.example/news"]},
+      {companyName:"Two Sources",website:"https://two.example",description:"AI company",outreachReason:"Relevant",sourceUrls:["https://two.example/about","https://independent.example/profile"]},
+    ];
+    await service.handleWorkforceTaskChanged(task as unknown as WorkforceRuntimeTask);
+    expect(store.listKpis(ownerId)[0]?.currentValue).toBe(1);
+  });
+
+  it("offers partial two-source records for evidence completion instead of excluding them",async()=>{
+    const {service,tasks}=harness();
+    const body={...objectiveBody("Research AI companies"),outcome:"Research AI companies with two independent HTTPS sources each.",metrics:[{name:"Verified company records with two independent HTTPS sources",unit:"count",target:2,direction:"HIGHER_IS_BETTER" as const}]};
+    const draft=await service.create({...request,body});
+    await service.activate({...request,objectiveId:draft.objective!.id,idempotencyKey:"activate-partial-source-gap"});
+    tasks[0]!.status="COMPLETED";
+    await service.handleWorkforceTaskChanged(tasks[0] as unknown as WorkforceRuntimeTask);
+    tasks[1]!.status="COMPLETED";
+    tasks[1]!.verifiedLeads=[
+      {companyName:"Complete",website:"https://complete.example",description:"AI company",outreachReason:"Relevant",sourceUrls:["https://complete.example/about","https://independent.example/profile"]},
+      {companyName:"Partial",website:"https://partial.example",description:"AI company",outreachReason:"Relevant",sourceUrls:["https://partial.example/about"]},
+    ];
+    await service.handleWorkforceTaskChanged(tasks[1] as unknown as WorkforceRuntimeTask);
+    tasks[2]!.status="COMPLETED";
+    await service.handleWorkforceTaskChanged(tasks[2] as unknown as WorkforceRuntimeTask);
+    expect(tasks[3]?.objective).toContain("Exclude fully verified companies: Complete");
+    expect(tasks[3]?.objective).toContain("partial records: Partial");
+  });
+
+  it("closes a verified-lead shortfall with one bounded research and verification pair",async()=>{
+    const {service,store,tasks,createTask,workforce}=harness();
+    const attachDependencyEvidence=vi.spyOn(workforce,"attachDependencyEvidence");
+    const body={...objectiveBody("Research 5 AI companies"),outcome:"Research 5 AI companies and produce a sourced list of verified leads. Research only; do not send messages or drafts.",metrics:[{name:"Verified leads",unit:"count",target:5,direction:"HIGHER_IS_BETTER" as const}]};
+    const draft=await service.create({...request,body});
+    const objectiveId=draft.objective!.id;
+    await service.activate({...request,objectiveId,idempotencyKey:"activate-evidence-gap"});
+    const lead=(name:string)=>({companyName:name,website:`https://${name.toLowerCase()}.example`,description:"AI company",outreachReason:"Relevant",sourceUrls:[`https://${name.toLowerCase()}.example/source`]});
+    tasks[0]!.status="COMPLETED";
+    await service.handleWorkforceTaskChanged(tasks[0] as unknown as WorkforceRuntimeTask);
+    tasks[1]!.status="COMPLETED";
+    tasks[1]!.verifiedLeads=["Alpha","Beta","Gamma","Delta"].map(lead);
+    await service.handleWorkforceTaskChanged(tasks[1] as unknown as WorkforceRuntimeTask);
+    expect(store.listKpis(ownerId)[0]?.currentValue).toBe(4);
+    tasks[2]!.status="COMPLETED";
+    await service.handleWorkforceTaskChanged(tasks[2] as unknown as WorkforceRuntimeTask);
+    expect(createTask).toHaveBeenCalledTimes(5);
+    expect(tasks[3]).toMatchObject({status:"RUNNING",requiredCapabilities:["web.research"]});
+    expect(tasks[4]).toMatchObject({status:"QUEUED",requiredCapabilities:[]});
+    expect(attachDependencyEvidence.mock.calls.map(([,taskId])=>taskId)).toContain(tasks[4]!.id);
+    tasks[3]!.status="COMPLETED";
+    tasks[3]!.verifiedLeads=[lead("Epsilon")];
+    await service.handleWorkforceTaskChanged(tasks[3] as unknown as WorkforceRuntimeTask);
+    expect(store.listKpis(ownerId)[0]?.currentValue).toBe(5);
+    expect(tasks[4]?.status).toBe("RUNNING");
+    tasks[4]!.status="COMPLETED";
+    await service.handleWorkforceTaskChanged(tasks[4] as unknown as WorkforceRuntimeTask);
+    expect(store.findObjectiveExecution(ownerId,objectiveId)).toMatchObject({status:"COMPLETED",outcomeProgress:100});
   });
 
   it("activates idempotently through reusable workflows and the workforce scheduler without authority expansion",async()=>{

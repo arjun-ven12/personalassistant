@@ -20,6 +20,33 @@ import {
 import type { AIProviderExecutionOptions } from "../provider.js";
 
 type OpenAIResponse = Record<string, unknown>;
+const webSearchEvidence = (response: OpenAIResponse) => {
+  const output = Array.isArray(response.output) ? response.output : [];
+  let webSearchCallCount = 0;
+  const sourceUrls = new Set<string>();
+  const collect = (value: unknown) => {
+    if (typeof value !== "string" || value.length > 500 || !value.startsWith("https://")) return;
+    try { if (new URL(value).protocol === "https:") sourceUrls.add(value); } catch { /* Invalid source URL is not evidence. */ }
+  };
+  for (const item of output) {
+    if (!item || typeof item !== "object") continue;
+    const record = item as Record<string, unknown>;
+    if (record.type === "web_search_call" && record.status === "completed") {
+      webSearchCallCount++;
+      const action = record.action;
+      if (action && typeof action === "object") {
+        const sources = (action as Record<string, unknown>).sources;
+        if (Array.isArray(sources)) for (const source of sources) if (source && typeof source === "object") collect((source as Record<string, unknown>).url);
+      }
+    }
+    if (Array.isArray(record.content)) for (const content of record.content) {
+      if (!content || typeof content !== "object") continue;
+      const annotations = (content as Record<string, unknown>).annotations;
+      if (Array.isArray(annotations)) for (const annotation of annotations) if (annotation && typeof annotation === "object" && (annotation as Record<string, unknown>).type === "url_citation") collect((annotation as Record<string, unknown>).url);
+    }
+  }
+  return { webSearchCallCount: Math.min(20, webSearchCallCount), sourceUrls: [...sourceUrls].slice(0, 60) };
+};
 const supportsTemperature = (modelId: string) => !/^gpt-5(?:[.-]|$)/i.test(modelId);
 const boundedProviderMessage = (value: unknown) =>
   String(value)
@@ -230,7 +257,7 @@ export class OpenAIProvider implements AIProvider {
               .slice(0, 3)
               .map(
                 (issue) =>
-                  `${issue.code} at ${issue.path.map((part) => (typeof part === "number" ? part : ["operations", "summary", "artifacts", "capability", "input", "type", "title", "contract"].includes(String(part)) ? part : "field")).join(".") || "root"}`,
+                  `${issue.code} at ${issue.path.map((part) => (typeof part === "number" ? part : ["operations", "summary", "artifacts", "capability", "input", "type", "title", "contract", "leads", "evidence", "companyName", "website", "description", "outreachReason", "sourceUrls"].includes(String(part)) ? part : "field")).join(".") || "root"}`,
               )
               .join("; ")
           : "invalid or truncated JSON";
@@ -251,6 +278,7 @@ export class OpenAIProvider implements AIProvider {
         ...(this.usage(response) ? { usage: this.usage(response) } : {}),
         ...(typeof response.id === "string" ? { providerRequestId: response.id } : {}),
         latencyMs: Math.round(performance.now() - started),
+        ...(parsed.metadata?.externalResearch === true ? { metadata: webSearchEvidence(response) } : {}),
       }),
       structuredOutput: value,
     };
@@ -262,6 +290,7 @@ export class OpenAIProvider implements AIProvider {
     jsonSchema?: Record<string, unknown>,
     schemaName?: string,
   ) {
+    const externalResearch = request.metadata?.externalResearch === true;
     const contextInput = request.context?.length
       ? [
           {
@@ -289,9 +318,13 @@ export class OpenAIProvider implements AIProvider {
               text,
             })),
         })),
+        ...(structured && !jsonSchema ? [{ role: "user", content: [{ type: "input_text", text: "Return the response as a JSON object." }] }] : []),
       ],
-      ...(request.systemInstructions?.length
-        ? { instructions: request.systemInstructions.join("\n") }
+      ...(request.systemInstructions?.length || (structured && !jsonSchema)
+        ? { instructions: [
+            ...(request.systemInstructions ?? []),
+            ...(structured && !jsonSchema ? ["Return a valid JSON object matching the requested response fields."] : []),
+          ].join("\n") }
         : {}),
       ...(request.temperature !== undefined && supportsTemperature(model)
         ? { temperature: request.temperature }
@@ -302,7 +335,7 @@ export class OpenAIProvider implements AIProvider {
       ...(request.reasoning && request.reasoning !== "NONE"
         ? { reasoning: { effort: request.reasoning.toLowerCase() } }
         : {}),
-      ...(structured
+      ...(structured && !externalResearch
         ? {
             text: {
               format: jsonSchema
@@ -316,8 +349,8 @@ export class OpenAIProvider implements AIProvider {
             },
           }
         : {}),
-      ...(request.metadata?.externalResearch === true
-        ? { tools: [{ type: "web_search" }] }
+      ...(externalResearch
+        ? { tools: [{ type: "web_search" }], include: ["web_search_call.action.sources"] }
         : {}),
     };
   }

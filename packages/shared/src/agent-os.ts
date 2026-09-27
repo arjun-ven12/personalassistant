@@ -205,7 +205,7 @@ export const AgentSessionRecordSchema = z
       .object({
         delegationId: z.string().uuid(),
         managerAgentId: z.string().min(3).max(120),
-        memoryScopes: z.array(z.string().min(1).max(40)).max(20),
+        memoryScopes: z.array(z.string().min(1).max(160)).max(20),
         capabilityRefs: z.array(z.string().min(3).max(120)).max(100),
         skillRefs: z.array(z.string().min(3).max(120)).max(100),
         contextTokenBudget: z.number().int().min(1_000).max(100_000),

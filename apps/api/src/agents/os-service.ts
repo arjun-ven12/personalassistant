@@ -59,12 +59,8 @@ const uuidFromHash = (value: string) => {
   }${hash.slice(18, 20)}-${hash.slice(20, 32)}`;
 };
 
-const normalizeCapabilityRef = (capability: string) =>
-  capability
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .slice(0, 120) || "general";
+const legacyCapabilityRef = (capability: string) =>
+  capability.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 120);
 
 const runtimeDefaults = (): RuntimeConfiguration => ({
   defaultModel: "governed-default",
@@ -402,9 +398,9 @@ export class AgentOsService {
     sessionId: string;
     outputSummary: string;
     confidence: number;
-    aiRequestId: string;
-    providerId: string;
-    modelId: string;
+    aiRequestId: string | null;
+    providerId: string | null;
+    modelId: string | null;
     artifactCount: number;
     sandboxStatus: "PASSED" | "FAILED" | "UNAVAILABLE";
     errorCode: string | null;
@@ -527,7 +523,13 @@ export class AgentOsService {
   }
 
   private manifestFor(agent: AgentRecord, at: string) {
-    const capabilityRefs = [...new Set(agent.capabilities.map(normalizeCapabilityRef))];
+    // Preserve the registered capability ID exactly: delegation checks must
+    // compare the same canonical ID, not a lossy punctuation-normalized alias.
+    // Keep canonical registered IDs for current callers while retaining the
+    // bounded legacy aliases used by existing Agent OS delegations.
+    const capabilityRefs = [...new Set(agent.capabilities.flatMap((capability) =>
+      [capability, legacyCapabilityRef(capability)],
+    ))];
     return AgentManifestRecordSchema.parse({
       id: agent.id,
       ownerId: agent.ownerId,

@@ -48,7 +48,11 @@ const setup = (options: { withObjectiveSpecialistFactory?: boolean } = {}) => {
     society: { dashboard: vi.fn(() => Promise.resolve({ organizations: [{ id: organizationId }], departments: [{ id: departmentId, name: "Sales", leadAgentId: "engineering_manager" }] })) },
     enrollGeneratedSpecialist: vi.fn((generated: {id:string}) => { enrollAccount(generated.id); return Promise.resolve(); }),
   } as unknown as AgentWorkforceService;
-  const agentOs = { startIsolatedDelegation: vi.fn(() => { osCalls++; return Promise.resolve({ session: { id: "50000000-0000-4000-8000-000000000001" } }); }), completeIsolatedDelegation: vi.fn(() => Promise.resolve({})) } as unknown as AgentOsService;
+  const agentOs = {
+    store: { listSessions: vi.fn(() => Promise.resolve([])) },
+    startIsolatedDelegation: vi.fn(() => { osCalls++; return Promise.resolve({ session: { id: "50000000-0000-4000-8000-000000000001" } }); }),
+    completeIsolatedDelegation: vi.fn(() => Promise.resolve({})),
+  } as unknown as AgentOsService;
   const aiRouter = { executeStructured: vi.fn(() => { routerCalls++; return Promise.resolve({ outcome: "SUCCESS", structuredOutput: { summary: "Implemented bounded change.", confidence: 0.9, evidence: ["test:passed"] }, requestId: "60000000-0000-4000-8000-000000000001", providerId: "local", modelId: "shared", usage: { totalTokens: 800 } }); }) } as unknown as AIRouterService;
   const capabilityStudio = { createRequest: vi.fn(() => Promise.resolve({})) } as unknown as CapabilityStudioService;
   const externalHarvest = { executeDelegation: vi.fn(() => { sandboxCalls++; return Promise.resolve({ status: "COMPLETE", summary: "Generated and ran one bounded test.", confidence: .92, artifacts: [{ name: "generated.test.cjs", kind: "PROPOSED_TEST", content: "" }], tests: { status: "PASSED" }, ai: { requestId: "61000000-0000-4000-8000-000000000001", providerId: "local", modelId: "shared" } }); }) } as unknown as ExternalHarvestService;
@@ -62,7 +66,7 @@ const setup = (options: { withObjectiveSpecialistFactory?: boolean } = {}) => {
   } : undefined;
   const audit = vi.fn(() => Promise.resolve()) as GovernanceAuditWriter;
   const service = new WorkforceRuntimeService(new InMemoryWorkforceRuntimeStore(),agents,workforce,economy,agentOs,externalHarvest,aiRouter,capabilityStudio,agentFactory as never,audit,() => new Date(at));
-  return { service, agents, activations, reservations, counts: () => ({ routerCalls, osCalls, rewardCalls, sandboxCalls }) };
+  return { service, agents, accounts, activations, reservations, counts: () => ({ routerCalls, osCalls, rewardCalls, sandboxCalls }) };
 };
 
 const create = (service: WorkforceRuntimeService, body: Record<string,unknown>) => service.createTask({ ownerId, body: { title: "Implement endpoint", objective: "Implement and verify a bounded TypeScript endpoint.", requiredSkills: ["typescript"], requiredCapabilities: ["workspace.read"], economicBudget: 10, ...body }, requestId: "request", ipAddress: "127.0.0.1" });
@@ -111,6 +115,136 @@ describe("WorkforceRuntimeService", () => {
       expect((await service.store.findTask(ownerId, task.id))?.status).toBe("COMPLETED");
     });
     expect(counts()).toMatchObject({ routerCalls: 1, osCalls: 1 });
+  });
+
+  it("uses a fresh economic reservation after a failed task is retried", async () => {
+    const { service } = setup();
+    const { task } = await create(service, { createdByAgentId: "engineering_manager", maxRetries: 0 });
+    const reserve = vi.spyOn(service.economy, "reserve");
+    vi.spyOn(service.aiRouter, "executeStructured").mockRejectedValueOnce(new Error("Temporary provider failure"));
+    await expect(service.execute(ownerId, task.id, "first-attempt", "internal")).rejects.toThrow("Temporary provider failure");
+    expect((await service.store.findTask(ownerId, task.id))?.status).toBe("FAILED");
+
+    await service.retryFailedUnstarted(ownerId, task.id, "owner-retry", "internal");
+    await vi.waitFor(async () => expect((await service.store.findTask(ownerId, task.id))?.status).toBe("COMPLETED"));
+    expect(reserve.mock.calls.map(([request]) => request.idempotencyKey)).toEqual([
+      `workforce-task:${task.id}:1`,
+      `workforce-task:${task.id}:2`,
+    ]);
+  });
+
+  it("funds an existing research-capable specialist from a bounded objective task before proposing a new agent", async () => {
+    const { service, agents, accounts } = setup();
+    const researcher = agent("backend_agent");
+    agents.upsertAgent({
+      ...researcher,
+      capabilities: ["web.research"],
+      supportedTasks: ["research"],
+      workforce: { ...researcher.workforce, skills: ["research", "evidence_synthesis"], specialization: "Research" },
+    });
+    accounts.find((account) => account.agentId === "backend_agent")!.availableCredits = 0;
+    const objectiveId = crypto.randomUUID();
+    const projectId = crypto.randomUUID();
+    const { task } = await create(service, {
+      createdByAgentId: null,
+      title: "Deliver sourced AI company list",
+      objective: "Produce sourced research on five AI companies and their outreach relevance.",
+      inputs: { objectiveExecutionId: objectiveId, projectId, executionKind: "EXTERNAL_RESEARCH" },
+      requiredSkills: ["research", "evidence_synthesis"],
+      requiredCapabilities: ["web.research"],
+    });
+    await service.store.saveTask({ ...task, idempotencyKey: `objective:${objectiveId}:project:${projectId}`, status: "WAITING" });
+
+    const allocate = vi.spyOn(service.economy, "allocate");
+    const scheduled = await service.schedule(ownerId, task.id, "objective-dispatch", "internal");
+    expect(scheduled.task).toMatchObject({ status: "RESERVED", assignedAgentId: "backend_agent" });
+    expect(allocate.mock.calls[0]?.[0]).toMatchObject({
+      ownerId,
+      agentId: "backend_agent",
+      amount: 10,
+      reasonCode: "OWNER_OBJECTIVE_EXISTING_SPECIALIST_TASK_RESERVE",
+    });
+  });
+
+  it("retains long retrieved HTTPS sources while keeping bounded task references", async () => {
+    const { service, agents } = setup();
+    const researcher = agent("backend_agent");
+    agents.upsertAgent({
+      ...researcher,
+      capabilities: ["web.research"],
+      supportedTasks: ["research"],
+      workforce: { ...researcher.workforce, skills: ["research", "evidence_synthesis"], specialization: "Research" },
+    });
+    const sourceUrl = `https://example.com/research/${"source-".repeat(25)}`;
+    const route = vi.spyOn(service.aiRouter, "executeStructured").mockResolvedValueOnce({
+      outcome: "SUCCESS",
+      structuredOutput: {
+        summary: "One company verified.", confidence: 0.9, evidence: [sourceUrl],
+        leads: [{ companyName: "Example AI", website: "https://example.com", description: "AI tools", outreachReason: "Relevant AI work", sourceUrls: [sourceUrl] }],
+      },
+      providerMetadata: { webSearchCallCount: 1, sourceUrls: [sourceUrl] },
+      requestId: crypto.randomUUID(), providerId: "openai", modelId: "gpt-5.6-luna", usage: { totalTokens: 800 },
+    } as never);
+    const { task } = await create(service, {
+      title: "Research AI companies", objective: "Research one current AI company with a source.",
+      inputs: { executionKind: "EXTERNAL_RESEARCH" },
+      requiredSkills: ["research", "evidence_synthesis"],
+      requiredCapabilities: ["web.research"],
+    });
+    const result = await service.execute(ownerId, task.id, "research", "internal");
+    expect(result.task.status).toBe("COMPLETED");
+    expect(route.mock.calls[0]?.[0]).toMatchObject({ timeoutMs: 120_000 });
+    expect(result.task.retrievedSourceUrls).toEqual([sourceUrl]);
+    expect(result.task.verifiedLeads).toHaveLength(1);
+    expect(result.task.evidenceRefs).toContainEqual(expect.stringMatching(/^source-sha256:[a-f0-9]{64}$/));
+  });
+
+  it("bounds the Agent OS summary without discarding a valid longer workforce result", async () => {
+    const { service } = setup();
+    const summary = "Detailed verified analysis. ".repeat(110);
+    vi.spyOn(service.aiRouter, "executeStructured").mockResolvedValueOnce({
+      outcome: "SUCCESS",
+      structuredOutput: { summary, confidence: 0.9, evidence: [], leads: [] },
+      requestId: crypto.randomUUID(), providerId: "openai", modelId: "gpt-5.6-luna", usage: { totalTokens: 800 },
+    } as never);
+    const complete = vi.spyOn(service.agentOs, "completeIsolatedDelegation");
+    const { task } = await create(service, { createdByAgentId: "engineering_manager" });
+    const result = await service.execute(ownerId, task.id, "long-result", "internal");
+    expect(result.task.status).toBe("COMPLETED");
+    expect(result.task.resultSummary).toBe(summary);
+    expect(complete.mock.calls[0]?.[0].outputSummary).toHaveLength(2_000);
+  });
+
+  it("bounds delegation context when a verifier inherits many research references", async () => {
+    const { service } = setup();
+    vi.spyOn(service.aiRouter, "executeStructured").mockResolvedValueOnce({
+      outcome: "SUCCESS",
+      structuredOutput: { summary: "Evidence reviewed.", confidence: 0.9, evidence: [], leads: [] },
+      requestId: crypto.randomUUID(), providerId: "openai", modelId: "gpt-5.6-luna", usage: { totalTokens: 800 },
+    } as never);
+    const start = vi.spyOn(service.agentOs, "startIsolatedDelegation");
+    const { task } = await create(service, {
+      createdByAgentId: "engineering_manager",
+      evidenceRefs: Array.from({ length: 34 }, (_, index) => `https://example.com/research/${index}/${"source".repeat(19)}`),
+    });
+    const result = await service.execute(ownerId, task.id, "many-references", "internal");
+    expect(result.task.status).toBe("COMPLETED");
+    expect(start.mock.calls[0]?.[0].contextSummary.length).toBeLessThan(2_000);
+    expect(start.mock.calls[0]?.[0].contextSummary).toContain("34 evidence references");
+  });
+
+  it("does not report RUNNING before Agent OS creates an execution session", async () => {
+    const { service } = setup();
+    const { task } = await create(service, { createdByAgentId: "engineering_manager" });
+    await service.schedule(ownerId, task.id, "request", "127.0.0.1");
+    let releaseSession: ((value: unknown) => void) | undefined;
+    vi.spyOn(service.agentOs, "startIsolatedDelegation").mockImplementation(() => new Promise((resolve) => { releaseSession = resolve as (value: unknown) => void; }));
+    const dispatched = service.dispatch(ownerId, task.id, "request", "127.0.0.1");
+    await vi.waitFor(() => expect(releaseSession).toBeDefined());
+    expect((await service.store.findTask(ownerId, task.id))?.status).toBe("RESERVED");
+    expect((await service.dashboard(ownerId)).summary.running).toBe(0);
+    releaseSession?.({ session: { id: "50000000-0000-4000-8000-000000000001" } });
+    expect((await dispatched).task.status).toBe("RUNNING");
   });
 
   it("prevents child budget laundering and bounds hierarchy depth", async () => {
@@ -188,6 +322,28 @@ describe("WorkforceRuntimeService", () => {
     expect(approved.task).toMatchObject({ status: "RESERVED", assignedAgentId: "generated_lead" });
   });
 
+  it("dispatches an objective specialist after approval instead of stopping at reservation", async () => {
+    const { service, counts } = setup({ withObjectiveSpecialistFactory: true });
+    const task = (await create(service,{ title: "Research AI companies", objective: "Research five AI companies with sources.", requiredSkills: ["lead_generation","fitness"], requiredCapabilities: ["workspace.read"], inputs: { objectiveExecutionId: crypto.randomUUID() } })).task;
+    await expect(service.schedule(ownerId,task.id,"request","127.0.0.1")).rejects.toMatchObject({ code: "SPECIALIST_APPROVAL_PENDING" });
+    const proposal = (await service.dashboard(ownerId)).tasks.find((item) => item.id === task.id)?.workforceGap?.proposal;
+    if (!proposal) throw new Error("Expected specialist proposal");
+    const started = await service.approveSpecialistCreation(ownerId,task.id,{ approved: true, proposalId: proposal.proposalId },"request","127.0.0.1");
+    expect(started.task.status).toBe("RUNNING");
+    await vi.waitFor(async () => expect((await service.store.findTask(ownerId,task.id))?.status).toBe("COMPLETED"));
+    expect(counts()).toMatchObject({ routerCalls: 1, osCalls: 1 });
+  });
+
+  it("releases stale reservations that never started before matching new work", async () => {
+    const { service } = setup();
+    const old = (await create(service,{ idempotencyKey: "stale-task-001" })).task;
+    await service.store.saveTask({ ...old, status: "RESERVED", assignedAgentId: "backend_agent", reservationId: crypto.randomUUID(), reservedCredits: 10, updatedAt: "2026-08-24T00:00:00.000Z" });
+    const next = (await create(service,{ idempotencyKey: "next-task-001" })).task;
+    await service.schedule(ownerId,next.id,"request","127.0.0.1");
+    expect((await service.store.findTask(ownerId,old.id))?.status).toBe("RECOVERY_REVIEW_REQUIRED");
+    expect((await service.store.findTask(ownerId,old.id))?.reservationId).toBeNull();
+  });
+
   it("terminates message loops and enforces global active-task capacity", async () => {
     const { service } = setup(); const task = (await create(service,{ createdByAgentId: "engineering_manager" })).task;
     for (let index=0; index<39; index++) await service.sendMessage(ownerId,{ fromAgentId: "engineering_manager", toAgentId: "backend_agent", taskId: task.id, type: "STATUS_UPDATE", payload: { index } });
@@ -213,6 +369,52 @@ describe("WorkforceRuntimeService", () => {
     const dashboard = await service.recover(ownerId,"request","127.0.0.1");
     expect(dashboard.tasks.find((item) => item.id === task.id)?.status).toBe("RECOVERY_REVIEW_REQUIRED");
     expect(counts()).toEqual({ routerCalls: 0, osCalls: 0, rewardCalls: 0, sandboxCalls: 0 });
+  });
+
+  it("blocks a stale started task after restart without replaying its model request", async () => {
+    const { service, counts } = setup();
+    const release = vi.spyOn(service.economy, "release");
+    const task = (await create(service,{ createdByAgentId: "engineering_manager" })).task;
+    await service.store.saveTask({
+      ...task,
+      status: "RUNNING",
+      assignedAgentId: "backend_agent",
+      reservationId: "40000000-0000-4000-8000-000000000001",
+      reservedCredits: 5,
+      startedAt: "2026-08-24T00:00:00.000Z",
+      updatedAt: "2026-08-24T00:00:00.000Z",
+    });
+    const dashboard = await service.dashboard(ownerId);
+    expect(dashboard.tasks.find((item) => item.id === task.id)).toMatchObject({
+      status: "FAILED",
+      failureCode: "WORKER_CRASHED",
+      reservationId: null,
+    });
+    expect(counts().routerCalls).toBe(0);
+    expect(release).toHaveBeenCalledTimes(1);
+    await service.dashboard(ownerId);
+    expect(release).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes an orphaned Agent OS session without fabricating model evidence", async () => {
+    const { service } = setup();
+    const task = (await create(service,{ createdByAgentId: "engineering_manager" })).task;
+    await service.store.saveTask({ ...task, status: "FAILED" });
+    vi.spyOn(service.agentOs.store, "listSessions").mockResolvedValue([{
+      id: "50000000-0000-4000-8000-000000000001",
+      status: "running",
+      startedAt: "2026-08-24T00:00:00.000Z",
+      delegation: { delegationId: task.id, aiRequestId: null, providerId: null, modelId: null },
+    } as never]);
+    const complete = vi.spyOn(service.agentOs, "completeIsolatedDelegation");
+    await service.dashboard(ownerId);
+    expect(complete).toHaveBeenCalledWith(expect.objectContaining({
+      sessionId: "50000000-0000-4000-8000-000000000001",
+      errorCode: "WORKER_CRASHED",
+      aiRequestId: null,
+      providerId: null,
+      modelId: null,
+    }));
   });
 
   it("runs the development scenario through the existing bounded sandbox and stops for review", async () => {

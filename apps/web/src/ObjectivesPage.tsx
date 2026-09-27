@@ -11,6 +11,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
+import { bestSourcedCompanyRecords, independentSourceHosts, requiredIndependentSources } from "@alexa-control/shared";
 import { ApiClientError, type ApiClient } from "./api.js";
 import { ObjectiveExperimentsPanel } from "./ObjectiveExperimentsPanel.js";
 import {
@@ -210,6 +211,13 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
     )
     .filter((task): task is NonNullable<typeof task> => Boolean(task));
   const activeObjectiveTasks = objectiveTasks.filter((task) => task.status === "RUNNING");
+  const verifiedObjectiveLeads = bestSourcedCompanyRecords(objectiveTasks
+    .filter((task) => task.status === "COMPLETED")
+    .flatMap((task) => task.verifiedLeads));
+  const sourceRequirement = requiredIndependentSources(`${goal?.description ?? ""} ${data?.metrics.filter((item) => item.goalId === current?.executiveGoalId).map((item) => item.name).join(" ") ?? ""}`);
+  const qualifyingObjectiveLeads = verifiedObjectiveLeads.filter((lead) => independentSourceHosts(lead.sourceUrls) >= sourceRequirement);
+  const partialObjectiveLeads = verifiedObjectiveLeads.filter((lead) => independentSourceHosts(lead.sourceUrls) < sourceRequirement);
+  const completedObjectiveTasks = objectiveTasks.filter((task) => task.status === "COMPLETED");
   const workforcePreparation = projects
     .map((project) => ({
       project,
@@ -542,6 +550,8 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                       <div>
                         <strong>{task.title}</strong>
                         <small>{task.status.replaceAll("_", " ")} · {task.assignedAgentId ?? "No active specialist"}</small>
+                        {task.runtimeActivity ? <small className="workforce-requirements">Activity: {task.runtimeActivity.replaceAll("_", " ").toLowerCase()}</small> : null}
+                        {task.webSearchCallCount ? <small className="workforce-requirements">Web research: {task.webSearchCallCount} completed search call{task.webSearchCallCount === 1 ? "" : "s"}</small> : null}
                         {task.providerId && task.modelId ? (
                           <small className="workforce-requirements">Model: {task.providerId} / {task.modelId} · request {task.aiRequestId ?? "recorded"}</small>
                         ) : null}
@@ -552,6 +562,20 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                       <div>
                         <strong>{task.resultSummary ?? (task.status === "RUNNING" ? "Agent OS execution is active." : "Waiting for executable work.")}</strong>
                         <small>{task.evidenceRefs.filter((item) => item.startsWith("https://") || item.startsWith("artifact:")).length} evidence/artifact reference{task.evidenceRefs.length === 1 ? "" : "s"} · {task.actualCost} credits</small>
+                        {task.verifiedLeads.length ? (
+                          <details>
+                            <summary>{task.verifiedLeads.length} source-linked record{task.verifiedLeads.length === 1 ? "" : "s"}</summary>
+                            <ol>
+                              {task.verifiedLeads.map((lead) => (
+                                <li key={lead.website}>
+                                  <strong>{lead.companyName}</strong> — <a href={lead.website} target="_blank" rel="noopener noreferrer">Website</a>
+                                  <p>{lead.description} {lead.outreachReason}</p>
+                                  <a href={lead.sourceUrls[0]} target="_blank" rel="noopener noreferrer">Source</a>
+                                </li>
+                              ))}
+                            </ol>
+                          </details>
+                        ) : null}
                       </div>
                     </article>
                   )) : (
@@ -563,6 +587,40 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                     </article>
                   )}
                 </section>
+                {current.status === "COMPLETED" ? (
+                  <section className="objective-workforce-prep" aria-label="Final objective result">
+                    <header>
+                      <div>
+                        <h3>Final result</h3>
+                        <small>{completedObjectiveTasks.length} completed task{completedObjectiveTasks.length === 1 ? "" : "s"} · {qualifyingObjectiveLeads.length} qualifying record{qualifyingObjectiveLeads.length === 1 ? "" : "s"} · {partialObjectiveLeads.length} partial · {current.spentCredits} credits</small>
+                      </div>
+                    </header>
+                    <p>Qualification checks structured records against URLs returned by web research and {sourceRequirement} independent HTTPS source host{sourceRequirement === 1 ? "" : "s"}. Review notes are advisory; this check does not verify every claim on a source page.</p>
+                    {qualifyingObjectiveLeads.length ? (
+                      <article>
+                        <ol>
+                          {qualifyingObjectiveLeads.map((lead) => (
+                            <li key={lead.companyName.toLowerCase()}>
+                              <strong>{lead.companyName}</strong> — <a href={lead.website} target="_blank" rel="noopener noreferrer">Website</a>
+                              <p>{lead.description}</p>
+                              <p>{lead.outreachReason}</p>
+                              {lead.sourceUrls.map((url) => <a key={url} href={url} target="_blank" rel="noopener noreferrer">Source</a>)}
+                            </li>
+                          ))}
+                        </ol>
+                      </article>
+                    ) : null}
+                    {partialObjectiveLeads.length ? (
+                      <details>
+                        <summary>{partialObjectiveLeads.length} partial record{partialObjectiveLeads.length === 1 ? "" : "s"} need more source evidence</summary>
+                        <ol>{partialObjectiveLeads.map((lead) => <li key={lead.companyName.toLowerCase()}>{lead.companyName} · {independentSourceHosts(lead.sourceUrls)} of {sourceRequirement} independent HTTPS source hosts</li>)}</ol>
+                      </details>
+                    ) : null}
+                    {completedObjectiveTasks.filter((task) => task.inputs.executionKind === "EXTERNAL_RESEARCH" && task.resultSummary).map((task) => (
+                      <article key={task.id}><strong>{task.title}</strong><p>{task.resultSummary}</p></article>
+                    ))}
+                  </section>
+                ) : null}
                 {["ACTIVE", "AT_RISK", "BLOCKED"].includes(current.status) ? (
                   <section className="objective-activation-progress" aria-label="Activation progress">
                     <div>
@@ -826,7 +884,7 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                   <header>
                     <div>
                       <h3>External operations and outcomes</h3>
-                      <p>Verified provider evidence linked to this objective.</p>
+                      <p>Governed external action outcomes. Research sources are shown in the final result.</p>
                     </div>
                     <span>{externalAttributions.length} outcomes</span>
                   </header>
@@ -884,7 +942,7 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                   ))}
                   {!externalExecutions.length && !externalMetrics.length ? (
                     <div className="experiment-empty">
-                      <span>No external evidence linked yet.</span>
+                      <span>{verifiedObjectiveLeads.length ? "No external action outcome is linked; source-backed research is shown above." : "No external action outcome linked yet."}</span>
                     </div>
                   ) : null}
                 </section>

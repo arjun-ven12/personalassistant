@@ -172,6 +172,31 @@ describe("AI provider contract", () => {
     expect(response.usage?.totalTokens).toBe(5);
   });
 
+  it("uses web search without incompatible JSON mode and validates research output locally", async () => {
+    let requestBody: Record<string, unknown> | undefined;
+    const provider = new OpenAIProvider("test-key", "gpt-5.6-luna", "https://example.test/v1", async (_input, init) => {
+      requestBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      return new Response(JSON.stringify({
+        id: "resp_research",
+        output_text: JSON.stringify({ summary: "Sourced result", evidence: ["https://example.com/source"] }),
+        output: [{ type: "web_search_call", status: "completed", action: { sources: [{ url: "https://example.com/source" }] } }],
+      }), { status: 200 });
+    });
+    const result = await provider.generateStructured({
+      purpose: "REASONING",
+      input: [{ role: "user", content: [{ type: "text", text: "Research current companies." }] }],
+      outputMode: "STRUCTURED",
+      timeoutMs: 1_000,
+      schemaName: "research_result",
+      schema: z.object({ summary: z.string(), evidence: z.array(z.string()) }),
+      metadata: { externalResearch: true },
+    });
+    expect(requestBody?.tools).toEqual([{ type: "web_search" }]);
+    expect(requestBody).not.toHaveProperty("text");
+    expect(result.structuredOutput.summary).toBe("Sourced result");
+    expect(result.metadata).toMatchObject({ webSearchCallCount: 1, sourceUrls: ["https://example.com/source"] });
+  });
+
   it("serializes bounded JSON task input instead of sending an empty OpenAI message", async () => {
     let requestBody: Record<string, unknown> | undefined;
     const provider = new OpenAIProvider(
@@ -323,6 +348,7 @@ describe("AI provider contract", () => {
         return new Response(
           JSON.stringify({
             id: "resp_research",
+            output: [{ type: "web_search_call", status: "completed", action: { sources: [{ url: "https://example.test/source" }] } }],
             output_text:
               '{"summary":"Sourced","confidence":0.9,"evidence":["https://example.test/source"]}',
           }),
@@ -330,7 +356,7 @@ describe("AI provider contract", () => {
         );
       },
     );
-    await provider.generateStructured({
+    const response = await provider.generateStructured({
       purpose: "REASONING",
       input: [{ role: "user", content: [{ type: "text", text: "research" }] }],
       outputMode: "STRUCTURED",
@@ -344,6 +370,9 @@ describe("AI provider contract", () => {
       metadata: { externalResearch: true },
     });
     expect(requestBody).toMatchObject({ tools: [{ type: "web_search" }] });
+    expect(String(requestBody?.instructions)).toContain("JSON object");
+    expect(JSON.stringify(requestBody?.input)).toContain("JSON object");
+    expect(response.metadata).toMatchObject({ webSearchCallCount: 1, sourceUrls: ["https://example.test/source"] });
   });
 
   it("normalizes provider failures", async () => {

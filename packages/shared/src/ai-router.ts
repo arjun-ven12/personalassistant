@@ -143,6 +143,10 @@ export const AIRouterResponseSchema = z
     modelId: z.string().max(160).optional(),
     latencyMs: z.number().nonnegative(),
     usage: z.record(z.string(), z.number().nonnegative()).optional(),
+    providerMetadata: z.object({
+      webSearchCallCount: z.number().int().nonnegative().max(20),
+    sourceUrls: z.array(z.string().url().max(500)).max(60),
+    }).strict().optional(),
   })
   .strict();
 

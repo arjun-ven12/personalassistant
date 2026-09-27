@@ -852,6 +852,9 @@ export class AIRouterService {
                   JSON.stringify(structuredOutput),
                 ) as AIRouterResponse["structuredOutput"]),
           usage,
+          ...(result.metadata && typeof result.metadata.webSearchCallCount === "number" && Array.isArray(result.metadata.sourceUrls)
+            ? { providerMetadata: { webSearchCallCount: result.metadata.webSearchCallCount, sourceUrls: result.metadata.sourceUrls.filter((url): url is string => typeof url === "string") } }
+            : {}),
           latencyMs: Math.round(performance.now() - started),
           providerId: candidate.providerId,
           modelId: candidate.modelId,

@@ -80,6 +80,61 @@ describe("AgentOsService", () => {
     expect(audits.map((audit) => audit.eventType)).toContain("AGENT_SESSION_STARTED");
   });
 
+  it("accepts an exactly declared dotted capability in an isolated delegation", async () => {
+    const { agentOs, ownerId } = setup();
+    const started = await agentOs.startIsolatedDelegation({
+      ownerId,
+      managerAgentId: "planning_agent",
+      specialistAgentId: "planning_agent",
+      delegationId: crypto.randomUUID(),
+      task: "Inspect registered repository architecture.",
+      contextSummary: "Bounded planning task.",
+      memoryRefs: [],
+      memoryScopes: [],
+      capabilityRefs: ["repository.analysis"],
+      skillRefs: [],
+      knowledgeSourceRefs: [],
+      contextTokenBudget: 1_000,
+      sandboxProfileId: "shared_bounded_v1",
+      requestId: crypto.randomUUID(),
+    });
+    expect(started.session.delegation?.capabilityRefs).toEqual(["repository.analysis"]);
+    expect(started.specialist.capabilityRefs).toContain("repository.analysis");
+    const legacy = await agentOs.startIsolatedDelegation({
+      ownerId,
+      managerAgentId: "planning_agent",
+      specialistAgentId: "planning_agent",
+      delegationId: crypto.randomUUID(),
+      task: "Inspect registered repository architecture.",
+      contextSummary: "Bounded planning task.",
+      memoryRefs: [],
+      memoryScopes: [],
+      capabilityRefs: ["repository_analysis"],
+      skillRefs: [],
+      knowledgeSourceRefs: [],
+      contextTokenBudget: 1_000,
+      sandboxProfileId: "shared_bounded_v1",
+      requestId: crypto.randomUUID(),
+    });
+    expect(legacy.session.delegation?.capabilityRefs).toEqual(["repository_analysis"]);
+    await expect(agentOs.startIsolatedDelegation({
+      ownerId,
+      managerAgentId: "planning_agent",
+      specialistAgentId: "planning_agent",
+      delegationId: crypto.randomUUID(),
+      task: "Inspect registered repository architecture.",
+      contextSummary: "Bounded planning task.",
+      memoryRefs: [],
+      memoryScopes: [],
+      capabilityRefs: ["unregistered.capability"],
+      skillRefs: [],
+      knowledgeSourceRefs: [],
+      contextTokenBudget: 1_000,
+      sandboxProfileId: "shared_bounded_v1",
+      requestId: crypto.randomUUID(),
+    })).rejects.toMatchObject({ code: "DELEGATION_SCOPE_INVALID" });
+  });
+
   it("represents dynamic agents with the same manifest runtime", async () => {
     const { agentOs, factory, ownerId } = setup();
     const composition = await factory.composeTeam({
