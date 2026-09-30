@@ -16923,6 +16923,18 @@ var WorkforceMessageTypeSchema = external_exports.enum([
   "STATUS_UPDATE"
 ]);
 var WorkforceReviewVerdictSchema = external_exports.enum(["PASS", "FAIL", "CONDITIONAL"]);
+var WorkforceCompletionProvenanceSchema = external_exports.object({
+  completionType: external_exports.enum(["EXECUTED", "MANUAL_ATTESTATION", "IMPORTED", "SYSTEM_DERIVED"]),
+  agentSessionId: external_exports.string().uuid().nullable(),
+  modelRequestId: external_exports.string().uuid().nullable(),
+  evidenceRefs: external_exports.array(boundedRef2).max(50),
+  artifactRefs: external_exports.array(boundedRef2).max(50),
+  recordedAt: external_exports.iso.datetime()
+}).strict().superRefine((value, context) => {
+  if (value.completionType === "EXECUTED" && (!value.agentSessionId || !value.modelRequestId)) {
+    context.addIssue({ code: "custom", message: "Executed completion requires a real agent session and model request." });
+  }
+});
 var WorkforceCandidateCategorySchema = external_exports.enum([
   "EXACT_MATCH",
   "STRONG_MATCH",
@@ -17048,6 +17060,13 @@ var WorkforceRuntimeTaskSchema = external_exports.object({
     sourceUrls: external_exports.array(external_exports.string().url().max(500)).min(1).max(5)
   }).strict()).max(20).default([]),
   retrievedSourceUrls: external_exports.array(external_exports.string().url().max(500)).max(60).default([]),
+  retrievedSourceEvidence: external_exports.array(external_exports.object({
+    sourceUrl: external_exports.string().url().max(500),
+    retrievedAt: external_exports.iso.datetime(),
+    providerId: external_exports.string().min(1).max(80),
+    modelRequestId: external_exports.string().uuid(),
+    tool: external_exports.literal("web.research")
+  }).strict()).max(60).default([]),
   memoryScopeRefs: external_exports.array(boundedRef2).max(20),
   requiredSkills: external_exports.array(boundedRef2).max(30),
   requiredCapabilities: external_exports.array(boundedRef2).max(30),
@@ -17066,6 +17085,7 @@ var WorkforceRuntimeTaskSchema = external_exports.object({
   requirement: SpecialistRequirementSchema.nullable().default(null),
   workforceGap: WorkforceGapResolutionSchema.nullable().default(null),
   resultSummary: external_exports.string().max(4e3).nullable(),
+  completionProvenance: WorkforceCompletionProvenanceSchema.nullable().optional(),
   failureCode: external_exports.string().max(100).nullable().default(null),
   failureMessage: external_exports.string().max(240).nullable().default(null),
   resultConfidence: external_exports.number().min(0).max(1).nullable(),
@@ -17159,6 +17179,7 @@ var WorkforceRuntimeDashboardSchema = external_exports.object({
     maxConcurrent: external_exports.number().int().positive()
   }).strict(),
   tasks: external_exports.array(WorkforceRuntimeTaskSchema).max(500),
+  activeExecutionTaskIds: external_exports.array(external_exports.string().uuid()).max(500).default([]),
   messages: external_exports.array(WorkforceRuntimeMessageSchema).max(500),
   reviews: external_exports.array(WorkforceRuntimeReviewSchema).max(500),
   metrics: external_exports.object({
@@ -20925,7 +20946,8 @@ var AuditEventTypeSchema = external_exports.enum([
   "ENGINEERING_MERGE_EXECUTED",
   "ENGINEERING_INTEGRATION_CANCELLED",
   "ENGINEERING_DELIVERY_CREATED",
-  "ENGINEERING_DELIVERY_COMPLETED"
+  "ENGINEERING_DELIVERY_COMPLETED",
+  "ENGINEERING_DELIVERY_RECOVERY_BLOCKED"
 ]);
 var AuditOutcomeSchema = external_exports.enum(["SUCCESS", "FAILURE", "DENIED"]);
 var AuditRecordSchema = external_exports.object({
@@ -22727,7 +22749,7 @@ var ValidationStepResultSchema = external_exports.object({
   exitCode: external_exports.number().int().min(-1).max(255).nullable(),
   startedAt: external_exports.iso.datetime().nullable(),
   completedAt: external_exports.iso.datetime().nullable(),
-  durationMs: external_exports.number().int().nonnegative().max(12e4).nullable(),
+  durationMs: external_exports.number().int().nonnegative().max(13e4).nullable(),
   stdout: external_exports.string().max(32768),
   stderr: external_exports.string().max(32768),
   truncated: external_exports.boolean(),
@@ -22781,7 +22803,9 @@ var ValidationExecutionResultSchema = external_exports.object({
     network: external_exports.literal("disabled")
   }).strict(),
   metrics: external_exports.object({
-    durationMs: external_exports.number().int().nonnegative().max(6e5),
+    // A finite profile set runs sequentially; seven registered profiles
+    // can legitimately exceed ten minutes without expanding any command.
+    durationMs: external_exports.number().int().nonnegative().max(25 * 6e4),
     stepCount: external_exports.number().int().nonnegative().max(12)
   }).strict()
 }).strict();
@@ -23028,7 +23052,9 @@ var UnsignedExecutionResultSchema = external_exports.object({
   safeMessage: external_exports.string().min(1).max(500).optional(),
   startedAt: external_exports.iso.datetime(),
   completedAt: external_exports.iso.datetime(),
-  durationMs: external_exports.number().int().nonnegative().max(6e4),
+  // A registered engineering command may run for up to 30 minutes. This
+  // bounds only the signed receipt, not command or execution authority.
+  durationMs: external_exports.number().int().nonnegative().max(35 * 6e4),
   truncated: external_exports.boolean(),
   resultDigest: external_exports.string().min(32).max(128),
   nonce: external_exports.string().min(16).max(128)
@@ -28625,7 +28651,7 @@ var EngineeringControlCenterSchema = external_exports.object({
   completedTasks: external_exports.number().int().nonnegative(),
   blockedTasks: external_exports.number().int().nonnegative(),
   blocker: external_exports.object({
-    category: external_exports.enum(["CAPABILITY_UNAVAILABLE", "REPOSITORY_PERMISSION", "POLICY_APPROVAL_REQUIRED", "MODEL_PROVIDER_UNAVAILABLE", "BUDGET_EXCEEDED", "VALIDATION_FAILURE", "REVIEW_CHANGES_REQUIRED", "MERGE_CONFLICT", "INTEGRATION_EVIDENCE_MISMATCH", "INTEGRATION_SCOPE_MISMATCH", "INTEGRATION_REPAIR_PENDING", "REVIEWER_UNAVAILABLE", "DEPENDENCY_PREPARATION_FAILED", "PREVIEW_FAILED", "OWNER_CLARIFICATION_REQUIRED", "DEVICE_OFFLINE"]),
+    category: external_exports.enum(["CAPABILITY_UNAVAILABLE", "REPOSITORY_PERMISSION", "POLICY_APPROVAL_REQUIRED", "MODEL_PROVIDER_UNAVAILABLE", "BUDGET_EXCEEDED", "VALIDATION_FAILURE", "REVIEW_CHANGES_REQUIRED", "MERGE_CONFLICT", "INTEGRATION_EVIDENCE_MISMATCH", "INTEGRATION_SCOPE_MISMATCH", "INTEGRATION_REPAIR_PENDING", "REVIEWER_UNAVAILABLE", "DEPENDENCY_PREPARATION_FAILED", "PREVIEW_FAILED", "OWNER_CLARIFICATION_REQUIRED", "DEVICE_OFFLINE", "WORKER_CRASHED"]),
     message: external_exports.string().min(1).max(300),
     action: external_exports.string().min(1).max(300)
   }).strict().nullable(),

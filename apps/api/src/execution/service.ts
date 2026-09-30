@@ -24,6 +24,7 @@ import {
   type NativeProviderCapability,
   type NetworkVerificationState,
   type ReadOnlyToolName,
+  type ReadOnlyExecutionRequest,
   WorkspaceApplyPatchInputSchema,
   WorkspaceValidateProfileInputSchema,
   type AllowedApplication,
@@ -70,6 +71,35 @@ const blockedByPattern = (relativePath: string, patterns: string[]) => {
   });
 };
 const sha256Hex = (value: string) => createHash("sha256").update(value).digest("hex");
+export const runningExecutionTtlSeconds = (
+  minimumSeconds: number,
+  request: { toolName: ReadOnlyToolName; arguments: unknown },
+) => {
+  // Only after an unexpired request is claimed and started may the server
+  // extend its deadline through registered bounded work and a result margin.
+  const engineeringInput = request.toolName === "engineering.repository_capability"
+    ? EngineeringTransportRequestSchema.parse(request.arguments) : null;
+  const validationProfiles = request.toolName === "workspace.validate_profile"
+    ? WorkspaceValidateProfileInputSchema.parse(request.arguments).profiles : null;
+  const workMs =
+    engineeringInput?.capability === "repository.run_command"
+      ? engineeringInput.input.command.timeoutMs
+      : validationProfiles
+        ? validationProfiles.reduce((total, profile) => total + profile.timeoutMs, 0)
+        : 0;
+  if (workMs > 0) return Math.max(minimumSeconds, Math.ceil(workMs / 1_000) + 60);
+  if (
+    engineeringInput?.capability === "repository.install_dependencies" ||
+    engineeringInput?.capability === "repository.add_dependency" ||
+    engineeringInput?.capability === "repository.remove_dependency"
+  )
+    return Math.max(minimumSeconds, 12 * 60);
+  if (
+    engineeringInput?.capability === "repository.dev_server_start" ||
+    engineeringInput?.capability === "repository.dev_server_restart"
+  ) return Math.max(minimumSeconds, 300);
+  return minimumSeconds;
+};
 const nativeProviderWorkspaceId = (ownerId: string) =>
   `native-provider-${ownerId.replaceAll("-", "").slice(0, 12)}`;
 const deviceActivityTime = (device: StoredDevice) =>
@@ -528,13 +558,7 @@ export class ExecutionService {
       status: "PENDING",
       createdAt: createdAt.toISOString(),
       expiresAt: new Date(
-        createdAt.getTime() +
-          (engineeringInput?.capability === "repository.install_dependencies"
-            ? 600
-            : engineeringInput?.capability === "repository.dev_server_start" ||
-                engineeringInput?.capability === "repository.dev_server_restart"
-              ? Math.max(this.limits.requestTtlSeconds, 300)
-              : this.limits.requestTtlSeconds) * 1_000,
+        createdAt.getTime() + this.limits.requestTtlSeconds * 1_000,
       ).toISOString(),
       claimedAt: null,
       startedAt: null,
@@ -903,7 +927,15 @@ export class ExecutionService {
     });
   }
 
+  runningTtlSeconds(request: { toolName: ReadOnlyToolName; arguments: unknown }) {
+    return runningExecutionTtlSeconds(this.limits.requestTtlSeconds, request);
+  }
+
   async acceptResult(ownerId: string, resultInput: unknown) {
+    return (await this.acceptResultDetailed(ownerId, resultInput)).request;
+  }
+
+  async acceptResultDetailed(ownerId: string, resultInput: unknown) {
     const result = ReadOnlyExecutionResultSchema.parse(resultInput);
     if (result.status === "SUCCEEDED" && !result.result)
       throw new ExecutionError(
@@ -952,19 +984,6 @@ export class ExecutionService {
         "EXECUTION_DEVICE_MISMATCH",
         "The result does not match the assigned request.",
       );
-    if (request.expiresAt <= this.now().toISOString())
-      throw new ExecutionError(
-        409,
-        "EXECUTION_REQUEST_EXPIRED",
-        "The execution request expired.",
-      );
-    const security = await this.governance.store.getSecurityState();
-    if (security.emergencyStopActive)
-      throw new ExecutionError(
-        409,
-        "EMERGENCY_STOP_ACTIVE",
-        "Emergency stop is active.",
-      );
     const device = await this.identityStore.findDeviceById(result.deviceId);
     if (!device || device.trustStatus !== "TRUSTED")
       throw new ExecutionError(
@@ -1003,11 +1022,63 @@ export class ExecutionService {
         "EXECUTION_RESULT_SIGNATURE_INVALID",
         "The result signature is invalid.",
       );
+    // A lost HTTP acknowledgement must not force a signed Mac result to be
+    // executed again. This is an acknowledgement of the exact stored receipt,
+    // not another capability action or a new result submission.
+    const acknowledgeStoredResult = async () => {
+      const accepted = await this.store.getResult(request.id);
+      if (!accepted) return null;
+      // The receipt may have committed after our initial request read. Use the
+      // durable terminal row for concurrent acknowledgement and publication.
+      const settledRequest = await this.store.find(request.id);
+      if (accepted.commandId !== result.commandId ||
+          accepted.deviceSignature !== result.deviceSignature ||
+          settledRequest?.status !== result.status)
+        throw new ExecutionError(
+          409,
+          "EXECUTION_RESULT_CONFLICT",
+          "A different signed result is already recorded for this request.",
+        );
+      await this.settleGovernedInteraction(ownerId, settledRequest, result.status);
+      await this.audit({
+        eventType: result.status === "SUCCEEDED" ? "EXECUTION_SUCCEEDED"
+          : result.status === "TIMED_OUT" ? "EXECUTION_TIMED_OUT"
+          : result.status === "CANCELLED" ? "EXECUTION_CANCELLED" : "EXECUTION_FAILED",
+        ownerId,
+        deviceId: result.deviceId,
+        ipAddress: "internal",
+        outcome: result.status === "SUCCEEDED" ? "SUCCESS" : "FAILURE",
+        reason: "Stored signed execution receipt acknowledged; no capability was executed again.",
+        requestId: result.commandId,
+        metadata: { executionRequestId: request.id, toolName: request.toolName, receiptReplay: true },
+      });
+      return { request: settledRequest, alreadyAccepted: true } as const;
+    };
+    const accepted = await acknowledgeStoredResult();
+    if (accepted) return accepted;
+    if (request.expiresAt <= this.now().toISOString())
+      throw new ExecutionError(
+        409,
+        "EXECUTION_REQUEST_EXPIRED",
+        "The execution request expired.",
+      );
+    const security = await this.governance.store.getSecurityState();
+    if (security.emergencyStopActive)
+      throw new ExecutionError(
+        409,
+        "EMERGENCY_STOP_ACTIVE",
+        "Emergency stop is active.",
+      );
+    const receiptExpiresAt = new Date(
+      this.now().getTime() + this.limits.resultRetentionSeconds * 1_000,
+    ).toISOString();
     if (
-      !(await this.identityStore.consumeNonce(
+      !(await this.identityStore.consumeSignedResultNonce(
         device.id,
         result.nonce,
-        new Date(signedCommand.expiresAt),
+        request.id,
+        createHash("sha256").update(result.deviceSignature).digest("hex"),
+        new Date(receiptExpiresAt),
         this.now(),
       ))
     )
@@ -1036,61 +1107,42 @@ export class ExecutionService {
         "CAPABILITY_RESULT_INVALID",
         "The file result exceeds the configured limit.",
       );
-    if (request.status === "CANCELLED" && result.status === "CANCELLED") {
-      const saved = await this.store.saveResult(
-        ownerId,
-        result,
-        new Date(
-          this.now().getTime() + this.limits.resultRetentionSeconds * 1_000,
-        ).toISOString(),
-      );
-      if (!saved)
-        throw new ExecutionError(
-          409,
-          "EXECUTION_REQUEST_ALREADY_COMPLETED",
-          "A result already exists.",
-        );
-      return request;
-    }
-    const terminal = await this.store.transition(
-      request.id,
-      device.id,
-      ["RUNNING", "CLAIMED"],
-      result.status,
-      result.completedAt,
-      result.failureCode,
-    );
-    if (!terminal)
-      throw new ExecutionError(
-        409,
-        "EXECUTION_REQUEST_ALREADY_COMPLETED",
-        "The request is no longer active.",
-      );
-    const saved = await this.store.saveResult(
+    const terminal = await this.store.completeWithResult(
       ownerId,
       result,
-      new Date(
-        this.now().getTime() + this.limits.resultRetentionSeconds * 1_000,
-      ).toISOString(),
+      receiptExpiresAt,
     );
-    if (!saved)
+    if (!terminal) {
+      // Another signed retry may have committed the exact receipt after our
+      // first read. Acknowledge that durable result, never re-run the tool.
+      const concurrent = await acknowledgeStoredResult();
+      if (concurrent) return concurrent;
       throw new ExecutionError(
         409,
         "EXECUTION_REQUEST_ALREADY_COMPLETED",
-        "A result already exists.",
+        "The request is no longer active or a result already exists.",
       );
-    if (request.toolName === "native.provider_capability") {
-      const nativeRequest = NativeCapabilityDispatchRequestSchema.parse(
-        request.arguments,
-      );
-      if (nativeRequest.interactionProposalId && this.onGovernedInteractionSettled)
-        await this.onGovernedInteractionSettled({
-          ownerId,
-          proposalId: nativeRequest.interactionProposalId,
-          executionRequestId: request.id,
-          status: result.status,
-        });
     }
-    return terminal;
+    await this.settleGovernedInteraction(ownerId, request, result.status);
+    return { request: terminal, alreadyAccepted: false } as const;
+  }
+
+  private async settleGovernedInteraction(
+    ownerId: string,
+    request: ReadOnlyExecutionRequest,
+    status: "SUCCEEDED" | "FAILED" | "CANCELLED" | "TIMED_OUT",
+  ) {
+    if (request.toolName !== "native.provider_capability" || !this.onGovernedInteractionSettled)
+      return;
+    const nativeRequest = NativeCapabilityDispatchRequestSchema.parse(request.arguments);
+    if (!nativeRequest.interactionProposalId) return;
+    // The conversation settlement is idempotent. Replay it on an exact signed
+    // receipt acknowledgement if the process died after storing the receipt.
+    await this.onGovernedInteractionSettled({
+      ownerId,
+      proposalId: nativeRequest.interactionProposalId,
+      executionRequestId: request.id,
+      status,
+    });
   }
 }

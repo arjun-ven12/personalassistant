@@ -55,7 +55,7 @@ const setup = (options: { withObjectiveSpecialistFactory?: boolean } = {}) => {
   } as unknown as AgentOsService;
   const aiRouter = { executeStructured: vi.fn(() => { routerCalls++; return Promise.resolve({ outcome: "SUCCESS", structuredOutput: { summary: "Implemented bounded change.", confidence: 0.9, evidence: ["test:passed"] }, requestId: "60000000-0000-4000-8000-000000000001", providerId: "local", modelId: "shared", usage: { totalTokens: 800 } }); }) } as unknown as AIRouterService;
   const capabilityStudio = { createRequest: vi.fn(() => Promise.resolve({})) } as unknown as CapabilityStudioService;
-  const externalHarvest = { executeDelegation: vi.fn(() => { sandboxCalls++; return Promise.resolve({ status: "COMPLETE", summary: "Generated and ran one bounded test.", confidence: .92, artifacts: [{ name: "generated.test.cjs", kind: "PROPOSED_TEST", content: "" }], tests: { status: "PASSED" }, ai: { requestId: "61000000-0000-4000-8000-000000000001", providerId: "local", modelId: "shared" } }); }) } as unknown as ExternalHarvestService;
+  const externalHarvest = { executeDelegation: vi.fn(() => { sandboxCalls++; return Promise.resolve({ status: "COMPLETE", sessionId: "50000000-0000-4000-8000-000000000002", summary: "Generated and ran one bounded test.", confidence: .92, artifacts: [{ name: "generated.test.cjs", kind: "PROPOSED_TEST", content: "" }], tests: { status: "PASSED" }, ai: { requestId: "61000000-0000-4000-8000-000000000001", providerId: "local", modelId: "shared" } }); }) } as unknown as ExternalHarvestService;
   const agentFactory = options.withObjectiveSpecialistFactory ? {
     capabilities: vi.fn(() => Promise.resolve([])),
     createObjectiveSpecialist: vi.fn(() => {
@@ -72,6 +72,91 @@ const setup = (options: { withObjectiveSpecialistFactory?: boolean } = {}) => {
 const create = (service: WorkforceRuntimeService, body: Record<string,unknown>) => service.createTask({ ownerId, body: { title: "Implement endpoint", objective: "Implement and verify a bounded TypeScript endpoint.", requiredSkills: ["typescript"], requiredCapabilities: ["workspace.read"], economicBudget: 10, ...body }, requestId: "request", ipAddress: "127.0.0.1" });
 
 describe("WorkforceRuntimeService", () => {
+  it("rejects duplicate dispatch and late model output after persisted cancellation", async () => {
+    const { service } = setup();
+    const { task } = await create(service, {});
+    let finish!: () => void;
+    let started!: () => void;
+    const running = new Promise<void>((resolve) => { started = resolve; });
+    const gate = new Promise<void>((resolve) => { finish = resolve; });
+    const route = service.aiRouter.executeStructured.bind(service.aiRouter);
+    vi.spyOn(service.aiRouter, "executeStructured").mockImplementationOnce(async (...args) => {
+      started();
+      await gate;
+      return route(...args);
+    });
+    const result = service.execute(ownerId, task.id, "first", "internal");
+    await running;
+    await expect(service.execute(ownerId, task.id, "duplicate", "internal")).rejects.toMatchObject({ code: "TASK_EXECUTION_LEASE_HELD" });
+    await service.store.cancelExecution(ownerId, task.id);
+    finish();
+    await expect(result).rejects.toMatchObject({ code: "WORKFORCE_LEASE_LOST" });
+    expect((await service.store.findTask(ownerId, task.id))?.status).toBe("CANCELLED");
+    const settle = vi.spyOn(service.economy, "settle");
+    expect(settle).not.toHaveBeenCalled();
+  });
+
+  it("omits unsupported provider URI formats while retaining local URL validation", async () => {
+    const { service } = setup();
+    const route = vi.spyOn(service.aiRouter, "executeStructured");
+    const { task } = await create(service, {});
+    await service.execute(ownerId, task.id, "schema", "internal");
+    const request = route.mock.calls[0]![0];
+    expect(JSON.stringify(request.jsonSchema)).not.toContain('"format":"uri"');
+    expect(request.schema.safeParse({
+      summary: "Research", confidence: .9, evidence: [], verification: null,
+      leads: [{ companyName: "Example", website: "not-a-url", description: "Example", outreachReason: "Example", sourceUrls: ["https://example.com"] }],
+    }).success).toBe(false);
+  });
+
+  it.each([null, { status: "FAIL", reason: "Requested comparison is missing." }, { status: "PASS", reason: "Required comparison and recommendation are present." }])("requires an explicit passing objective review: %j", async (verification) => {
+    const { service, agents } = setup();
+    const reviewer = agent("review_agent", "review");
+    agents.upsertAgent({ ...reviewer, workforce: { ...reviewer.workforce, skills: ["review"] } });
+    vi.spyOn(service.aiRouter, "executeStructured").mockResolvedValueOnce({
+      outcome: "SUCCESS", structuredOutput: { summary: "Review result", confidence: .9, evidence: [], leads: [], verification },
+      requestId: crypto.randomUUID(), providerId: "local", modelId: "shared", usage: { totalTokens: 100 },
+    } as never);
+    const { task } = await create(service, { inputs: { objectiveExecutionId: crypto.randomUUID() }, requiredSkills: ["review"], requiredCapabilities: ["security.review"] });
+    const result = await service.execute(ownerId, task.id, "review", "internal");
+    expect(result.task.status).toBe(verification?.status === "PASS" ? "COMPLETED" : "FAILED");
+    if (verification?.status !== "PASS") expect(result.task.failureCode).toBe("OBJECTIVE_VERIFICATION_FAILED");
+    expect(result.task.aiRequestId).not.toBeNull();
+    expect(result.task.actualCost).toBeGreaterThan(0);
+  });
+
+  it("preserves completed execution when downstream lifecycle propagation fails", async () => {
+    const { service, counts } = setup();
+    const { task } = await create(service, {});
+    service.setLifecycleSink({ handleWorkforceTaskChanged: (changed) => {
+      if (changed.status === "COMPLETED") return Promise.reject(new Error("downstream unavailable"));
+      return Promise.resolve();
+    } });
+    await expect(service.execute(ownerId, task.id, "request", "127.0.0.1")).rejects.toThrow("downstream unavailable");
+    const resumed = await service.execute(ownerId, task.id, "retry", "127.0.0.1");
+    expect(resumed.task.status).toBe("COMPLETED");
+    expect(resumed.task.completionProvenance?.completionType).toBe("EXECUTED");
+    expect(counts().routerCalls).toBe(1);
+  });
+
+  it("reloads dependency evidence and attaches executed results idempotently", async () => {
+    const { service } = setup();
+    const inputs = { objectiveExecutionId: crypto.randomUUID() };
+    const { task: source } = await create(service, { inputs });
+    const { task: target } = await create(service, { inputs });
+    const completed = (await service.execute(ownerId, source.id, "request", "127.0.0.1")).task;
+    const receipt = { sourceUrl: "https://example.test/source", retrievedAt: "2026-08-26T10:00:00.000Z", providerId: "openai", modelRequestId: "60000000-0000-4000-8000-000000000001", tool: "web.research" as const };
+    await service.store.saveTask({ ...completed, webSearchCallCount: 1, retrievedSourceEvidence: [receipt], verifiedLeads: [{ companyName: "Example", website: "https://example.test", description: "Source-backed subject", outreachReason: "Relevant", sourceUrls: [receipt.sourceUrl] }] });
+    await service.attachDependencyEvidence(ownerId, target.id, { ...completed, resultSummary: "forged summary" });
+    const updated = await service.attachDependencyEvidence(ownerId, target.id, completed);
+    expect(updated.inputs.previousTaskResults).toHaveLength(1);
+    expect(updated.inputs.previousTaskResults).toEqual([expect.objectContaining({ summary: completed.resultSummary })]);
+    expect(updated.inputs.previousTaskResults).toEqual([expect.objectContaining({ retrievalProvenance: { sourceCount: 1, webSearchCallCount: 1, sources: [receipt] } })]);
+    const { task: other } = await create(service, { inputs: { objectiveExecutionId: crypto.randomUUID() } });
+    await expect(service.attachDependencyEvidence(ownerId, other.id, completed)).rejects.toMatchObject({ code: "DEPENDENCY_EVIDENCE_INVALID" });
+    await expect(service.attachDependencyEvidence(ownerId, target.id, { ...target, status: "COMPLETED", completionProvenance: completed.completionProvenance })).rejects.toMatchObject({ code: "DEPENDENCY_EVIDENCE_INVALID" });
+  });
+
   it("reuses workforce skill, capability, reputation, calibration, availability, workload and cost scoring for engineering candidates", async () => {
     const { service } = setup();
     const scores = await service.rankEngineeringCandidates({
@@ -104,6 +189,15 @@ describe("WorkforceRuntimeService", () => {
     expect(result.task).toMatchObject({ assignedAgentId: "backend_agent", status: "COMPLETED", providerId: "local", modelId: "shared" });
     expect(reservations).toEqual(["backend_agent"]); expect(counts()).toEqual({ routerCalls: 1, osCalls: 1, rewardCalls: 0, sandboxCalls: 0 });
     expect(activations).toEqual(["backend_agent:ACTIVE","backend_agent:DORMANT"]);
+    expect(result.task.completionProvenance).toMatchObject({ completionType: "EXECUTED", agentSessionId: "50000000-0000-4000-8000-000000000001", modelRequestId: "60000000-0000-4000-8000-000000000001" });
+  });
+
+  it("does not accept an owner attestation as autonomous objective execution", async () => {
+    const { service } = setup();
+    const task = (await create(service, { inputs: { objectiveExecutionId: crypto.randomUUID() } })).task;
+    await expect(service.complete(ownerId, task.id, { resultSummary: "Done", resultConfidence: 1, actualCost: 0 }, "request", "127.0.0.1"))
+      .rejects.toMatchObject({ code: "AUTONOMOUS_OBJECTIVE_MANUAL_COMPLETION_DENIED" });
+    expect((await service.store.findTask(ownerId, task.id))?.status).toBe("QUEUED");
   });
 
   it("dispatches reserved objective work into a real Agent OS and AIRouter execution", async () => {
@@ -166,7 +260,7 @@ describe("WorkforceRuntimeService", () => {
     });
   });
 
-  it("retains long retrieved HTTPS sources while keeping bounded task references", async () => {
+  it.each([true,false])("retains long retrieved HTTPS sources including lead citations (top-level evidence: %s)", async (topLevelEvidence) => {
     const { service, agents } = setup();
     const researcher = agent("backend_agent");
     agents.upsertAgent({
@@ -179,10 +273,13 @@ describe("WorkforceRuntimeService", () => {
     const route = vi.spyOn(service.aiRouter, "executeStructured").mockResolvedValueOnce({
       outcome: "SUCCESS",
       structuredOutput: {
-        summary: "One company verified.", confidence: 0.9, evidence: [sourceUrl],
-        leads: [{ companyName: "Example AI", website: "https://example.com", description: "AI tools", outreachReason: "Relevant AI work", sourceUrls: [sourceUrl] }],
+        summary: "One company verified.", confidence: 0.9, evidence: topLevelEvidence ? [sourceUrl] : [],
+        leads: [
+          { companyName: "Example AI", website: "https://example.com", description: "AI tools", outreachReason: "Relevant AI work", sourceUrls: [sourceUrl] },
+          { companyName: "Unretrieved", website: "https://unretrieved.test", description: "Unverified", outreachReason: "Unverified", sourceUrls: ["http://unretrieved.test"] },
+        ],
       },
-      providerMetadata: { webSearchCallCount: 1, sourceUrls: [sourceUrl] },
+      providerMetadata: { webSearchCallCount: 1, sourceUrls: [sourceUrl, "http://different.test"] },
       requestId: crypto.randomUUID(), providerId: "openai", modelId: "gpt-5.6-luna", usage: { totalTokens: 800 },
     } as never);
     const { task } = await create(service, {
@@ -195,6 +292,7 @@ describe("WorkforceRuntimeService", () => {
     expect(result.task.status).toBe("COMPLETED");
     expect(route.mock.calls[0]?.[0]).toMatchObject({ timeoutMs: 120_000 });
     expect(result.task.retrievedSourceUrls).toEqual([sourceUrl]);
+    expect(result.task.retrievedSourceEvidence).toEqual([expect.objectContaining({sourceUrl,providerId:"openai",tool:"web.research",modelRequestId:result.task.aiRequestId})]);
     expect(result.task.verifiedLeads).toHaveLength(1);
     expect(result.task.evidenceRefs).toContainEqual(expect.stringMatching(/^source-sha256:[a-f0-9]{64}$/));
   });
@@ -243,6 +341,7 @@ describe("WorkforceRuntimeService", () => {
     await vi.waitFor(() => expect(releaseSession).toBeDefined());
     expect((await service.store.findTask(ownerId, task.id))?.status).toBe("RESERVED");
     expect((await service.dashboard(ownerId)).summary.running).toBe(0);
+    expect((await service.dashboard(ownerId)).activeExecutionTaskIds).toContain(task.id);
     releaseSession?.({ session: { id: "50000000-0000-4000-8000-000000000001" } });
     expect((await dispatched).task.status).toBe("RUNNING");
   });
@@ -396,6 +495,25 @@ describe("WorkforceRuntimeService", () => {
     expect(release).toHaveBeenCalledTimes(1);
   });
 
+  it("recovers an expired preparation lease without treating ordinary queued work as crashed", async () => {
+    const { service, counts } = setup();
+    const queued = (await create(service, { createdByAgentId: "engineering_manager" })).task;
+    const preparing = (await create(service, { createdByAgentId: "engineering_manager" })).task;
+    const lease = await service.store.claimExecution(ownerId, preparing.id, "stopped-worker");
+    expect(lease).toBeDefined();
+    const now = Date.now();
+    const clock = vi.spyOn(Date, "now").mockReturnValue(now + 61_000);
+    try {
+      const dashboard = await service.dashboard(ownerId);
+      expect(dashboard.tasks.find((task) => task.id === preparing.id)).toMatchObject({ status: "FAILED", failureCode: "WORKER_CRASHED" });
+      expect(dashboard.tasks.find((task) => task.id === queued.id)?.status).toBe("QUEUED");
+      expect(dashboard.activeExecutionTaskIds).toEqual([]);
+      expect(counts().routerCalls).toBe(0);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
   it("closes an orphaned Agent OS session without fabricating model evidence", async () => {
     const { service } = setup();
     const task = (await create(service,{ createdByAgentId: "engineering_manager" })).task;
@@ -422,6 +540,7 @@ describe("WorkforceRuntimeService", () => {
     const task = (await create(service,{ createdByAgentId: "engineering_manager", inputs: { developmentInput: { sourceCode: "module.exports = (value) => value;", testObjective: "Validate string input." } } })).task;
     const result = await service.execute(ownerId,task.id,"request","127.0.0.1");
     expect(result.task).toMatchObject({ status: "REVIEW_REQUIRED", sandboxStatus: "PASSED", artifactCount: 1 });
+    expect(result.task.completionProvenance).toMatchObject({ completionType: "EXECUTED", agentSessionId: "50000000-0000-4000-8000-000000000002", modelRequestId: "61000000-0000-4000-8000-000000000001" });
     expect(counts()).toEqual({ routerCalls: 0, osCalls: 0, rewardCalls: 0, sandboxCalls: 1 });
     expect(activations).toEqual(["backend_agent:ACTIVE","backend_agent:DORMANT"]);
   });

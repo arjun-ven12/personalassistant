@@ -78,4 +78,28 @@ export class PostgresEngineeringDeliveryStore implements EngineeringDeliveryStor
     );
     return result.rows.map(parse);
   }
+
+  async listStaleImplementations(cutoff: string, limit: number) {
+    const result = await this.pool.query<{ record: unknown }>(
+      "SELECT record FROM engineering_deliveries WHERE status='IMPLEMENTING' AND updated_at<$1 ORDER BY updated_at ASC LIMIT $2",
+      [cutoff, limit],
+    );
+    return result.rows.map(parse);
+  }
+
+  async listStaleIntegrations(cutoff: string, limit: number) {
+    const result = await this.pool.query<{ record: unknown }>(
+      "SELECT record FROM engineering_deliveries WHERE status='INTEGRATING' AND updated_at<$1 ORDER BY updated_at ASC LIMIT $2",
+      [cutoff, limit],
+    );
+    return result.rows.map(parse);
+  }
+
+  async listStalePreviews(cutoff: string, limit: number) {
+    const result = await this.pool.query<{ record: unknown }>(
+      "SELECT record FROM engineering_deliveries WHERE status='PREVIEWING' AND updated_at<$1 ORDER BY updated_at ASC LIMIT $2",
+      [cutoff, limit],
+    );
+    return result.rows.map(parse);
+  }
 }

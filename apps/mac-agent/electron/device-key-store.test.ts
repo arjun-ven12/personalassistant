@@ -5,6 +5,8 @@ import {
   DeviceMetadataStore,
   type NarrowFileAdapter,
   type SafeStorageAdapter,
+  restoreStoredDeviceIdentity,
+  assertDevicePairingStorage,
 } from "./device-key-store.js";
 import { generateLocalDeviceIdentity } from "./services.js";
 
@@ -17,6 +19,58 @@ const safeStorage: SafeStorageAdapter = {
 };
 
 describe("persistent Mac device keys", () => {
+  it("rejects pairing before server contact when storage or identity recovery is unavailable", () => {
+    expect(() => assertDevicePairingStorage(false, "MISSING")).toThrow(/unavailable/);
+    expect(() => assertDevicePairingStorage(true, "UNAVAILABLE")).toThrow(/recovered/);
+    expect(() => assertDevicePairingStorage(true, "CORRUPT")).toThrow(/recovered/);
+    expect(() => assertDevicePairingStorage(true, "UNKNOWN")).toThrow(/recovered/);
+    expect(() => assertDevicePairingStorage(true, "MISSING")).not.toThrow();
+  });
+  it("recovers the same identity after secure storage becomes available without writing", async () => {
+    const generated = await generateLocalDeviceIdentity();
+    const metadata = {
+      deviceId: "00000000-0000-4000-8000-000000000001",
+      fingerprint: generated.fingerprint,
+      trustStatus: "TRUSTED" as const,
+    };
+    let available = false;
+    const keys = {
+      loadKeyPair: () =>
+        available
+          ? Promise.resolve(generated)
+          : Promise.reject(new Error("unavailable")),
+    };
+    const records = { load: () => Promise.resolve(metadata) };
+    expect(await restoreStoredDeviceIdentity(keys, records, () => available)).toEqual({
+      identity: null,
+      metadata,
+      status: "UNAVAILABLE",
+    });
+    available = true;
+    expect(await restoreStoredDeviceIdentity(keys, records, () => available)).toEqual({
+      identity: generated,
+      metadata,
+      status: "AVAILABLE",
+    });
+  });
+
+  it("denies recovery when stored identity and metadata disagree", async () => {
+    const identity = await generateLocalDeviceIdentity();
+    const result = await restoreStoredDeviceIdentity(
+      { loadKeyPair: () => Promise.resolve(identity) },
+      {
+        load: () =>
+          Promise.resolve({
+            deviceId: "00000000-0000-4000-8000-000000000001",
+            fingerprint: "different",
+            trustStatus: "TRUSTED",
+          }),
+      },
+      () => true,
+    );
+    expect(result.identity).toBeNull();
+    expect(result.status).toBe("CORRUPT");
+  });
   it("round-trips an Ed25519 identity without exposing plaintext storage", async () => {
     let stored: Buffer | undefined;
     const files: NarrowFileAdapter = {

@@ -25,7 +25,7 @@ export const registerValidationRoutes = (
 
   app.get(
     "/api/validations",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany] },
     async (request) => {
       const identity = context.security.getIdentity(request);
       return ValidationListResponseSchema.parse(
@@ -39,6 +39,7 @@ export const registerValidationRoutes = (
     {
       preHandler: [
         context.security.requireAuthentication,
+        context.companyContext.requireCompany,
         context.security.requireTrustedOrigin,
         context.security.requireCsrf,
       ],
@@ -58,7 +59,7 @@ export const registerValidationRoutes = (
 
   app.get(
     "/api/validations/:validationRunId",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany] },
     async (request) => {
       const identity = context.security.getIdentity(request);
       const { validationRunId } = ValidationParametersSchema.parse(request.params);
@@ -73,6 +74,7 @@ export const registerValidationRoutes = (
     {
       preHandler: [
         context.security.requireAuthentication,
+        context.companyContext.requireCompany,
         context.security.requireTrustedOrigin,
         context.security.requireCsrf,
         context.security.verifyTransportNetwork,
@@ -100,6 +102,7 @@ export const registerValidationRoutes = (
     {
       preHandler: [
         context.security.requireAuthentication,
+        context.companyContext.requireCompany,
         context.security.requireTrustedOrigin,
         context.security.requireCsrf,
       ],

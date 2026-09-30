@@ -19,6 +19,7 @@ import { dispatchReadOnlyCapability, type DispatcherLimits } from "./dispatcher.
 import { CapabilityError } from "./errors.js";
 import { reconnectDelayMs } from "../product-runtime.js";
 import type { NativeEngineeringRuntime } from "../engineering-runtime/runtime.js";
+import type { EncryptedExecutionResultOutbox } from "./result-outbox.js";
 
 export interface ExecutionClientStatus {
   polling: boolean;
@@ -114,6 +115,7 @@ export class ReadOnlyExecutionClient {
   };
   #timer: ReturnType<typeof setTimeout> | undefined;
   #stopped = true;
+  #pollActive = false;
   #consecutiveFailures = 0;
   #lastCancellationCursor: string | undefined;
   readonly #serverReplayGuard = new ServerExecutionReplayGuard();
@@ -135,6 +137,7 @@ export class ReadOnlyExecutionClient {
     readonly onStatusChanged: (status: Readonly<ExecutionClientStatus>) => void = () =>
       undefined,
     readonly engineeringRuntime: NativeEngineeringRuntime | undefined = undefined,
+    readonly resultOutbox: EncryptedExecutionResultOutbox | undefined = undefined,
   ) {}
 
   start() {
@@ -306,6 +309,16 @@ export class ReadOnlyExecutionClient {
       ...unsignedResult,
       deviceSignature: Buffer.from(resultSignature).toString("base64url"),
     });
+    if (this.resultOutbox) {
+      try {
+        await this.resultOutbox.save(signedResult);
+      } catch {
+        throw new CapabilityError(
+          "AGENT_RESULT_OUTBOX_UNAVAILABLE",
+          "The signed result could not be preserved locally; no new work will be accepted.",
+        );
+      }
+    }
     await this.post(
       JSON.parse(
         JSON.stringify({
@@ -315,12 +328,35 @@ export class ReadOnlyExecutionClient {
         }),
       ) as Record<string, JsonValue>,
     );
+    if (this.resultOutbox) await this.resultOutbox.clearAcknowledged(signedResult);
     this.status.currentExecutionRequestId = null;
   }
 
-  private async pollLoop() {
-    if (this.#stopped || this.status.suspended) return;
+  private async flushPendingResult() {
+    if (!this.resultOutbox) return;
+    let pending;
     try {
+      pending = await this.resultOutbox.load();
+    } catch {
+      throw new CapabilityError(
+        "AGENT_RESULT_OUTBOX_UNAVAILABLE",
+        "The pending signed result cannot be read securely; execution is paused.",
+      );
+    }
+    if (!pending) return;
+    await this.post(JSON.parse(JSON.stringify({
+      operation: "result",
+      requestId: pending.executionRequestId,
+      result: pending,
+    })) as Record<string, JsonValue>);
+    await this.resultOutbox.clearAcknowledged(pending);
+  }
+
+  private async pollLoop() {
+    if (this.#stopped || this.status.suspended || this.#pollActive) return;
+    this.#pollActive = true;
+    try {
+      await this.flushPendingResult();
       this.status.lastPollAt = new Date().toISOString();
       const response = AgentPollResponseSchema.parse(
         await this.post({
@@ -337,6 +373,9 @@ export class ReadOnlyExecutionClient {
             : {}),
         }),
       );
+      // A reconnect must not dispatch concurrently, and a response received
+      // after suspension/stop must not start privileged work.
+      if (this.#stopped || this.status.suspended) return;
       this.#consecutiveFailures = 0;
       this.status.lastSuccessfulConnectionAt = new Date().toISOString();
       this.status.lastFailureCode = null;
@@ -363,6 +402,7 @@ export class ReadOnlyExecutionClient {
         error instanceof CapabilityError ? error.code : "AGENT_EXECUTION_POLL_FAILED";
       this.status.currentExecutionRequestId = null;
     } finally {
+      this.#pollActive = false;
       this.notifyStatusChanged();
       if (!this.#stopped && !this.status.suspended) {
         const delay = this.status.lastFailureCode

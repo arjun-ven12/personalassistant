@@ -78,6 +78,17 @@ describe("engineering project session service", () => {
     await expect(service.send(context, opened.session.id, { instruction: "Undo the last change", idempotencyKey: "undo-id-456" }))
       .rejects.toThrow("No completed project-session modification");
     expect(create).not.toHaveBeenCalled();
+    Object.assign(runtime, { listRepositories: vi.fn().mockResolvedValue([
+      { id: repositoryId, displayName: "Ocia CRM" },
+      { id: crypto.randomUUID(), displayName: "tri" },
+    ]) });
+    await expect(service.send(context, opened.session.id, {
+      instruction: "What guidance was retrieved?", idempotencyKey: "retrieved-question-456",
+    })).resolves.toBeDefined();
+    await expect(service.send(context, opened.session.id, {
+      instruction: "What is running in Tri?", idempotencyKey: "wrong-project-456",
+    })).rejects.toThrow("bound to another project");
+    expect(create).not.toHaveBeenCalled();
   });
   it("retries a failed objective creation with the same message identity", async () => {
     const ownerId = crypto.randomUUID();

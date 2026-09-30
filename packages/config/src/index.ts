@@ -434,9 +434,10 @@ export const ApiEnvironmentSchema = z
           "Cloud production must not trust Tailscale identity headers or a test verifier.",
         ],
         [
-          environment.TRUSTED_PROXY_MODE === "one-hop",
+          environment.TRUSTED_PROXY_MODE === "one-hop" ||
+            environment.TRUSTED_PROXY_MODE === "none",
           "TRUSTED_PROXY_MODE",
-          "Cloud production requires one explicitly trusted TLS-terminating proxy hop.",
+          "Cloud production ignores forwarded headers unless a reviewed proxy-address trust policy is configured.",
         ],
         [
           environment.API_HOST === "0.0.0.0" || environment.API_HOST === "::",

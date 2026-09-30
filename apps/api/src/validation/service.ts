@@ -183,6 +183,9 @@ export class ValidationService {
       input.executionRequestId,
     );
     if (!validation || validation.ownerId !== input.ownerId) return;
+    // An exact saved signed receipt may be delivered again after a lost HTTP
+    // acknowledgement. Never rewrite a terminal validation or audit it twice.
+    if (!["EXECUTION_REQUESTED", "RUNNING"].includes(validation.status)) return;
     const payload =
       input.result.status === "SUCCEEDED" && input.result.result
         ? ValidationExecutionResultSchema.parse(input.result.result)
@@ -215,7 +218,7 @@ export class ValidationService {
       failureCode: input.result.failureCode ?? null,
       updatedAt: at,
     });
-    await this.store.update(next);
+    if (!(await this.store.completeExecution(next))) return;
     await this.audit({
       eventType: next.status === "PASSED" ? "EXECUTION_SUCCEEDED" : "EXECUTION_FAILED",
       ownerId: input.ownerId,

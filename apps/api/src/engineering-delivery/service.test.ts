@@ -152,7 +152,7 @@ const context = {
   networkState: "PRIVATE_NETWORK" as const,
 };
 
-const fixture = () => {
+const fixture = (now: () => Date = () => new Date(at)) => {
   const store = new InMemoryEngineeringDeliveryStore();
   const runtime = new InMemoryEngineeringRuntimeStore();
   runtime.createWorkspace(EngineeringWorkspaceSchema.parse({
@@ -317,7 +317,7 @@ const fixture = () => {
     () => Promise.resolve([agentId]),
     notifications,
     vi.fn(() => Promise.resolve()),
-    () => new Date(at),
+    now,
   );
   return {
     service,
@@ -434,6 +434,7 @@ describe("EngineeringDeliveryService", () => {
 
   it.each([
     ["Source workspace changes differ from the completed task result.", "INTEGRATION_EVIDENCE_MISMATCH"],
+    ["Signed engineering execution timed out.", "DEVICE_OFFLINE"],
     ["Governed dependency preparation failed. Check the package lockfile and reviewed dependency container before retrying.", "DEPENDENCY_PREPARATION_FAILED"],
   ])("retries a completed objective after recoverable integration failure: %s", async (warning, category) => {
     const { service, store, manager } = fixture();
@@ -455,9 +456,38 @@ describe("EngineeringDeliveryService", () => {
     const blocked = await service.controlCenter(ownerId, companyId, created.delivery.id);
     expect(blocked.blocker?.category).toBe(category);
     const managerResume = vi.spyOn(manager, "resume");
+    const executeCompletedTasks = vi.spyOn(manager, "runReady");
     const resumed = await service.resume(context, created.delivery.id);
     expect(resumed.delivery.id).toBe(created.delivery.id);
     expect(managerResume).not.toHaveBeenCalled();
+    await vi.waitFor(() => {
+      expect(["DONE", "DONE_WITH_WARNINGS"]).toContain(store.find(ownerId, companyId, created.delivery.id)?.status);
+    });
+    expect(store.find(ownerId, companyId, created.delivery.id)?.warnings).not.toContain(warning);
+    expect(executeCompletedTasks).not.toHaveBeenCalled();
+  });
+
+  it("removes a resolved signed-agent timeout from a completed read model", async () => {
+    const { service, store } = fixture();
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "resolved-timeout-warning",
+    });
+    await vi.waitFor(() => {
+      expect(["DONE", "DONE_WITH_WARNINGS"]).toContain(store.find(ownerId, companyId, created.delivery.id)?.status);
+    });
+    const completed = store.find(ownerId, companyId, created.delivery.id)!;
+    expect(completed.candidateId).toBeTruthy();
+    expect(completed.preview?.healthStatus).toBe("PASS");
+    store.save(EngineeringDeliverySchema.parse({
+      ...completed,
+      warnings: [...completed.warnings, "Signed engineering execution timed out."],
+    }));
+    const read = await service.controlCenter(ownerId, companyId, created.delivery.id);
+    expect(read.delivery.warnings).not.toContain("Signed engineering execution timed out.");
+    expect(store.find(ownerId, companyId, created.delivery.id)?.warnings).not.toContain("Signed engineering execution timed out.");
   });
 
   it.each([
@@ -521,6 +551,153 @@ describe("EngineeringDeliveryService", () => {
     expect(recover).toHaveBeenCalledWith(context, objectiveId);
     await expect(service.recover({ ...context, companyId: crypto.randomUUID() }, stalled.id))
       .rejects.toMatchObject({ code: "DELIVERY_NOT_FOUND" });
+  });
+  it("turns an expired implementation lease into an actionable block and retries the same run", async () => {
+    const { service, store, manager } = fixture();
+    vi.spyOn(manager, "runReady").mockImplementation(() => new Promise<Awaited<ReturnType<EngineeringManagerService["runReady"]>>>(() => {}));
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "expired-startup-reconciliation",
+    });
+    const stalled = EngineeringDeliverySchema.parse({
+      ...created.delivery, status: "IMPLEMENTING", updatedAt: "2026-09-17T09:55:00.000Z",
+    });
+    store.save(stalled);
+    const currentView = await manager.view(ownerId, companyId, objectiveId);
+    vi.spyOn(manager, "view").mockResolvedValue({
+      ...currentView,
+      objective: { ...currentView.objective, status: "RUNNING" },
+      tasks: [EngineeringTaskSchema.parse({
+        ...task, status: "ACTIVE", leaseOwner: "crashed-worker",
+        leaseExpiresAt: "2026-09-17T09:59:59.000Z", leaseGeneration: 1,
+      })],
+    });
+    const recover = vi.fn(() => new Promise<Awaited<ReturnType<EngineeringManagerService["recover"]>>>(() => {}));
+    vi.spyOn(manager, "recover").mockImplementation(recover);
+    expect(await service.reconcileStalledImplementations()).toBe(1);
+    expect(await service.reconcileStalledImplementations()).toBe(0);
+    const blocked = await service.controlCenter(ownerId, companyId, stalled.id);
+    expect(blocked.delivery.status).toBe("BLOCKED");
+    expect(blocked.blocker).toMatchObject({ category: "WORKER_CRASHED" });
+    expect(blocked.activeAgents).toEqual([]);
+    expect(blocked.delivery.features.every((feature) => feature.status !== "IMPLEMENTING")).toBe(true);
+    expect(blocked.recoveryAvailable).toBe(true);
+    await service.resume(context, stalled.id);
+    expect(recover).toHaveBeenCalledExactlyOnceWith(context, objectiveId);
+  });
+  it("recovers an expired repair worker while the delivery is integrating", async () => {
+    const { service, store, manager } = fixture();
+    vi.spyOn(manager, "runReady").mockImplementation(() => new Promise<Awaited<ReturnType<EngineeringManagerService["runReady"]>>>(() => {}));
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "expired-repair-reconciliation",
+    });
+    store.save(EngineeringDeliverySchema.parse({
+      ...created.delivery, status: "INTEGRATING", integrationRunId: runId,
+      updatedAt: "2026-09-17T09:55:00.000Z",
+    }));
+    vi.spyOn(service.integration, "view").mockResolvedValue({
+      run: { id: runId, objectiveId, repositoryId, status: "REPAIRING", leaseExpiresAt: null },
+      candidate: null, reviews: [],
+    } as unknown as Awaited<ReturnType<EngineeringIntegrationService["view"]>>);
+    const current = await manager.view(ownerId, companyId, objectiveId);
+    const view = vi.spyOn(manager, "view").mockResolvedValue({
+      ...current, objective: { ...current.objective, status: "RUNNING" },
+      tasks: [EngineeringTaskSchema.parse({ ...task, status: "ACTIVE",
+        leaseOwner: "repair-worker", leaseGeneration: 2, leaseExpiresAt: "2026-09-17T10:01:00.000Z" })],
+    });
+    expect(await service.reconcileStalledImplementations()).toBe(0);
+    vi.spyOn(service, "now").mockReturnValue(new Date("2026-09-17T10:02:00.000Z"));
+    const recover = vi.spyOn(manager, "recover").mockImplementation(() => new Promise<Awaited<ReturnType<EngineeringManagerService["recover"]>>>(() => {}));
+    expect(await service.reconcileStalledImplementations()).toBe(1);
+    expect((await service.controlCenter(ownerId, companyId, created.delivery.id)).blocker)
+      .toMatchObject({ category: "WORKER_CRASHED" });
+    await service.resume(context, created.delivery.id);
+    expect(recover).toHaveBeenCalledExactlyOnceWith(context, objectiveId);
+    view.mockRestore();
+  });
+  it("does not turn a focused existing-project label edit into a responsive redesign", async () => {
+    const { service, manager } = fixture();
+    vi.spyOn(manager, "runReady").mockImplementation(() => new Promise<Awaited<ReturnType<EngineeringManagerService["runReady"]>>>(() => {}));
+    const created = await service.create(context, {
+      request: "Change only the Settings toggle label from Compact layout to Compact view; preserve all other page content.",
+      repositoryId, developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "focused-existing-label-criteria",
+    });
+    const objective = (await manager.view(ownerId, companyId, created.delivery.objectiveId)).objective;
+    expect(objective.acceptanceCriteria).not.toContain("The interface is responsive and preserves basic accessibility.");
+  });
+  it("fences stale integration and retries its existing run without repeating completed tasks", async () => {
+    const { service, store, managerRunReady, integrationExecute } = fixture();
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "stalled-integration-recovery",
+    });
+    await vi.waitFor(() => expect(store.find(ownerId, companyId, created.delivery.id)?.status).toMatch(/DONE/));
+    const completed = store.find(ownerId, companyId, created.delivery.id)!;
+    store.save(EngineeringDeliverySchema.parse({
+      ...completed, status: "INTEGRATING", candidateId: null,
+      updatedAt: "2026-09-17T09:55:00.000Z",
+    }));
+    const integration = service.integration;
+    vi.spyOn(integration, "view").mockResolvedValue({
+      run: {
+        id: runId, objectiveId, repositoryId, status: "INTEGRATING",
+        leaseExpiresAt: "2026-09-17T09:59:59.000Z",
+        integrationWorkspaceId: workspaceId,
+      }, candidate: null, reviews: [],
+    } as unknown as Awaited<ReturnType<EngineeringIntegrationService["view"]>>);
+    const before = managerRunReady.mock.calls.length;
+    const executions = integrationExecute.mock.calls.length;
+    expect(await service.reconcileStalledImplementations()).toBe(1);
+    const blocked = await service.controlCenter(ownerId, companyId, created.delivery.id);
+    expect(blocked.blocker).toMatchObject({ category: "WORKER_CRASHED" });
+    await service.resume(context, created.delivery.id);
+    await vi.waitFor(() => expect(integrationExecute.mock.calls.length).toBe(executions + 1));
+    expect(managerRunReady).toHaveBeenCalledTimes(before);
+  });
+  it("retains the preview identifier across a stalled preview Retry", async () => {
+    const { service, store, managerRunReady, integrationExecute, gatewayInvoke } = fixture();
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "stalled-preview-recovery",
+    });
+    await vi.waitFor(() => expect(store.find(ownerId, companyId, created.delivery.id)?.status).toMatch(/DONE/));
+    const completed = store.find(ownerId, companyId, created.delivery.id)!;
+    const previewId = completed.preview!.previewId;
+    store.save(EngineeringDeliverySchema.parse({
+      ...completed, status: "PREVIEWING",
+      preview: { ...completed.preview, state: "STARTING", healthStatus: "PENDING" },
+      updatedAt: "2026-09-17T09:55:00.000Z",
+    }));
+    const integrationView = await service.integration.view(ownerId, companyId, runId);
+    vi.spyOn(service.integration, "view").mockResolvedValue({
+      ...integrationView,
+      run: { ...integrationView.run, objectiveId, repositoryId },
+    });
+    const tasksBefore = managerRunReady.mock.calls.length;
+    const integrationsBefore = integrationExecute.mock.calls.length;
+    const previewsBefore = gatewayInvoke.mock.calls.length;
+    expect(await service.reconcileStalledImplementations()).toBe(1);
+    expect((await service.controlCenter(ownerId, companyId, created.delivery.id)).blocker)
+      .toMatchObject({ category: "WORKER_CRASHED" });
+    await service.resume(context, created.delivery.id);
+    await vi.waitFor(() => expect(gatewayInvoke.mock.calls.length).toBe(previewsBefore + 1));
+    expect(gatewayInvoke).toHaveBeenLastCalledWith(expect.objectContaining({
+      capability: "repository.dev_server_start",
+      operationInput: expect.objectContaining({ previewId }) as unknown,
+    }));
+    expect(managerRunReady).toHaveBeenCalledTimes(tasksBefore);
+    expect(integrationExecute).toHaveBeenCalledTimes(integrationsBefore);
   });
   it("shows the model failure even when a dependent blocked task appears first", async () => {
     const { service, manager } = fixture();
@@ -617,7 +794,10 @@ describe("EngineeringDeliveryService", () => {
       message: "OpenAI request timed out.",
     });
   });
-  it("offers a scoped Retry for the stale-head repair replay failure", async () => {
+  it.each([
+    ["The reviewed integration head changed before applying its scoped repair.", "INTEGRATION_REPAIR_PENDING"],
+    ["Prepared task files differ from the validated task result.", "INTEGRATION_EVIDENCE_MISMATCH"],
+  ])("offers a scoped Retry for integration recovery: %s", async (warning, category) => {
     const { service, store } = fixture();
     const created = await service.create(context, {
       request: "Build a responsive SaaS website.", repositoryId,
@@ -630,13 +810,22 @@ describe("EngineeringDeliveryService", () => {
     });
     store.save(EngineeringDeliverySchema.parse({
       ...created.delivery, status: "FAILED", integrationRunId: runId,
-      warnings: ["The reviewed integration head changed before applying its scoped repair."],
+      warnings: [warning],
     }));
+    vi.spyOn(service.integration, "view").mockResolvedValue({
+      run: { id: runId, status: "FAILED", objectiveId: created.delivery.objectiveId, repositoryId },
+      candidate: null,
+    } as unknown as Awaited<ReturnType<EngineeringIntegrationService["view"]>>);
     const blocked = await service.controlCenter(ownerId, companyId, created.delivery.id);
     expect(blocked.blocker).toMatchObject({
-      category: "INTEGRATION_REPAIR_PENDING",
-      message: "A reviewed repair is ready to integrate from its recorded base commit.",
+      category,
     });
+    const executeTask = vi.spyOn(service.manager, "runReady");
+    await service.resume(context, created.delivery.id);
+    await vi.waitFor(() => {
+      expect(["DONE", "DONE_WITH_WARNINGS"]).toContain(store.find(ownerId, companyId, created.delivery.id)?.status);
+    });
+    expect(executeTask).not.toHaveBeenCalled();
   });
   it("surfaces the independent finding after the bounded repair limit", async () => {
     const { service, store } = fixture();
@@ -939,6 +1128,56 @@ describe("EngineeringDeliveryService", () => {
     expect(notificationDispatch.mock.calls[0]?.[0].title).toContain("validation PASS");
   });
 
+  it("stops the elapsed clock at completion rather than growing after a refresh", async () => {
+    let currentTime = new Date(at);
+    const { service, store } = fixture(() => currentTime);
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS landing website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "elapsed-terminal-clock",
+    });
+    await vi.waitFor(() => expect(store.find(ownerId, companyId, created.delivery.id)?.status).toBe("DONE"));
+    const first = await service.controlCenter(ownerId, companyId, created.delivery.id);
+    currentTime = new Date("2026-09-20T10:00:00.000Z");
+    const refreshed = await service.controlCenter(ownerId, companyId, created.delivery.id);
+    expect(refreshed.elapsedMs).toBe(first.elapsedMs);
+  });
+
+  it("does not publish a late preview result after the owner cancels", async () => {
+    const { service, store, gatewayInvoke } = fixture();
+    let releasePreview!: () => void;
+    const held = new Promise<void>((resolve) => { releasePreview = resolve; });
+    gatewayInvoke.mockImplementationOnce(async () => {
+      await held;
+      return { output: {
+        previewId: "c0000000-0000-4000-8000-000000000012",
+        serverId: "vite", state: "RUNNING", pid: 321, port: 4173,
+        url: "http://localhost:4173", healthStatus: "PASS",
+        startedAt: at, checkedAt: at, expiresAt: "2026-09-17T11:00:00.000Z",
+        failureSummary: null,
+      } };
+    });
+    gatewayInvoke.mockResolvedValueOnce({ output: {
+      previewId: "c0000000-0000-4000-8000-000000000012",
+      serverId: "vite", state: "STOPPED", pid: 321, port: 4173,
+      url: "http://localhost:4173", healthStatus: "FAIL",
+      startedAt: at, checkedAt: at, expiresAt: "2026-09-17T11:00:00.000Z",
+      failureSummary: null,
+    } });
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS landing website.", repositoryId,
+      developmentRootWorkspaceId: null, projectName: "SaaS site",
+      acceptanceCriteria: [], constraints: [], deadlineAt: null,
+      visibleMode: false, idempotencyKey: "late-preview-cancellation",
+    });
+    await vi.waitFor(() => expect(store.find(ownerId, companyId, created.delivery.id)?.status).toBe("PREVIEWING"));
+    await service.cancel(context, created.delivery.id);
+    releasePreview();
+    await vi.waitFor(() => expect(store.find(ownerId, companyId, created.delivery.id)?.status).toBe("CANCELLED"));
+    expect(store.find(ownerId, companyId, created.delivery.id)?.preview?.state).toBe("STOPPED");
+  });
+
   it("retries preview startup from the same reviewed candidate without rerunning integration", async () => {
     const { service, store, integrationExecute, gatewayInvoke } = fixture();
     const created = await service.create(context, {
@@ -1060,5 +1299,43 @@ describe("EngineeringDeliveryService", () => {
     expect(gatewayInvoke).toHaveBeenCalledWith(
       expect.objectContaining({ capability: "repository.dev_server_stop" }),
     );
+  });
+
+  it("preserves preview server identity after an agent relaunch and repairs an older unknown identity", async () => {
+    const { service, store, gatewayInvoke } = fixture();
+    const created = await service.create(context, {
+      request: "Build a responsive SaaS landing website with pricing and FAQ.",
+      repositoryId,
+      developmentRootWorkspaceId: null,
+      projectName: "SaaS site",
+      acceptanceCriteria: [],
+      constraints: [],
+      deadlineAt: null,
+      visibleMode: false,
+      idempotencyKey: "delivery-preview-agent-relaunch",
+    });
+    await vi.waitFor(() => {
+      expect(store.find(ownerId, companyId, created.delivery.id)?.preview?.serverId).toBe("vite");
+    });
+    const originalPreview = store.find(ownerId, companyId, created.delivery.id)!.preview!;
+    gatewayInvoke.mockResolvedValueOnce({
+      output: { ...originalPreview, state: "STOPPED", serverId: "unknown", healthStatus: "FAIL" },
+    } as unknown as Awaited<ReturnType<typeof gatewayInvoke>>);
+    const stopped = await service.previewControl(context, created.delivery.id, "stop");
+    expect(stopped.delivery.preview?.serverId).toBe("vite");
+
+    store.save(EngineeringDeliverySchema.parse({
+      ...stopped.delivery,
+      preview: { ...stopped.delivery.preview!, serverId: "unknown" },
+    }));
+    gatewayInvoke.mockResolvedValueOnce({
+      output: { ...originalPreview, state: "RUNNING", healthStatus: "PASS" },
+    } as unknown as Awaited<ReturnType<typeof gatewayInvoke>>);
+    const restarted = await service.previewControl(context, created.delivery.id, "restart");
+    expect(restarted.delivery.preview?.serverId).toBe("vite");
+    expect(gatewayInvoke).toHaveBeenLastCalledWith(expect.objectContaining({
+      capability: "repository.dev_server_restart",
+      operationInput: expect.objectContaining({ serverId: "vite" }) as unknown,
+    }));
   });
 });

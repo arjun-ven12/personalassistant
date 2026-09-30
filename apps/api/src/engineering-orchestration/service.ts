@@ -28,6 +28,7 @@ import type { AgentStore } from "../agents/store.js";
 import { companyScope } from "../companies/scope.js";
 import type { GovernanceAuditWriter } from "../governance/approval-service.js";
 import type { EngineeringRuntimeStore } from "../engineering-runtime/store.js";
+import { validationFailureSummary } from "./ai-worker.js";
 import type { EngineeringOrchestrationStore } from "./store.js";
 
 type ArtifactType = z.infer<typeof EngineeringArtifactTypeSchema>;
@@ -216,6 +217,7 @@ export interface EngineeringMemoryGateway {
     repositoryId: string;
     agentId: string;
     taskId: string;
+    taskContext?: string;
   }): Promise<{ refs: string[]; summaries: string[] }>;
   promote(input: {
     ownerId: string;
@@ -990,7 +992,7 @@ export class EngineeringManagerService {
         const pendingWorkspace = await this.runtimeStore.findWorkspaceByIdempotencyKey(context.ownerId, context.companyId, task.repositoryId, task.id);
         if (
           task.status === "BLOCKED" &&
-          (["MODEL_FAILURE", "ENVIRONMENT_FAILURE", "IMPLEMENTATION_ERROR"].includes(
+          (["MODEL_FAILURE", "ENVIRONMENT_FAILURE", "IMPLEMENTATION_ERROR", "TEST_FAILURE"].includes(
             task.lastFailureCategory ?? "",
           ) || (pendingWorkspace && ["CREATING", "READY", "DIRTY"].includes(pendingWorkspace.state))) &&
           task.assignedAgentId
@@ -1011,7 +1013,9 @@ export class EngineeringManagerService {
                 ? 3
                 : Math.min(4, Math.max(task.maxAttempts, task.attempt + 1)),
               lastFailureCategory: null,
-              lastFailureSummary: null,
+              // Keep the exact bounded diagnostic in the next worker context.
+              // Clearing it here makes owner Retry repeat the failed edit blind.
+              lastFailureSummary: task.lastFailureSummary,
               updatedAt: this.now().toISOString(),
             }),
           );
@@ -1042,7 +1046,7 @@ export class EngineeringManagerService {
             attempt: task.attempt >= task.maxAttempts ? 0 : task.attempt,
             maxAttempts: task.attempt >= task.maxAttempts ? 3 : Math.min(4, Math.max(task.maxAttempts, task.attempt + 1)),
             lastFailureCategory: null,
-            lastFailureSummary: null,
+            lastFailureSummary: task.lastFailureSummary,
             updatedAt: this.now().toISOString(),
           }),
         );
@@ -1992,6 +1996,9 @@ export class EngineeringManagerService {
   ) {
     const text =
       `${objective.title} ${objective.description} ${objective.acceptanceCriteria.join(" ")}`.toLowerCase();
+    // Negative constraints describe what must *not* be assigned. Keep them in
+    // the task context, but exclude their clause from role/capability inference.
+    const requestedActions = text.replace(/\b(?:do not|don't|no|without)\b[^.!?;\n]*/g, "");
     const tinyEdit =
       objective.riskLevel !== "HIGH" &&
       objective.riskLevel !== "CRITICAL" &&
@@ -2081,7 +2088,7 @@ export class EngineeringManagerService {
           ],
           risk: "MEDIUM",
         });
-      if (/schema|database|migration|table|postgres|sql/.test(text))
+      if (/\b(?:schema|database|migration|table|postgres|sql)\b/.test(requestedActions))
         add({
           key: "database",
           title: "Implement database changes",
@@ -2101,8 +2108,8 @@ export class EngineeringManagerService {
           risk: "HIGH",
         });
       if (
-        /api|endpoint|backend|server|service|preference|auth|billing|permission/.test(
-          text,
+        /\b(?:api|endpoint|backend|server|service|preference|auth|billing|permission)\b/.test(
+          requestedActions,
         )
       )
         add({
@@ -2124,7 +2131,7 @@ export class EngineeringManagerService {
             "repository.validate",
           ],
         });
-      if (/ui|frontend|web|component|page|screen/.test(text))
+      if (/\b(?:ui|frontend|web|component|page|screen|settings|layout)\b/.test(requestedActions))
         add({
           key: "frontend",
           title: "Implement frontend behavior",
@@ -2144,7 +2151,7 @@ export class EngineeringManagerService {
             "repository.validate",
           ],
         });
-      if (/android|mobile/.test(text))
+      if (/\b(?:android|mobile)\b/.test(requestedActions))
         add({
           key: "mobile",
           title: "Implement mobile behavior",
@@ -2162,7 +2169,7 @@ export class EngineeringManagerService {
             "repository.validate",
           ],
         });
-      if (/mac|native|electron/.test(text))
+      if (/\b(?:mac|native|electron)\b/.test(requestedActions))
         add({
           key: "mac",
           title: "Implement Mac/native behavior",
@@ -2180,7 +2187,7 @@ export class EngineeringManagerService {
             "repository.validate",
           ],
         });
-      if (/infra|docker|pipeline|ci/.test(text))
+      if (/\b(?:infrastructure|infra|docker|pipeline|ci)\b/.test(requestedActions))
         add({
           key: "infrastructure",
           title: "Implement development infrastructure change",
@@ -2398,6 +2405,20 @@ export class EngineeringManagerService {
     )
       .filter((artifact) => task.dependencies.includes(artifact.taskId))
       .slice(0, 50);
+    const priorValidation = task.workspaceId && task.lastFailureSummary
+      ? await this.runtimeStore.findLatestValidationForWorkspace(
+          objective.ownerId,
+          objective.companyId,
+          task.workspaceId,
+        )
+      : undefined;
+    const failedStep = priorValidation?.steps.find((step) =>
+      (step.status === "FAIL" || step.status === "ERROR") && step.result,
+    );
+    const priorFailureSummaries = [
+      ...(task.lastFailureSummary ? [task.lastFailureSummary] : []),
+      ...(failedStep?.result ? [validationFailureSummary(failedStep.result)] : []),
+    ].filter((summary, index, all) => all.indexOf(summary) === index);
     const memory =
       this.memory && task.assignedAgentId
         ? await companyScope.run(
@@ -2414,6 +2435,11 @@ export class EngineeringManagerService {
                 repositoryId: objective.repositoryId,
                 agentId: task.assignedAgentId!,
                 taskId: task.id,
+                taskContext: [
+                  task.title,
+                  ...task.acceptanceCriteria,
+                  objective.description,
+                ].join(" ").slice(0, 4_000),
               }),
           )
         : { refs: [], summaries: [] };
@@ -2431,7 +2457,7 @@ export class EngineeringManagerService {
       protectedPaths: [
         ...new Set([...repository.protectedPaths, ...objective.protectedAreas]),
       ].slice(0, 100),
-      priorFailureSummaries: task.lastFailureSummary ? [task.lastFailureSummary] : [],
+      priorFailureSummaries,
       memoryRefs: memory.refs,
       memorySummaries: memory.summaries,
       maxTokens:

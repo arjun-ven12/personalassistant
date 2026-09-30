@@ -343,18 +343,16 @@ export class SignedExecutionEngineeringGateway
     workspaceId: string;
     reason: string;
   }) {
-    const requests = await this.executionStore.list(input.ownerId, 500);
+    const requests = await this.executionStore.listActiveForEngineeringWorkspace(
+      input.ownerId,
+      input.workspaceId,
+    );
     for (const request of requests) {
-      const args = request.arguments as { engineeringWorkspaceId?: unknown };
-      if (
-        args.engineeringWorkspaceId === input.workspaceId &&
-        ["PENDING", "CLAIMED", "RUNNING"].includes(request.status)
-      )
-        await this.executionStore.cancel(
-          request.id,
-          input.ownerId,
-          this.now().toISOString(),
-        );
+      await this.executionStore.cancel(
+        request.id,
+        input.ownerId,
+        this.now().toISOString(),
+      );
     }
     void input.reason;
   }
@@ -728,8 +726,12 @@ export class SignedExecutionEngineeringGateway
       ...(input.transport.deviceId ? { deviceId: input.transport.deviceId } : {}),
     });
     const deadline = this.now().getTime() +
-      (input.request.capability === "repository.install_dependencies"
-        ? Math.max(this.waitTimeoutMs, 11 * 60_000)
+      (input.request.capability === "repository.install_dependencies" ||
+        input.request.capability === "repository.add_dependency" ||
+        input.request.capability === "repository.remove_dependency"
+        ? Math.max(this.waitTimeoutMs, 13 * 60_000)
+        : input.request.capability === "repository.run_command"
+          ? Math.max(this.waitTimeoutMs, input.request.input.command.timeoutMs + 60_000)
         : input.request.capability === "repository.dev_server_start" ||
             input.request.capability === "repository.dev_server_restart"
           ? Math.max(this.waitTimeoutMs, 4 * 60_000)
@@ -758,7 +760,11 @@ export class SignedExecutionEngineeringGateway
         throw Object.assign(
           new Error(
             result?.safeMessage ??
-              "The trusted Mac Agent could not complete the engineering operation.",
+              (state.failureCode === "AGENT_HEARTBEAT_LOST"
+                ? "The trusted Mac Agent stopped reporting progress. Check that it is online, then retry this run."
+                : state.failureCode === "EXECUTION_REQUEST_EXPIRED"
+                  ? "The signed operation expired before completion. Check the Mac Agent and retry this run."
+                  : "The trusted Mac Agent could not complete the engineering operation."),
           ),
           {
             code: state.failureCode ?? "ENVIRONMENT_FAILURE",

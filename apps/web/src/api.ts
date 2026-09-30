@@ -431,6 +431,8 @@ import {
   CompanyDataDashboardSchema,
   ResolvedCompanyAgentContextSchema,
   EngineeringControlCenterSchema,
+  EngineeringIntegrationViewSchema,
+  MergeEngineeringCandidateRequestSchema,
   EngineeringDeliverySchema,
   EngineeringProjectRegistryEntrySchema,
   CreateEngineeringProjectSessionRequestSchema,
@@ -504,7 +506,15 @@ const rawRequestAndValidate = async <TSchema extends z.ZodType>(
     );
   }
 
-  return schema.parse(body);
+  const validated = schema.safeParse(body);
+  if (!validated.success) {
+    throw new ApiClientError(
+      response.status,
+      "API_CONTRACT_MISMATCH",
+      "The API response does not match this app version. Refresh the page to load the latest app; if this continues, check the deployment versions.",
+    );
+  }
+  return validated.data;
 };
 
 const jsonBody = (value: unknown, method = "POST"): RequestInit => ({
@@ -613,6 +623,19 @@ export const createApiClient = (baseUrl: string) => {
         baseUrl,
         `/api/engineering-deliveries/${encodeURIComponent(id)}`,
         EngineeringControlCenterSchema,
+      ),
+    getEngineeringIntegration: (runId: string) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/engineering-integrations/${encodeURIComponent(runId)}`,
+        EngineeringIntegrationViewSchema,
+      ),
+    mergeEngineeringCandidate: (runId: string, input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/engineering-integrations/${encodeURIComponent(runId)}/merge`,
+        EngineeringIntegrationViewSchema,
+        jsonBody(MergeEngineeringCandidateRequestSchema.parse(input)),
       ),
     createSoftwareObjective: (input: unknown) =>
       requestAndValidate(

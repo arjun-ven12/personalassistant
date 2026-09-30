@@ -1,10 +1,11 @@
 import { mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   BLOCKED_WORKSPACE_PATTERNS,
+  EngineeringTransportRequestSchema,
   canonicalizeExecutionPayload,
   canonicalizeSignedCommand,
 } from "@alexa-control/shared";
@@ -17,17 +18,20 @@ import { RegistryService } from "../governance/registry-service.js";
 import { RiskEngine } from "../governance/risk-engine.js";
 import { InMemoryGovernanceStore } from "../governance/store.js";
 import { InMemoryIdentityStore } from "../identity/store.js";
-import { ExecutionService } from "./service.js";
+import { ExecutionService, runningExecutionTtlSeconds } from "./service.js";
 import { ServerExecutionSigner } from "./server-key-store.js";
 import { InMemoryExecutionStore } from "./store.js";
 
-const setup = async (emergencyStopActive = false) => {
+const setup = async (
+  emergencyStopActive = false,
+  onGovernedInteractionSettled?: ConstructorParameters<typeof ExecutionService>[8],
+) => {
   const identity = new InMemoryIdentityStore();
   const governanceStore = new InMemoryGovernanceStore(
     BUILT_IN_TOOLS,
     emergencyStopActive,
   );
-  const audit = () => undefined;
+  const audit = vi.fn<ConstructorParameters<typeof ExecutionService>[3]>(() => undefined);
   const approvals = new ApprovalService(governanceStore, audit);
   const registry = new RegistryService(governanceStore);
   const governance = new GovernanceService(
@@ -103,17 +107,48 @@ const setup = async (emergencyStopActive = false) => {
     governanceStore,
     approvals,
     store,
+    audit,
     service: new ExecutionService(store, identity, governance, audit, signer, true, {
       requestTtlSeconds: 120,
       resultRetentionSeconds: 300,
       maxFileReadBytes: 1_024,
       maxExecutionResultBytes: 16_384,
       maxRepositoryScanResultBytes: 524_288,
-    }),
+    }, undefined, onGovernedInteractionSettled),
   };
 };
 
 describe("ExecutionService policy integration", () => {
+  it("keeps signed requests valid through registered bounded commands and validation", () => {
+    const command = EngineeringTransportRequestSchema.parse({
+      schemaVersion: "1", companyId: crypto.randomUUID(), repositoryId: crypto.randomUUID(),
+      engineeringWorkspaceId: crypto.randomUUID(), workspaceLocatorId: "eng-test",
+      worktreeLocator: "ew-test", taskId: crypto.randomUUID(), agentId: crypto.randomUUID(),
+      operationId: crypto.randomUUID(), idempotencyKey: crypto.randomUUID(),
+      requestId: crypto.randomUUID(), capability: "repository.run_command",
+      input: { command: { id: "test", executable: "pnpm", args: ["run", "test"],
+        kind: "TEST", timeoutMs: 180_000, maxOutputBytes: 16_384,
+        networkPolicy: "DENY" } },
+    });
+    expect(runningExecutionTtlSeconds(120, {
+      toolName: "engineering.repository_capability", arguments: command,
+    })).toBe(240);
+    expect(runningExecutionTtlSeconds(120, {
+      toolName: "workspace.validate_profile",
+      arguments: { workspaceId: "project", validationRunId: crypto.randomUUID(),
+        repositoryGeneration: null, profiles: [
+          { id: "pnpm_test", label: "Tests", category: "test", commandDisplay: "pnpm test",
+            timeoutMs: 120_000, network: "disabled", immutable: true },
+          { id: "pnpm_build", label: "Build", category: "build", commandDisplay: "pnpm build",
+            timeoutMs: 120_000, network: "disabled", immutable: true },
+        ] },
+    })).toBe(300);
+    expect(runningExecutionTtlSeconds(120, {
+      toolName: "engineering.repository_capability",
+      arguments: EngineeringTransportRequestSchema.parse({ ...command,
+        capability: "repository.install_dependencies", input: { packageManager: "pnpm" } }),
+    })).toBe(720);
+  });
   it("reuses only an exact approved worktree creation across retries", async () => {
     const { service, approvals, ownerId } = await setup();
     const request = {
@@ -286,18 +321,138 @@ describe("ExecutionService policy integration", () => {
       devicePrivateKey,
       new TextEncoder().encode(canonicalizeSignedCommand(wrapper)),
     );
-    expect(
-      await service.acceptResult(ownerId, {
-        ...unsignedResult,
-        deviceSignature: Buffer.from(signature).toString("base64url"),
-      }),
-    ).toMatchObject({ status: "SUCCEEDED" });
+    const signedResult = {
+      ...unsignedResult,
+      deviceSignature: Buffer.from(signature).toString("base64url"),
+    };
+    vi.spyOn(store, "completeWithResult").mockImplementationOnce(() => {
+      throw new Error("simulated crash after nonce reservation");
+    });
+    await expect(service.acceptResult(ownerId, signedResult))
+      .rejects.toThrow("simulated crash after nonce reservation");
+    expect(store.getResult(request.id)).toBeUndefined();
+    const commit = store.completeWithResult.bind(store);
+    vi.spyOn(store, "completeWithResult").mockImplementationOnce((...args) => {
+      commit(...args); // A concurrent signed retry committed after our first receipt read.
+      return undefined;
+    });
+    await expect(service.acceptResultDetailed(ownerId, signedResult))
+      .resolves.toMatchObject({ alreadyAccepted: true, request: { status: "SUCCEEDED" } });
+    const terminalRequest = store.find(request.id)!;
+    vi.spyOn(store, "find").mockReturnValueOnce({
+      ...terminalRequest,
+      status: "RUNNING",
+    });
     await expect(
-      service.acceptResult(ownerId, {
-        ...unsignedResult,
-        deviceSignature: Buffer.from(signature).toString("base64url"),
-      }),
-    ).rejects.toMatchObject({ code: "DUPLICATE_NONCE" });
+      service.acceptResultDetailed(ownerId, signedResult),
+    ).resolves.toMatchObject({ alreadyAccepted: true, request: { status: "SUCCEEDED" } });
+    expect(store.getResult(request.id)).toMatchObject({
+      commandId: unsignedResult.commandId,
+      resultDigest: unsignedResult.resultDigest,
+    });
+    const conflicting = { ...unsignedResult, commandId: crypto.randomUUID(), nonce: crypto.randomUUID() };
+    const conflictingSignature = await webcrypto.subtle.sign(
+      "Ed25519",
+      devicePrivateKey,
+      new TextEncoder().encode(canonicalizeSignedCommand({
+        ...wrapper,
+        commandId: conflicting.commandId,
+        nonce: conflicting.nonce,
+        payload: conflicting,
+      })),
+    );
+    await expect(service.acceptResult(ownerId, {
+      ...conflicting,
+      deviceSignature: Buffer.from(conflictingSignature).toString("base64url"),
+    })).rejects.toMatchObject({ code: "EXECUTION_RESULT_CONFLICT" });
+  });
+
+  it("replays idempotent conversation settlement after a signed native receipt was stored", async () => {
+    const settlement = vi.fn()
+      .mockRejectedValueOnce(new Error("crash after receipt commit"))
+      .mockResolvedValueOnce(undefined);
+    const { service, store, audit, ownerId, deviceId, devicePrivateKey } =
+      await setup(false, settlement);
+    const now = new Date();
+    const executionRequestId = crypto.randomUUID();
+    const interactionProposalId = crypto.randomUUID();
+    store.create({
+      id: executionRequestId,
+      ownerId,
+      deviceId,
+      actionId: crypto.randomUUID(),
+      policyEvaluationId: crypto.randomUUID(),
+      toolName: "native.provider_capability",
+      workspaceId: "native-provider-test",
+      arguments: {
+        providerId: "provider.chrome",
+        applicationId: "chrome",
+        capability: "open_url",
+        interactionProposalId,
+        arguments: {},
+      },
+      workspaceRootPath: "/__native_provider__/test",
+      blockedPatterns: [],
+      actionDigest: "a".repeat(64),
+      status: "RUNNING",
+      createdAt: now.toISOString(),
+      expiresAt: new Date(now.getTime() + 120_000).toISOString(),
+      claimedAt: now.toISOString(),
+      startedAt: now.toISOString(),
+      completedAt: null,
+      cancellationRequestedAt: null,
+      failureCode: null,
+      attemptCount: 1,
+    });
+    const unsignedResult = {
+      commandId: crypto.randomUUID(),
+      executionRequestId,
+      deviceId,
+      toolName: "native.provider_capability" as const,
+      status: "FAILED" as const,
+      failureCode: "PROVIDER_UNAVAILABLE",
+      startedAt: now.toISOString(),
+      completedAt: now.toISOString(),
+      durationMs: 0,
+      truncated: false,
+      resultDigest: createHash("sha256")
+        .update(canonicalizeExecutionPayload(null)).digest("hex"),
+      nonce: crypto.randomUUID(),
+    };
+    const signature = await webcrypto.subtle.sign(
+      "Ed25519",
+      devicePrivateKey,
+      new TextEncoder().encode(canonicalizeSignedCommand({
+        commandId: unsignedResult.commandId,
+        deviceId,
+        issuedAt: unsignedResult.startedAt,
+        expiresAt: new Date(now.getTime() + 120_000).toISOString(),
+        nonce: unsignedResult.nonce,
+        payload: unsignedResult,
+        signatureAlgorithm: "Ed25519",
+        protocolVersion: "1",
+      })),
+    );
+    const signedResult = {
+      ...unsignedResult,
+      deviceSignature: Buffer.from(signature).toString("base64url"),
+    };
+    await expect(service.acceptResultDetailed(ownerId, signedResult))
+      .rejects.toThrow("crash after receipt commit");
+    expect(store.getResult(executionRequestId)).toMatchObject({
+      commandId: unsignedResult.commandId,
+    });
+    await expect(service.acceptResultDetailed(ownerId, signedResult))
+      .resolves.toMatchObject({ alreadyAccepted: true });
+    expect(settlement).toHaveBeenCalledTimes(2);
+    expect(audit.mock.calls.some(([event]) => event.eventType === "EXECUTION_FAILED" &&
+      event.metadata?.executionRequestId === executionRequestId && event.metadata.receiptReplay === true)).toBe(true);
+    expect(settlement).toHaveBeenLastCalledWith({
+      ownerId,
+      proposalId: interactionProposalId,
+      executionRequestId,
+      status: "FAILED",
+    });
   });
 
   it("fails closed for emergency stop, public network, and blocked files", async () => {

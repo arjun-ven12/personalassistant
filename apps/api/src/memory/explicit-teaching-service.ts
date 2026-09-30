@@ -8,11 +8,10 @@ import {
 import type { PersonalKnowledgeGraphService } from "../knowledge-graph/service.js";
 import type { MemoryStore } from "./store.js";
 import type { MemoryIndexerService } from "./service.js";
+import { hasSensitiveMemoryContent } from "./sensitive-content.js";
 
 const explicitPrefix =
   /^(?:please\s+)?(?:remember(?:\s+that)?|note\s+that|save\s+this\s+to\s+memory|remember\s+this\s+for\s+later)\s*[:,-]?\s*/i;
-const secretPattern =
-  /\b(?:password|passcode|api[ _-]?key|access[ _-]?token|private[ _-]?key|secret|session[ _-]?cookie|recovery[ _-]?code|one[ _-]?time(?:[ _-]?password|[ _-]?code)|\botp\b)\b|(?:sk-|ghp_|akia)[a-z0-9_-]{8,}/i;
 
 const normalize = (value: string) =>
   value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
@@ -75,7 +74,7 @@ export class ExplicitMemoryTeachingService {
     reference?: ExplicitMemoryReference | null;
   }) {
     const parsed = ExplicitMemoryInputSchema.parse(input.body);
-    if (secretPattern.test(parsed.content)) {
+    if (hasSensitiveMemoryContent(parsed.content)) {
       const error = new Error("Sensitive credentials and security codes cannot be saved to memory.");
       Object.assign(error, { statusCode: 400, code: "SENSITIVE_MEMORY_CONTENT_DENIED" });
       throw error;

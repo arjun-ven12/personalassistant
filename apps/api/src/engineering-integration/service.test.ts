@@ -51,6 +51,8 @@ class FakeGateway implements EngineeringIntegrationGateway {
   integrationBranch = "";
   readonly filesByTask = new Map<string, string>();
   readonly extraFilesByTask = new Map<string, string[]>();
+  readonly preparedHeads = new Map<string, string>();
+  sourceHeadChanged = false;
   validations = 0;
   failFinalValidation = false;
   failValidationCalls = new Set<number>();
@@ -104,16 +106,19 @@ class FakeGateway implements EngineeringIntegrationGateway {
       return Promise.resolve({
         output: { baseCommit: this.currentBase, branch: "main", dirty: false },
       });
-    if (input.capability === "repository.worktree_inspect")
+    if (input.capability === "repository.worktree_inspect") {
+      const sourceHead = this.preparedHeads.get(input.workspaceId!);
+      const workspace = this.runtime.findWorkspace(ownerId, companyId, input.workspaceId!);
       return Promise.resolve({
         output: {
           exists: true,
           baseCommit,
-          headCommit: this.headCommit,
-          branch: this.integrationBranch,
+          headCommit: sourceHead ? (this.sourceHeadChanged ? "f".repeat(40) : sourceHead) : this.headCommit,
+          branch: sourceHead ? workspace?.branchName : this.integrationBranch,
           dirty: false,
         },
       });
+    }
     if (input.capability === "repository.git_status") {
       const workspace = this.runtime.findWorkspace(
         ownerId,
@@ -144,17 +149,17 @@ class FakeGateway implements EngineeringIntegrationGateway {
         truncated: false,
         redactions: [],
       } });
-    if (input.capability === "repository.prepare_commit")
+    if (input.capability === "repository.prepare_commit") {
+      const commit = String(input.operationInput.taskId).replaceAll("-", "").padEnd(40, "b").slice(0, 40);
+      this.preparedHeads.set(input.workspaceId!, commit);
       return Promise.resolve({
         output: {
-          commit: String(input.operationInput.taskId)
-            .replaceAll("-", "")
-            .padEnd(40, "b")
-            .slice(0, 40),
-          files: [this.filesByTask.get(String(input.operationInput.taskId))],
+          commit,
+          files: [this.filesByTask.get(input.taskId), ...(this.extraFilesByTask.get(input.taskId) ?? [])],
           redactions: [],
         },
       });
+    }
     if (input.capability === "repository.integrate_commit") {
       const commit = String(input.operationInput.commit);
       if (this.appliedCommits.has(commit))
@@ -197,8 +202,9 @@ class FakeGateway implements EngineeringIntegrationGateway {
       this.validations += 1;
       const failed = this.failFinalValidation && this.validations === 2 ||
         this.failValidationCalls.has(this.validations);
+      const validationReportId = crypto.randomUUID();
       this.runtime.saveValidation(EngineeringValidationReportSchema.parse({
-        id: "90000000-0000-4000-8000-000000000009",
+        id: validationReportId,
         workspaceId: input.workspaceId,
         status: failed ? "FAIL" : "PASS",
         steps: [],
@@ -208,7 +214,7 @@ class FakeGateway implements EngineeringIntegrationGateway {
       return Promise.resolve({
         output: {},
         validationStatus: failed ? ("FAIL" as const) : ("PASS" as const),
-        validationReportId: "90000000-0000-4000-8000-000000000009",
+        validationReportId,
       });
     }
     if (input.capability === "repository.merge_candidate") {
@@ -231,7 +237,7 @@ class FakeGateway implements EngineeringIntegrationGateway {
       return Promise.resolve({
         output: {
           patch: "diff --git a/src/change-0.ts b/src/change-0.ts\n+validated change",
-          files: [...new Set(this.filesByTask.values())].map((path) => ({
+          files: [...new Set([...this.filesByTask.values(), ...[...this.extraFilesByTask.values()].flat()])].map((path) => ({
             path,
             additions: 1,
             deletions: 0,
@@ -554,6 +560,43 @@ const completeRepair = (fixture: Awaited<ReturnType<typeof setup>>, taskId: stri
 };
 
 describe("EngineeringIntegrationService", () => {
+  it.each(["pass", "validation-failure", "moved-head"])(
+    "revalidates an underreported prepared repair commit and fails closed: %s", async (scenario) => {
+      const fixture = await setup();
+      attachRepairManager(fixture);
+      fixture.reviewer.verdict = "CHANGES_REQUIRED";
+      const created = await fixture.service.create(context, {
+        objectiveId: fixture.objectiveId, idempotencyKey: `prepared-repair-${scenario}`,
+      });
+      const first = await fixture.service.execute(context, created.run.id, "initial-review");
+      const repairId = first.run.repairTaskIds.at(-1)!;
+      completeRepair(fixture, repairId, "tests/app.test.mjs");
+      fixture.gateway.extraFilesByTask.set(repairId, ["src/settings.tsx", "src/styles.css"]);
+      fixture.reviewer.verdict = "PASS";
+      if (scenario === "validation-failure")
+        fixture.gateway.failValidationCalls.add(fixture.gateway.validations + 1);
+      if (scenario === "moved-head") fixture.gateway.sourceHeadChanged = true;
+      const before = fixture.gateway.integrations;
+      if (scenario !== "pass") {
+        await expect(fixture.service.execute(context, created.run.id, "repair-check"))
+          .rejects.toMatchObject({ code: "INTEGRATION_NOT_READY" });
+        expect(fixture.gateway.integrations).toBe(before);
+        const unchanged = fixture.orchestration.listResults(ownerId, companyId, fixture.objectiveId)
+          .find((result) => result.taskId === repairId)!;
+        expect(unchanged.filesChanged).toEqual(["tests/app.test.mjs"]);
+        fixture.gateway.failValidationCalls.clear();
+        fixture.gateway.sourceHeadChanged = false;
+      }
+      const ready = await fixture.service.execute(context, created.run.id, "same-repair-retry");
+      expect(ready.run.status).toBe("READY");
+      expect(fixture.gateway.integrations).toBe(before + 1);
+      expect(ready.run.changeMap.find((entry) => entry.path === "src/settings.tsx")?.taskIds).toContain(repairId);
+      const result = fixture.orchestration.listResults(ownerId, companyId, fixture.objectiveId)
+        .find((item) => item.taskId === repairId)!;
+      expect(result.filesChanged).toEqual(["src/settings.tsx", "src/styles.css", "tests/app.test.mjs"]);
+      expect(result.warnings).toContain("Prepared retry commit paths reconciled against a fresh signed validation.");
+    });
+
   it("reconciles earlier retry edits only after signed source revalidation", async () => {
     const fixture = await setup();
     const task = fixture.tasks[0]!;
@@ -742,6 +785,10 @@ describe("EngineeringIntegrationService", () => {
     await approveMerge(service, approvals, created.run.id, "merge-once-key");
     const merged = await service.merge(context, created.run.id, { idempotencyKey: "merge-once-key" });
     expect(merged.candidate).toMatchObject({ status: "MERGED", mergedHeadCommit: ready.candidate?.headCommit });
+    const workspaceAgent = gateway.runtime.findWorkspace(ownerId, companyId, ready.run.integrationWorkspaceId)?.agentId;
+    expect(workspaceAgent).toBe(authorId);
+    expect(gateway.calls.filter((call) => call.workspaceId === ready.run.integrationWorkspaceId)
+      .every((call) => call.agentId === workspaceAgent)).toBe(true);
     expect(gateway.merges).toBe(1);
     expect((await service.merge(context, created.run.id, { idempotencyKey: "merge-once-key" })).candidate?.id)
       .toBe(merged.candidate?.id);

@@ -1,10 +1,11 @@
 import { parseWebEnvironment } from "@alexa-control/config";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { App } from "./App.js";
 import { createApiClient } from "./api.js";
+import { expireSessionQueryCache } from "./sessionQueryCache.js";
 import "./styles.css";
 
 declare global {
@@ -19,7 +20,9 @@ const environment = parseWebEnvironment({
   ...(runtimeApiBaseUrl ? { VITE_API_BASE_URL: runtimeApiBaseUrl } : {}),
 });
 const apiClient = createApiClient(environment.VITE_API_BASE_URL);
-const queryClient = new QueryClient({
+const queryClient: QueryClient = new QueryClient({
+  queryCache: new QueryCache({ onError: (error) => expireSessionQueryCache(queryClient, error) }),
+  mutationCache: new MutationCache({ onError: (error) => expireSessionQueryCache(queryClient, error) }),
   defaultOptions: {
     queries: {
       retry: 1,

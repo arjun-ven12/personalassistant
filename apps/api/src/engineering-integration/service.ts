@@ -376,9 +376,16 @@ export class EngineeringIntegrationService {
       if (reviews.some((review) =>
         [liveCandidate.reviewReportId, liveCandidate.securityReviewId].includes(review.id) && authorIds.has(review.reviewerAgentId)))
         throw new EngineeringIntegrationError("MERGE_DENIED", "Authoring engineering identity cannot provide sole review authority.");
-      const agentId = repository.authorizedAgentIds.find((id) => !authorIds.has(id)) ?? repository.authorizedAgentIds[0];
-      if (!agentId)
-        throw new EngineeringIntegrationError("REPOSITORY_NOT_AUTHORIZED", "No repository-authorized merge agent identity is available.");
+      const integrationWorkspace = await this.runtime.findWorkspace(
+        context.ownerId, context.companyId, claimed.integrationWorkspaceId,
+      );
+      const agentId = integrationWorkspace?.agentId;
+      // Execution must retain the workspace's registered identity. Independent
+      // review authority is checked above, not assigned by impersonating a reviewer.
+      if (!agentId || integrationWorkspace.repositoryId !== repository.id ||
+          integrationWorkspace.taskId !== claimed.objectiveId ||
+          !repository.authorizedAgentIds.includes(agentId))
+        throw new EngineeringIntegrationError("REPOSITORY_NOT_AUTHORIZED", "The integration workspace has no matching repository-authorized execution identity.");
       await this.assertHead(context, claimed, agentId, liveCandidate.headCommit, controller.signal);
       const inspected = await this.gateway.invoke({
         ownerId: context.ownerId, companyId: context.companyId, repositoryId: repository.id,
@@ -800,7 +807,7 @@ export class EngineeringIntegrationService {
         if (run.repairTaskIds.length)
           return this.view(context.ownerId, context.companyId, run.id);
       }
-      if (claimed.status === "REPAIRING") {
+      if (claimed.status === "REPAIRING" || claimed.status === "FAILED") {
         const pendingId = [...run.repairTaskIds].reverse().find((id) => !run.taskIds.includes(id));
         const pendingTask = tasks.find((task) => task.id === pendingId);
         const pendingResult = selected.find((result) => result.taskId === pendingId);
@@ -1000,7 +1007,7 @@ export class EngineeringIntegrationService {
             "Integration was cancelled or lease lost.",
           );
         await this.renew(run, workerId, generation);
-        const result = resultByTask.get(taskId);
+        let result = resultByTask.get(taskId);
         const sourceTask = tasks.find((task) => task.id === taskId);
         if (sourceTask?.repairBaseCommit && headCommit !== sourceTask.repairBaseCommit)
           throw new EngineeringIntegrationError("STALE_CANDIDATE",
@@ -1027,6 +1034,68 @@ export class EngineeringIntegrationService {
           ).output,
         );
         if (
+          prepared.redactions.length === 0 && result.validationReportId &&
+          prepared.files.length > result.filesChanged.length &&
+          result.filesChanged.length > 0 &&
+          result.filesChanged.every((path) => prepared.files.includes(path))
+        ) {
+          // A repair retry can retain edits from earlier attempts. Preparation
+          // has already committed them: validate that exact controlled commit,
+          // not a model's file list or a now-empty working-tree diff.
+          const source = await this.runtime.findWorkspace(
+            context.ownerId, context.companyId, result.workspaceId);
+          if (!source || source.repositoryId !== run.repositoryId ||
+              source.taskId !== taskId || source.agentId !== result.agentId ||
+              source.baseCommit !== result.workspaceBaseCommit ||
+              source.baseCommit !== (sourceTask?.repairBaseCommit ?? run.baseCommit) ||
+              !integrationRepository.authorizedAgentIds.includes(result.agentId))
+            throw new EngineeringIntegrationError("INTEGRATION_NOT_READY",
+              "Prepared task workspace lost its validated scope.");
+          const sourceInput = {
+            ownerId: context.ownerId, companyId: context.companyId,
+            repositoryId: run.repositoryId, workspaceId: source.id,
+            taskId, agentId: result.agentId, signal: controller.signal, transport: context,
+          };
+          const inspect = async () => (await this.gateway.invoke({ ...sourceInput,
+            capability: "repository.worktree_inspect", operationInput: {},
+          })).output as { exists?: unknown; dirty?: unknown; branch?: unknown; headCommit?: unknown };
+          const matches = (state: Awaited<ReturnType<typeof inspect>>) =>
+            state.exists === true && state.dirty === false &&
+            state.branch === source.branchName && state.headCommit === prepared.commit;
+          if (!matches(await inspect()))
+            throw new EngineeringIntegrationError("INTEGRATION_NOT_READY",
+              "Prepared task files differ from the validated task result.");
+          const validation = await this.gateway.invoke({ ...sourceInput,
+            capability: "repository.validate", operationInput: {},
+          });
+          const report = validation.validationReportId
+            ? await this.runtime.findValidation(context.ownerId, context.companyId, validation.validationReportId)
+            : undefined;
+          const unchanged = matches(await inspect());
+          if (validation.validationStatus !== "PASS" || report?.status !== "PASS" ||
+              report.workspaceId !== source.id || !unchanged)
+            throw new EngineeringIntegrationError("INTEGRATION_NOT_READY",
+              "Prepared task files differ from the validated task result.");
+          const confirmed = EngineeringPreparedCommitSchema.parse((await this.gateway.invoke({
+            ...sourceInput, capability: "repository.prepare_commit",
+            operationInput: { taskId, agentId: result.agentId },
+          })).output);
+          if (validation.validationStatus === "PASS" && report?.status === "PASS" &&
+              report.workspaceId === source.id && unchanged &&
+              confirmed.commit === prepared.commit && confirmed.redactions.length === 0 &&
+              JSON.stringify([...confirmed.files].sort()) === JSON.stringify([...prepared.files].sort())) {
+            result = EngineeringTaskResultSchema.parse({ ...result,
+              filesChanged: [...prepared.files].sort(), validationReportId: report.id,
+              warnings: [...result.warnings,
+                "Prepared retry commit paths reconciled against a fresh signed validation."].slice(0, 30),
+            });
+            await this.orchestration.saveResult(result);
+            resultByTask.set(taskId, result);
+            selected[selected.findIndex((item) => item.taskId === taskId)] = result;
+          }
+        }
+        if (
+          prepared.redactions.length > 0 ||
           JSON.stringify([...prepared.files].sort()) !==
           JSON.stringify([...result.filesChanged].sort())
         )
@@ -1034,6 +1103,29 @@ export class EngineeringIntegrationService {
             "INTEGRATION_NOT_READY",
             "Prepared task files differ from the validated task result.",
           );
+        // Rebuild even after a crash between saving the result and the run;
+        // newly discovered paths retain contract/security review requirements.
+        const changeMap = [...run.changeMap];
+        for (const path of prepared.files) {
+          const prior = changeMap.find((entry) => entry.path === path);
+          if (prior && !prior.taskIds.includes(taskId))
+            changeMap[changeMap.indexOf(prior)] = { ...prior,
+              taskIds: [...prior.taskIds, taskId], overlap: "SAME_FILE" };
+          else if (!prior) changeMap.push({ path, taskIds: [taskId], kinds: ["MODIFIED"],
+            overlap: "NONE", protectedPath: matchesPath(path, integrationRepository.protectedPaths),
+            generated: matchesPath(path, integrationRepository.generatedPaths) });
+        }
+        if (JSON.stringify(changeMap) !== JSON.stringify(run.changeMap)) {
+          run = await this.saveFenced({ ...run, changeMap,
+            contractFindings: checkGeneratedContracts(changeMap, integrationRepository.metadata.contractBindings),
+            securityReviewRequired: run.securityReviewRequired || prepared.files.some((path) =>
+              sensitivePath(path) || matchesPath(path, integrationRepository.protectedPaths)),
+            updatedAt: this.now().toISOString(),
+          }, workerId, generation);
+          if (run.contractFindings.length)
+            throw new EngineeringIntegrationError("INTEGRATION_NOT_READY",
+              "Reconciled task files require generated contract review.");
+        }
         let integrated = EngineeringCommitIntegrationResultSchema.parse(
           (
             await this.gateway.invoke({

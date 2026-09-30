@@ -116,6 +116,7 @@ export const dispatchReadOnlyCapability = async (
         await runValidationProfiles({
           workspaceId: request.workspaceId,
           rootPath: request.workspaceRootPath,
+          blockedPatterns: request.blockedPatterns,
           arguments: args,
           ...(signal ? { signal } : {}),
         }),

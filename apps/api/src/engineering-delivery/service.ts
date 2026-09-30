@@ -9,7 +9,9 @@ import {
   EngineeringDeliverySchema,
   EngineeringProjectRegistryEntrySchema,
   EngineeringRepositorySchema,
+  type EngineeringControlCenter,
   type EngineeringDelivery,
+  type EngineeringRepository,
   type EngineeringModelTier,
   type NetworkVerificationState,
 } from "@alexa-control/shared";
@@ -72,6 +74,7 @@ const terminal = new Set([
   "CANCELLED",
 ]);
 const recoverableIntegrationWarnings = new Set([
+  "Signed engineering execution timed out.",
   "Source workspace changes differ from the completed task result.",
   "Governed dependency preparation failed. Check the package lockfile and reviewed dependency container before retrying.",
   "The dependency container exited unexpectedly. Check Docker Desktop resources, then retry this same run.",
@@ -80,7 +83,14 @@ const recoverableIntegrationScopeWarning =
   "The company, repository, workspace, agent, or capability scope is invalid.";
 const recoverableReviewWarning =
   "No independent repository-authorized reviewer is available.";
+const expiredWorkerWarning =
+  "An engineering worker lease expired. No uncertain file mutation was replayed; Retry this same run with a trusted owner session.";
+const expiredIntegrationWarning =
+  "Engineering integration stopped without an active lease. Retry this same run to resume the reviewed candidate or the smallest safe integration step.";
+const expiredPreviewWarning =
+  "Engineering preview startup stopped before a verified result was recorded. Retry this same candidate; its preview identifier remains unchanged.";
 const recoverableExistingRunWarnings = new Set([
+  "Prepared task files differ from the validated task result.",
   recoverableIntegrationScopeWarning,
   recoverableReviewWarning,
   "Independent integration review requires changes.",
@@ -91,6 +101,7 @@ const recoverableExistingRunWarnings = new Set([
 
 export class EngineeringDeliveryService {
   readonly terminalListeners = new Set<(context: EngineeringDeliveryContext, deliveryId: string) => Promise<void>>();
+  #lastRecoveryScanMs = 0;
   constructor(
     readonly store: EngineeringDeliveryStore,
     readonly runtime: EngineeringRuntimeStore,
@@ -152,7 +163,9 @@ export class EngineeringDeliveryService {
         ...interpretation.features.map(
           (feature) => `${feature} is implemented and usable.`,
         ),
-        ...(interpretation.stack.includes("React")
+        ...(interpretation.stack.includes("React") &&
+          (!request.repositoryId ||
+            /\b(responsive|mobile|tablet|redesign|style|spacing|padding|(?:change|update|modify|adjust) (?:the )?layout|add (?:a |an )?(?:page|section|component)|new (?:page|section|component))\b/i.test(request.request))
           ? ["The interface is responsive and preserves basic accessibility."]
           : []),
         "Configured lint, typecheck, tests, and build complete successfully.",
@@ -247,16 +260,21 @@ export class EngineeringDeliveryService {
     return this.controlCenter(context.ownerId, context.companyId, delivery.id);
   }
 
-  async drive(context: EngineeringDeliveryContext, deliveryId: string) {
+  async drive(context: EngineeringDeliveryContext, deliveryId: string, recoveringIntegration = false) {
     let delivery = await this.require(context.ownerId, context.companyId, deliveryId);
     if (["PAUSED", "CANCELLED", "OWNER_INPUT_REQUIRED"].includes(delivery.status))
       return this.controlCenter(context.ownerId, context.companyId, delivery.id);
     delivery = await this.update(delivery, { status: "IMPLEMENTING" });
-    const objectiveView = await this.manager.runReady(
-      context,
-      delivery.objectiveId,
-      `delivery-${delivery.id.slice(0, 8)}`,
-    );
+    const currentObjective = recoveringIntegration
+      ? await this.manager.view(context.ownerId, context.companyId, delivery.objectiveId)
+      : null;
+    const objectiveView = currentObjective?.objective.status === "COMPLETED"
+      ? currentObjective
+      : await this.manager.runReady(
+          context,
+          delivery.objectiveId,
+          `delivery-${delivery.id.slice(0, 8)}`,
+        );
     if (objectiveView.objective.status !== "COMPLETED") {
       const status =
         objectiveView.objective.status === "NEEDS_CLARIFICATION"
@@ -284,9 +302,9 @@ export class EngineeringDeliveryService {
       status: "INTEGRATING",
       integrationRunId: integrationView.run.id,
     });
-    let integrated = delivery.candidateId && integrationView.run.status === "READY" &&
+    let integrated = (recoveringIntegration || !!delivery.candidateId) && integrationView.run.status === "READY" &&
       integrationView.candidate?.status === "READY"
-      && integrationView.candidate.id === delivery.candidateId
+      && (!delivery.candidateId || integrationView.candidate.id === delivery.candidateId)
       ? integrationView
       : await this.integration.execute(
           context,
@@ -366,6 +384,22 @@ export class EngineeringDeliveryService {
     const warnings = [...delivery.warnings];
     if (profile?.developmentServers[0] && agentId) {
       const previewId = delivery.preview?.previewId ?? crypto.randomUUID();
+      const previewAt = this.now().toISOString();
+      delivery = await this.update(delivery, {
+        preview: {
+          previewId,
+          serverId: profile.developmentServers[0].id,
+          state: "STARTING",
+          pid: null,
+          port: null,
+          url: null,
+          healthStatus: "PENDING",
+          startedAt: previewAt,
+          checkedAt: previewAt,
+          expiresAt: null,
+          failureSummary: null,
+        },
+      });
       const result = await this.gateway.invoke({
         ownerId: context.ownerId,
         companyId: context.companyId,
@@ -506,6 +540,44 @@ export class EngineeringDeliveryService {
   }
   async resume(context: EngineeringDeliveryContext, id: string) {
     const delivery = await this.require(context.ownerId, context.companyId, id);
+    if (delivery.status === "BLOCKED" && delivery.warnings.at(-1) === expiredWorkerWarning)
+      return this.recover(context, id);
+    if (delivery.status === "BLOCKED" && delivery.warnings.at(-1) === expiredIntegrationWarning) {
+      const objective = await this.manager.view(context.ownerId, context.companyId, delivery.objectiveId);
+      if (objective.objective.status !== "COMPLETED")
+        throw new EngineeringDeliveryError("INVALID_STATE", "The engineering objective is not complete; integration cannot be resumed safely.");
+      if (delivery.integrationRunId) {
+        const integration = await this.integration.view(context.ownerId, context.companyId, delivery.integrationRunId);
+        if (integration.run.objectiveId !== delivery.objectiveId ||
+            integration.run.repositoryId !== delivery.repositoryId ||
+            !["PLANNING", "INTEGRATING", "VALIDATING", "REVIEWING", "READY"].includes(integration.run.status) ||
+            (integration.run.leaseExpiresAt && new Date(integration.run.leaseExpiresAt).getTime() > this.now().getTime()))
+          throw new EngineeringDeliveryError("INVALID_STATE", "The integration run cannot be safely resumed.");
+      }
+      await this.update(delivery, {
+        status: "IMPLEMENTING",
+        warnings: delivery.warnings.filter((warning) => warning !== expiredIntegrationWarning),
+      });
+      void this.drive(context, id, true).catch((error) => this.fail(context, id, error));
+      return this.controlCenter(context.ownerId, context.companyId, id);
+    }
+    if (delivery.status === "BLOCKED" && delivery.warnings.at(-1) === expiredPreviewWarning) {
+      if (!delivery.integrationRunId || !delivery.candidateId || !delivery.validatedAt || !delivery.preview?.previewId)
+        throw new EngineeringDeliveryError("INVALID_STATE", "The preview has no durable reviewed candidate or preview identifier.");
+      const integration = await this.integration.view(context.ownerId, context.companyId, delivery.integrationRunId);
+      if (integration.run.objectiveId !== delivery.objectiveId ||
+          integration.run.repositoryId !== delivery.repositoryId ||
+          integration.run.status !== "READY" ||
+          integration.candidate?.id !== delivery.candidateId ||
+          integration.candidate.status !== "READY")
+        throw new EngineeringDeliveryError("INVALID_STATE", "The reviewed preview candidate cannot be safely resumed.");
+      await this.update(delivery, {
+        status: "IMPLEMENTING",
+        warnings: delivery.warnings.filter((warning) => warning !== expiredPreviewWarning),
+      });
+      void this.drive(context, id, true).catch((error) => this.fail(context, id, error));
+      return this.controlCenter(context.ownerId, context.companyId, id);
+    }
     const previewRecovery = ["FAILED", "DONE_WITH_WARNINGS"].includes(delivery.status) &&
       !!delivery.integrationRunId && !!delivery.candidateId && !!delivery.validatedAt
       ? await this.integration.view(context.ownerId, context.companyId, delivery.integrationRunId)
@@ -559,10 +631,12 @@ export class EngineeringDeliveryService {
     await this.update(delivery, {
       status: "IMPLEMENTING",
       completedAt: null,
-      warnings: recoverablePreviewFailure ? delivery.warnings.slice(0, -1) : delivery.warnings,
+      warnings: recoverablePreviewFailure || recoverableIntegrationFailure || recoverableExistingRunFailure
+        ? delivery.warnings.slice(0, -1)
+        : delivery.warnings,
     });
     const continuation = recoverableIntegrationFailure || recoverableExistingRunFailure || recoverablePreviewFailure
-      ? this.drive(context, id)
+      ? this.drive(context, id, true)
       : Promise.resolve().then(() => this.manager.resume(context, delivery.objectiveId))
           .then(() => this.drive(context, id));
     void continuation.catch((error) => this.fail(context, id, error));
@@ -570,25 +644,132 @@ export class EngineeringDeliveryService {
   }
   async recover(context: EngineeringDeliveryContext, id: string) {
     const delivery = await this.require(context.ownerId, context.companyId, id);
-    if (delivery.status !== "IMPLEMENTING")
+    if (delivery.status !== "IMPLEMENTING" &&
+        !(delivery.status === "BLOCKED" && delivery.warnings.at(-1) === expiredWorkerWarning))
       throw new EngineeringDeliveryError("INVALID_STATE", "Only a stalled implementation can be recovered.");
     const view = await this.manager.view(context.ownerId, context.companyId, delivery.objectiveId);
     if (!view.tasks.some((task) => task.status === "ACTIVE" && task.leaseExpiresAt && new Date(task.leaseExpiresAt).getTime() <= this.now().getTime()))
       throw new EngineeringDeliveryError("INVALID_STATE", "No expired engineering task lease is available for recovery.");
+    await this.update(delivery, { status: "IMPLEMENTING", warnings: delivery.warnings.filter((warning) => warning !== expiredWorkerWarning) });
     void this.manager.recover(context, delivery.objectiveId)
       .then(() => this.drive(context, id))
       .catch((error) => this.fail(context, id, error));
     return this.controlCenter(context.ownerId, context.companyId, id);
   }
+
+  async reconcileStalledImplementations() {
+    const nowMs = this.now().getTime();
+    if (this.#lastRecoveryScanMs && nowMs - this.#lastRecoveryScanMs < 30_000) return 0;
+    this.#lastRecoveryScanMs = nowMs;
+    const cutoff = new Date(nowMs - 120_000).toISOString();
+    const [candidates, integrations, previews] = await Promise.all([
+      this.store.listStaleImplementations(cutoff, 25),
+      this.store.listStaleIntegrations(cutoff, 25),
+      this.store.listStalePreviews(cutoff, 25),
+    ]);
+    let blocked = 0;
+    for (const delivery of candidates) {
+      const view = await this.manager.view(delivery.ownerId, delivery.companyId, delivery.objectiveId);
+      const active = view.tasks.filter((task) => task.status === "ACTIVE");
+      if (!active.length || active.some((task) => !task.leaseExpiresAt ||
+          new Date(task.leaseExpiresAt).getTime() > nowMs)) continue;
+      const updated = EngineeringDeliverySchema.parse({
+        ...delivery,
+        status: "BLOCKED",
+        warnings: [...delivery.warnings, expiredWorkerWarning].slice(-50),
+        updatedAt: this.now().toISOString(),
+      });
+      if (!(await this.store.saveIfUpdatedAt(updated, delivery.updatedAt))) continue;
+      blocked += 1;
+      await this.audit({
+        eventType: "ENGINEERING_DELIVERY_RECOVERY_BLOCKED",
+        ownerId: delivery.ownerId,
+        ipAddress: "internal",
+        outcome: "DENIED",
+        reason: "An expired engineering task lease was fenced; owner-context recovery is required before execution resumes.",
+        requestId: `engineering-recovery:${delivery.id}`,
+        metadata: { companyId: delivery.companyId, deliveryId: delivery.id, objectiveId: delivery.objectiveId },
+      });
+    }
+    for (const delivery of integrations) {
+      let recoveryWarning = expiredIntegrationWarning;
+      if (delivery.integrationRunId) {
+        const integration = await this.integration.view(delivery.ownerId, delivery.companyId, delivery.integrationRunId);
+        if (integration.run.objectiveId !== delivery.objectiveId ||
+            integration.run.repositoryId !== delivery.repositoryId ||
+            (integration.run.leaseExpiresAt && new Date(integration.run.leaseExpiresAt).getTime() > nowMs)) continue;
+        if (integration.run.status === "REPAIRING") {
+          const view = await this.manager.view(delivery.ownerId, delivery.companyId, delivery.objectiveId);
+          const active = view.tasks.filter((task) => task.status === "ACTIVE");
+          if (!active.length || active.some((task) => !task.leaseExpiresAt ||
+              new Date(task.leaseExpiresAt).getTime() > nowMs)) continue;
+          recoveryWarning = expiredWorkerWarning;
+        } else if (!["PLANNING", "INTEGRATING", "VALIDATING", "REVIEWING", "READY"].includes(integration.run.status)) continue;
+      }
+      const updated = EngineeringDeliverySchema.parse({
+        ...delivery,
+        status: "BLOCKED",
+        warnings: [...delivery.warnings, recoveryWarning].slice(-50),
+        updatedAt: new Date(Math.max(nowMs, new Date(delivery.updatedAt).getTime() + 1)).toISOString(),
+      });
+      if (!(await this.store.saveIfUpdatedAt(updated, delivery.updatedAt))) continue;
+      blocked += 1;
+      await this.audit({
+        eventType: "ENGINEERING_DELIVERY_RECOVERY_BLOCKED",
+        ownerId: delivery.ownerId,
+        ipAddress: "internal",
+        outcome: "DENIED",
+        reason: recoveryWarning === expiredWorkerWarning
+          ? "An integration repair worker lease expired; owner-context recovery is required before signed operations resume."
+          : "Integration has no active lease; owner-context retry is required before signed operations resume.",
+        requestId: `engineering-integration-recovery:${delivery.id}`,
+        metadata: { companyId: delivery.companyId, deliveryId: delivery.id, objectiveId: delivery.objectiveId },
+      });
+    }
+    for (const delivery of previews) {
+      const updated = EngineeringDeliverySchema.parse({
+        ...delivery,
+        status: "BLOCKED",
+        warnings: [...delivery.warnings, expiredPreviewWarning].slice(-50),
+        updatedAt: new Date(Math.max(nowMs, new Date(delivery.updatedAt).getTime() + 1)).toISOString(),
+      });
+      if (!(await this.store.saveIfUpdatedAt(updated, delivery.updatedAt))) continue;
+      blocked += 1;
+      await this.audit({
+        eventType: "ENGINEERING_DELIVERY_RECOVERY_BLOCKED",
+        ownerId: delivery.ownerId,
+        ipAddress: "internal",
+        outcome: "DENIED",
+        reason: "Preview startup lost its worker before health verification; owner-context retry is required.",
+        requestId: `engineering-preview-recovery:${delivery.id}`,
+        metadata: { companyId: delivery.companyId, deliveryId: delivery.id, objectiveId: delivery.objectiveId },
+      });
+    }
+    return blocked;
+  }
   async cancel(context: EngineeringDeliveryContext, id: string) {
-    const delivery = await this.require(context.ownerId, context.companyId, id);
+    let delivery = await this.require(context.ownerId, context.companyId, id);
     await this.manager.cancel(context, delivery.objectiveId);
-    if (delivery.preview?.previewId)
-      await this.previewAction(context, delivery, "repository.dev_server_stop");
-    await this.update(delivery, {
-      status: "CANCELLED",
-      completedAt: this.now().toISOString(),
-    });
+    delivery = await this.require(context.ownerId, context.companyId, id);
+    const stoppedPreview = delivery.preview?.previewId
+      ? await this.previewAction(context, delivery, "repository.dev_server_stop")
+      : null;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      delivery = await this.require(context.ownerId, context.companyId, id);
+      if (delivery.status === "CANCELLED") break;
+      try {
+        await this.update(delivery, {
+          status: "CANCELLED",
+          preview: stoppedPreview ?? delivery.preview,
+          completedAt: this.now().toISOString(),
+        });
+        break;
+      } catch (error) {
+        if (!(error instanceof EngineeringDeliveryError) ||
+            error.message !== "Engineering delivery changed during execution; stale work was not published." ||
+            attempt === 2) throw error;
+      }
+    }
     await this.notifyTerminal(context, delivery.id);
     return this.controlCenter(context.ownerId, context.companyId, id);
   }
@@ -643,9 +824,13 @@ export class EngineeringDeliveryService {
     return this.controlCenter(context.ownerId, context.companyId, id);
   }
 
-  async controlCenter(ownerId: string, companyId: string, id: string) {
+  async controlCenter(ownerId: string, companyId: string, id: string, readRetry = 0): Promise<EngineeringControlCenter> {
     const delivery = await this.require(ownerId, companyId, id);
     const view = await this.manager.view(ownerId, companyId, delivery.objectiveId);
+    const nowMs = this.now().getTime();
+    const hasLiveLease = (task: (typeof view.tasks)[number]) =>
+      Boolean(task.leaseOwner && task.leaseExpiresAt &&
+        new Date(task.leaseExpiresAt).getTime() > nowMs);
     const features = delivery.features.map((feature) => {
       const tasks = feature.taskIds
         .map((taskId) => view.tasks.find((task) => task.id === taskId))
@@ -654,6 +839,9 @@ export class EngineeringDeliveryService {
       const status =
         statuses.length && statuses.every((value) => value === "COMPLETE")
           ? "DONE"
+          : tasks.some((task) => task!.status === "ACTIVE" &&
+              (delivery.status === "BLOCKED" || !hasLiveLease(task!)))
+            ? "BLOCKED"
           : statuses.some((value) => value === "ACTIVE")
             ? "IMPLEMENTING"
             : statuses.some((value) => ["BLOCKED", "FAILED"].includes(value))
@@ -677,18 +865,33 @@ export class EngineeringDeliveryService {
     );
     const refreshed = EngineeringDeliverySchema.parse({
       ...delivery,
-      status: delivery.status === "BLOCKED" && view.objective.status === "RUNNING" &&
+      status: delivery.status === "BLOCKED" && delivery.warnings.at(-1) !== expiredWorkerWarning &&
+        view.objective.status === "RUNNING" &&
         view.tasks.some((task) => ["ACTIVE", "REVIEWING"].includes(task.status))
         ? "IMPLEMENTING" : delivery.status,
       features,
       modelUsage: usage,
+      // A successful reviewed candidate and healthy preview resolve prior
+      // retryable transport/integration failures. Audit events keep the history;
+      // they are no longer current delivery warnings.
+      warnings: delivery.candidateId && delivery.validatedAt &&
+        delivery.preview?.healthStatus === "PASS" &&
+        ["DONE", "DONE_WITH_WARNINGS"].includes(delivery.status)
+        ? delivery.warnings.filter((warning) =>
+            !recoverableIntegrationWarnings.has(warning) &&
+            !recoverableExistingRunWarnings.has(warning))
+        : delivery.warnings,
       firstCodeAt:
         delivery.firstCodeAt ??
         view.results.find((result) => result.filesChanged.length)?.completedAt ??
         null,
     });
-    if (JSON.stringify(refreshed) !== JSON.stringify(delivery))
-      await this.store.save(refreshed);
+    if (JSON.stringify(refreshed) !== JSON.stringify(delivery) &&
+        !(await this.store.saveIfUpdatedAt(refreshed, delivery.updatedAt))) {
+      if (readRetry < 2) return this.controlCenter(ownerId, companyId, id, readRetry + 1);
+      // A concurrent worker owns the newer record. This response is a bounded
+      // read-model snapshot; it must not fail or overwrite that worker's state.
+    }
     const integrationFailureView = ["FAILED", "BLOCKED", "DONE_WITH_WARNINGS"].includes(refreshed.status) && refreshed.integrationRunId
       ? await this.integration.view(ownerId, companyId, refreshed.integrationRunId)
       : null;
@@ -706,11 +909,7 @@ export class EngineeringDeliveryService {
           (view.tasks.reduce(
             (sum, task) =>
               sum +
-              (task.status === "COMPLETE"
-                ? 1
-                : task.status === "ACTIVE" || task.status === "REVIEWING"
-                  ? 0.5
-                  : 0),
+              (task.status === "COMPLETE" ? 1 : 0),
             0,
           ) /
             view.tasks.length) *
@@ -720,11 +919,30 @@ export class EngineeringDeliveryService {
     return EngineeringControlCenterSchema.parse({
       delivery: refreshed,
       overallProgress: progress,
-      recoveryAvailable: refreshed.status === "IMPLEMENTING" && view.tasks.some(
+      recoveryAvailable: (refreshed.status === "IMPLEMENTING" ||
+        (refreshed.status === "BLOCKED" && refreshed.warnings.at(-1) === expiredWorkerWarning)) && view.tasks.some(
         (task) => task.status === "ACTIVE" && task.leaseExpiresAt &&
           new Date(task.leaseExpiresAt).getTime() <= this.now().getTime(),
       ),
       blocker: (() => {
+        if (refreshed.status === "BLOCKED" && refreshed.warnings.at(-1) === expiredWorkerWarning)
+          return {
+            category: "WORKER_CRASHED",
+            message: "The Engineering worker stopped and its task lease expired.",
+            action: "Retry this same run. Completed work and isolated worktrees remain preserved; uncertain mutations are not replayed automatically.",
+          };
+        if (refreshed.status === "BLOCKED" && refreshed.warnings.at(-1) === expiredIntegrationWarning)
+          return {
+            category: "WORKER_CRASHED",
+            message: "Engineering integration stopped without an active worker lease.",
+            action: "Retry this same run. Completed tasks and the existing integration candidate remain preserved.",
+          };
+        if (refreshed.status === "BLOCKED" && refreshed.warnings.at(-1) === expiredPreviewWarning)
+          return {
+            category: "WORKER_CRASHED",
+            message: "Preview startup stopped before its health check completed.",
+            action: "Retry this same reviewed candidate. The preview identifier is preserved and no code generation is repeated.",
+          };
         if (
           view.objective.status === "NEEDS_CLARIFICATION" &&
           view.objective.clarification?.status === "PENDING"
@@ -738,6 +956,13 @@ export class EngineeringDeliveryService {
         const blockedTasks = view.tasks.filter((item) => ["BLOCKED", "FAILED"].includes(item.status));
         const task = blockedTasks.find((item) => item.lastFailureCategory && item.lastFailureCategory !== "DEPENDENCY_NOT_READY") ?? blockedTasks[0];
         if (!task) {
+          if (refreshed.status === "FAILED" && !refreshed.integrationRunId &&
+              refreshed.warnings.at(-1) === "Signed engineering execution timed out." &&
+              view.objective.status === "COMPLETED") return {
+            category: "DEVICE_OFFLINE",
+            message: "The signed Mac Agent operation timed out while preparing integration. Implementation is complete.",
+            action: "Check the trusted Mac Agent connection, then Retry this same run. Completed coding tasks are preserved; integration is rechecked before continuing.",
+          };
           if (["FAILED", "DONE_WITH_WARNINGS"].includes(refreshed.status) &&
               (refreshed.status === "FAILED" || refreshed.preview?.healthStatus === "FAIL" ||
                 refreshed.warnings.at(-1) === "Local preview did not pass its bounded health check.") &&
@@ -762,6 +987,12 @@ export class EngineeringDeliveryService {
             action: recoverableRepairConflict
               ? "Retry creates a bounded repair from the reviewed integration head. The conflicting repair remains in the audit history; validation and independent review still apply."
               : "Automatic repair is not safely available. Review this integration conflict and its repair history before starting another governed change.",
+          };
+          if (refreshed.status === "FAILED" && refreshed.integrationRunId &&
+              refreshed.warnings.at(-1) === "Prepared task files differ from the validated task result.") return {
+            category: "INTEGRATION_EVIDENCE_MISMATCH",
+            message: "The prepared repair commit contains files missing from its task result.",
+            action: "Retry this same run to revalidate the exact prepared commit. Integration remains blocked unless its file evidence and validation agree.",
           };
           if (refreshed.status === "FAILED" && refreshed.integrationRunId &&
               refreshed.warnings.at(-1) === "Integration ended in REPAIRING.") return {
@@ -865,7 +1096,8 @@ export class EngineeringDeliveryService {
       activeAgents: view.tasks
         .filter(
           (task) =>
-            ["ACTIVE", "REVIEWING"].includes(task.status) && task.assignedAgentId,
+            ["ACTIVE", "REVIEWING"].includes(task.status) && task.assignedAgentId &&
+            hasLiveLease(task),
         )
         .slice(0, 6)
         .map((task) => ({
@@ -894,7 +1126,11 @@ export class EngineeringDeliveryService {
       })),
       elapsedMs: Math.max(
         0,
-        this.now().getTime() - new Date(delivery.createdAt).getTime(),
+        new Date(
+          terminal.has(delivery.status)
+            ? delivery.completedAt ?? delivery.updatedAt
+            : this.now().toISOString(),
+        ).getTime() - new Date(delivery.createdAt).getTime(),
       ),
     });
   }
@@ -1206,7 +1442,7 @@ export class EngineeringDeliveryService {
         previewId: delivery.preview.previewId,
         ...(capability === "repository.dev_server_restart"
           ? {
-              serverId: delivery.preview.serverId,
+              serverId: await this.previewServerId(context, repository, delivery.preview.serverId),
               preferredPort: delivery.preview.port,
             }
           : {}),
@@ -1214,7 +1450,32 @@ export class EngineeringDeliveryService {
       signal: new AbortController().signal,
       transport: context,
     });
-    return result.output as NonNullable<EngineeringDelivery["preview"]>;
+    const preview = result.output as NonNullable<EngineeringDelivery["preview"]>;
+    // An agent relaunch loses its process-local preview map. A status/stop
+    // observation of "unknown" must not overwrite the registered server ID
+    // needed to restart the same governed preview later.
+    return preview.serverId === "unknown" && delivery.preview.serverId !== "unknown"
+      ? { ...preview, serverId: delivery.preview.serverId }
+      : preview;
+  }
+
+  private async previewServerId(
+    context: EngineeringDeliveryContext,
+    repository: EngineeringRepository,
+    recordedServerId: string,
+  ): Promise<string> {
+    if (recordedServerId !== "unknown") return recordedServerId;
+    const profile = await this.runtime.findCommandProfile(
+      context.ownerId,
+      context.companyId,
+      repository.commandProfileId,
+    );
+    if (profile?.status === "ACTIVE" && profile.developmentServers.length === 1)
+      return profile.developmentServers[0]!.id;
+    throw new EngineeringDeliveryError(
+      "INVALID_STATE",
+      "The preview lost its registered server identity. Select a single configured development server before retrying.",
+    );
   }
 
   private interpret(text: string, name: string | null, existing: boolean) {
@@ -1275,12 +1536,18 @@ export class EngineeringDeliveryService {
     const updated = EngineeringDeliverySchema.parse({
       ...delivery,
       ...patch,
-      updatedAt: this.now().toISOString(),
+      updatedAt: new Date(Math.max(
+        this.now().getTime(),
+        new Date(delivery.updatedAt).getTime() + 1,
+      )).toISOString(),
     });
-    await this.store.save(updated);
+    if (!(await this.store.saveIfUpdatedAt(updated, delivery.updatedAt)))
+      throw new EngineeringDeliveryError("INVALID_STATE", "Engineering delivery changed during execution; stale work was not published.");
     return updated;
   }
   private async fail(context: EngineeringDeliveryContext, id: string, error: unknown) {
+    if (error instanceof EngineeringDeliveryError &&
+        error.message === "Engineering delivery changed during execution; stale work was not published.") return;
     const delivery = await this.require(context.ownerId, context.companyId, id).catch(
       () => null,
     );

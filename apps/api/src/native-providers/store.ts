@@ -36,6 +36,10 @@ export interface NativeProviderStore {
   saveValidation(record: ProviderValidationRecord): Awaitable<void>;
   listValidation(ownerId: string, limit: number): Awaitable<ProviderValidationRecord[]>;
   saveExecution(record: ProviderExecutionRecord): Awaitable<void>;
+  findExecutionByRequest(
+    ownerId: string,
+    executionRequestId: string,
+  ): Awaitable<ProviderExecutionRecord | undefined>;
   listExecution(ownerId: string, limit: number): Awaitable<ProviderExecutionRecord[]>;
   saveMetric(record: ProviderMetricRecord): Awaitable<void>;
   listMetrics(ownerId: string, limit: number): Awaitable<ProviderMetricRecord[]>;
@@ -126,6 +130,13 @@ export class InMemoryNativeProviderStore implements NativeProviderStore {
   }
   saveExecution(record: ProviderExecutionRecord) {
     this.#execution.set(record.id, clone(ProviderExecutionRecordSchema.parse(record)));
+  }
+  findExecutionByRequest(ownerId: string, executionRequestId: string) {
+    const found = [...this.#execution.values()].find(
+      (record) =>
+        record.ownerId === ownerId && record.executionRequestId === executionRequestId,
+    );
+    return found ? clone(found) : undefined;
   }
   listExecution(ownerId: string, limit: number) {
     return ordered(

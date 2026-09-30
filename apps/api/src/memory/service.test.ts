@@ -107,6 +107,72 @@ describe("MemoryIndexerService", () => {
     ).toBe(true);
   });
 
+  it("retrieves a relevant older project decision ahead of unrelated high-ranked memories", async () => {
+    const { ownerId, repository, service } = await setup();
+    const companyId = crypto.randomUUID();
+    await companyScope.run(
+      { ownerId, companyId, role: "OWNER", requestId: "memory-relevance" },
+      async () => {
+        const relevant = await service.promoteEngineeringFacts({
+          ownerId,
+          companyId,
+          repositoryId: repository.id,
+          agentId: "coding_agent",
+          taskId: crypto.randomUUID(),
+          resultId: crypto.randomUUID(),
+          artifacts: [{
+            type: "ARCHITECTURE_DECISION",
+            title: "Use Zod at API boundaries",
+            summary: "Validate endpoint inputs with the shared Zod schemas.",
+          }],
+          requestId: "memory-relevance-decision",
+          ipAddress: "127.0.0.1",
+        });
+        const existing = (await service.store.searchMemories(ownerId, {
+          q: "Zod",
+          repositoryId: repository.id,
+          limit: 1,
+        }))[0]!;
+        await service.store.saveMemory({ ...existing, importance: 1 });
+        for (let batch = 0; batch < 3; batch += 1) {
+          await service.promoteEngineeringFacts({
+            ownerId,
+            companyId,
+            repositoryId: repository.id,
+            agentId: "coding_agent",
+            taskId: crypto.randomUUID(),
+            resultId: crypto.randomUUID(),
+            artifacts: Array.from({ length: 5 }, (_, index) => ({
+              type: "TEST_EXPECTATIONS" as const,
+              title: `Unrelated fixture ${batch}-${index}`,
+              summary: "Maintain the unrelated fixture convention.",
+            })),
+            requestId: `memory-relevance-noise-${batch}`,
+            ipAddress: "127.0.0.1",
+          });
+        }
+        const withoutTask = await service.retrieveEngineeringContext({
+          ownerId,
+          companyId,
+          repositoryId: repository.id,
+          agentId: "coding_agent",
+          taskId: crypto.randomUUID(),
+        });
+        expect(withoutTask.refs).not.toContain(relevant.promotedMemoryIds[0]);
+        const withTask = await service.retrieveEngineeringContext({
+          ownerId,
+          companyId,
+          repositoryId: repository.id,
+          agentId: "coding_agent",
+          taskId: crypto.randomUUID(),
+          taskContext: "Add a new API endpoint with Zod input validation.",
+        });
+        expect(withTask.refs[0]).toBe(relevant.promotedMemoryIds[0]);
+        expect(withTask.summaries[0]).toContain("Zod");
+      },
+    );
+  });
+
   it("records owner-scoped memories with evidence and searchable retrieval", async () => {
     const { audits, ownerId, repository, service } = await setup();
     const created = await service.recordMemory({
@@ -139,6 +205,81 @@ describe("MemoryIndexerService", () => {
     const result = await service.search(ownerId, { q: "auditable", limit: 10 });
     expect(result.memories[0]?.id).toBe(created.memory.id);
     expect(audits.some((event) => event.eventType === "MEMORY_RECORDED")).toBe(true);
+  });
+
+  it("rejects credential-like content at the legacy memory write boundary", async () => {
+    const { ownerId, service } = await setup();
+    await expect(service.recordMemory({
+      ownerId,
+      requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1",
+      body: {
+        memoryType: "preference",
+        source: "owner",
+        title: "Credential preference",
+        summary: "My password is a placeholder value.",
+        content: "Do not retain this.",
+        tags: [],
+        importance: 50,
+        confidence: 1,
+        evidence: [],
+      },
+    })).rejects.toMatchObject({ code: "SENSITIVE_MEMORY_CONTENT_DENIED" });
+    expect(await service.store.listMemories(ownerId, 10)).toEqual([]);
+    await expect(service.recordDecision({
+      ownerId,
+      requestId: crypto.randomUUID(),
+      ipAddress: "127.0.0.1",
+      approver: "owner",
+      body: {
+        decision: "Keep the existing boundary",
+        reason: "A password note must not be stored.",
+        alternatives: [],
+        evidence: [],
+      },
+    })).rejects.toMatchObject({ code: "SENSITIVE_MEMORY_CONTENT_DENIED" });
+  });
+
+  it("omits a previously stored sensitive record from engineering context", async () => {
+    const { ownerId, repository, service } = await setup();
+    const companyId = crypto.randomUUID();
+    await companyScope.run(
+      { ownerId, companyId, role: "OWNER", requestId: "sensitive-context" },
+      async () => {
+        const promoted = await service.promoteEngineeringFacts({
+          ownerId,
+          companyId,
+          repositoryId: repository.id,
+          agentId: "coding_agent",
+          taskId: crypto.randomUUID(),
+          resultId: crypto.randomUUID(),
+          artifacts: [{
+            type: "ARCHITECTURE_DECISION",
+            title: "Legacy project note",
+            summary: "Keep this bounded.",
+          }],
+          requestId: "sensitive-context-promotion",
+          ipAddress: "127.0.0.1",
+        });
+        const memory = (await service.store.searchMemories(ownerId, {
+          q: "Legacy project note", repositoryId: repository.id, limit: 1,
+        }))[0]!;
+        await service.store.saveMemory({
+          ...memory,
+          summary: "A legacy password note must not enter an AI context.",
+        });
+        const context = await service.retrieveEngineeringContext({
+          ownerId,
+          companyId,
+          repositoryId: repository.id,
+          agentId: "coding_agent",
+          taskId: crypto.randomUUID(),
+          taskContext: "Legacy project note",
+        });
+        expect(context.refs).not.toContain(promoted.promotedMemoryIds[0]);
+        expect(context.summaries).toEqual([]);
+      },
+    );
   });
 
   it("logs engineering decisions and exposes graph, timeline, and suggestions", async () => {

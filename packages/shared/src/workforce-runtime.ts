@@ -35,6 +35,21 @@ export const WorkforceMessageTypeSchema = z.enum([
 
 export const WorkforceReviewVerdictSchema = z.enum(["PASS", "FAIL", "CONDITIONAL"]);
 
+// Historical tasks without this field remain explicitly unverified. Never infer
+// autonomous execution from a terminal status or a model-written summary.
+export const WorkforceCompletionProvenanceSchema = z.object({
+  completionType: z.enum(["EXECUTED", "MANUAL_ATTESTATION", "IMPORTED", "SYSTEM_DERIVED"]),
+  agentSessionId: z.string().uuid().nullable(),
+  modelRequestId: z.string().uuid().nullable(),
+  evidenceRefs: z.array(boundedRef).max(50),
+  artifactRefs: z.array(boundedRef).max(50),
+  recordedAt: z.iso.datetime(),
+}).strict().superRefine((value, context) => {
+  if (value.completionType === "EXECUTED" && (!value.agentSessionId || !value.modelRequestId)) {
+    context.addIssue({ code: "custom", message: "Executed completion requires a real agent session and model request." });
+  }
+});
+
 export const WorkforceCandidateCategorySchema = z.enum([
   "EXACT_MATCH",
   "STRONG_MATCH",
@@ -177,6 +192,13 @@ export const WorkforceRuntimeTaskSchema = z
       sourceUrls: z.array(z.string().url().max(500)).min(1).max(5),
     }).strict()).max(20).default([]),
     retrievedSourceUrls: z.array(z.string().url().max(500)).max(60).default([]),
+    retrievedSourceEvidence: z.array(z.object({
+      sourceUrl: z.string().url().max(500),
+      retrievedAt: z.iso.datetime(),
+      providerId: z.string().min(1).max(80),
+      modelRequestId: z.string().uuid(),
+      tool: z.literal("web.research"),
+    }).strict()).max(60).default([]),
     memoryScopeRefs: z.array(boundedRef).max(20),
     requiredSkills: z.array(boundedRef).max(30),
     requiredCapabilities: z.array(boundedRef).max(30),
@@ -195,6 +217,7 @@ export const WorkforceRuntimeTaskSchema = z
     requirement: SpecialistRequirementSchema.nullable().default(null),
     workforceGap: WorkforceGapResolutionSchema.nullable().default(null),
     resultSummary: z.string().max(4_000).nullable(),
+    completionProvenance: WorkforceCompletionProvenanceSchema.nullable().optional(),
     failureCode: z.string().max(100).nullable().default(null),
     failureMessage: z.string().max(240).nullable().default(null),
     resultConfidence: z.number().min(0).max(1).nullable(),
@@ -313,6 +336,7 @@ export const WorkforceRuntimeDashboardSchema = z
       })
       .strict(),
     tasks: z.array(WorkforceRuntimeTaskSchema).max(500),
+    activeExecutionTaskIds: z.array(z.string().uuid()).max(500).default([]),
     messages: z.array(WorkforceRuntimeMessageSchema).max(500),
     reviews: z.array(WorkforceRuntimeReviewSchema).max(500),
     metrics: z

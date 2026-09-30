@@ -90,6 +90,11 @@ export interface EngineeringRuntimeStore {
     companyId: string,
     id: string,
   ): Awaitable<EngineeringValidationReport | undefined>;
+  findLatestValidationForWorkspace(
+    ownerId: string,
+    companyId: string,
+    workspaceId: string,
+  ): Awaitable<EngineeringValidationReport | undefined>;
 }
 
 const clone = <T>(value: T): T => structuredClone(value);
@@ -318,6 +323,14 @@ export class InMemoryEngineeringRuntimeStore implements EngineeringRuntimeStore 
   }
   findValidation(ownerId: string, companyId: string, id: string) {
     const value = this.#validations.get(scopedKey(ownerId, companyId, id));
+    return value ? clone(value) : undefined;
+  }
+  findLatestValidationForWorkspace(ownerId: string, companyId: string, workspaceId: string) {
+    const scope = `${ownerId}:${companyId}:`;
+    const value = [...this.#validations.entries()]
+      .filter(([key, item]) => key.startsWith(scope) && item.workspaceId === workspaceId)
+      .map(([, item]) => item)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
     return value ? clone(value) : undefined;
   }
 }

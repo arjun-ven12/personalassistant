@@ -49,13 +49,15 @@ export interface RepositoryStore {
   ): Awaitable<RepositoryIndexJob | undefined>;
   latestJob(repositoryId: string): Awaitable<RepositoryIndexJob | undefined>;
   updateJob(job: RepositoryIndexJob): Awaitable<void>;
+  publishFailure(repository: Repository, job: RepositoryIndexJob): Awaitable<boolean>;
   publishGeneration(input: {
+    job: RepositoryIndexJob;
     repository: Repository;
     generation: RepositoryGeneration;
     files: FileInventoryRecord[];
     directories: DirectoryNode[];
     semanticIndex: RepositorySemanticStoreRecords;
-  }): Awaitable<void>;
+  }): Awaitable<boolean>;
   activeGeneration(repositoryId: string): Awaitable<RepositoryGeneration | undefined>;
   listFiles(input: {
     repositoryId: string;
@@ -148,14 +150,23 @@ export class InMemoryRepositoryStore implements RepositoryStore {
   upsertRepository(repository: Repository) {
     const parsed = RepositorySchema.parse(repository);
     this.#repositories.set(parsed.id, structuredClone(parsed));
-    this.#repositoryCompanies.set(parsed.id, companyScope.companyId(parsed.ownerId) ?? null);
+    this.#repositoryCompanies.set(
+      parsed.id,
+      companyScope.companyId(parsed.ownerId) ?? null,
+    );
     return structuredClone(parsed);
   }
 
   findRepository(id: string) {
     const repository = this.#repositories.get(id);
-    const companyId = repository ? companyScope.companyId(repository.ownerId) : undefined;
-    return this.clone(repository && (!companyId || this.#repositoryCompanies.get(id) === companyId) ? repository : undefined);
+    const companyId = repository
+      ? companyScope.companyId(repository.ownerId)
+      : undefined;
+    return this.clone(
+      repository && (!companyId || this.#repositoryCompanies.get(id) === companyId)
+        ? repository
+        : undefined,
+    );
   }
 
   findRepositoryByWorkspace(ownerId: string, workspaceId: string) {
@@ -165,14 +176,21 @@ export class InMemoryRepositoryStore implements RepositoryStore {
           repository.ownerId === ownerId &&
           repository.workspaceId === workspaceId &&
           (!companyScope.companyId(ownerId) ||
-            this.#repositoryCompanies.get(repository.id) === companyScope.companyId(ownerId)),
+            this.#repositoryCompanies.get(repository.id) ===
+              companyScope.companyId(ownerId)),
       ),
     );
   }
 
   listRepositories(ownerId: string) {
     return [...this.#repositories.values()]
-      .filter((repository) => repository.ownerId === ownerId && (!companyScope.companyId(ownerId) || this.#repositoryCompanies.get(repository.id) === companyScope.companyId(ownerId)))
+      .filter(
+        (repository) =>
+          repository.ownerId === ownerId &&
+          (!companyScope.companyId(ownerId) ||
+            this.#repositoryCompanies.get(repository.id) ===
+              companyScope.companyId(ownerId)),
+      )
       .sort((left, right) => left.workspaceId.localeCompare(right.workspaceId))
       .map((repository) => structuredClone(repository));
   }
@@ -224,13 +242,36 @@ export class InMemoryRepositoryStore implements RepositoryStore {
     this.#jobs.set(job.id, structuredClone(RepositoryIndexJobSchema.parse(job)));
   }
 
+  publishFailure(repository: Repository, job: RepositoryIndexJob) {
+    const current = this.#jobs.get(job.id);
+    if (
+      !current ||
+      current.ownerId !== job.ownerId ||
+      current.status !== "RUNNING" ||
+      current.executionRequestId !== job.executionRequestId
+    )
+      return false;
+    this.updateRepository(repository);
+    this.updateJob(job);
+    return true;
+  }
+
   publishGeneration(input: {
+    job: RepositoryIndexJob;
     repository: Repository;
     generation: RepositoryGeneration;
     files: FileInventoryRecord[];
     directories: DirectoryNode[];
     semanticIndex: RepositorySemanticStoreRecords;
   }) {
+    const job = this.#jobs.get(input.job.id);
+    if (
+      !job ||
+      job.ownerId !== input.job.ownerId ||
+      job.status !== "RUNNING" ||
+      job.executionRequestId !== input.generation.executionRequestId
+    )
+      return false;
     const generation = RepositoryGenerationSchema.parse(input.generation);
     const key = `${generation.repositoryId}:${generation.generation}`;
     this.#generations.set(key, structuredClone(generation));
@@ -291,6 +332,8 @@ export class InMemoryRepositoryStore implements RepositoryStore {
       ),
     );
     this.updateRepository(input.repository);
+    this.updateJob(input.job);
+    return true;
   }
 
   activeGeneration(repositoryId: string) {

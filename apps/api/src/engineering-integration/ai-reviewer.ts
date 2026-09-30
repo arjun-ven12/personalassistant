@@ -97,6 +97,8 @@ export class AIRouterEngineeringIntegrationReviewer implements EngineeringIntegr
           "Fail closed when evidence is missing. Acceptance criteria require cited validation or task evidence.",
           "Map each acceptance criterion exactly to concrete evidence; mark unsatisfied when evidence is insufficient.",
           "Security review must flag protected-path, dependency, secret, authorization, tenant-scope, and unsafe-execution risks.",
+          "Use CHANGES_REQUIRED or BLOCK for a concrete defect, material security risk, or unmet stated acceptance criterion. Do not require browser interaction, repository-wide scans, or unrelated security assessments when they are not part of the changed scope or acceptance criteria; report such evidence limits as warnings and never claim those checks passed.",
+          "Treat weakened or duplicated regression assertions, altered test cleanup, and unapproved factual claims as concrete findings when they appear in the supplied diff.",
           "Return findings and evidence summaries only; never include chain-of-thought or secrets.",
         ],
         // Reasoning tokens share this budget with the structured review response.

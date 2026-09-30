@@ -257,6 +257,7 @@ export class RepositoryService {
   }) {
     const job = await this.store.findJobByExecutionRequestId(input.executionRequestId);
     if (!job || job.ownerId !== input.ownerId) return;
+    if (job.status !== "RUNNING") return;
     const repository = await this.store.findRepository(job.repositoryId);
     if (!repository) return;
     const scan = RepositoryScanResultSchema.parse(input.result);
@@ -307,7 +308,13 @@ export class RepositoryService {
       lastFailureCode: scan.truncated ? "REPOSITORY_SCAN_TRUNCATED" : null,
       updatedAt: at,
     };
-    await this.store.publishGeneration({
+    const published = await this.store.publishGeneration({
+      job: {
+        ...job,
+        status: scan.truncated ? "FAILED" : "SUCCEEDED",
+        completedAt: at,
+        failureCode: scan.truncated ? "REPOSITORY_SCAN_TRUNCATED" : null,
+      },
       repository: nextRepository,
       generation: {
         schemaVersion: "1",
@@ -328,12 +335,7 @@ export class RepositoryService {
       directories,
       semanticIndex,
     });
-    await this.store.updateJob({
-      ...job,
-      status: scan.truncated ? "FAILED" : "SUCCEEDED",
-      completedAt: at,
-      failureCode: scan.truncated ? "REPOSITORY_SCAN_TRUNCATED" : null,
-    });
+    if (!published) return;
     await this.audit({
       eventType: scan.truncated ? "REPOSITORY_INDEX_FAILED" : "REPOSITORY_INDEXED",
       ownerId: input.ownerId,
@@ -364,18 +366,19 @@ export class RepositoryService {
     const repository = await this.store.findRepository(job.repositoryId);
     if (!repository) return;
     const at = this.now().toISOString();
-    await this.store.updateJob({
+    const failedJob = {
       ...job,
-      status: "FAILED",
+      status: "FAILED" as const,
       completedAt: at,
       failureCode: input.failureCode,
-    });
-    await this.store.updateRepository({
+    };
+    const failedRepository: Repository = {
       ...repository,
       indexStatus: repository.activeGeneration ? "REINDEX_REQUIRED" : "FAILED",
       lastFailureCode: input.failureCode,
       updatedAt: at,
-    });
+    };
+    if (!(await this.store.publishFailure(failedRepository, failedJob))) return;
     await this.audit({
       eventType: "REPOSITORY_INDEX_FAILED",
       ownerId: input.ownerId,

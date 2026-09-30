@@ -31,6 +31,9 @@ export interface EngineeringDeliveryStore {
     companyId: string,
     limit: number,
   ): Awaitable<EngineeringDelivery[]>;
+  listStaleImplementations(cutoff: string, limit: number): Awaitable<EngineeringDelivery[]>;
+  listStaleIntegrations(cutoff: string, limit: number): Awaitable<EngineeringDelivery[]>;
+  listStalePreviews(cutoff: string, limit: number): Awaitable<EngineeringDelivery[]>;
 }
 
 const scoped = (ownerId: string, companyId: string, id: string) =>
@@ -86,6 +89,30 @@ export class InMemoryEngineeringDeliveryStore implements EngineeringDeliveryStor
     return [...this.#records.values()]
       .filter((item) => item.ownerId === ownerId && item.companyId === companyId)
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .slice(0, limit)
+      .map((value) => structuredClone(value));
+  }
+
+  listStaleImplementations(cutoff: string, limit: number) {
+    return [...this.#records.values()]
+      .filter((item) => item.status === "IMPLEMENTING" && item.updatedAt < cutoff)
+      .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
+      .slice(0, limit)
+      .map((value) => structuredClone(value));
+  }
+
+  listStaleIntegrations(cutoff: string, limit: number) {
+    return [...this.#records.values()]
+      .filter((item) => item.status === "INTEGRATING" && item.updatedAt < cutoff)
+      .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
+      .slice(0, limit)
+      .map((value) => structuredClone(value));
+  }
+
+  listStalePreviews(cutoff: string, limit: number) {
+    return [...this.#records.values()]
+      .filter((item) => item.status === "PREVIEWING" && item.updatedAt < cutoff)
+      .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
       .slice(0, limit)
       .map((value) => structuredClone(value));
   }

@@ -103,6 +103,10 @@ const AgentControlApp = () => {
         .getProductStatus()
         .then(setProduct)
         .catch(() => undefined);
+      void window.alexaAgent
+        .getAgentDiagnostics()
+        .then(setDiagnostics)
+        .catch(() => undefined);
     }, 15_000);
     return () => window.clearInterval(timer);
   }, []);
@@ -250,7 +254,10 @@ const AgentControlApp = () => {
       <header className="agent-header">
         <div>
           <p className="eyebrow">Local secure shell</p>
-          <h1>{diagnostics?.agentName.replace(/^Alexa/, "Athena") ?? "Athena Control Mac Agent"}</h1>
+          <h1>
+            {diagnostics?.agentName.replace(/^Alexa/, "Athena") ??
+              "Athena Control Mac Agent"}
+          </h1>
           <p>
             Trusted applications can be launched or focused through finite signed
             provider capabilities. Generic operating-system control remains unavailable.
@@ -299,7 +306,20 @@ const AgentControlApp = () => {
           </dl>
           <div className="product-actions">
             <button
-              onClick={() => void window.alexaAgent.reconnect().then(setProduct)}
+              onClick={() =>
+                void window.alexaAgent
+                  .reconnect()
+                  .then(async (status) => {
+                    setProduct(status);
+                    setIdentity(await window.alexaAgent.getDeviceIdentityStatus());
+                    setDiagnostics(await window.alexaAgent.getAgentDiagnostics());
+                  })
+                  .catch(() =>
+                    addLog(
+                      "Secure identity recovery could not complete. Execution remains disabled.",
+                    ),
+                  )
+              }
               type="button"
             >
               Reconnect
@@ -695,7 +715,15 @@ const AgentControlApp = () => {
               type="text"
             />
           </label>
-          <button type="submit">Request pairing</button>
+          <button
+            disabled={
+              identity?.keyStorageStatus === "UNAVAILABLE" ||
+              identity?.keyStorageStatus === "CORRUPT"
+            }
+            type="submit"
+          >
+            Request pairing
+          </button>
           <button
             className="secondary-button"
             onClick={() => void refreshPairing()}
@@ -713,7 +741,11 @@ const AgentControlApp = () => {
         </form>
         {pairing ? (
           <div className="pairing-result" aria-live="polite">
-            <strong>{pairing.trustStatus ?? "NOT CONFIGURED"}</strong>
+            <strong>
+              {identity?.keyStorageStatus === "UNAVAILABLE"
+                ? "SECURE STORAGE UNAVAILABLE"
+                : (pairing.trustStatus ?? "NOT CONFIGURED")}
+            </strong>
             <span>{pairing.message}</span>
             {pairing.fingerprint ? <code>{pairing.fingerprint}</code> : null}
           </div>
@@ -721,6 +753,13 @@ const AgentControlApp = () => {
         {identity ? (
           <div className="pairing-result">
             <strong>Key storage: {identity.keyStorageStatus}</strong>
+            {identity.keyStorageStatus === "UNAVAILABLE" ? (
+              <span>
+                macOS secure storage is unavailable. Resolve any macOS unlock/access
+                prompt yourself, then choose Reconnect. Your saved identity is
+                preserved; do not reset or re-pair it.
+              </span>
+            ) : null}
             {identity.deviceId ? <span>Device ID: {identity.deviceId}</span> : null}
             {identity.fingerprint ? <code>{identity.fingerprint}</code> : null}
             {identity.serverExecutionKeyFingerprint ? (

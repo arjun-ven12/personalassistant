@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   RepositorySchema,
@@ -30,6 +30,7 @@ describe("ValidationService", () => {
     );
     const createdExecutions: Array<{ id: string; input: unknown }> = [];
     const store = new InMemoryValidationStore();
+    const audit = vi.fn(() => Promise.resolve());
     const service = new ValidationService(
       store,
       repositoryStore,
@@ -50,7 +51,7 @@ describe("ValidationService", () => {
           }),
         approve: () => Promise.resolve({ status: "APPROVED" }),
       } as never,
-      () => Promise.resolve(),
+      audit,
     );
 
     const planned = await service.create({
@@ -105,15 +106,15 @@ describe("ValidationService", () => {
       sandbox: { isolated: true, cleanedUp: true, network: "disabled" },
       metrics: { durationMs: 1, stepCount: 1 },
     });
-    await service.publishExecutionResult({
+    const publication = {
       ownerId,
       executionRequestId: started.validation.executionRequestId!,
       result: {
         commandId: crypto.randomUUID(),
         executionRequestId: started.validation.executionRequestId!,
         deviceId: crypto.randomUUID(),
-        toolName: "workspace.validate_profile",
-        status: "SUCCEEDED",
+        toolName: "workspace.validate_profile" as const,
+        status: "SUCCEEDED" as const,
         result: resultPayload,
         startedAt: new Date().toISOString(),
         completedAt: new Date().toISOString(),
@@ -125,8 +126,13 @@ describe("ValidationService", () => {
       },
       ipAddress: "127.0.0.1",
       requestId: crypto.randomUUID(),
-    });
-
+    };
+    await service.publishExecutionResult(publication);
+    const saved = store.find(planned.validation.id);
+    const auditCount = audit.mock.calls.length;
+    await service.publishExecutionResult(publication);
+    expect(store.find(planned.validation.id)).toEqual(saved);
+    expect(audit.mock.calls).toHaveLength(auditCount);
     expect(store.find(planned.validation.id)?.status).toBe("PASSED");
   });
 });

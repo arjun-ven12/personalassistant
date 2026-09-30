@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ApiClientError, type ApiClient } from "./api.js";
 
@@ -7,6 +7,13 @@ export const ApprovalsPage = ({ apiClient }: { apiClient: ApiClient }) => {
   const queryClient = useQueryClient();
   const [recentApprovalId, setRecentApprovalId] = useState<string | null>(null);
   const [password, setPassword] = useState("");
+  const confirmationRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (recentApprovalId) {
+      confirmationRef.current?.scrollIntoView({ block: "center" });
+      confirmationRef.current?.focus();
+    }
+  }, [recentApprovalId]);
   const approvals = useQuery({
     queryKey: ["approvals"],
     queryFn: () => apiClient.getApprovals(),
@@ -94,9 +101,11 @@ export const ApprovalsPage = ({ apiClient }: { apiClient: ApiClient }) => {
                 </div>
                 <div className="device-actions">
                   <button
-                    disabled={!pending || decide.isPending}
+                    disabled={!pending || decide.isPending || recentAuthenticate.isPending}
                     onClick={() => {
                       if (needsRecentAuth) {
+                        setPassword("");
+                        recentAuthenticate.reset();
                         setRecentApprovalId(approval.id);
                       } else {
                         decide.mutate({
@@ -111,7 +120,7 @@ export const ApprovalsPage = ({ apiClient }: { apiClient: ApiClient }) => {
                   </button>
                   <button
                     className="danger-button"
-                    disabled={!pending || decide.isPending}
+                    disabled={!pending || decide.isPending || recentAuthenticate.isPending}
                     onClick={() =>
                       decide.mutate({
                         action: "reject",
@@ -124,7 +133,7 @@ export const ApprovalsPage = ({ apiClient }: { apiClient: ApiClient }) => {
                   </button>
                   <button
                     className="text-button"
-                    disabled={!pending || decide.isPending}
+                    disabled={!pending || decide.isPending || recentAuthenticate.isPending}
                     onClick={() =>
                       decide.mutate({
                         action: "cancel",
@@ -160,8 +169,8 @@ export const ApprovalsPage = ({ apiClient }: { apiClient: ApiClient }) => {
               ) : null}
               {needsRecentAuth && pending ? (
                 <div className="notice">
-                  Password recent authentication is required. Approval will not execute
-                  the underlying action.
+                  Select Approve, then confirm with your Athena password. This
+                  authorizes only this request; return to the original action to execute it.
                 </div>
               ) : null}
               {externalAction ? <section className="approval-impact"><div><span>IF APPROVED</span><p>The exact {externalAction.capability} action may continue after current policy, capability, and provider checks. {externalAction.references.workflowRunId ? "Its linked workflow branch can resume." : "No linked workflow impact is recorded."}</p></div><div><span>IF REJECTED</span><p>This exact action remains denied. {externalAction.references.taskId || externalAction.references.workflowRunId ? "Its dependent branch remains blocked until a different governed path is selected." : "No downstream dependency is recorded."}</p></div></section> : null}
@@ -170,8 +179,9 @@ export const ApprovalsPage = ({ apiClient }: { apiClient: ApiClient }) => {
         })}
       </div>
       {recentApprovalId ? (
-        <div role="dialog" aria-modal="true" aria-labelledby="recent-auth-title">
+        <div ref={confirmationRef} role="region" tabIndex={-1} aria-labelledby="recent-auth-title">
           <h2 id="recent-auth-title">Confirm this high-risk approval</h2>
+          <p>{approvals.data?.find((approval) => approval.id === recentApprovalId)?.humanSummary}</p>
           <p>
             Re-enter your owner password. The password is submitted directly and is
             never retained by this page.
@@ -196,6 +206,7 @@ export const ApprovalsPage = ({ apiClient }: { apiClient: ApiClient }) => {
             </button>
             <button
               className="text-button"
+              disabled={recentAuthenticate.isPending}
               onClick={() => {
                 setPassword("");
                 setRecentApprovalId(null);

@@ -150,6 +150,17 @@ export class PostgresNativeProviderStore implements NativeProviderStore {
       requested_at: parsed.requestedAt,
     });
   }
+  async findExecutionByRequest(ownerId: string, executionRequestId: string) {
+    const result = await this.pool.query<{ record: unknown }>(
+      `SELECT record FROM provider_execution
+       WHERE owner_id=$1 AND record->>'executionRequestId'=$2
+       ORDER BY requested_at DESC LIMIT 1`,
+      [ownerId, executionRequestId],
+    );
+    return result.rows[0]
+      ? ProviderExecutionRecordSchema.parse(result.rows[0].record)
+      : undefined;
+  }
   listExecution(ownerId: string, limit: number) {
     return list(
       this.pool,

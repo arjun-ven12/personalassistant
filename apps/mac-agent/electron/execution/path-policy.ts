@@ -14,7 +14,7 @@ const sensitiveRoots = new Set([
   "/private",
 ]);
 
-const matchesBlocked = (relativePath: string, patterns: string[]) => {
+export const matchesBlocked = (relativePath: string, patterns: string[]) => {
   const normalized = relativePath.replaceAll("\\", "/");
   const segments = normalized.split("/");
   return patterns.some((pattern) => {

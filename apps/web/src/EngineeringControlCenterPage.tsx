@@ -131,6 +131,12 @@ export const EngineeringControlCenterPage = ({
         : 3_000;
     },
   });
+  const integrationRunId = center.data?.delivery.integrationRunId;
+  const integration = useQuery({
+    queryKey: ["engineering-integration", integrationRunId],
+    queryFn: () => apiClient.getEngineeringIntegration(integrationRunId!),
+    enabled: Boolean(integrationRunId),
+  });
   const refresh = async (
     data?: Awaited<ReturnType<ApiClient["getEngineeringControlCenter"]>>,
   ) => {
@@ -208,6 +214,24 @@ export const EngineeringControlCenterPage = ({
       apiClient.controlEngineeringPreview(selectedId!, action),
     onSuccess: refresh,
   });
+  const mergeCandidate = useMutation({
+    mutationFn: async () => {
+      const candidate = integration.data?.candidate;
+      if (!integrationRunId || !candidate || candidate.status !== "READY")
+        throw new Error("A reviewed READY candidate is required.");
+      const storageKey = `engineering-merge-request:${candidate.id}`;
+      let idempotencyKey = window.localStorage.getItem(storageKey);
+      if (!idempotencyKey) {
+        idempotencyKey = crypto.randomUUID();
+        window.localStorage.setItem(storageKey, idempotencyKey);
+      }
+      return apiClient.mergeEngineeringCandidate(integrationRunId, { idempotencyKey });
+    },
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: ["engineering-integration", integrationRunId] });
+      await client.invalidateQueries({ queryKey: ["engineering-control-center", selectedId] });
+    },
+  });
   const addInstruction = useMutation({
     mutationFn: () =>
       apiClient.addEngineeringInstruction(selectedId!, {
@@ -255,6 +279,9 @@ export const EngineeringControlCenterPage = ({
       : null,
     center.error
       ? formatEngineeringLoadError(center.error, "Unable to load delivery state.")
+      : null,
+    integration.error
+      ? formatEngineeringLoadError(integration.error, "Unable to load the integration candidate.")
       : null,
     sessions.error
       ? formatEngineeringLoadError(sessions.error, "Unable to load project sessions.")
@@ -582,7 +609,7 @@ export const EngineeringControlCenterPage = ({
           {data.blocker && ["BLOCKED", "FAILED", "DONE_WITH_WARNINGS", "OWNER_INPUT_REQUIRED"].includes(data.delivery.status) ? (
             <div className="panel engineering-blocker" role="alert">
               <div><p className="eyebrow">Blocked · {data.blocker.category.replaceAll("_", " ")}</p><h2>{data.blocker.message}</h2><p>{data.blocker.action}</p>{data.blocker.category === "BUDGET_EXCEEDED" ? <a href="/ai?tab=usage">Open AI Usage</a> : null}</div>
-              {data.blocker.category !== "REVIEW_CHANGES_REQUIRED" ? <button disabled={control.isPending || (data.delivery.status !== "BLOCKED" && !(["FAILED", "DONE_WITH_WARNINGS"].includes(data.delivery.status) && ["INTEGRATION_EVIDENCE_MISMATCH", "INTEGRATION_SCOPE_MISMATCH", "INTEGRATION_REPAIR_PENDING", "REVIEWER_UNAVAILABLE", "MODEL_PROVIDER_UNAVAILABLE", "BUDGET_EXCEEDED", "DEPENDENCY_PREPARATION_FAILED", "PREVIEW_FAILED", "MERGE_CONFLICT"].includes(data.blocker.category)))} onClick={() => control.mutate("resume")} type="button"><RotateCcw size={15} /> Retry</button> : null}
+              {data.blocker.category !== "REVIEW_CHANGES_REQUIRED" ? <button disabled={control.isPending || (data.delivery.status !== "BLOCKED" && !(["FAILED", "DONE_WITH_WARNINGS"].includes(data.delivery.status) && ["INTEGRATION_EVIDENCE_MISMATCH", "INTEGRATION_SCOPE_MISMATCH", "INTEGRATION_REPAIR_PENDING", "REVIEWER_UNAVAILABLE", "MODEL_PROVIDER_UNAVAILABLE", "BUDGET_EXCEEDED", "DEPENDENCY_PREPARATION_FAILED", "PREVIEW_FAILED", "MERGE_CONFLICT", "DEVICE_OFFLINE"].includes(data.blocker.category)))} onClick={() => control.mutate("resume")} type="button"><RotateCcw size={15} /> Retry</button> : null}
             </div>
           ) : null}
           <div className="metric-grid engineering-metrics">
@@ -705,8 +732,15 @@ export const EngineeringControlCenterPage = ({
               <p>
                 {data.delivery.preview?.state === "RUNNING"
                   ? `Healthy at ${data.delivery.preview.url}`
-                  : "Preview will appear only after integration, validation, and review pass."}
+                  : data.delivery.preview?.state === "STOPPED"
+                    ? "Preview is stopped. Restart it to run the registered development server."
+                    : "Preview will appear only after integration, validation, and review pass."}
               </p>
+              {preview.error instanceof Error ? (
+                <p className="form-error" role="alert">
+                  {formatEngineeringLoadError(preview.error, "Unable to update the local preview.")}
+                </p>
+              ) : null}
             </div>
             <div className="engineering-actions">
               {data.delivery.preview?.url &&
@@ -847,13 +881,40 @@ export const EngineeringControlCenterPage = ({
                   <p>Integrated file evidence will appear here.</p>
                 )}
               </div>
-              {data.delivery.warnings.map((warning) => (
+              {data.delivery.warnings.filter((warning) =>
+                !(["DONE", "DONE_WITH_WARNINGS"].includes(data.delivery.status) &&
+                  warning === "Source workspace changes differ from the completed task result.")
+              ).map((warning) => (
                 <p className="form-error" key={warning}>
                   {warning}
                 </p>
               ))}
             </section>
           </div>
+          {integration.data?.candidate ? (
+            <section className="panel" aria-label="Governed integration candidate">
+              <div className="panel-heading"><h2>Reviewed project update</h2></div>
+              <p>Candidate {integration.data.candidate.id} · {integration.data.candidate.status}</p>
+              <p>{integration.data.candidate.diffSummary}</p>
+              <p>{integration.data.candidate.filesChanged.length} changed files. Review and validation evidence remain attached to this candidate.</p>
+              {integration.data.candidate.risks.map((risk) => <p key={risk}>Risk: {risk}</p>)}
+              {integration.data.candidate.warnings.map((warning) => <p key={warning}>Review warning: {warning}</p>)}
+              {integration.data.candidate.status === "READY" ? (
+                <>
+                  <p>This update is not yet applied to the registered project. Applying it requires an exact, recent-authenticated approval; the first attempt may create that request.</p>
+                  <button disabled={mergeCandidate.isPending} onClick={() => mergeCandidate.mutate()} type="button">
+                    Apply reviewed candidate
+                  </button>
+                </>
+              ) : null}
+              {integration.data.candidate.status === "MERGED" ? <p>Applied to the registered project.</p> : null}
+              {mergeCandidate.error instanceof ApiClientError && mergeCandidate.error.code === "MERGE_APPROVAL_REQUIRED" ? (
+                <p role="alert">An exact merge approval is required. <a href="/approvals">Open Approvals</a>, approve this candidate with recent authentication, then return and apply it again.</p>
+              ) : mergeCandidate.error ? (
+                <p className="form-error" role="alert">{formatEngineeringLoadError(mergeCandidate.error, "Unable to apply this candidate.")}</p>
+              ) : null}
+            </section>
+          ) : null}
         </>
       )}
     </section>

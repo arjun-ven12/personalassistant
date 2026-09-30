@@ -370,12 +370,14 @@ export const registerExecutionRoutes = (
         return claimed;
       }
       if (operation.operation === "start") {
-        const started = await context.executionStore.transition(
+        const target = await context.executionStore.find(operation.requestId);
+        if (!target || target.deviceId !== device.id)
+          throw new ExecutionError(404, "EXECUTION_REQUEST_NOT_FOUND", "Execution request was not found.");
+        const started = await context.executionStore.startWithDeadline(
           operation.requestId,
           device.id,
-          ["CLAIMED"],
-          "RUNNING",
           new Date().toISOString(),
+          context.executions.runningTtlSeconds(target),
         );
         if (!started)
           throw new ExecutionError(
@@ -446,10 +448,61 @@ export const registerExecutionRoutes = (
           "EXECUTION_REQUEST_NOT_FOUND",
           "Execution request was not found.",
         );
-      const completed = await context.executions.acceptResult(
+      const accepted = await context.executions.acceptResultDetailed(
         target.ownerId,
         operation.result,
       );
+      const completed = accepted.request;
+      // Retry publication from the exact stored receipt, never execute a tool
+      // again to reconstruct it. Each replayable publisher is idempotent.
+      if (accepted.alreadyAccepted) {
+        if (target.toolName === "workspace.validate_profile") {
+          await context.validations.publishExecutionResult({
+            ownerId: target.ownerId,
+            executionRequestId: target.id,
+            result: operation.result,
+            requestId: request.id,
+            ipAddress: request.ip,
+          });
+        }
+        if (
+          target.toolName === "repository.scan_metadata" &&
+          operation.result.status === "SUCCEEDED" &&
+          operation.result.result
+        ) {
+          await context.repositories.publishExecutionResult({
+            ownerId: target.ownerId,
+            executionRequestId: target.id,
+            result: operation.result.result,
+            requestId: request.id,
+            ipAddress: request.ip,
+          });
+        } else if (target.toolName === "repository.scan_metadata") {
+          await context.repositories.failExecutionResult({
+            ownerId: target.ownerId,
+            executionRequestId: target.id,
+            failureCode: operation.result.failureCode ?? "REPOSITORY_SCAN_FAILED",
+            requestId: request.id,
+            ipAddress: request.ip,
+          });
+        }
+        const nativeReplay = nativeProviderRequestFor(target);
+        if (nativeReplay) {
+          await context.nativeProviders.recordTransportResult({
+            ownerId: target.ownerId,
+            executionRequestId: target.id,
+            request: nativeReplay,
+            result: operation.result.result,
+            status: operation.result.status,
+            startedAt: operation.result.startedAt,
+            completedAt: operation.result.completedAt,
+            ...(operation.result.failureCode
+              ? { failureCode: operation.result.failureCode }
+              : {}),
+          });
+        }
+        return completed;
+      }
       const nativeRequest = nativeProviderRequestFor(target);
       if (nativeRequest) {
         await context.nativeProviders.recordTransportStage({
@@ -524,6 +577,8 @@ export const registerExecutionRoutes = (
           request: nativeRequest,
           result: operation.result.result,
           status: operation.result.status,
+          startedAt: operation.result.startedAt,
+          completedAt: operation.result.completedAt,
           ...(operation.result.failureCode
             ? { failureCode: operation.result.failureCode }
             : {}),

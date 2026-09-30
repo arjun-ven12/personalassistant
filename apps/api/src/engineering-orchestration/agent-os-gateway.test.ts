@@ -173,6 +173,18 @@ describe("AgentOsEngineeringGateway", () => {
         sandboxStatus: "PASSED",
       },
     });
+    const orphanId = crypto.randomUUID();
+    store.saveSession({ ...running!, id: orphanId, status: "running", endedAt: null });
+    const replacement = await gateway.start({
+      objective, task: { ...task, attempt: 2, leaseGeneration: 2,
+        updatedAt: "2026-09-16T00:01:00.000Z" },
+      specialistAgentId: assignment.id, memoryRefs: [], requestId: "recovered-agent-os",
+    });
+    expect(store.findSession(ownerId, orphanId)).toMatchObject({
+      status: "failed", errorCode: "WORKER_LEASE_EXPIRED",
+    });
+    expect(store.findSession(ownerId, replacement.sessionId)?.status).toBe("running");
+    expect(store.findSession(ownerId, started.sessionId)?.status).toBe("completed");
     await expect(
       gateway.start({
         objective: {

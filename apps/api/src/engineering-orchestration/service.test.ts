@@ -104,6 +104,7 @@ class FakeWorker implements EngineeringTaskWorker {
   delayMs = 2;
   modelTiers: string[] = [];
   agentDefinitionIds: string[] = [];
+  contexts: Array<Parameters<EngineeringTaskWorker["execute"]>[0]["context"]> = [];
 
   async execute(input: Parameters<EngineeringTaskWorker["execute"]>[0]) {
     this.active += 1;
@@ -111,6 +112,7 @@ class FakeWorker implements EngineeringTaskWorker {
     this.starts.push(input.task);
     this.modelTiers.push(input.modelTier);
     this.agentDefinitionIds.push(input.agentDefinitionId);
+    this.contexts.push(input.context);
     const attempt = (this.attempts.get(input.task.id) ?? 0) + 1;
     this.attempts.set(input.task.id, attempt);
     try {
@@ -265,6 +267,13 @@ const runToTerminal = async (
 };
 
 describe("EngineeringManagerService", () => {
+  it("does not infer infrastructure work from responsive wording or negated scope", async () => {
+    const { service } = await setup();
+    const planned = await create(service,
+      "Add an accessible Settings panel with compact spacing to this existing responsive portfolio UI. Preserve the footer. No infrastructure changes, dependency additions, deployment or merge.");
+    expect(planned.tasks.some((task) => task.taskType === "INFRASTRUCTURE")).toBe(false);
+    expect(planned.tasks.some((task) => task.taskType === "FRONTEND")).toBe(true);
+  });
   it("recovers the original authorized worktree agent after a legacy reassignment", async () => {
     const { service, store, runtime, workspaces, worker } = await setup();
     const planned = await create(service);
@@ -345,7 +354,7 @@ describe("EngineeringManagerService", () => {
     ).not.toBeNull();
   });
 
-  it.each(["MODEL_FAILURE", "MISSING_CAPABILITY"] as const)("retries the same assigned bounded task after a %s blocker is fixed", async (failureCategory) => {
+  it.each(["MODEL_FAILURE", "MISSING_CAPABILITY", "TEST_FAILURE"] as const)("retries the same assigned bounded task after a %s blocker is fixed", async (failureCategory) => {
     const { service, store, agentStore, worker } = await setup();
     const planned = await create(service);
     const architecture = planned.tasks.find(
@@ -388,6 +397,8 @@ describe("EngineeringManagerService", () => {
       .find((item) => item.id === architecture.assignedAgentId)!;
     expect(worker.agentDefinitionIds).toContain(assignment.agentDefinitionId);
     expect(worker.agentDefinitionIds).not.toContain(architecture.assignedAgentId);
+    expect(worker.contexts.some((item) => item.taskId === architecture.id &&
+      item.priorFailureSummaries.includes("Provider rejected the structured-output schema."))).toBe(true);
   });
 
   it("creates one scoped integration repair task and executes it through the existing worker/workspace path", async () => {
@@ -519,6 +530,31 @@ describe("EngineeringManagerService", () => {
       costUsd: "0.0",
     });
     expect(resumed.events.some((item) => item.type === "TASK_COMPLETED" && item.taskId === testing.id)).toBe(true);
+  });
+
+  it("adds a scoped, bounded validation diagnostic to a failed task retry", async () => {
+    const { service, runtime } = await setup();
+    const planned = await create(service);
+    const frontend = planned.tasks.find((item) => item.taskType === "FRONTEND")!;
+    const workspaceId = crypto.randomUUID();
+    runtime.saveValidation(EngineeringValidationReportSchema.parse({
+      id: crypto.randomUUID(), workspaceId, status: "FAIL",
+      steps: [{ commandId: "lint", kind: "LINT", status: "FAIL", failures: [],
+        result: { commandId: "lint", exitCode: 1,
+          stdout: "/workspace/tests/app.test.mjs\n  23:25  error  Parsing error: Invalid regular expression flag\n",
+          stderr: "", startedAt: new Date().toISOString(), completedAt: new Date().toISOString(),
+          durationMs: 1, timedOut: false, cancelled: false, truncated: false, networkIsolated: true } }],
+      durationMs: 1, createdAt: new Date().toISOString(),
+    }), ownerId, companyId);
+    const retryTask = EngineeringTaskSchema.parse({ ...frontend, workspaceId,
+      lastFailureSummary: "Governed lint validation failed near workspace/tests/app.test.mjs." });
+    const packageForRetry = await (service as unknown as { contextFor: (
+      objective: typeof planned.objective, task: EngineeringTask,
+    ) => Promise<{ priorFailureSummaries: string[] }> }).contextFor(planned.objective, retryTask);
+    expect(packageForRetry.priorFailureSummaries).toContain(
+      "Governed lint validation failed near tests/app.test.mjs:23 (Invalid regular expression flag). Read that exact test file and replace the malformed regex assertion with a literal string/DOM assertion when possible; then rerun validation.",
+    );
+    expect(runtime.findLatestValidationForWorkspace(ownerId, otherCompanyId, workspaceId)).toBeUndefined();
   });
 
   it("uses one governed worker for a narrow text edit while retaining validation and integration readiness", async () => {

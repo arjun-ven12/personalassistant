@@ -6,6 +6,7 @@ import {
 } from "@alexa-control/shared";
 
 import type { MemoryStore } from "../memory/store.js";
+import { hasSensitiveMemoryContent } from "../memory/sensitive-content.js";
 import type { EmbeddingService } from "./embedding-service.js";
 
 export interface RetrievalServiceOptions {
@@ -53,6 +54,15 @@ export class RetrievalService {
             ).values(),
           ];
     const ranked = all
+      .filter((memory) =>
+        !hasSensitiveMemoryContent(
+          memory.title,
+          memory.summary,
+          memory.content,
+          ...memory.tags,
+          JSON.stringify(memory.evidence),
+        ),
+      )
       .filter(
         (memory) =>
           memory.ownerId === ownerId &&

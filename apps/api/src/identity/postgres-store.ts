@@ -218,6 +218,33 @@ export class PostgresIdentityStore implements IdentityStore {
     return result.rowCount === 1;
   }
 
+  async consumeSignedResultNonce(
+    deviceId: string,
+    nonce: string,
+    executionRequestId: string,
+    signatureDigest: string,
+    expiresAt: Date,
+    now: Date,
+  ) {
+    await this.pool.query("DELETE FROM used_nonces WHERE expires_at <= $1", [
+      now.toISOString(),
+    ]);
+    const inserted = await this.pool.query(
+      `INSERT INTO used_nonces(
+        device_id,nonce,expires_at,execution_request_id,result_signature_digest
+       ) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING`,
+      [deviceId, nonce, expiresAt.toISOString(), executionRequestId, signatureDigest],
+    );
+    if (inserted.rowCount === 1) return true;
+    const existing = await this.pool.query<{ execution_request_id: string | null; result_signature_digest: string | null }>(
+      `SELECT execution_request_id,result_signature_digest FROM used_nonces
+       WHERE device_id=$1 AND nonce=$2 AND expires_at>$3`,
+      [deviceId, nonce, now.toISOString()],
+    );
+    return existing.rows[0]?.execution_request_id === executionRequestId &&
+      existing.rows[0]?.result_signature_digest === signatureDigest;
+  }
+
   async appendAudit(input: CreateAuditRecord) {
     const stored: StoredAuditRecord = {
       id: crypto.randomUUID(),

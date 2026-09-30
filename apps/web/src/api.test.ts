@@ -66,6 +66,16 @@ describe("web API client", () => {
     ).rejects.toThrow();
   });
 
+  it("reports contract mismatch without exposing rejected response contents", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ privateField: "private-response-value" }), { status: 200 }),
+    ));
+    await expect(createApiClient("http://localhost:3001").getHealth()).rejects.toMatchObject({
+      code: "API_CONTRACT_MISMATCH",
+      message: "The API response does not match this app version. Refresh the page to load the latest app; if this continues, check the deployment versions.",
+    });
+  });
+
   it("validates application registry responses and rejects unsafe shapes", async () => {
     const validApplication = {
       id: "example.editor",

@@ -179,7 +179,53 @@ export class PostgresRepositoryStore implements RepositoryStore {
     );
   }
 
+  async publishFailure(repository: Repository, job: RepositoryIndexJob) {
+    const parsedRepository = RepositorySchema.parse(repository);
+    const parsedJob = RepositoryIndexJobSchema.parse(job);
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      const updated = await client.query(
+        `UPDATE repository_index_jobs SET status=$2,completed_at=$3,record=$4
+         WHERE id=$1 AND owner_id=$5 AND repository_id=$6
+           AND execution_request_id=$7 AND status='RUNNING' RETURNING id`,
+        [
+          parsedJob.id,
+          parsedJob.status,
+          parsedJob.completedAt,
+          parsedJob,
+          parsedJob.ownerId,
+          parsedRepository.id,
+          parsedJob.executionRequestId,
+        ],
+      );
+      if (updated.rowCount !== 1) {
+        await client.query("ROLLBACK");
+        return false;
+      }
+      await client.query(
+        `UPDATE repositories SET index_status=$2,updated_at=$3,record=$4
+         WHERE id=$1 AND owner_id=$5`,
+        [
+          parsedRepository.id,
+          parsedRepository.indexStatus,
+          parsedRepository.updatedAt,
+          parsedRepository,
+          parsedRepository.ownerId,
+        ],
+      );
+      await client.query("COMMIT");
+      return true;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   async publishGeneration(input: {
+    job: RepositoryIndexJob;
     repository: Repository;
     generation: RepositoryGeneration;
     files: FileInventoryRecord[];
@@ -188,6 +234,7 @@ export class PostgresRepositoryStore implements RepositoryStore {
   }) {
     const repository = RepositorySchema.parse(input.repository);
     const generation = RepositoryGenerationSchema.parse(input.generation);
+    const job = RepositoryIndexJobSchema.parse(input.job);
     const files = input.files.map((file) => FileInventoryRecordSchema.parse(file));
     const directories = input.directories.map((node) =>
       DirectoryNodeSchema.parse(node),
@@ -230,6 +277,32 @@ export class PostgresRepositoryStore implements RepositoryStore {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
+      const claimed = await client.query(
+        `SELECT id FROM repository_index_jobs
+         WHERE id=$1 AND owner_id=$2 AND repository_id=$3
+           AND execution_request_id=$4 AND status='RUNNING' FOR UPDATE`,
+        [job.id, job.ownerId, repository.id, generation.executionRequestId],
+      );
+      if (claimed.rowCount !== 1) {
+        await client.query("ROLLBACK");
+        return false;
+      }
+      // Older releases could commit a generation before updating the job.
+      // Recover that saved generation without publishing a second inventory.
+      const published = await client.query(
+        `SELECT id FROM repository_generations
+         WHERE repository_id=$1 AND owner_id=$2 AND execution_request_id=$3`,
+        [repository.id, job.ownerId, generation.executionRequestId],
+      );
+      if (published.rowCount) {
+        await client.query(
+          `UPDATE repository_index_jobs SET status=$2,completed_at=$3,
+           record=$4 WHERE id=$1 AND owner_id=$5`,
+          [job.id, job.status, job.completedAt, job, job.ownerId],
+        );
+        await client.query("COMMIT");
+        return false;
+      }
       await client.query(
         `INSERT INTO repository_generations(
           id,repository_id,owner_id,workspace_id,generation,fingerprint,
@@ -498,7 +571,13 @@ export class PostgresRepositoryStore implements RepositoryStore {
           repository,
         ],
       );
+      await client.query(
+        `UPDATE repository_index_jobs SET status=$2,completed_at=$3,
+         record=$4 WHERE id=$1 AND owner_id=$5`,
+        [job.id, job.status, job.completedAt, job, job.ownerId],
+      );
       await client.query("COMMIT");
+      return true;
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;

@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { AIRouterService } from "../ai/router/service.js";
 import {
   AIRouterEngineeringTaskWorker,
+  validationFailureSummary,
   type GovernedEngineeringActionGateway,
 } from "./ai-worker.js";
 
@@ -159,6 +160,47 @@ describe("AIRouterEngineeringTaskWorker", () => {
     expect(JSON.stringify(synthesisRequest.input)).toContain("React");
   });
 
+  it("preserves partial-read line ranges and truncation for grounded patch planning", async () => {
+    const executeStructured = vi.fn()
+      .mockResolvedValueOnce({ requestId: crypto.randomUUID(), outcome: "SUCCESS", decision: { reason: "test" }, structuredOutput: { summary: "Read", operations: [{ capability: "repository.file_read", input: { path: "src/App.tsx", startLine: 40, endLine: 60 } }], artifacts: [] } })
+      .mockResolvedValueOnce({ requestId: crypto.randomUUID(), outcome: "SUCCESS", decision: { reason: "test" }, structuredOutput: { summary: "Inspected bounded excerpt", operations: [], artifacts: [] } });
+    const invoke = vi.fn<GovernedEngineeringActionGateway["invoke"]>().mockResolvedValue({ output: {
+      path: "src/App.tsx", content: "excerpt", sha256: "a".repeat(64), startLine: 40, endLine: 60, truncated: true,
+    } });
+    const worker = new AIRouterEngineeringTaskWorker({ executeStructured } as unknown as AIRouterService, { invoke });
+    await worker.execute({ objective, task: { ...task, readOnly: true, requiredCapabilities: ["repository.file_read"] }, agentDefinitionId, context, modelTier: "LUNA", workspaceId: task.workspaceId, signal: new AbortController().signal, transport });
+    const request = executeStructured.mock.calls[1]?.[0] as Parameters<AIRouterService["executeStructured"]>[0];
+    const contextText = JSON.stringify(request.input);
+    expect(contextText).toContain('\\"startLine\\":40');
+    expect(contextText).toContain('\\"endLine\\":60');
+    expect(contextText).toContain('\\"observationTruncated\\":true');
+  });
+
+  it("reports an unchanged signed patch as NO_CHANGE instead of accepting it as file evidence", async () => {
+    const originalHash = "a".repeat(64);
+    const executeStructured = vi.fn()
+      .mockResolvedValueOnce({ requestId: crypto.randomUUID(), outcome: "SUCCESS", decision: { reason: "test" }, structuredOutput: { summary: "Read", operations: [{ capability: "repository.file_read", input: { path: "src/App.tsx" } }], artifacts: [] } })
+      .mockResolvedValueOnce({
+        requestId: crypto.randomUUID(), outcome: "SUCCESS", decision: { reason: "test" },
+        structuredOutput: { summary: "Remove duplicate", operations: [{
+          capability: "repository.file_patch",
+          input: { patch: { path: "src/App.tsx", expectedSha256: originalHash,
+            hunks: [{ startLine: 2, endLine: 2, replacement: "  );\n" }] } },
+        }], artifacts: [] },
+      })
+      .mockResolvedValue({ requestId: crypto.randomUUID(), outcome: "SUCCESS", decision: { reason: "test" }, structuredOutput: { summary: "Nothing else to change", operations: [], artifacts: [] } });
+    const invoke = vi.fn<GovernedEngineeringActionGateway["invoke"]>()
+      .mockResolvedValueOnce({ output: { path: "src/App.tsx", content: "  );\n  );\n};\n", sha256: originalHash } })
+      .mockResolvedValueOnce({ output: { path: "src/App.tsx", sha256: originalHash }, filesChanged: ["src/App.tsx"] });
+    const worker = new AIRouterEngineeringTaskWorker({ executeStructured } as unknown as AIRouterService, { invoke });
+    const result = await worker.execute({ objective, task: { ...task, requiredCapabilities: ["repository.file_read", "repository.file_patch", "repository.validate"] },
+      agentDefinitionId, context, modelTier: "LUNA", workspaceId: task.workspaceId, signal: new AbortController().signal, transport });
+    expect(result.status).toBe("FAILED");
+    expect(result.filesChanged ?? []).toEqual([]);
+    const nextRequest = executeStructured.mock.calls[2]?.[0] as Parameters<AIRouterService["executeStructured"]>[0];
+    expect(JSON.stringify(nextRequest.input)).toContain("NO_CHANGE");
+  });
+
   it("turns an existing create target into bounded read-and-patch feedback", async () => {
     const proposal = (operations: unknown[]) => ({
       requestId: crypto.randomUUID(), outcome: "SUCCESS",
@@ -275,6 +317,35 @@ describe("AIRouterEngineeringTaskWorker", () => {
     expect(result).toMatchObject({ status: "FAILED", failureCategory: "TEST_FAILURE", failureSummary: "Governed test validation failed near tests/app.test.mjs:38 (SyntaxError). Inspect the validation report and repair the affected file before retrying." });
   });
 
+  it("uses actual failed Node test locations and behavior instead of a command glob", () => {
+    const summary = validationFailureSummary({
+      commandId: "test", exitCode: 1,
+      stderr: "$ node --test tests/*.test.mjs\n",
+      stdout: "✔ renders Hero (4ms)\n✖ preserves navigation anchors (13.7ms)\n✖ retains sample labels (0.8ms)\n✖ failing tests:\n\ntest at tests/app.test.mjs:30:3\n✖ preserves navigation anchors\nAssertionError: assertion failed\n",
+      startedAt: now, completedAt: now, durationMs: 1,
+      timedOut: false, cancelled: false, truncated: false, networkIsolated: true,
+    });
+    expect(summary).toContain("near tests/app.test.mjs:30");
+    expect(summary).toContain("Failing tests: preserves navigation anchors; retains sample labels.");
+    expect(summary).not.toContain("renders Hero");
+    expect(summary).not.toContain("AssertionError");
+    expect(summary.length).toBeLessThan(1_000);
+  });
+  it("carries the exact lint parser location and safe error category into a retry", async () => {
+    const response = (operations: unknown[]) => ({ requestId: crypto.randomUUID(), outcome: "SUCCESS", decision: { reason: "test" }, structuredOutput: { summary: "Implemented", operations, artifacts: [] } });
+    const executeStructured = vi.fn().mockResolvedValueOnce(response([{ capability: "repository.file_create", input: { path: "src/new.ts", content: "export {};" } }])).mockResolvedValue(response([]));
+    const invoke = vi.fn<GovernedEngineeringActionGateway["invoke"]>()
+      .mockResolvedValueOnce({ output: {}, filesChanged: ["src/new.ts"] })
+      .mockResolvedValueOnce({ output: {
+        commandId: "lint", exitCode: 1, stdout: "/workspace/tests/app.test.mjs\n  23:25  error  Parsing error: Invalid regular expression flag\n",
+        stderr: "", startedAt: "2026-09-24T00:00:00.000Z", completedAt: "2026-09-24T00:00:01.000Z",
+        durationMs: 1_000, timedOut: false, cancelled: false, truncated: false, networkIsolated: true,
+      }, validationStatus: "FAIL", validationReportId: crypto.randomUUID() });
+    const worker = new AIRouterEngineeringTaskWorker({ executeStructured } as unknown as AIRouterService, { invoke });
+    const result = await worker.execute({ objective, task: { ...task, requiredCapabilities: ["repository.file_create", "repository.validate"] }, agentDefinitionId, context, modelTier: "LUNA", workspaceId: task.workspaceId, signal: new AbortController().signal, transport });
+    expect(result).toMatchObject({ status: "FAILED", failureSummary: "Governed lint validation failed near tests/app.test.mjs:23 (Invalid regular expression flag). Read that exact test file and replace the malformed regex assertion with a literal string/DOM assertion when possible; then rerun validation." });
+  });
+
   it("does not repeat an explicit passing validation on the final round", async () => {
     const response = (operations: unknown[]) => ({
       requestId: crypto.randomUUID(), outcome: "SUCCESS",
@@ -339,6 +410,7 @@ describe("AIRouterEngineeringTaskWorker", () => {
     });
     const request = executeStructured.mock.calls[0]?.[0] as Parameters<AIRouterService["executeStructured"]>[0];
     expect(request.systemInstructions?.join(" ")).toContain("A testing parent does not restrict this repair to test files");
+    expect(request.systemInstructions?.join(" ")).toContain("prefer simple literal string or DOM assertions");
     expect(request.systemInstructions?.join(" ")).not.toContain("without rewriting implementation source");
   });
 

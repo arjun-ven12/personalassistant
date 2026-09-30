@@ -44,6 +44,13 @@ describe("RetrievalService", () => {
     });
     store.saveMemory(relevant);
     store.saveMemory(irrelevant);
+    const legacySensitive = MemoryRecordSchema.parse({
+      ...relevant,
+      id: crypto.randomUUID(),
+      title: "Authentication sessions credential note",
+      summary: "A legacy password note is not retrieval context.",
+    });
+    store.saveMemory(legacySensitive);
     const expired = MemoryRecordSchema.parse({
       ...relevant,
       id: crypto.randomUUID(),

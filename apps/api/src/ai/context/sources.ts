@@ -9,6 +9,7 @@ import type { HumanUnderstandingStore } from "../../human-understanding/store.js
 import type { KnowledgeGraphStore } from "../../knowledge-graph/store.js";
 import type { LearningEngineStore } from "../../learning-engine/store.js";
 import type { MemoryStore } from "../../memory/store.js";
+import { hasSensitiveMemoryContent } from "../../memory/sensitive-content.js";
 import type { RepositoryStore } from "../../repositories/store.js";
 import type { WorkflowStore } from "../../workflows/store.js";
 import type { WorkspaceIntelligenceStore } from "../../workspace-intelligence/store.js";
@@ -207,6 +208,15 @@ export const createProductionContextSources = (
       );
       const active = memories
         .filter((item) => !item.expiresAt || Date.parse(item.expiresAt) > Date.now())
+        .filter((item) =>
+          !hasSensitiveMemoryContent(
+            item.title,
+            item.summary,
+            item.content,
+            ...item.tags,
+            JSON.stringify(item.evidence),
+          ),
+        )
         .filter(
           (item) =>
             !request.projectId ||

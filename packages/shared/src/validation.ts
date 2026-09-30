@@ -66,7 +66,7 @@ export const ValidationStepResultSchema = z
     exitCode: z.number().int().min(-1).max(255).nullable(),
     startedAt: z.iso.datetime().nullable(),
     completedAt: z.iso.datetime().nullable(),
-    durationMs: z.number().int().nonnegative().max(120_000).nullable(),
+    durationMs: z.number().int().nonnegative().max(130_000).nullable(),
     stdout: z.string().max(32_768),
     stderr: z.string().max(32_768),
     truncated: z.boolean(),
@@ -138,7 +138,9 @@ export const ValidationExecutionResultSchema = z
       .strict(),
     metrics: z
       .object({
-        durationMs: z.number().int().nonnegative().max(600_000),
+        // A finite profile set runs sequentially; seven registered profiles
+        // can legitimately exceed ten minutes without expanding any command.
+        durationMs: z.number().int().nonnegative().max(25 * 60_000),
         stepCount: z.number().int().nonnegative().max(12),
       })
       .strict(),

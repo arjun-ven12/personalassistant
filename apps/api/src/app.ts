@@ -797,9 +797,9 @@ export const buildApi = async ({
     trustProxy:
       trustedProxyMode === "loopback"
         ? (address, hop) => hop === 0 && isLoopbackAddress(address)
-        : trustedProxyMode === "one-hop"
-          ? 1
-          : false,
+        // Cloud edge addresses are not an authenticated trust boundary here.
+        // Ignore forwarded headers until a reviewed peer-address policy exists.
+        : false,
     genReqId: () => crypto.randomUUID(),
     logController: new LogController({
       disableRequestLogging: false,
@@ -1296,6 +1296,15 @@ export const buildApi = async ({
       now,
     ),
   );
+  let lastExecutionCleanupAt = 0;
+  durableScheduler.setExecutionCleanupWorkload({
+    tick: async () => {
+      const at = (now?.() ?? new Date()).getTime();
+      if (at - lastExecutionCleanupAt < 30_000) return;
+      await executions.cleanupExpired();
+      lastExecutionCleanupAt = at;
+    },
+  });
   durableExecution.setSchedulerEnabled(Boolean(database && durableSchedulerEnabled));
   if (database && durableSchedulerEnabled) {
     app.addHook("onReady", () => durableScheduler.start());
@@ -1708,6 +1717,9 @@ export const buildApi = async ({
     governanceAudit,
     now,
   );
+  durableScheduler.setWorkforceRecoveryWorkload({
+    tick: () => workforceRuntime.reconcileExpiredExecutions(),
+  });
   engineeringManager.setWorkforceMatcher({
     rank: async (input) =>
       (await workforceRuntime.rankEngineeringCandidates(input)).map(
@@ -1802,6 +1814,9 @@ export const buildApi = async ({
     governanceAudit,
     now,
   );
+  durableScheduler.setEngineeringRecoveryWorkload({
+    tick: () => engineeringDelivery.reconcileStalledImplementations(),
+  });
   const engineeringProjectSessions = new EngineeringProjectSessionService(
     database ? new PostgresEngineeringProjectSessionStore(database.pool) : new InMemoryEngineeringProjectSessionStore(),
     resolvedEngineeringRuntimeStore,
@@ -2216,7 +2231,7 @@ export const buildApi = async ({
     databaseReady,
     migrationState,
     productionNetworkVerifierConfigured,
-    trustedProxyConfigured: trustedProxyMode !== "none",
+    trustedProxyConfigured: trustedProxyMode === "loopback",
     csrfProtection: true,
     executions,
     executionStore,

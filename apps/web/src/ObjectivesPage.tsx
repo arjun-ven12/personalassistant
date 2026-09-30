@@ -29,6 +29,8 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
     queryKey: ["objectives"],
     queryFn: apiClient.getObjectives,
     refetchInterval: 10_000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: "always",
   });
   const business = useQuery({
     queryKey: ["business-operations"],
@@ -44,6 +46,8 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
     queryKey: ["workforce-runtime", "objectives"],
     queryFn: apiClient.getWorkforceRuntime,
     refetchInterval: 5_000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: "always",
   });
   const [tab, setTab] = useState<Tab>("overview");
   const [selected, setSelected] = useState<string | null>(() => new URLSearchParams(window.location.search).get("selected"));
@@ -210,10 +214,14 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
       project.workforceTaskId ? runtimeTasks.get(project.workforceTaskId) : undefined,
     )
     .filter((task): task is NonNullable<typeof task> => Boolean(task));
-  const activeObjectiveTasks = objectiveTasks.filter((task) => task.status === "RUNNING");
+  const activeExecutionIds = new Set(workforceRuntime.data?.activeExecutionTaskIds ?? []);
+  const activeObjectiveTasks = objectiveTasks.filter((task) => activeExecutionIds.has(task.id));
+  const activeObjectiveAgentCount = new Set(activeObjectiveTasks.map((task) => task.assignedAgentId).filter(Boolean)).size;
   const verifiedObjectiveLeads = bestSourcedCompanyRecords(objectiveTasks
-    .filter((task) => task.status === "COMPLETED")
+    .filter((task) => task.status === "COMPLETED" && task.completionProvenance?.completionType === "EXECUTED")
     .flatMap((task) => task.verifiedLeads));
+  const legacyCompletedTasks = objectiveTasks.filter((task) => task.status === "COMPLETED" && task.completionProvenance?.completionType !== "EXECUTED");
+  const legacySourceLinkedLeads = bestSourcedCompanyRecords(legacyCompletedTasks.flatMap((task) => task.verifiedLeads));
   const sourceRequirement = requiredIndependentSources(`${goal?.description ?? ""} ${data?.metrics.filter((item) => item.goalId === current?.executiveGoalId).map((item) => item.name).join(" ") ?? ""}`);
   const qualifyingObjectiveLeads = verifiedObjectiveLeads.filter((lead) => independentSourceHosts(lead.sourceUrls) >= sourceRequirement);
   const partialObjectiveLeads = verifiedObjectiveLeads.filter((lead) => independentSourceHosts(lead.sourceUrls) < sourceRequirement);
@@ -273,6 +281,14 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
           </button>
         ))}
       </nav>
+      {query.isError || workforceRuntime.isError ? (
+        <div role="alert">
+          Live objective updates are unavailable. Displayed activity may be stale.
+          {query.error instanceof ApiClientError ? ` ${query.error.message}` :
+            workforceRuntime.error instanceof ApiClientError ? ` ${workforceRuntime.error.message}` : null}
+          <button type="button" onClick={() => void refresh()}>Reconnect</button>
+        </div>
+      ) : null}
       <section className="objective-stats">
         <div>
           <Target />
@@ -451,11 +467,12 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                     current.status === "BLOCKED" ? (
                       <button
                         className="primary-action"
+                        disabled={mutate.isPending}
                         onClick={() =>
                           mutate.mutate({ id: current.id, action: "activate" })
                         }
                       >
-                        Confirm & activate
+                        {mutate.isPending ? "Updating objective…" : "Confirm & activate"}
                       </button>
                     ) : null}
                     {["ACTIVE", "AT_RISK"].includes(current.status) ? (
@@ -486,6 +503,13 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                     ) : null}
                   </div>
                 </header>
+                {mutate.isError ? (
+                  <div role="alert">
+                    Unable to update this objective. {mutate.error instanceof ApiClientError
+                      ? mutate.error.message
+                      : "Refresh the page and check its current state before retrying."}
+                  </div>
+                ) : null}
                 <section className="objective-progress-grid">
                   <div>
                     <span>Execution progress</span>
@@ -543,14 +567,16 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                       <h3>Live execution</h3>
                       <small>Only persisted workforce, model, and evidence state is shown.</small>
                     </div>
-                    <span>{activeObjectiveTasks.length} active agent{activeObjectiveTasks.length === 1 ? "" : "s"}</span>
+                    <span>{activeObjectiveAgentCount} active agent{activeObjectiveAgentCount === 1 ? "" : "s"}</span>
                   </header>
                   {objectiveTasks.length ? objectiveTasks.map((task) => (
                     <article key={task.id}>
                       <div>
                         <strong>{task.title}</strong>
                         <small>{task.status.replaceAll("_", " ")} · {task.assignedAgentId ?? "No active specialist"}</small>
+                        {task.status === "COMPLETED" ? <small className="workforce-requirements">Completion: {task.completionProvenance?.completionType === "EXECUTED" ? "runtime-executed" : task.completionProvenance?.completionType === "MANUAL_ATTESTATION" ? "manual attestation" : "legacy / unverified provenance"}</small> : null}
                         {task.runtimeActivity ? <small className="workforce-requirements">Activity: {task.runtimeActivity.replaceAll("_", " ").toLowerCase()}</small> : null}
+                        {activeExecutionIds.has(task.id) && task.status !== "RUNNING" ? <small className="workforce-requirements">Worker lease active · preparing governed execution</small> : null}
                         {task.webSearchCallCount ? <small className="workforce-requirements">Web research: {task.webSearchCallCount} completed search call{task.webSearchCallCount === 1 ? "" : "s"}</small> : null}
                         {task.providerId && task.modelId ? (
                           <small className="workforce-requirements">Model: {task.providerId} / {task.modelId} · request {task.aiRequestId ?? "recorded"}</small>
@@ -592,10 +618,12 @@ export const ObjectivesPage = ({ apiClient }: { apiClient: ApiClient }) => {
                     <header>
                       <div>
                         <h3>Final result</h3>
-                        <small>{completedObjectiveTasks.length} completed task{completedObjectiveTasks.length === 1 ? "" : "s"} · {qualifyingObjectiveLeads.length} qualifying record{qualifyingObjectiveLeads.length === 1 ? "" : "s"} · {partialObjectiveLeads.length} partial · {current.spentCredits} credits</small>
+                        <small>{completedObjectiveTasks.length} completed task{completedObjectiveTasks.length === 1 ? "" : "s"} · {qualifyingObjectiveLeads.length} execution-backed qualifying record{qualifyingObjectiveLeads.length === 1 ? "" : "s"} · {partialObjectiveLeads.length} partial · {current.spentCredits} credits</small>
                       </div>
                     </header>
                     <p>Qualification checks structured records against URLs returned by web research and {sourceRequirement} independent HTTPS source host{sourceRequirement === 1 ? "" : "s"}. Review notes are advisory; this check does not verify every claim on a source page.</p>
+                    {legacyCompletedTasks.length ? <p>{legacyCompletedTasks.length} historical completed task{legacyCompletedTasks.length === 1 ? "" : "s"} lack execution provenance. Their persisted result and metric are retained, but have not been reclassified as execution-verified.</p> : null}
+                    {legacySourceLinkedLeads.length ? <details><summary>{legacySourceLinkedLeads.length} historical source-linked record{legacySourceLinkedLeads.length === 1 ? "" : "s"} (execution provenance unavailable)</summary><ol>{legacySourceLinkedLeads.map((lead) => <li key={lead.companyName.toLowerCase()}>{lead.companyName} · {lead.sourceUrls.length} source URL{lead.sourceUrls.length === 1 ? "" : "s"}</li>)}</ol></details> : null}
                     {qualifyingObjectiveLeads.length ? (
                       <article>
                         <ol>

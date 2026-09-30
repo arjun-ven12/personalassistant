@@ -137,7 +137,7 @@ describe("environment validation", () => {
         PUBLIC_BASE_URL: "https://api.alexa.example",
         WEB_ORIGIN: "https://alexa.example",
         ALLOWED_HOSTS: "api.alexa.example",
-        TRUSTED_PROXY_MODE: "one-hop",
+        TRUSTED_PROXY_MODE: "none",
         PRIVATE_NETWORK_REQUIRED: "false",
         TAILSCALE_REQUIRED: "false",
         NETWORK_VERIFIER_MODE: "unknown",
@@ -154,7 +154,7 @@ describe("environment validation", () => {
     ).not.toThrow();
   });
 
-  it("rejects cloud profiles without HTTPS, exact hosts, or bounded proxy trust", () => {
+  it("rejects cloud profiles without HTTPS or exact hosts", () => {
     const base = {
       NODE_ENV: "production",
       DEPLOYMENT_MODE: "cloud",
@@ -182,7 +182,7 @@ describe("environment validation", () => {
     ).toThrow();
     expect(() =>
       parseApiEnvironment({ ...base, TRUSTED_PROXY_MODE: "none" }),
-    ).toThrow();
+    ).not.toThrow();
     expect(() =>
       parseApiEnvironment({ ...base, PRIVATE_NETWORK_REQUIRED: "true" }),
     ).toThrow();

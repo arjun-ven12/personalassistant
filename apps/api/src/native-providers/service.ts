@@ -20,6 +20,7 @@ import {
   type ProviderDiagnosticRecord,
 } from "@alexa-control/shared";
 import { z } from "zod";
+import { createHash } from "node:crypto";
 
 import type { ApplicationAdapterStore } from "../application-adapters/store.js";
 import type { GovernanceAuditWriter } from "../governance/approval-service.js";
@@ -33,6 +34,13 @@ interface ProviderDescriptor {
   bundleIdentifier: string;
   capabilities: NativeProviderCapability[];
 }
+
+const receiptDiagnosticId = (ownerId: string, requestId: string, stage: string) => {
+  const digest = createHash("sha256")
+    .update(`native-receipt:${ownerId}:${requestId}:${stage}`)
+    .digest("hex");
+  return `${digest.slice(0, 8)}-${digest.slice(8, 12)}-5${digest.slice(13, 16)}-a${digest.slice(17, 20)}-${digest.slice(20, 32)}`;
+};
 
 const descriptors: ProviderDescriptor[] = [
   {
@@ -224,7 +232,7 @@ export class NativeProviderRuntime {
           ipAddress: string;
           requestId: string;
           policyApplication: AllowedApplication;
-      }) => Promise<{ executionRequestId: string }>)
+        }) => Promise<{ executionRequestId: string }>)
       | undefined = undefined,
     readonly recordReviewedCapability:
       | ((input: {
@@ -547,7 +555,12 @@ export class NativeProviderRuntime {
         macBundleId: trusted.bundleIdentifier,
         enabled: trusted.status === "trusted",
         permissions: {
-          open: ["launch", "open_file", "open_workspace", "open_selected_resource"].includes(parsed.capability),
+          open: [
+            "launch",
+            "open_file",
+            "open_workspace",
+            "open_selected_resource",
+          ].includes(parsed.capability),
           focus: ["focus", "focus_semantic_control"].includes(parsed.capability),
           inspectWindow: false,
           captureWindow: false,
@@ -585,7 +598,9 @@ export class NativeProviderRuntime {
           role: typeof target.role === "string" ? target.role.slice(0, 80) : null,
           label: typeof target.label === "string" ? target.label.slice(0, 240) : null,
           identifier:
-            typeof target.identifier === "string" ? target.identifier.slice(0, 240) : null,
+            typeof target.identifier === "string"
+              ? target.identifier.slice(0, 240)
+              : null,
         },
         requestId: input.requestId,
       });
@@ -597,7 +612,8 @@ export class NativeProviderRuntime {
         executionRequestId: queued.executionRequestId,
         stage: "backend_dispatch",
         severity: "warning",
-        message: "Semantic demonstration capture failed; queued execution was not duplicated.",
+        message:
+          "Semantic demonstration capture failed; queued execution was not duplicated.",
         auditEventType: null,
         verificationResult: "pending",
       });
@@ -754,15 +770,20 @@ export class NativeProviderRuntime {
     result: unknown;
     status: "SUCCEEDED" | "FAILED" | "TIMED_OUT" | "CANCELLED";
     failureCode?: string;
+    startedAt: string;
+    completedAt: string;
   }) {
     const parsed =
       input.status === "SUCCEEDED" && input.result
         ? NativeProviderExecutionTransportResultSchema.parse(input.result)
         : null;
-    const at = this.now().toISOString();
+    const existing = await this.store.findExecutionByRequest(
+      input.ownerId,
+      input.executionRequestId,
+    );
     await this.store.saveExecution(
       ProviderExecutionRecordSchema.parse({
-        id: crypto.randomUUID(),
+        id: existing?.id ?? input.executionRequestId,
         ownerId: input.ownerId,
         executionRequestId: input.executionRequestId,
         providerId: input.request.providerId,
@@ -778,8 +799,8 @@ export class NativeProviderRuntime {
           parsed?.verificationSummary ??
           "Provider verification did not return a successful signed result.",
         errorCode: parsed?.errorCode ?? input.failureCode ?? null,
-        requestedAt: at,
-        completedAt: at,
+        requestedAt: input.startedAt,
+        completedAt: input.completedAt,
       }),
     );
     await this.recordStage({
@@ -794,6 +815,7 @@ export class NativeProviderRuntime {
         : `Execution ${input.executionRequestId} failed: ${input.failureCode ?? parsed?.errorCode ?? "NATIVE_EXECUTION_FAILED"}.`,
       auditEventType: parsed?.verified ? "EXECUTION_SUCCEEDED" : "EXECUTION_FAILED",
       verificationResult: parsed?.verified ? "succeeded" : "failed",
+      createdAt: input.completedAt,
     });
   }
 
@@ -809,10 +831,13 @@ export class NativeProviderRuntime {
     message: string;
     auditEventType: string | null;
     verificationResult: "pending" | "succeeded" | "failed";
+    createdAt?: string;
   }) {
     await this.store.saveDiagnostic(
       ProviderDiagnosticRecordSchema.parse({
-        id: crypto.randomUUID(),
+        id: input.executionRequestId
+          ? receiptDiagnosticId(input.ownerId, input.executionRequestId, input.stage)
+          : crypto.randomUUID(),
         ownerId: input.ownerId,
         providerId: input.providerId,
         executionRequestId: input.executionRequestId,
@@ -822,7 +847,7 @@ export class NativeProviderRuntime {
         auditEventType: input.auditEventType,
         severity: input.severity,
         message: input.message,
-        createdAt: this.now().toISOString(),
+        createdAt: input.createdAt ?? this.now().toISOString(),
       }),
     );
   }
@@ -834,7 +859,9 @@ export class NativeProviderRuntime {
     const initializingOwner = providers.length === 0;
     const providersById = new Map(providers.map((provider) => [provider.id, provider]));
     const declaredCapabilities = new Set(
-      capabilities.map((capability) => `${capability.providerId}:${capability.capability}`),
+      capabilities.map(
+        (capability) => `${capability.providerId}:${capability.capability}`,
+      ),
     );
 
     for (const descriptor of descriptors) {

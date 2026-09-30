@@ -36,6 +36,12 @@ describe("integration reviewer routing", () => {
       .toEqual(expect.objectContaining({ value: expect.objectContaining({
         integrationValidation: { reportId: "report", status: "PASS", steps: [] },
       }) as unknown }));
+    expect(executeStructured.mock.calls[0]?.[0].systemInstructions).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("concrete defect, material security risk, or unmet stated acceptance criterion"),
+        expect.stringContaining("weakened or duplicated regression assertions"),
+      ]),
+    );
     expect(output.findings).toEqual(["Required cognitive context is unavailable: AGENT."]);
     await expect(reviewer.review({ ...input, run: { ...input.run, companyId: "other" } }))
       .rejects.toThrow("no active company assignment");

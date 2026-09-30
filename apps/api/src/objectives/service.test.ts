@@ -11,6 +11,10 @@ const ownerId="11111111-1111-4111-8111-111111111111";
 const request={ownerId,requestId:"request-1",ipAddress:"127.0.0.1"};
 const farDeadline="2026-10-01T00:00:00.000Z";
 type RuntimeTask=Record<string,unknown>&{id:string;ownerId:string;status:string;actualCost:number;assignedAgentId:string|null;selection:Array<{agentId:string;estimatedCost:number;estimatedDurationMs:number}>;inputs:Record<string,unknown>;evidenceRefs:string[];verifiedLeads?:Array<{companyName:string;website:string;description:string;outreachReason:string;sourceUrls:string[]}>;priority:string;economicBudget:number;reservedCredits:number};
+const markExecuted=(task:RuntimeTask)=>{
+  task.status="COMPLETED";
+  task.completionProvenance={completionType:"EXECUTED",agentSessionId:"50000000-0000-4000-8000-000000000001",modelRequestId:"60000000-0000-4000-8000-000000000001",evidenceRefs:[],artifactRefs:[],recordedAt:"2026-08-26T10:00:00.000Z"};
+};
 type WorkflowComposeResult={graphs:Array<{id:string}>;nodes:Array<{errorCode?:string;semanticCapabilityId?:string;applicationId?:string}>};
 
 const objectiveBody=(title="Launch client portal",priority:"LOW"|"NORMAL"|"HIGH"|"URGENT"="NORMAL")=>({
@@ -36,10 +40,10 @@ const harness=(options:{withWorkflows?:boolean;capabilityGap?:boolean}={})=>{
   const createTask=vi.fn(({body}:{body:Record<string,unknown>})=>{const priority=typeof body.priority==="string"?body.priority:"NORMAL";const task={...body,id:crypto.randomUUID(),ownerId,status:"QUEUED",actualCost:0,assignedAgentId:null,selection:[],inputs:body.inputs as Record<string,unknown>,evidenceRefs:Array.isArray(body.evidenceRefs)?body.evidenceRefs.filter((item):item is string=>typeof item==="string"):[],priority,economicBudget:Number(body.economicBudget ?? 0),reservedCredits:0} as RuntimeTask;tasks.push(task);return Promise.resolve({task});});
   const schedule=vi.fn((_ownerId:string,taskId:string)=>{const task=tasks.find((item)=>item.id===taskId);if(task)task.status="RUNNING";return Promise.resolve({task});});
   const dispatch=vi.fn(async (_ownerId:string,taskId:string)=>schedule(_ownerId,taskId));
-  const dashboard=vi.fn(()=>Promise.resolve({summary:{registered:112},tasks}));
+  const dashboard=vi.fn(()=>Promise.resolve({summary:{registered:112},tasks,activeExecutionTaskIds:tasks.filter((task)=>task.status==="RUNNING").map((task)=>task.id)}));
   const cancel=vi.fn((_ownerId:string,taskId:string)=>{const task=tasks.find((item)=>item.id===taskId);if(task){task.status="CANCELLED";task.reservedCredits=0;}return Promise.resolve({tasks});});
   const updateObjectiveBounds=vi.fn((_ownerId:string,taskId:string,patch:Record<string,unknown>)=>{const task=tasks.find((item)=>item.id===taskId);if(task){Object.assign(task,patch);if(patch.objectiveConstraints)task.inputs={...task.inputs,objectiveConstraints:patch.objectiveConstraints};}return Promise.resolve({task});});
-  const attachDependencyEvidence=vi.fn((_ownerId:string,taskId:string,completedTask:RuntimeTask)=>{const task=tasks.find((item)=>item.id===taskId);if(task)task.evidenceRefs=[...new Set([...task.evidenceRefs,...completedTask.evidenceRefs])];return Promise.resolve(task);});
+  const attachDependencyEvidence=vi.fn((_ownerId:string,taskId:string,completedTask:RuntimeTask)=>{const task=tasks.find((item)=>item.id===taskId);if(task){task.evidenceRefs=[...new Set([...task.evidenceRefs,...completedTask.evidenceRefs])];task.inputs.previousTaskResults=[...((task.inputs.previousTaskResults as Array<{taskId:string}>|undefined)??[]),{taskId:completedTask.id}];}return Promise.resolve(task);});
   const workforce={createTask,schedule,dispatch,dashboard,cancel,updateObjectiveBounds,attachDependencyEvidence} as unknown as WorkforceRuntimeService;
   const audit=vi.fn(()=>Promise.resolve()) as unknown as GovernanceAuditWriter; const library=options.withWorkflows?reusableWorkflows():undefined;
   if(library&&options.capabilityGap)library.compose.mockImplementationOnce(()=>Promise.resolve({graphs:[{id:"55555555-5555-4555-8555-555555555555"}],nodes:[{errorCode:"CAPABILITY_NOT_DECLARED",semanticCapabilityId:"email.send",applicationId:"chatgpt"}]}));
@@ -49,6 +53,31 @@ const harness=(options:{withWorkflows?:boolean;capabilityGap?:boolean}={})=>{
 };
 
 describe("ObjectiveEngineService",()=>{
+  it("keeps comparison scope and success criteria through evidence-gap replanning",async()=>{
+    const {service,tasks}=harness();
+    const outcome="Research 3 AI coding assistants, compare strengths and weaknesses, and recommend engineering tasks for each.";
+    const draft=await service.create({...request,body:{...objectiveBody("Coding assistant comparison"),outcome,metrics:[{name:"Verified assistants",unit:"count",target:3,direction:"HIGHER_IS_BETTER" as const}]}});
+    await service.activate({...request,objectiveId:draft.objective!.id,idempotencyKey:"comparison"});
+    for (const task of tasks.slice(0,3)) {
+      expect(task.inputs.objectiveOutcome).toBe(outcome);
+      expect(task.inputs.successCriteria).toEqual([expect.objectContaining({name:"Verified assistants",target:3})]);
+      markExecuted(task);
+      await service.handleWorkforceTaskChanged(task as unknown as WorkforceRuntimeTask);
+    }
+    expect(tasks[3]?.objective).not.toContain("additional current AI companies");
+    expect(tasks[3]?.inputs.objectiveOutcome).toBe(outcome);
+    expect(tasks[4]?.inputs.successCriteria).toEqual([expect.objectContaining({target:3})]);
+  });
+
+  it("records owner observations separately from verified research counts",async()=>{
+    const {service,store}=harness();
+    const draft=await service.create({...request,body:{...objectiveBody("Research 5 AI companies"),outcome:"Research 5 AI companies and produce a sourced list of verified leads.",metrics:[{name:"Verified leads",unit:"count",target:5,direction:"HIGHER_IS_BETTER" as const}]}});
+    const metric=store.listKpis(ownerId)[0]!;
+    await service.observeMetric({...request,objectiveId:draft.objective!.id,body:{kpiId:metric.id,value:5,source:"OWNER"}});
+    expect(store.listKpis(ownerId)[0]!.currentValue).toBe(0);
+    expect(store.listObjectiveMetricObservations(ownerId)).toEqual([expect.objectContaining({value:5,source:"OWNER"})]);
+  });
+
   it("asks for bounded clarification instead of guessing a vague objective",async()=>{
     const {service,store}=harness(); const result=await service.create({...request,body:{title:"Growth",outcome:"grow business",deadline:null,budgetCredits:100,priority:"NORMAL",organizationId:null,constraints:[],metrics:[]}});
     expect(result.objective).toBeNull();expect(result.clarificationQuestions).toHaveLength(3);expect(store.listGoals(ownerId)).toHaveLength(0);
@@ -81,7 +110,7 @@ describe("ObjectiveEngineService",()=>{
     const draft=await service.create({...request,body});
     await service.activate({...request,objectiveId:draft.objective!.id,idempotencyKey:"activate-verified-leads"});
     const task=tasks[1]!;
-    task.status="COMPLETED";
+    markExecuted(task);
     task.evidenceRefs=["https://example.test/one","https://example.test/two"];
     await service.handleWorkforceTaskChanged(task as unknown as WorkforceRuntimeTask);
     expect(store.listKpis(ownerId)[0]?.currentValue).toBe(0);
@@ -90,13 +119,28 @@ describe("ObjectiveEngineService",()=>{
     expect(store.listKpis(ownerId)[0]?.currentValue).toBe(1);
   });
 
+  it("blocks a terminal task without execution provenance instead of unlocking dependent work",async()=>{
+    const {service,store,tasks,workforce}=harness();
+    const dispatch=vi.spyOn(workforce,"dispatch");
+    const draft=await service.create({...request,body:objectiveBody("Autonomous execution provenance")});
+    await service.activate({...request,objectiveId:draft.objective!.id,idempotencyKey:"activate-provenance-check"});
+    const task=tasks[0]!;
+    task.status="COMPLETED";
+    task.resultSummary="I completed the work";
+    await service.handleWorkforceTaskChanged(task as unknown as WorkforceRuntimeTask);
+    expect(store.findObjectiveExecution(ownerId,draft.objective!.id)).toMatchObject({status:"BLOCKED",executionProgress:0});
+    expect(store.findObjectiveExecution(ownerId,draft.objective!.id)?.blockers[0]).toContain("no verified execution provenance");
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(tasks[1]?.status).toBe("QUEUED");
+  });
+
   it("counts two-source records only when the sources are independent HTTPS hosts",async()=>{
     const {service,store,tasks}=harness();
     const body={...objectiveBody("Research AI companies"),outcome:"Research current AI companies with at least two independent HTTPS source URLs per company.",metrics:[{name:"Verified company records with two independent HTTPS sources",unit:"count",target:2,direction:"HIGHER_IS_BETTER" as const}]};
     const draft=await service.create({...request,body});
     await service.activate({...request,objectiveId:draft.objective!.id,idempotencyKey:"activate-two-source-leads"});
     const task=tasks[1]!;
-    task.status="COMPLETED";
+    markExecuted(task);
     task.verifiedLeads=[
       {companyName:"Single Source",website:"https://single.example",description:"AI company",outreachReason:"Relevant",sourceUrls:["https://single.example/about","https://www.single.example/news"]},
       {companyName:"Two Sources",website:"https://two.example",description:"AI company",outreachReason:"Relevant",sourceUrls:["https://two.example/about","https://independent.example/profile"]},
@@ -110,21 +154,23 @@ describe("ObjectiveEngineService",()=>{
     const body={...objectiveBody("Research AI companies"),outcome:"Research AI companies with two independent HTTPS sources each.",metrics:[{name:"Verified company records with two independent HTTPS sources",unit:"count",target:2,direction:"HIGHER_IS_BETTER" as const}]};
     const draft=await service.create({...request,body});
     await service.activate({...request,objectiveId:draft.objective!.id,idempotencyKey:"activate-partial-source-gap"});
-    tasks[0]!.status="COMPLETED";
+    markExecuted(tasks[0]!);
     await service.handleWorkforceTaskChanged(tasks[0] as unknown as WorkforceRuntimeTask);
-    tasks[1]!.status="COMPLETED";
+    markExecuted(tasks[1]!);
     tasks[1]!.verifiedLeads=[
       {companyName:"Complete",website:"https://complete.example",description:"AI company",outreachReason:"Relevant",sourceUrls:["https://complete.example/about","https://independent.example/profile"]},
       {companyName:"Partial",website:"https://partial.example",description:"AI company",outreachReason:"Relevant",sourceUrls:["https://partial.example/about"]},
     ];
     await service.handleWorkforceTaskChanged(tasks[1] as unknown as WorkforceRuntimeTask);
-    tasks[2]!.status="COMPLETED";
+    markExecuted(tasks[2]!);
     await service.handleWorkforceTaskChanged(tasks[2] as unknown as WorkforceRuntimeTask);
-    expect(tasks[3]?.objective).toContain("Exclude fully verified companies: Complete");
-    expect(tasks[3]?.objective).toContain("partial records: Partial");
+    expect(tasks[3]?.objective).toContain("Already qualifying subjects: Complete");
+    expect(tasks[3]?.objective).toContain("Partial subjects: Partial");
+    expect(tasks[3]?.inputs.objectiveOutcome).toContain("Research");
+    expect(tasks[3]?.inputs.successCriteria).toEqual([expect.objectContaining({target:2})]);
   });
 
-  it("closes a verified-lead shortfall with one bounded research and verification pair",async()=>{
+  it.each([false,true])("closes a verified-lead shortfall with a bounded pair (failed review: %s)",async(failedReview)=>{
     const {service,store,tasks,createTask,workforce}=harness();
     const attachDependencyEvidence=vi.spyOn(workforce,"attachDependencyEvidence");
     const body={...objectiveBody("Research 5 AI companies"),outcome:"Research 5 AI companies and produce a sourced list of verified leads. Research only; do not send messages or drafts.",metrics:[{name:"Verified leads",unit:"count",target:5,direction:"HIGHER_IS_BETTER" as const}]};
@@ -132,26 +178,75 @@ describe("ObjectiveEngineService",()=>{
     const objectiveId=draft.objective!.id;
     await service.activate({...request,objectiveId,idempotencyKey:"activate-evidence-gap"});
     const lead=(name:string)=>({companyName:name,website:`https://${name.toLowerCase()}.example`,description:"AI company",outreachReason:"Relevant",sourceUrls:[`https://${name.toLowerCase()}.example/source`]});
-    tasks[0]!.status="COMPLETED";
+    markExecuted(tasks[0]!);
     await service.handleWorkforceTaskChanged(tasks[0] as unknown as WorkforceRuntimeTask);
-    tasks[1]!.status="COMPLETED";
+    markExecuted(tasks[1]!);
     tasks[1]!.verifiedLeads=["Alpha","Beta","Gamma","Delta"].map(lead);
     await service.handleWorkforceTaskChanged(tasks[1] as unknown as WorkforceRuntimeTask);
     expect(store.listKpis(ownerId)[0]?.currentValue).toBe(4);
-    tasks[2]!.status="COMPLETED";
+    markExecuted(tasks[2]!);
+    if(failedReview) {
+      tasks[2]!.status="FAILED";
+      tasks[2]!.failureCode="OBJECTIVE_VERIFICATION_FAILED";
+      tasks[2]!.failureMessage="Only four records qualify.";
+    }
     await service.handleWorkforceTaskChanged(tasks[2] as unknown as WorkforceRuntimeTask);
     expect(createTask).toHaveBeenCalledTimes(5);
     expect(tasks[3]).toMatchObject({status:"RUNNING",requiredCapabilities:["web.research"]});
     expect(tasks[4]).toMatchObject({status:"QUEUED",requiredCapabilities:[]});
     expect(attachDependencyEvidence.mock.calls.map(([,taskId])=>taskId)).toContain(tasks[4]!.id);
-    tasks[3]!.status="COMPLETED";
+    markExecuted(tasks[3]!);
     tasks[3]!.verifiedLeads=[lead("Epsilon")];
     await service.handleWorkforceTaskChanged(tasks[3] as unknown as WorkforceRuntimeTask);
     expect(store.listKpis(ownerId)[0]?.currentValue).toBe(5);
     expect(tasks[4]?.status).toBe("RUNNING");
-    tasks[4]!.status="COMPLETED";
+    markExecuted(tasks[4]!);
     await service.handleWorkforceTaskChanged(tasks[4] as unknown as WorkforceRuntimeTask);
     expect(store.findObjectiveExecution(ownerId,objectiveId)).toMatchObject({status:"COMPLETED",outcomeProgress:100});
+    if(failedReview) {
+      expect(tasks[2]!.status).toBe("FAILED");
+      expect(tasks[4]!.inputs.replacesReviewTaskIds).toContain(tasks[2]!.id);
+    }
+  });
+
+  it("replaces an executed review that imposed an unrequested comparison without repeating research",async()=>{
+    const {service,store,tasks,createTask,workforce}=harness();
+    const attachDependencyEvidence=vi.spyOn(workforce,"attachDependencyEvidence");
+    const outcome="Research 5 AI companies and create a sourced outreach list with company name, website, activity, and relevance. Research only.";
+    const draft=await service.create({...request,body:{...objectiveBody("AI company list"),outcome,metrics:[{name:"Verified leads",unit:"count",target:5,direction:"HIGHER_IS_BETTER" as const}]}});
+    const objectiveId=draft.objective!.id;
+    await service.activate({...request,objectiveId,idempotencyKey:"activate-review-scope"});
+    const lead=(name:string)=>({companyName:name,website:`https://${name.toLowerCase()}.example`,description:"AI company",outreachReason:"Relevant",sourceUrls:[`https://${name.toLowerCase()}.example/source`]});
+    markExecuted(tasks[0]!);await service.handleWorkforceTaskChanged(tasks[0] as unknown as WorkforceRuntimeTask);
+    markExecuted(tasks[1]!);tasks[1]!.verifiedLeads=["Alpha","Beta","Gamma","Delta"].map(lead);
+    await service.handleWorkforceTaskChanged(tasks[1] as unknown as WorkforceRuntimeTask);
+    markExecuted(tasks[2]!);tasks[2]!.status="FAILED";tasks[2]!.failureCode="OBJECTIVE_VERIFICATION_FAILED";
+    tasks[2]!.failureMessage="Only four records qualify.";
+    await service.handleWorkforceTaskChanged(tasks[2] as unknown as WorkforceRuntimeTask);
+    markExecuted(tasks[3]!);tasks[3]!.verifiedLeads=[lead("Epsilon")];
+    await service.handleWorkforceTaskChanged(tasks[3] as unknown as WorkforceRuntimeTask);
+    expect(store.listKpis(ownerId)[0]?.currentValue).toBe(5);
+    const legacyReview=store.listObjectiveProjects(ownerId).find((item)=>item.workforceTaskId===tasks[4]!.id)!;
+    store.saveObjectiveProject({...legacyReview,outcome:"Verify the combined source-backed records and deliverable satisfy the ORIGINAL objective, success criteria, and constraints supplied in context. Count alone is insufficient: requested comparisons and recommendations must be present. Fail verification if the subject drifted or required evidence/context is missing."});
+    markExecuted(tasks[4]!);tasks[4]!.status="FAILED";tasks[4]!.failureCode="OBJECTIVE_VERIFICATION_FAILED";
+    tasks[4]!.failureMessage="An explicit comparison and recommendation are missing.";
+    await service.handleWorkforceTaskChanged(tasks[4] as unknown as WorkforceRuntimeTask);
+    expect(createTask).toHaveBeenCalledTimes(6);
+    expect(tasks[5]).toMatchObject({status:"RUNNING",requiredCapabilities:[],inputs:{objectiveOutcome:outcome,replacesReviewTaskIds:[tasks[4]!.id]}});
+    expect(tasks[5]!.objective).toContain("Do not require an unrequested comparison");
+    expect(attachDependencyEvidence.mock.calls.some(([,taskId,prior])=>taskId===tasks[5]!.id&&prior.id===tasks[3]!.id)).toBe(true);
+    tasks[5]!.inputs.previousTaskResults=[{taskId:tasks[1]!.id}];
+    markExecuted(tasks[5]!);tasks[5]!.status="FAILED";tasks[5]!.failureCode="OBJECTIVE_VERIFICATION_FAILED";
+    tasks[5]!.failureMessage="Only four company records were supplied to the reviewer.";
+    await service.handleWorkforceTaskChanged(tasks[5] as unknown as WorkforceRuntimeTask);
+    expect(createTask).toHaveBeenCalledTimes(7);
+    expect(tasks[6]).toMatchObject({status:"RUNNING",inputs:{replacesReviewTaskIds:[tasks[5]!.id]}});
+    expect(attachDependencyEvidence.mock.calls.some(([,taskId,prior])=>taskId===tasks[6]!.id&&prior.id===tasks[3]!.id)).toBe(true);
+    markExecuted(tasks[6]!);await service.handleWorkforceTaskChanged(tasks[6] as unknown as WorkforceRuntimeTask);
+    expect(store.findObjectiveExecution(ownerId,objectiveId)).toMatchObject({status:"COMPLETED",outcomeProgress:100});
+    expect(tasks[2]!.status).toBe("FAILED");
+    expect(tasks[4]!.status).toBe("FAILED");
+    expect(tasks[5]!.status).toBe("FAILED");
   });
 
   it("activates idempotently through reusable workflows and the workforce scheduler without authority expansion",async()=>{
@@ -161,10 +256,58 @@ describe("ObjectiveEngineService",()=>{
     for(const call of createTask.mock.calls){const body=call[0].body as {requiredCapabilities:string[];memoryScopeRefs:string[];economicBudget:number};expect(body.requiredCapabilities).toEqual([]);expect(body.memoryScopeRefs).toEqual([]);expect(body.economicBudget).toBe(30);}
   });
 
+  it("recognizes leased session preparation but not an unleased RUNNING label", async () => {
+    const { service, tasks, workforce } = harness();
+    const draft = await service.create({ ...request, body: objectiveBody("Prepare reviewed report") });
+    const id = draft.objective!.id;
+    await service.activate({ ...request, objectiveId: id, idempotencyKey: "lease-truth" });
+    const first = tasks[0]!;
+    first.status = "RESERVED";
+    const runtimeDashboard = vi.spyOn(workforce, "dashboard").mockResolvedValue({ summary: { registered: 112 }, tasks, activeExecutionTaskIds: [first.id] } as unknown as Awaited<ReturnType<WorkforceRuntimeService["dashboard"]>>);
+    expect((await service.dashboard(ownerId)).objectives.find((objective) => objective.id === id)?.status).toBe("ACTIVE");
+    first.status = "RUNNING";
+    runtimeDashboard.mockResolvedValue({ summary: { registered: 112 }, tasks, activeExecutionTaskIds: [] } as unknown as Awaited<ReturnType<WorkforceRuntimeService["dashboard"]>>);
+    expect((await service.dashboard(ownerId)).objectives.find((objective) => objective.id === id)?.status).toBe("BLOCKED");
+  });
+
+  it("repairs a legacy review missing real retrieval context and recalculates assistant counts", async () => {
+    const { service, tasks, store, createTask } = harness();
+    const draft = await service.create({ ...request, body: { ...objectiveBody("Coding assistant research"), outcome: "Research 3 AI coding assistants and compare their engineering task fit using retrieved sources.", metrics: [{ name: "Verified assistants", unit: "count", target: 3, direction: "HIGHER_IS_BETTER" }] } });
+    const id = draft.objective!.id;
+    await service.activate({ ...request, objectiveId: id, idempotencyKey: "retrieval-context" });
+    markExecuted(tasks[0]!);
+    await service.handleWorkforceTaskChanged(tasks[0] as unknown as WorkforceRuntimeTask);
+    markExecuted(tasks[1]!);
+    tasks[1]!.verifiedLeads = ["Alpha", "Beta", "Gamma"].map((name) => ({ companyName: name, website: `https://${name.toLowerCase()}.example`, description: "Coding assistant strengths and weaknesses", outreachReason: "Engineering task recommendation", sourceUrls: [`https://${name.toLowerCase()}.example/source`] }));
+    tasks[1]!.retrievedSourceEvidence = [{ sourceUrl: "https://alpha.example/source", retrievedAt: "2026-08-26T10:00:00.000Z", providerId: "openai", modelRequestId: "60000000-0000-4000-8000-000000000001", tool: "web.research" }];
+    await service.handleWorkforceTaskChanged(tasks[1] as unknown as WorkforceRuntimeTask);
+    markExecuted(tasks[2]!);
+    tasks[2]!.status = "FAILED";
+    tasks[2]!.failureCode = "OBJECTIVE_VERIFICATION_FAILED";
+    tasks[2]!.failureMessage = "Retrieval provenance was not supplied.";
+    await service.handleWorkforceTaskChanged(tasks[2] as unknown as WorkforceRuntimeTask);
+    expect(store.listKpis(ownerId)[0]?.currentValue).toBe(3);
+    expect(createTask).toHaveBeenCalledTimes(4);
+    expect(tasks[3]).toMatchObject({ requiredCapabilities: [], requiredSkills: ["review"], inputs: { replacesReviewTaskIds: [tasks[2]!.id], objectiveExecutionId: id } });
+    expect((await service.dashboard(ownerId)).objectives.find((objective) => objective.id === id)?.status).not.toBe("COMPLETED");
+  });
+
+  it("does not infer assistant downloads from researched assistant records", async () => {
+    const { service, tasks, store } = harness();
+    const draft = await service.create({ ...request, body: { ...objectiveBody("Assistant adoption research"), outcome: "Research AI coding assistants using retrieved sources.", metrics: [{ name: "Assistant downloads", unit: "count", target: 3, direction: "HIGHER_IS_BETTER" }] } });
+    await service.activate({ ...request, objectiveId: draft.objective!.id, idempotencyKey: "assistant-download-metric" });
+    markExecuted(tasks[0]!);
+    await service.handleWorkforceTaskChanged(tasks[0] as unknown as WorkforceRuntimeTask);
+    markExecuted(tasks[1]!);
+    tasks[1]!.verifiedLeads = [{ companyName: "Alpha", website: "https://alpha.example", description: "Coding assistant", outreachReason: "Engineering fit", sourceUrls: ["https://alpha.example/source"] }];
+    await service.handleWorkforceTaskChanged(tasks[1] as unknown as WorkforceRuntimeTask);
+    expect(store.listKpis(ownerId)[0]?.currentValue).toBe(0);
+  });
+
   it("updates progress from task lifecycle events without polling or cross-objective leakage",async()=>{
     const {service,store,tasks}=harness();const first=await service.create({...request,body:objectiveBody("First launch")});const second=await service.create({...request,body:objectiveBody("Second launch")});
     await service.activate({...request,objectiveId:first.objective!.id,idempotencyKey:"activate-first"});await service.activate({...request,objectiveId:second.objective!.id,idempotencyKey:"activate-second"});
-    const task=tasks.find((item)=>item.inputs.objectiveExecutionId===first.objective!.id)!;task.status="COMPLETED";task.actualCost=7;await service.handleWorkforceTaskChanged(task as unknown as WorkforceRuntimeTask);
+    const task=tasks.find((item)=>item.inputs.objectiveExecutionId===first.objective!.id)!;markExecuted(task);task.actualCost=7;await service.handleWorkforceTaskChanged(task as unknown as WorkforceRuntimeTask);
     expect(store.findObjectiveExecution(ownerId,first.objective!.id)?.executionProgress).toBe(33);expect(store.findObjectiveExecution(ownerId,first.objective!.id)?.spentCredits).toBe(7);expect(store.findObjectiveExecution(ownerId,second.objective!.id)?.executionProgress).toBe(0);
   });
 

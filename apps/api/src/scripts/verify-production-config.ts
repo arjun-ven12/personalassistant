@@ -40,7 +40,7 @@ const cloudProfile = parseApiEnvironment({
   PUBLIC_BASE_URL: "https://api.assistant.example",
   WEB_ORIGIN: "https://assistant.example",
   ALLOWED_HOSTS: "api.assistant.example",
-  TRUSTED_PROXY_MODE: "one-hop",
+  TRUSTED_PROXY_MODE: "none",
   PRIVATE_NETWORK_REQUIRED: "false",
   TAILSCALE_REQUIRED: "false",
   NETWORK_VERIFIER_MODE: "unknown",

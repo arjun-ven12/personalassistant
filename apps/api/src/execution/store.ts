@@ -15,6 +15,10 @@ export interface ExecutionStore {
     actionId: string,
   ): Awaitable<ReadOnlyExecutionRequest | undefined>;
   list(ownerId: string, limit: number): Awaitable<ReadOnlyExecutionRequest[]>;
+  listActiveForEngineeringWorkspace(
+    ownerId: string,
+    engineeringWorkspaceId: string,
+  ): Awaitable<ReadOnlyExecutionRequest[]>;
   poll(deviceId: string, now: string): Awaitable<ReadOnlyExecutionRequest | undefined>;
   transition(
     id: string,
@@ -23,6 +27,12 @@ export interface ExecutionStore {
     to: ReadOnlyExecutionRequest["status"],
     at: string,
     failureCode?: string,
+  ): Awaitable<ReadOnlyExecutionRequest | undefined>;
+  startWithDeadline(
+    id: string,
+    deviceId: string,
+    at: string,
+    runningTtlSeconds: number,
   ): Awaitable<ReadOnlyExecutionRequest | undefined>;
   cancel(
     id: string,
@@ -34,6 +44,12 @@ export interface ExecutionStore {
     result: ReadOnlyExecutionResult,
     retentionExpiresAt: string,
   ): Awaitable<boolean>;
+  /** Atomically persist the signed receipt and terminal request state. */
+  completeWithResult(
+    ownerId: string,
+    result: ReadOnlyExecutionResult,
+    retentionExpiresAt: string,
+  ): Awaitable<ReadOnlyExecutionRequest | undefined>;
   getResult(id: string): Awaitable<ReadOnlyExecutionResult | undefined>;
   cancelForDevice(deviceId: string, at: string): Awaitable<number>;
   cancelAll(at: string): Awaitable<number>;
@@ -83,6 +99,14 @@ export class InMemoryExecutionStore implements ExecutionStore {
       .map((item) => structuredClone(item));
   }
 
+  listActiveForEngineeringWorkspace(ownerId: string, engineeringWorkspaceId: string) {
+    return [...this.#requests.values()]
+      .filter((item) => item.ownerId === ownerId &&
+        ["PENDING", "CLAIMED", "RUNNING"].includes(item.status) &&
+        (item.arguments as { engineeringWorkspaceId?: unknown }).engineeringWorkspaceId === engineeringWorkspaceId)
+      .map((item) => structuredClone(item));
+  }
+
   poll(deviceId: string, now: string) {
     const request = [...this.#requests.values()]
       .filter((item) => item.deviceId === deviceId && item.status === "PENDING")
@@ -108,6 +132,8 @@ export class InMemoryExecutionStore implements ExecutionStore {
     const request = this.#requests.get(id);
     if (!request || request.deviceId !== deviceId || !from.includes(request.status))
       return undefined;
+    if ((to === "CLAIMED" || to === "RUNNING") && request.expiresAt <= at)
+      return undefined;
     request.status = to;
     if (to === "CLAIMED") {
       request.claimedAt = at;
@@ -121,6 +147,19 @@ export class InMemoryExecutionStore implements ExecutionStore {
     )
       request.completedAt = at;
     request.failureCode = failureCode ?? null;
+    return structuredClone(request);
+  }
+
+  startWithDeadline(id: string, deviceId: string, at: string, runningTtlSeconds: number) {
+    if (!Number.isSafeInteger(runningTtlSeconds) || runningTtlSeconds < 1 ||
+        runningTtlSeconds > 35 * 60) return undefined;
+    const request = this.#requests.get(id);
+    if (!request || request.deviceId !== deviceId || request.status !== "CLAIMED" ||
+        request.expiresAt <= at) return undefined;
+    request.status = "RUNNING";
+    request.startedAt = at;
+    request.agentLastHeartbeatAt = at;
+    request.expiresAt = new Date(new Date(at).getTime() + runningTtlSeconds * 1_000).toISOString();
     return structuredClone(request);
   }
 
@@ -153,6 +192,30 @@ export class InMemoryExecutionStore implements ExecutionStore {
     );
     this.#resultExpiries.set(result.executionRequestId, retentionExpiresAt);
     return true;
+  }
+
+  completeWithResult(
+    ownerId: string,
+    result: ReadOnlyExecutionResult,
+    retentionExpiresAt: string,
+  ) {
+    const request = this.#requests.get(result.executionRequestId);
+    if (!request || request.ownerId !== ownerId || request.deviceId !== result.deviceId ||
+        this.#results.has(result.executionRequestId)) return undefined;
+    if (request.status === "CANCELLED") {
+      if (result.status !== "CANCELLED") return undefined;
+    } else if (!["RUNNING", "CLAIMED"].includes(request.status)) {
+      return undefined;
+    }
+    const parsed = ReadOnlyExecutionResultSchema.parse(result);
+    if (request.status !== "CANCELLED") {
+      request.status = parsed.status;
+      request.completedAt = parsed.completedAt;
+      request.failureCode = parsed.failureCode ?? null;
+    }
+    this.#results.set(request.id, structuredClone(parsed));
+    this.#resultExpiries.set(request.id, retentionExpiresAt);
+    return structuredClone(request);
   }
 
   getResult(id: string) {
@@ -193,7 +256,7 @@ export class InMemoryExecutionStore implements ExecutionStore {
 
   heartbeat(id: string, deviceId: string, at: string) {
     const request = this.#requests.get(id);
-    if (!request || request.deviceId !== deviceId) return false;
+    if (!request || request.deviceId !== deviceId || request.expiresAt <= at) return false;
     if (!["CLAIMED", "RUNNING"].includes(request.status)) return false;
     request.agentLastHeartbeatAt = at;
     return true;
@@ -228,13 +291,16 @@ export class InMemoryExecutionStore implements ExecutionStore {
     let expiredRequests = 0;
     let expiredResults = 0;
     for (const request of this.#requests.values()) {
+      const heartbeatLost = request.status === "RUNNING" &&
+        new Date(request.agentLastHeartbeatAt ?? request.startedAt ?? request.createdAt).getTime() <=
+          new Date(now).getTime() - 30_000;
       if (
         ["PENDING", "CLAIMED", "RUNNING"].includes(request.status) &&
-        request.expiresAt <= now
+        (request.expiresAt <= now || heartbeatLost)
       ) {
         request.status = "EXPIRED";
         request.completedAt = now;
-        request.failureCode = "EXECUTION_REQUEST_EXPIRED";
+        request.failureCode = heartbeatLost ? "AGENT_HEARTBEAT_LOST" : "EXECUTION_REQUEST_EXPIRED";
         expiredRequests += 1;
       }
     }

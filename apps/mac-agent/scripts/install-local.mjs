@@ -118,11 +118,14 @@ const verifyInstalledBundle = async () => {
   await exec("/usr/bin/codesign", ["--verify", "--deep", "--strict", installPath]);
 };
 
-const launchBundle = async (appPath) => {
+const launchBundle = async (appPath, updateAttempt = false) => {
   const executableName = await plistValue(appPath, "CFBundleExecutable");
   spawn(path.join(appPath, "Contents", "MacOS", executableName), [], {
     detached: true,
     stdio: "ignore",
+    env: updateAttempt
+      ? { ...process.env, ALEXA_LOCAL_UPDATE_ATTEMPT: "1" }
+      : process.env,
   }).unref();
 };
 
@@ -143,7 +146,12 @@ const waitForBackend = async (apiBaseUrl) => {
 };
 
 const waitForAgentConnection = async (launchedAt) => {
-  for (let attempt = 0; attempt < 30; attempt += 1) {
+  // A signed local update may need owner interaction with macOS secure storage.
+  // Leave a bounded response window without accepting that prompt on their behalf.
+  console.log(
+    "Waiting for the trusted agent connection. Handle any macOS secure-storage prompt yourself; do not reset or re-pair the device.",
+  );
+  for (let attempt = 0; attempt < 120; attempt += 1) {
     if (!(await isRunning())) {
       throw new Error(
         "Updated trusted Mac Agent exited before it reported ONLINE; the previous app will be restored.",
@@ -179,7 +187,7 @@ const waitForAgentConnection = async (launchedAt) => {
     await sleep(1_000);
   }
   throw new Error(
-    "Updated trusted Mac Agent did not report ONLINE within thirty seconds.",
+    "Updated trusted Mac Agent did not report ONLINE within two minutes. Resolve any macOS secure-storage prompt before retrying; the previous app will be restored.",
   );
 };
 
@@ -216,7 +224,7 @@ try {
   replacement = await atomicReplaceApp({ source, destination: installPath });
   const launchedAt = new Date().toISOString();
   await verifyInstalledBundle();
-  await launchBundle(installPath);
+  await launchBundle(installPath, Boolean(beforeDeviceId));
   await waitForLaunch();
   const packagedConfig = JSON.parse(
     await readFile(

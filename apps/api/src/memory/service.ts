@@ -24,6 +24,29 @@ import { companyScope } from "../companies/scope.js";
 import type { RepositoryStore } from "../repositories/store.js";
 import type { WorkflowStore } from "../workflows/store.js";
 import type { MemoryStore } from "./store.js";
+import { hasSensitiveMemoryContent } from "./sensitive-content.js";
+
+const engineeringStopWords = new Set([
+  "the", "and", "for", "with", "from", "this", "that", "into",
+  "existing", "project", "change", "should", "using", "after",
+]);
+const engineeringSearchTerms = (value: string) =>
+  [
+    ...new Set(
+      (value.toLowerCase().match(/[a-z][a-z0-9]{2,}/g) ?? []).filter(
+        (term) => !engineeringStopWords.has(term),
+      ),
+    ),
+  ].slice(0, 24);
+
+const engineeringRelevance = (memory: MemoryRecord, terms: string[]) => {
+  const title = memory.title.toLowerCase();
+  const summary = memory.summary.toLowerCase();
+  return terms.reduce(
+    (score, term) => score + (title.includes(term) ? 3 : 0) + (summary.includes(term) ? 1 : 0),
+    0,
+  );
+};
 
 export class MemoryIndexerService {
   constructor(
@@ -65,14 +88,16 @@ export class MemoryIndexerService {
     repositoryId: string;
     agentId: string;
     taskId: string;
+    taskContext?: string;
   }) {
     if (companyScope.companyId(input.ownerId) !== input.companyId) return { refs: [], summaries: [] };
     const companyTag = `engineering-company:${input.companyId}`;
+    const terms = engineeringSearchTerms(input.taskContext ?? "");
     const memories = (
       await this.store.searchMemories(input.ownerId, {
         q: "",
         repositoryId: input.repositoryId,
-        limit: 20,
+        limit: 100,
       })
     )
       .filter((memory) => memory.tags.includes(companyTag))
@@ -82,6 +107,20 @@ export class MemoryIndexerService {
         ),
       )
       .filter((memory) => !memory.expiresAt || memory.expiresAt > this.now().toISOString())
+      .filter((memory) =>
+        !hasSensitiveMemoryContent(
+          memory.title,
+          memory.summary,
+          memory.content,
+          ...memory.tags,
+          JSON.stringify(memory.evidence),
+        ),
+      )
+      .sort((left, right) =>
+        engineeringRelevance(right, terms) - engineeringRelevance(left, terms) ||
+        right.importance * right.confidence - left.importance * left.confidence ||
+        right.updatedAt.localeCompare(left.updatedAt),
+      )
       .slice(0, 12);
     for (const memory of memories)
       await this.store.saveMemory({
@@ -119,6 +158,7 @@ export class MemoryIndexerService {
     const promoted: string[] = [];
     for (const artifact of input.artifacts
       .filter((item) => stable.has(item.type))
+      .filter((item) => !hasSensitiveMemoryContent(item.title, item.summary))
       .slice(0, 5)) {
       const title = `Engineering: ${artifact.title}`.slice(0, 255);
       const duplicate = (
@@ -237,6 +277,17 @@ export class MemoryIndexerService {
     ipAddress: string;
   }) {
     const parsed = CreateMemoryRequestSchema.parse(input.body);
+    if (hasSensitiveMemoryContent(
+      parsed.title,
+      parsed.summary,
+      parsed.content,
+      ...parsed.tags,
+      JSON.stringify(parsed.evidence),
+    )) {
+      const error = new Error("Sensitive credentials and security codes cannot be saved to memory.");
+      Object.assign(error, { statusCode: 400, code: "SENSITIVE_MEMORY_CONTENT_DENIED" });
+      throw error;
+    }
     const at = this.now().toISOString();
     const memory = MemoryRecordSchema.parse({
       schemaVersion: "1",
@@ -298,6 +349,16 @@ export class MemoryIndexerService {
     approver: string;
   }) {
     const parsed = CreateDecisionRequestSchema.parse(input.body);
+    if (hasSensitiveMemoryContent(
+      parsed.decision,
+      parsed.reason,
+      ...parsed.alternatives,
+      JSON.stringify(parsed.evidence),
+    )) {
+      const error = new Error("Sensitive credentials and security codes cannot be saved to memory.");
+      Object.assign(error, { statusCode: 400, code: "SENSITIVE_MEMORY_CONTENT_DENIED" });
+      throw error;
+    }
     const at = this.now().toISOString();
     const decision = EngineeringDecisionRecordSchema.parse({
       id: crypto.randomUUID(),

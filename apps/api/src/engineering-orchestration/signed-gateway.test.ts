@@ -43,6 +43,19 @@ const installed = (exitCode: number | null = 0) => ({ output: {
 } });
 
 describe("SignedExecutionEngineeringGateway", () => {
+  it("cancels only scoped active workspace executions without reading unrelated history", async () => {
+    const cancel = vi.fn().mockResolvedValue(undefined);
+    const listActiveForEngineeringWorkspace = vi.fn().mockResolvedValue([{ id: "active" }]);
+    const list = vi.fn().mockRejectedValue(new Error("unrelated legacy timestamp"));
+    const store = { cancel, listActiveForEngineeringWorkspace, list } as unknown as ExecutionStore;
+    const gateway = new SignedExecutionEngineeringGateway({} as ExecutionService, store,
+      new InMemoryEngineeringRuntimeStore(), () => new Date(now));
+    await gateway.cancelExecutions({ ownerId, workspaceId, reason: "owner cancellation" });
+    expect(listActiveForEngineeringWorkspace).toHaveBeenCalledWith(ownerId, workspaceId);
+    expect(cancel).toHaveBeenCalledWith("active", ownerId, now);
+    expect(list).not.toHaveBeenCalled();
+  });
+
   it("retries one unexpected dependency-container exit before marking the worktree ready", async () => {
     const runtime = new InMemoryEngineeringRuntimeStore();
     registerNodeProject(runtime);

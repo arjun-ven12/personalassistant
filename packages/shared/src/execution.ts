@@ -311,7 +311,9 @@ export const UnsignedExecutionResultSchema = z
     safeMessage: z.string().min(1).max(500).optional(),
     startedAt: z.iso.datetime(),
     completedAt: z.iso.datetime(),
-    durationMs: z.number().int().nonnegative().max(60_000),
+    // A registered engineering command may run for up to 30 minutes. This
+    // bounds only the signed receipt, not command or execution authority.
+    durationMs: z.number().int().nonnegative().max(35 * 60_000),
     truncated: z.boolean(),
     resultDigest: z.string().min(32).max(128),
     nonce: z.string().min(16).max(128),

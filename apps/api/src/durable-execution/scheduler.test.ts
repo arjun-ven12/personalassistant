@@ -53,8 +53,17 @@ describe("centralized durable scheduler", () => {
     );
     const tick = vi.fn(async () => []);
     scheduler.setGovernorProposalWorkload({ tick });
+    const recovery = vi.fn(async () => undefined);
+    scheduler.setWorkforceRecoveryWorkload({ tick: recovery });
+    const engineeringRecovery = vi.fn(async () => undefined);
+    scheduler.setEngineeringRecoveryWorkload({ tick: engineeringRecovery });
+    const executionCleanup = vi.fn(async () => undefined);
+    scheduler.setExecutionCleanupWorkload({ tick: executionCleanup });
     await scheduler.tick();
     expect(tick).toHaveBeenCalledOnce();
+    expect(recovery).toHaveBeenCalledOnce();
+    expect(engineeringRecovery).toHaveBeenCalledOnce();
+    expect(executionCleanup).toHaveBeenCalledOnce();
     expect(scheduler.metrics.emptyTicks).toBe(1);
   });
 

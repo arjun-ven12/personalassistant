@@ -75,7 +75,7 @@ describe("RepositoryService", () => {
     const nodeId = "e".repeat(64);
     const routeNodeId = "f".repeat(64);
 
-    await service.publishExecutionResult({
+    const publication = {
       ownerId,
       executionRequestId,
       requestId: crypto.randomUUID(),
@@ -249,8 +249,17 @@ describe("RepositoryService", () => {
         },
         truncated: false,
       },
-    });
-
+    };
+    await service.publishExecutionResult(publication);
+    const generationBeforeReplay = store.activeGeneration(repository.id);
+    await Promise.all([
+      service.publishExecutionResult(publication),
+      service.publishExecutionResult(publication),
+    ]);
+    expect(store.activeGeneration(repository.id)).toEqual(generationBeforeReplay);
+    expect(store.findJobByExecutionRequestId(executionRequestId)?.status).toBe(
+      "SUCCEEDED",
+    );
     const detail = await service.get(ownerId, repository.id);
     expect(detail.repository.indexStatus).toBe("INDEXED");
     expect(detail.activeGeneration?.statistics.fileCount).toBe(1);

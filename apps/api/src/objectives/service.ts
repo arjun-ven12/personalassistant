@@ -36,6 +36,9 @@ const STAGNATION_MIN_OBSERVATIONS=3;
 const STAGNATION_WINDOW_MS=7*24*60*60*1_000;
 const STAGNATION_DELTA_RATIO=0.02;
 const MAX_EVIDENCE_GAP_ROUNDS=5;
+const isResearchRecordCountMetric=(name:string)=>
+  /lead|compan|source|record|result|item/i.test(name)||
+  /^(?:(?:verified|researched)\s+)?(?:ai\s+)?(?:coding\s+)?assistants?$/i.test(name.trim());
 const stableProjectId=(value:string)=>{
   const hash=createHash("sha256").update(value).digest("hex");
   const variant=((Number.parseInt(hash.slice(16,18),16)&0x3f)|0x80).toString(16).padStart(2,"0");
@@ -154,9 +157,13 @@ export class ObjectiveEngineService {
     let blocked=false;
     const blockerReasons:string[]=[];
     const goal=(await this.store.listGoals(input.ownerId)).find((item)=>item.id===objective.executiveGoalId);
-    for (const [projectIndex, originalProject] of projects.entries()) {
+    const successCriteria=(await this.store.listKpis(input.ownerId)).filter((item)=>item.goalId===objective.executiveGoalId).map(({name,unit,target})=>({name,unit,target}));
+    const taskSnapshot=await this.workforce.dashboard(input.ownerId);
+    const superseded=this.supersededReviewTasks(projects,new Map(taskSnapshot.tasks.map((task)=>[task.id,task])));
+    const activeProjects=projects.filter((project)=>!project.workforceTaskId||!superseded.has(project.workforceTaskId));
+    for (const [projectIndex, originalProject] of activeProjects.entries()) {
       let project=originalProject;
-      const predecessor=projects[projectIndex-1];
+      const predecessor=activeProjects[projectIndex-1];
       const readyForScheduling=!predecessor||predecessor.status==="COMPLETED";
       if(!project.workflowId&&project.selectedWorkflowTemplateId&&this.workflows) {
         const prepared=await this.prepareWorkflow(input,objective,project);
@@ -179,6 +186,9 @@ export class ObjectiveEngineService {
           executiveGoalId:objective.executiveGoalId,
           projectId:project.id,
           executionKind:this.executionKind(project),
+          objectiveOutcome:goal?.description,
+          objectiveConstraints:goal?.constraints??[],
+          successCriteria,
         },
         evidenceRefs:[`objective:${objective.id}`], memoryScopeRefs:project.memoryScopeRefs,
         requiredSkills:project.requiredSkills, requiredCapabilities:project.requiredCapabilities,
@@ -279,8 +289,12 @@ export class ObjectiveEngineService {
     const body=ObserveObjectiveMetricRequestSchema.parse(input.body); const objective=await this.requireObjective(input.ownerId,input.objectiveId);
     const metric=(await this.store.listKpis(input.ownerId)).find((item)=>item.id===body.kpiId&&item.goalId===objective.executiveGoalId);
     if(!metric) throw new ExecutionError(404,"OBJECTIVE_METRIC_NOT_FOUND","The metric is not linked to this objective.");
-    const at=this.now().toISOString(); await this.store.saveKpi(ExecutiveKpiSchema.parse({...metric,currentValue:body.value,source:body.source==="OWNER"?"MANUAL":body.source==="WORKFLOW"?"WORKFLOW":"CALCULATED",updatedAt:at}));
-    await this.store.saveObjectiveMetricObservation(ObjectiveMetricObservationSchema.parse({id:crypto.randomUUID(),ownerId:input.ownerId,objectiveExecutionId:objective.id,kpiId:metric.id,value:body.value,observedAt:at,source:body.source}));
+    const projects=await this.store.listObjectiveProjects(input.ownerId);
+    const evidenceBacked=metric.unit.toLowerCase()==="count"&&isResearchRecordCountMetric(metric.name)&&projects.some((project)=>project.objectiveExecutionId===objective.id&&this.executionKind(project)==="EXTERNAL_RESEARCH");
+    const at=this.now().toISOString();
+    // Owner observations remain inspectable, but cannot impersonate retrieved evidence.
+    if(!evidenceBacked) await this.store.saveKpi(ExecutiveKpiSchema.parse({...metric,currentValue:body.value,source:body.source==="OWNER"?"MANUAL":body.source==="WORKFLOW"?"WORKFLOW":"CALCULATED",updatedAt:at}));
+    await this.store.saveObjectiveMetricObservation(ObjectiveMetricObservationSchema.parse({id:crypto.randomUUID(),ownerId:input.ownerId,objectiveExecutionId:objective.id,kpiId:metric.id,value:body.value,observedAt:at,source:evidenceBacked?"OWNER":body.source}));
     await this.refreshObjective(input.ownerId,objective.id);
     return this.dashboard(input.ownerId);
   }
@@ -288,7 +302,14 @@ export class ObjectiveEngineService {
   async handleWorkforceTaskChanged(task:WorkforceRuntimeTask) {
     const project=(await this.store.listObjectiveProjects(task.ownerId)).find((item)=>item.workforceTaskId===task.id||item.id===task.inputs.projectId);
     if(!project) return;
+    if(task.status==="FAILED"&&task.failureCode==="OBJECTIVE_VERIFICATION_FAILED"&&task.requiredSkills.includes("review")) {
+      if(await this.scheduleEvidenceGap(task.ownerId,project.objectiveExecutionId,`review-gap:${task.id}`,"internal")) return;
+    }
     if(task.status==="COMPLETED") {
+      if(task.completionProvenance?.completionType!=="EXECUTED") {
+        await this.refreshObjective(task.ownerId,project.objectiveExecutionId);
+        return;
+      }
       await this.recordEvidenceMetric(task,project.objectiveExecutionId);
       await this.scheduleNextProject(task.ownerId,project.objectiveExecutionId,task.id);
       return;
@@ -342,11 +363,20 @@ export class ObjectiveEngineService {
     if(!projects.length||projects.some((item)=>!item.workforceTaskId)) return false;
     const runtime=await this.workforce.dashboard(ownerId);
     const tasks=new Map(runtime.tasks.map((item)=>[item.id,item]));
-    if(projects.some((item)=>tasks.get(item.workforceTaskId!)?.status!=="COMPLETED")) return false;
-    const metrics=(await this.store.listKpis(ownerId)).filter((item)=>item.goalId===objective.executiveGoalId&&item.unit.toLowerCase()==="count"&&/lead|compan|source|record|result|item/i.test(item.name));
+    const superseded = this.supersededReviewTasks(projects,tasks);
+    if(projects.some((item)=>{
+      const task=tasks.get(item.workforceTaskId!);
+      if(superseded.has(item.workforceTaskId!)) return false;
+      const failedReview=task?.status==="FAILED"&&task.failureCode==="OBJECTIVE_VERIFICATION_FAILED"&&task.requiredSkills.includes("review");
+      return (!failedReview&&task?.status!=="COMPLETED")||task?.completionProvenance?.completionType!=="EXECUTED";
+    })) return false;
+    const completedResearch=runtime.tasks.find((task)=>task.inputs.objectiveExecutionId===objectiveId&&task.inputs.executionKind==="EXTERNAL_RESEARCH"&&task.status==="COMPLETED"&&task.completionProvenance?.completionType==="EXECUTED");
+    if(completedResearch) await this.recordEvidenceMetric(completedResearch,objectiveId);
+    const metrics=(await this.store.listKpis(ownerId)).filter((item)=>item.goalId===objective.executiveGoalId&&item.unit.toLowerCase()==="count"&&isResearchRecordCountMetric(item.name));
+    const goal=(await this.store.listGoals(ownerId)).find((item)=>item.id===objective.executiveGoalId);
     const sourceRequirement=requiredIndependentSources(`${projects.map((item)=>item.outcome).join(" ")} ${metrics.map((item)=>item.name).join(" ")}`);
     const shortfall=metrics.reduce((sum,item)=>sum+Math.max(0,item.target-item.currentValue),0);
-    if(shortfall===0) return false;
+    if(shortfall===0) return this.scheduleMisScopedVerification(ownerId,objective,projects,tasks,goal?.description??"",metrics,requestId,ipAddress);
     const rounds=projects.filter((item)=>item.title.startsWith("Close evidence gap ")).length;
     const spent=runtime.tasks.filter((item)=>item.inputs.objectiveExecutionId===objectiveId).reduce((sum,item)=>sum+item.actualCost,0);
     const remainingBudget=objective.budgetCredits-spent;
@@ -356,7 +386,7 @@ export class ObjectiveEngineService {
     const verifyId=stableProjectId(`${objectiveId}:evidence-gap:${round}:verify`);
     if(projects.some((item)=>item.id===researchId||item.id===verifyId)) return false;
     const priorLeads=runtime.tasks
-      .filter((item)=>item.inputs.objectiveExecutionId===objectiveId&&item.status==="COMPLETED")
+      .filter((item)=>item.inputs.objectiveExecutionId===objectiveId&&item.status==="COMPLETED"&&item.completionProvenance?.completionType==="EXECUTED")
       .flatMap((item)=>item.verifiedLeads??[]);
     const existingNames=[...new Set(priorLeads
       .filter((lead)=>independentSourceHosts(lead.sourceUrls)>=sourceRequirement)
@@ -369,12 +399,12 @@ export class ObjectiveEngineService {
     const verifyBudget=Math.min(10,remainingBudget-researchBudget);
     const research=ObjectiveProjectSchema.parse({
       id:researchId,ownerId,objectiveExecutionId:objectiveId,title:`Close evidence gap ${round}: research`,
-      outcome:`Find at least ${shortfall} additional current AI compan${shortfall===1?"y":"ies"} with company name, website, description, outreach reason, and ${sourceRequirement===2?"at least two independent retrieved HTTPS source hosts per company":"retrieved HTTPS sources"}. Exclude fully verified companies: ${existingNames.join(", ")||"none"}. You may complete missing source evidence for these partial records: ${partialNames.join(", ")||"none"}. Cite exact retrieved source URLs for each record; omit records without enough sources. Research only; do not send messages or create drafts.`.slice(0,1_000),
+      outcome:`Close a ${shortfall}-record evidence gap for the ORIGINAL objective supplied in context. Preserve its subject, requested comparison, recommendations, and constraints; do not substitute company prospecting for other research. Produce source-linked structured records for the requested subjects with ${sourceRequirement} independent HTTPS source host(s) each. Already qualifying subjects: ${existingNames.join(", ")||"none"}. Partial subjects: ${partialNames.join(", ")||"none"}. Retain useful prior analysis. Research only; no messages or drafts.`.slice(0,1_000),
       status:"QUEUED",sequence:projects.length,departmentId:"research",requiredSkills:["research","evidence_synthesis"],requiredCapabilities:["web.research"],capabilityReadiness:[{capabilityId:"web.research",status:"AVAILABLE"}],estimatedAiCostCredits:researchBudget,memoryScopeRefs:[],budgetCredits:researchBudget,workforceTaskId:null,workflowId:null,selectedWorkflowTemplateId:null,workflowSelection:[],createdAt:at,updatedAt:at,
     });
     const verify=ObjectiveProjectSchema.parse({
       id:verifyId,ownerId,objectiveExecutionId:objectiveId,title:`Verify evidence gap ${round}`,
-      outcome:`Verify the new source-backed companies are distinct from ${existingNames.join(", ")||"previous results"} and satisfy the objective's declared count metric. Do not claim verification from prose alone.`.slice(0,1_000),
+      outcome:"Verify the combined source-backed records and deliverable satisfy the ORIGINAL objective, success criteria, and constraints supplied in context. Count alone is insufficient: check each requested field and source. Require comparisons or recommendations only if the owner actually requested them. Fail if the subject drifted or required evidence/context is missing.",
       status:"QUEUED",sequence:projects.length+1,departmentId:"quality-review",requiredSkills:["review"],requiredCapabilities:[],capabilityReadiness:[],estimatedAiCostCredits:verifyBudget,memoryScopeRefs:[],budgetCredits:verifyBudget,workforceTaskId:null,workflowId:null,selectedWorkflowTemplateId:null,workflowSelection:[],createdAt:at,updatedAt:at,
     });
     await this.store.saveObjectiveProject(research);
@@ -382,7 +412,12 @@ export class ObjectiveEngineService {
     const createTask=async(project:ObjectiveProject)=>this.workforce.createTask({ownerId,requestId,ipAddress,body:{
       idempotencyKey:`objective:${objectiveId}:project:${project.id}`,createdByAgentId:null,assignedAgentId:null,
       type:"WORK",title:project.title,objective:project.outcome,
-      inputs:{objectiveExecutionId:objectiveId,executiveGoalId:objective.executiveGoalId,projectId:project.id,executionKind:this.executionKind(project)},
+      inputs:{objectiveExecutionId:objectiveId,executiveGoalId:objective.executiveGoalId,projectId:project.id,executionKind:this.executionKind(project),objectiveOutcome:goal?.description,objectiveConstraints:goal?.constraints??[],successCriteria:metrics.map(({name,unit,target})=>({name,unit,target})),
+        ...(project.id===verify.id?{replacesReviewTaskIds:projects.flatMap((item)=>{
+          const task=item.workforceTaskId?tasks.get(item.workforceTaskId):undefined;
+          return task?.status==="FAILED"&&task.failureCode==="OBJECTIVE_VERIFICATION_FAILED"&&task.requiredSkills.includes("review")?[task.id]:[];
+        })}:{}),
+      },
       evidenceRefs:[`objective:${objectiveId}`],memoryScopeRefs:[],requiredSkills:project.requiredSkills,requiredCapabilities:project.requiredCapabilities,
       preferredDepartmentId:project.departmentId,priority:"normal",riskLevel:"LOW",economicBudget:project.budgetCredits,maxRetries:1,expiresAt:null,
     }});
@@ -390,7 +425,7 @@ export class ObjectiveEngineService {
     const verifyTask=(await createTask(verify)).task;
     await this.store.saveObjectiveProject(ObjectiveProjectSchema.parse({...research,workforceTaskId:researchTask.id,updatedAt:this.now().toISOString()}));
     await this.store.saveObjectiveProject(ObjectiveProjectSchema.parse({...verify,workforceTaskId:verifyTask.id,updatedAt:this.now().toISOString()}));
-    const priorResearch=runtime.tasks.filter((item)=>item.inputs.objectiveExecutionId===objectiveId&&item.inputs.executionKind==="EXTERNAL_RESEARCH"&&item.status==="COMPLETED").at(-1);
+    const priorResearch=runtime.tasks.filter((item)=>item.inputs.objectiveExecutionId===objectiveId&&item.inputs.executionKind==="EXTERNAL_RESEARCH"&&item.status==="COMPLETED"&&item.completionProvenance?.completionType==="EXECUTED").at(-1);
     if(priorResearch) {
       await this.workforce.attachDependencyEvidence(ownerId,researchTask.id,priorResearch);
       await this.workforce.attachDependencyEvidence(ownerId,verifyTask.id,priorResearch);
@@ -407,6 +442,63 @@ export class ObjectiveEngineService {
     return true;
   }
 
+  private async scheduleMisScopedVerification(
+    ownerId:string,objective:ObjectiveExecution,projects:ObjectiveProject[],tasks:Map<string,WorkforceRuntimeTask>,
+    originalOutcome:string,metrics:Array<{name:string;unit:string;target:number}>,requestId:string,ipAddress:string,
+  ) {
+    const last=projects.at(-1);
+    const rejected=last?.workforceTaskId?tasks.get(last.workforceTaskId):undefined;
+    const oldInstruction="requested comparisons and recommendations must be present";
+    const latestResearch=projects.filter((project)=>project.requiredCapabilities.includes("web.research"))
+      .map((project)=>project.workforceTaskId?tasks.get(project.workforceTaskId):undefined)
+      .filter((task):task is WorkforceRuntimeTask=>task?.status==="COMPLETED"&&task.completionProvenance?.completionType==="EXECUTED").at(-1);
+    const previousResults=rejected?.inputs.previousTaskResults;
+    const hasLatestResearch=Array.isArray(previousResults)&&previousResults.some((item)=>
+      typeof item==="object"&&item!==null&&"taskId" in item&&item.taskId===latestResearch?.id);
+    const legacyScope=Boolean(last?.outcome.includes(oldInstruction)&&
+      /compar(?:e|ison)|recommend/i.test(rejected?.failureMessage??"")&&
+      !/compar(?:e|ison)|recommend/i.test(originalOutcome));
+    const staleContext=last?.title==="Verify original requested scope"&&Boolean(latestResearch)&&!hasLatestResearch;
+    const missingRetrievalContext=Boolean(latestResearch?.retrievedSourceEvidence?.length)&&hasLatestResearch&&Array.isArray(previousResults)&&!previousResults.some((item)=>
+      typeof item==="object"&&item!==null&&"taskId" in item&&item.taskId===latestResearch?.id&&"retrievalProvenance" in item);
+    if(!last||!rejected||rejected.status!=="FAILED"||
+      rejected.failureCode!=="OBJECTIVE_VERIFICATION_FAILED"||
+      rejected.completionProvenance?.completionType!=="EXECUTED"||
+      (!legacyScope&&!staleContext&&!missingRetrievalContext)) return false;
+    const correctionId=stableProjectId(`${objective.id}:verification-correction:${rejected.id}`);
+    if(projects.some((item)=>item.id===correctionId)) return false;
+    const spent=[...tasks.values()].filter((task)=>task.inputs.objectiveExecutionId===objective.id)
+      .reduce((sum,task)=>sum+task.actualCost,0);
+    const budget=Math.min(10,objective.budgetCredits-spent);
+    if(budget<1) return false;
+    const at=this.now().toISOString();
+    const review=ObjectiveProjectSchema.parse({
+      id:correctionId,ownerId,objectiveExecutionId:objective.id,title:legacyScope?"Verify original requested scope":"Verify current source-backed deliverable",
+      outcome:"Independently review the existing source-backed deliverable against the ORIGINAL owner objective, declared success criteria, and constraints. Verify every requested record field and source. Do not require an unrequested comparison or recommendation. Reject missing evidence or subject drift.",
+      status:"QUEUED",sequence:projects.length,departmentId:"quality-review",requiredSkills:["review"],requiredCapabilities:[],capabilityReadiness:[],estimatedAiCostCredits:budget,memoryScopeRefs:[],budgetCredits:budget,workforceTaskId:null,workflowId:null,selectedWorkflowTemplateId:null,workflowSelection:[],createdAt:at,updatedAt:at,
+    });
+    await this.store.saveObjectiveProject(review);
+    const goal=(await this.store.listGoals(ownerId)).find((item)=>item.id===objective.executiveGoalId);
+    const created=await this.workforce.createTask({ownerId,requestId,ipAddress,body:{
+      idempotencyKey:`objective:${objective.id}:project:${review.id}`,createdByAgentId:null,assignedAgentId:null,
+      type:"WORK",title:review.title,objective:review.outcome,
+      inputs:{objectiveExecutionId:objective.id,executiveGoalId:objective.executiveGoalId,projectId:review.id,executionKind:this.executionKind(review),objectiveOutcome:goal?.description,objectiveConstraints:goal?.constraints??[],successCriteria:metrics.map(({name,unit,target})=>({name,unit,target})),replacesReviewTaskIds:[rejected.id]},
+      evidenceRefs:[`objective:${objective.id}`],memoryScopeRefs:[],requiredSkills:review.requiredSkills,requiredCapabilities:[],preferredDepartmentId:review.departmentId,priority:"normal",riskLevel:"LOW",economicBudget:budget,maxRetries:1,expiresAt:null,
+    }});
+    await this.store.saveObjectiveProject(ObjectiveProjectSchema.parse({...review,workforceTaskId:created.task.id,updatedAt:this.now().toISOString()}));
+    if(latestResearch) await this.workforce.attachDependencyEvidence(ownerId,created.task.id,latestResearch);
+    await this.event(ownerId,objective.id,"REPLANNED",legacyScope?"A bounded review was added because the prior reviewer required work outside the owner's requested scope.":"A bounded review was added with the latest completed research evidence, which the prior review did not receive.",`objective-review-correction:${objective.id}:${rejected.id}`,{reviewProjectId:review.id,replacedTaskId:rejected.id});
+    await this.audit({eventType:"OBJECTIVE_STATE_CHANGED",ownerId,outcome:"SUCCESS",reason:legacyScope?"A failed review imposed unrequested comparison or recommendation criteria; a corrected review was scheduled without repeating completed research.":"The reviewer lacked the latest completed research dependency; a corrected review was scheduled without repeating completed research.",requestId,ipAddress,metadata:{objectiveId:objective.id,replacedTaskId:rejected.id}});
+    try {
+      await this.workforce.dispatch(ownerId,created.task.id,requestId,ipAddress);
+      await this.store.saveObjectiveProject(ObjectiveProjectSchema.parse({...review,workforceTaskId:created.task.id,status:"RUNNING",updatedAt:this.now().toISOString()}));
+    } catch {
+      await this.store.saveObjectiveProject(ObjectiveProjectSchema.parse({...review,workforceTaskId:created.task.id,status:"WAITING",updatedAt:this.now().toISOString()}));
+    }
+    await this.refreshObjective(ownerId,objective.id);
+    return true;
+  }
+
   private async recordEvidenceMetric(task:WorkforceRuntimeTask,objectiveId:string) {
     if(task.inputs.executionKind!=="EXTERNAL_RESEARCH") return;
     const objective=await this.requireObjective(task.ownerId,objectiveId);
@@ -414,22 +506,21 @@ export class ObjectiveEngineService {
     const relevantMetrics=metrics.filter((item)=>
       item.goalId===objective.executiveGoalId&&
       item.unit.toLowerCase()==="count"&&
-      /lead|compan|source|record|result|item/i.test(item.name),
+      isResearchRecordCountMetric(item.name),
     );
     const goal=goals.find((item)=>item.id===objective.executiveGoalId);
     const sourceRequirement=requiredIndependentSources(`${goal?.description??""} ${relevantMetrics.map((item)=>item.name).join(" ")}`);
     const runtime=await this.workforce.dashboard(task.ownerId);
     const verifiedCompanies=new Set(runtime.tasks
-      .filter((item)=>item.status==="COMPLETED"&&item.inputs.objectiveExecutionId===objectiveId&&item.inputs.executionKind==="EXTERNAL_RESEARCH")
+      .filter((item)=>item.status==="COMPLETED"&&item.completionProvenance?.completionType==="EXECUTED"&&item.inputs.objectiveExecutionId===objectiveId&&item.inputs.executionKind==="EXTERNAL_RESEARCH")
       .flatMap((item)=>item.verifiedLeads??[])
       .filter((lead)=>independentSourceHosts(lead.sourceUrls)>=sourceRequirement)
       .map((lead)=>lead.companyName.trim().toLowerCase()));
     const sourceCount=verifiedCompanies.size;
-    if(sourceCount===0) return;
     const at=this.now().toISOString();
     for(const metric of relevantMetrics) {
-      const value=Math.min(metric.target,Math.max(metric.currentValue,sourceCount));
-      if(value===metric.currentValue) continue;
+      const value=Math.min(metric.target,sourceCount);
+      if(value===metric.currentValue&&metric.source==="CALCULATED") continue;
       await this.store.saveKpi(ExecutiveKpiSchema.parse({...metric,currentValue:value,source:"CALCULATED",updatedAt:at}));
       await this.store.saveObjectiveMetricObservation(ObjectiveMetricObservationSchema.parse({id:crypto.randomUUID(),ownerId:task.ownerId,objectiveExecutionId:objectiveId,kpiId:metric.id,value,observedAt:at,source:"TASK"}));
     }
@@ -440,21 +531,25 @@ export class ObjectiveEngineService {
       if(!["ACTIVE","AT_RISK","BLOCKED"].includes(objective.status)) return;
       const owned=allProjects.filter((item)=>item.objectiveExecutionId===objective.id); if(!owned.length) return;
       const tasks=new Map(runtime.tasks.map((item)=>[item.id,item])); const at=this.now().toISOString();
+      const superseded = this.supersededReviewTasks(owned,tasks);
+      const effectiveProjectCount=owned.length-superseded.size;
       let completed=0; let spent=0; let failed=false; let interventionRequired=false;
       let projectedCost=0; let remainingDurationMs=0;
       for(const project of owned) { const task=project.workforceTaskId?tasks.get(project.workforceTaskId):undefined; if(!task) { interventionRequired ||= project.status==="BLOCKED"; continue; }
-        const status:ObjectiveProject["status"]=task.status==="COMPLETED"?"COMPLETED":task.status==="FAILED"?"FAILED":["RUNNING","REVIEW_REQUIRED"].includes(task.status)?"RUNNING":TERMINAL.has(task.status)?"CANCELLED":task.status==="WAITING"?"WAITING":"QUEUED";
+        if(superseded.has(task.id)) { spent+=task.actualCost; continue; }
+        const status:ObjectiveProject["status"]=task.status==="COMPLETED"?(task.completionProvenance?.completionType==="EXECUTED"?"COMPLETED":"BLOCKED"):task.status==="FAILED"?"FAILED":["RUNNING","REVIEW_REQUIRED"].includes(task.status)?"RUNNING":TERMINAL.has(task.status)?"CANCELLED":task.status==="WAITING"?"WAITING":"QUEUED";
         if(status!==project.status) await this.store.saveObjectiveProject(ObjectiveProjectSchema.parse({...project,status,updatedAt:at}));
         const selected=task.selection.find((item)=>item.agentId===task.assignedAgentId)??task.selection[0];
         completed+=status==="COMPLETED"?1:0; spent+=task.actualCost; failed ||= status==="FAILED";
         interventionRequired ||= status==="WAITING"&&this.waitingTaskRequiresIntervention(task);
+        interventionRequired ||= status==="BLOCKED";
         if(status!=="COMPLETED"&&status!=="CANCELLED") { projectedCost+=selected?.estimatedCost??project.budgetCredits; remainingDurationMs+=selected?.estimatedDurationMs??60*60*1_000; }
       }
       projectedCost+=spent;
-      const executionProgress=Math.round(completed/owned.length*100);
+      const executionProgress=Math.round(completed/Math.max(1,effectiveProjectCount)*100);
       const kpis=metrics.filter((item)=>item.goalId===objective.executiveGoalId);
       const outcomeProgress=kpis.length?Math.round(kpis.reduce((sum,item)=>sum+this.metricProgress(item),0)/kpis.length*100):0;
-      const unmetOutcome=completed===owned.length&&outcomeProgress<100;
+      const unmetOutcome=completed===effectiveProjectCount&&outcomeProgress<100;
       const goal=goals.find((item)=>item.id===objective.executiveGoalId);
       const deadlineStatus=this.deadlineStatus(goal?.targetDate??null,remainingDurationMs,owned.length-completed);
       const budgetStatus=spent>=objective.budgetCredits?"EXHAUSTED" as const:projectedCost>objective.budgetCredits?"BUDGET_AT_RISK" as const:"ON_TRACK" as const;
@@ -463,15 +558,31 @@ export class ObjectiveEngineService {
       const trigger=forcedTrigger??(capabilityBlocked?"CAPABILITY_BLOCK":budgetStatus==="BUDGET_AT_RISK"?"BUDGET_AT_RISK":deadlineStatus==="AT_RISK"||deadlineStatus==="OVERDUE"?"DEADLINE_AT_RISK":stagnating?"METRIC_STAGNATION":failed?"MAJOR_PROJECT_FAILURE":undefined);
       if(trigger&&objective.lastReplanTrigger!==trigger) await this.automaticReplan(ownerId,objective,trigger,{failedProjects:owned.filter((item)=>item.status==="FAILED").map((item)=>item.id),projectedCost,deadlineStatus,metricObservationCount:observations.length});
       const effectiveObjective=trigger&&objective.lastReplanTrigger!==trigger?await this.requireObjective(ownerId,objective.id):objective;
-      const hasActive=owned.some((project)=>project.workforceTaskId&&["RUNNING","REVIEW_REQUIRED"].includes(tasks.get(project.workforceTaskId)?.status??""));
-      const executionUnavailable=completed<owned.length&&!hasActive&&!capabilityBlocked&&!interventionRequired&&!failed;
+      const activeExecutionIds=new Set(runtime.activeExecutionTaskIds ?? []);
+      const hasActive=owned.some((project)=>project.workforceTaskId&&activeExecutionIds.has(project.workforceTaskId));
+      const executionUnavailable=completed<effectiveProjectCount&&!hasActive&&!capabilityBlocked&&!interventionRequired&&!failed;
       const failedTask = owned.map((project)=>project.workforceTaskId?tasks.get(project.workforceTaskId):undefined).find((task)=>task?.status==="FAILED");
-      const blockers=[...(capabilityBlocked?["A required capability request is unresolved."]:[]),...(interventionRequired?["A project needs a specialist, governed capability, or economic reservation before it can continue."]:[]),...(failed?[failedTask?.failureMessage ?? "A delegated project failed and requires bounded recovery."]:[]),...(executionUnavailable?["No executable workforce session is active. Retry after restoring the worker or model provider."]:[]),...(unmetOutcome?[`All scheduled work finished, but verified outcomes are short: ${kpis.filter((item)=>item.currentValue<item.target).map((item)=>`${item.name} ${item.currentValue}/${item.target}`).join(", ")}. Retry to run bounded evidence-gap research if budget and attempts remain.`]:[])];
+      const unverifiedTask=owned.map((project)=>project.workforceTaskId?tasks.get(project.workforceTaskId):undefined).find((task)=>task?.status==="COMPLETED"&&task.completionProvenance?.completionType!=="EXECUTED");
+      const blockers=[...(capabilityBlocked?["A required capability request is unresolved."]:[]),...(unverifiedTask?[`Task ${unverifiedTask.title} has no verified execution provenance. Manual or legacy completion cannot satisfy an autonomous objective.`]:[]),...(interventionRequired&&!unverifiedTask?["A project needs a specialist, governed capability, or economic reservation before it can continue."]:[]),...(failed?[failedTask?.failureMessage ?? "A delegated project failed and requires bounded recovery."]:[]),...(executionUnavailable?["No executable workforce session is active. Retry after restoring the worker or model provider."]:[]),...(unmetOutcome?[`All scheduled work finished, but verified outcomes are short: ${kpis.filter((item)=>item.currentValue<item.target).map((item)=>`${item.name} ${item.currentValue}/${item.target}`).join(", ")}. Retry to run bounded evidence-gap research if budget and attempts remain.`]:[])];
       const riskReasons=[...(budgetStatus!=="ON_TRACK"?[`Projected cost ${projectedCost} exceeds or exhausts the ${objective.budgetCredits}-credit budget.`]:[]),...(deadlineStatus!=="ON_TRACK"?[deadlineStatus==="OVERDUE"?"The objective deadline is overdue.":"Current bounded duration estimates put the deadline at risk."]:[]),...(stagnating?["The success metric has not moved meaningfully across the configured observation window."]:[])];
-      const status:ObjectiveExecution["status"]=completed===owned.length&&outcomeProgress>=100?"COMPLETED":capabilityBlocked||interventionRequired||executionUnavailable||failed||unmetOutcome?"BLOCKED":riskReasons.length?"AT_RISK":"ACTIVE";
+      const status:ObjectiveExecution["status"]=completed===effectiveProjectCount&&outcomeProgress>=100?"COMPLETED":capabilityBlocked||interventionRequired||executionUnavailable||failed||unmetOutcome?"BLOCKED":riskReasons.length?"AT_RISK":"ACTIVE";
       const updated=ObjectiveExecutionSchema.parse({...effectiveObjective,status,executionProgress,outcomeProgress,spentCredits:spent,projectedCost,budgetStatus,deadlineStatus,riskReasons,updatedAt:at,completedAt:status==="COMPLETED"?at:null,blockers,lastReplanTrigger:trigger??effectiveObjective.lastReplanTrigger});
       await this.store.saveObjectiveExecution(updated);
       if(status!==objective.status||executionProgress!==objective.executionProgress||outcomeProgress!==objective.outcomeProgress) await this.event(ownerId,objective.id,"MONITORED","Objective state updated from bounded lifecycle evidence.",null,{status,executionProgress,outcomeProgress,budgetStatus,deadlineStatus});
+  }
+
+  private supersededReviewTasks(projects: ObjectiveProject[], tasks: Map<string,WorkforceRuntimeTask>) {
+    const owned=new Set(projects.map((project)=>project.workforceTaskId));
+    return new Set(projects.flatMap((project)=>{
+      const replacement=project.workforceTaskId?tasks.get(project.workforceTaskId):undefined;
+      const refs=replacement?.inputs.replacesReviewTaskIds;
+      if(!replacement?.requiredSkills.includes("review")||!Array.isArray(refs)) return [];
+      return refs.filter((id):id is string=>{
+        if(typeof id!=="string"||!owned.has(id)||id===replacement.id) return false;
+        const prior=tasks.get(id);
+        return prior?.status==="FAILED"&&prior.failureCode==="OBJECTIVE_VERIFICATION_FAILED"&&prior.requiredSkills.includes("review")&&prior.completionProvenance?.completionType==="EXECUTED";
+      });
+    }));
   }
 
   private async prepareWorkflow(input:{ownerId:string;requestId:string;ipAddress:string},objective:ObjectiveExecution,project:ObjectiveProject) {

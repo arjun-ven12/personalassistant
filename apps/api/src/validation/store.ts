@@ -7,6 +7,7 @@ export interface ValidationStore {
   find(id: string): Awaitable<ValidationRecord | undefined>;
   list(ownerId: string, limit: number): Awaitable<ValidationRecord[]>;
   update(validation: ValidationRecord): Awaitable<void>;
+  completeExecution(validation: ValidationRecord): Awaitable<boolean>;
   findByExecutionRequestId(id: string): Awaitable<ValidationRecord | undefined>;
 }
 
@@ -45,5 +46,18 @@ export class InMemoryValidationStore implements ValidationStore {
       (candidate) => candidate.executionRequestId === id,
     );
     return validation ? structuredClone(validation) : undefined;
+  }
+
+  completeExecution(validation: ValidationRecord) {
+    const current = this.#validations.get(validation.id);
+    if (
+      !current ||
+      current.ownerId !== validation.ownerId ||
+      current.executionRequestId !== validation.executionRequestId ||
+      !["EXECUTION_REQUESTED", "RUNNING"].includes(current.status)
+    )
+      return false;
+    this.update(validation);
+    return true;
   }
 }

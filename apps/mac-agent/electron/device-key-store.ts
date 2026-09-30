@@ -32,6 +32,49 @@ export interface SafeStorageAdapter {
   decryptString(encrypted: Buffer): string;
 }
 
+export const assertDevicePairingStorage = (available: boolean, status: string) => {
+  if (!available) {
+    throw new Error(
+      "macOS secure key storage is unavailable. Restore secure storage access, then choose Reconnect. Do not reset your existing identity.",
+    );
+  }
+  if (status !== "AVAILABLE" && status !== "MISSING") {
+    throw new Error(
+      "The existing device identity must be recovered before pairing. Choose Reconnect after restoring secure storage access.",
+    );
+  }
+};
+
+// Re-read only the existing stores. Recovery must never generate or replace keys.
+export const restoreStoredDeviceIdentity = async (
+  keys: Pick<DeviceKeyStore, "loadKeyPair">,
+  metadataStore: Pick<DeviceMetadataStore, "load">,
+  encryptionAvailable: () => boolean,
+) => {
+  let metadata: LocalDeviceMetadata | null = null;
+  try {
+    metadata = await metadataStore.load();
+    const identity = await keys.loadKeyPair();
+    if (
+      Boolean(identity) !== Boolean(metadata) ||
+      (identity && metadata && identity.fingerprint !== metadata.fingerprint)
+    ) {
+      return { identity: null, metadata, status: "CORRUPT" as const };
+    }
+    return {
+      identity,
+      metadata,
+      status: identity ? ("AVAILABLE" as const) : ("MISSING" as const),
+    };
+  } catch {
+    return {
+      identity: null,
+      metadata,
+      status: encryptionAvailable() ? ("CORRUPT" as const) : ("UNAVAILABLE" as const),
+    };
+  }
+};
+
 export interface NarrowFileAdapter {
   read(pathname: string): Promise<Buffer>;
   writeAtomic(pathname: string, value: Buffer): Promise<void>;

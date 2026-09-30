@@ -37,6 +37,14 @@ export interface IdentityStore {
     expiresAt: Date,
     now: Date,
   ): Awaitable<boolean>;
+  consumeSignedResultNonce(
+    deviceId: string,
+    nonce: string,
+    executionRequestId: string,
+    signatureDigest: string,
+    expiresAt: Date,
+    now: Date,
+  ): Awaitable<boolean>;
   appendAudit(record: CreateAuditRecord): Awaitable<StoredAuditRecord>;
   listAudit(userId: string, limit: number): Awaitable<StoredAuditRecord[]>;
 }
@@ -48,7 +56,11 @@ export class InMemoryIdentityStore implements IdentityStore {
   readonly #sessionIdsByTokenHash = new Map<string, string>();
   readonly #pairingIntents = new Map<string, PairingIntent>();
   readonly #devices = new Map<string, StoredDevice>();
-  readonly #nonces = new Map<string, number>();
+  readonly #nonces = new Map<string, {
+    expiry: number;
+    executionRequestId?: string;
+    signatureDigest?: string;
+  }>();
   readonly #audit: StoredAuditRecord[] = [];
 
   countUsers() {
@@ -151,8 +163,8 @@ export class InMemoryIdentityStore implements IdentityStore {
   }
 
   consumeNonce(deviceId: string, nonce: string, expiresAt: Date, now: Date) {
-    for (const [key, expiry] of this.#nonces.entries()) {
-      if (expiry <= now.getTime()) {
+    for (const [key, binding] of this.#nonces.entries()) {
+      if (binding.expiry <= now.getTime()) {
         this.#nonces.delete(key);
       }
     }
@@ -161,7 +173,28 @@ export class InMemoryIdentityStore implements IdentityStore {
     if (this.#nonces.has(key)) {
       return false;
     }
-    this.#nonces.set(key, expiresAt.getTime());
+    this.#nonces.set(key, { expiry: expiresAt.getTime() });
+    return true;
+  }
+
+  consumeSignedResultNonce(
+    deviceId: string,
+    nonce: string,
+    executionRequestId: string,
+    signatureDigest: string,
+    expiresAt: Date,
+    now: Date,
+  ) {
+    for (const [key, binding] of this.#nonces.entries()) {
+      if (binding.expiry <= now.getTime()) this.#nonces.delete(key);
+    }
+    const key = `${deviceId}:${nonce}`;
+    const existing = this.#nonces.get(key);
+    if (existing) return existing.executionRequestId === executionRequestId &&
+      existing.signatureDigest === signatureDigest;
+    this.#nonces.set(key, {
+      expiry: expiresAt.getTime(), executionRequestId, signatureDigest,
+    });
     return true;
   }
 

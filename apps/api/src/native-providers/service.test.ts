@@ -54,6 +54,33 @@ const trustVsCode = (
 };
 
 describe("NativeProviderRuntime", () => {
+  it("replays a saved transport receipt without duplicating execution or diagnostics", async () => {
+    const { ownerId, service, store } = setup();
+    const input = {
+      ownerId,
+      executionRequestId: crypto.randomUUID(),
+      request: {
+        providerId: "provider.vscode",
+        applicationId: "vscode",
+        capability: "focus_explorer" as const,
+        arguments: {},
+      },
+      result: null,
+      status: "FAILED" as const,
+      failureCode: "DEVICE_OFFLINE",
+      startedAt: "2026-08-05T00:00:00.000Z",
+      completedAt: "2026-08-05T00:00:01.000Z",
+    };
+    await service.recordTransportResult(input);
+    const original = store.listExecution(ownerId, 10);
+    await Promise.all([
+      service.recordTransportResult(input),
+      service.recordTransportResult(input),
+    ]);
+    expect(store.listExecution(ownerId, 10)).toEqual(original);
+    expect(store.listDiagnostics(ownerId, 10)).toHaveLength(1);
+    expect(store.listExecution(crypto.randomUUID(), 10)).toHaveLength(0);
+  });
   it("registers reviewed finite providers without raw automation surfaces", async () => {
     const { ownerId, service } = setup();
 
@@ -131,7 +158,8 @@ describe("NativeProviderRuntime", () => {
       ),
     ).toBe(true);
     expect(
-      dashboard.nativeProviders.find((provider) => provider.id === "provider.chrome")?.status,
+      dashboard.nativeProviders.find((provider) => provider.id === "provider.chrome")
+        ?.status,
     ).toBe("healthy");
   });
 

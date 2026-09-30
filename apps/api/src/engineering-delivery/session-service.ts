@@ -138,7 +138,12 @@ export class EngineeringProjectSessionService {
       const instruction = input.instruction.toLowerCase();
       const others = (await this.runtime.listRepositories(context.ownerId, context.companyId))
         .filter((candidate) => candidate.id !== repository.id && candidate.displayName.trim().length >= 3);
-      if (others.some((candidate) => instruction.includes(candidate.displayName.toLowerCase())))
+      if (others.some((candidate) => {
+        const name = candidate.displayName.trim().toLowerCase()
+          .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        return new RegExp(`(?:^|[^\\p{L}\\p{N}_])${name}(?:$|[^\\p{L}\\p{N}_])`, "u")
+          .test(instruction);
+      }))
         throw new EngineeringProjectSessionError("WRONG_PROJECT_REFERENCE", "This session is bound to another project. Switch projects explicitly before sending that instruction.");
     }
     if (/^(?:sudo\s+|curl\b|wget\b|(?:pnpm|npm|yarn|pip|uv|gradle)\s+(?:add|install|remove|uninstall)\b)/i.test(input.instruction.trim()))

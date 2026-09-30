@@ -60,9 +60,12 @@ import {
 import {
   DeviceMetadataStore,
   ElectronSafeStorageDeviceKeyStore,
+  restoreStoredDeviceIdentity,
+  assertDevicePairingStorage,
   type LocalDeviceMetadata,
 } from "./device-key-store.js";
 import { ReadOnlyExecutionClient } from "./execution/execution-client.js";
+import { EncryptedExecutionResultOutbox } from "./execution/result-outbox.js";
 import {
   DockerEngineeringRunner,
   DockerEngineeringDependencyRunner,
@@ -266,6 +269,11 @@ const startExecutionClientIfReady = () => {
       rebuildTrayMenu();
     },
     engineeringRuntime ?? undefined,
+    new EncryptedExecutionResultOutbox(
+      safeStorage,
+      path.join(app.getPath("userData"), "execution-result.secure"),
+      persistedMetadata.deviceId,
+    ),
   );
   executionClient.start();
 };
@@ -633,11 +641,22 @@ const registerIpc = () => {
     return productStatus();
   });
 
-  ipcMain.handle(IPC_CHANNELS.reconnect, (_event, payload) => {
+  ipcMain.handle(IPC_CHANNELS.reconnect, async (_event, payload) => {
     EmptyIpcPayloadSchema.parse(payload);
     if (currentConnectionState() !== "DEVICE_REVOKED") {
+      if (!persistedIdentity) {
+        const restored = await restoreStoredDeviceIdentity(
+          deviceKeyStore,
+          deviceMetadataStore,
+          () => safeStorage.isEncryptionAvailable(),
+        );
+        persistedIdentity = restored.identity;
+        persistedMetadata = restored.metadata;
+        keyStorageStatus = restored.status;
+      }
       startExecutionClientIfReady();
       executionClient?.reconnectNow();
+      startActiveContextIfReady();
     }
     return productStatus();
   });
@@ -715,6 +734,9 @@ const registerIpc = () => {
   ipcMain.handle(IPC_CHANNELS.beginPairing, async (_event, payload) => {
     const input = BeginPairingInputSchema.parse(payload);
     try {
+      // Do not consume a one-use server code or replace an existing identity
+      // when the local key cannot be safely persisted.
+      assertDevicePairingStorage(safeStorage.isEncryptionAvailable(), keyStorageStatus);
       executionClient?.stop();
       executionClient = null;
       pendingPairing = await beginFixedPairing(
@@ -1374,22 +1396,26 @@ const startAgent = async () => {
     },
     new NativeSemanticInteractionBridge(resourcePath("native/AlexaInteraction.app")),
   );
-  try {
-    [persistedIdentity, persistedMetadata] = await Promise.all([
-      deviceKeyStore.loadKeyPair(),
-      deviceMetadataStore.load(),
-    ]);
-    if (Boolean(persistedIdentity) !== Boolean(persistedMetadata)) {
-      persistedIdentity = null;
-      persistedMetadata = null;
-      keyStorageStatus = "CORRUPT";
-    } else {
-      keyStorageStatus = persistedIdentity ? "AVAILABLE" : "MISSING";
-    }
-  } catch {
-    persistedIdentity = null;
-    keyStorageStatus = safeStorage.isEncryptionAvailable() ? "CORRUPT" : "UNAVAILABLE";
+  if (process.env.ALEXA_LOCAL_UPDATE_ATTEMPT === "1") {
+    app.focus({ steal: true });
+    await dialog.showMessageBox({
+      type: "info",
+      buttons: ["Continue"],
+      defaultId: 0,
+      noLink: true,
+      message: "Restore the existing trusted device identity",
+      detail:
+        "macOS may ask for access to Athena Mac Agent's existing secure-storage item. Handle that system prompt yourself. This update will not reset or re-pair the device.",
+    });
   }
+  const restored = await restoreStoredDeviceIdentity(
+    deviceKeyStore,
+    deviceMetadataStore,
+    () => safeStorage.isEncryptionAvailable(),
+  );
+  persistedIdentity = restored.identity;
+  persistedMetadata = restored.metadata;
+  keyStorageStatus = restored.status;
   startExecutionClientIfReady();
   startActiveContextIfReady();
   if (persistedMetadata?.trustStatus === "TRUSTED") {

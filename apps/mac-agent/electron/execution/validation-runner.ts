@@ -1,4 +1,4 @@
-import { cp, mkdtemp, rm } from "node:fs/promises";
+import { cp, lstat, mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -11,7 +11,7 @@ import {
 } from "@alexa-control/shared";
 
 import { CapabilityError } from "./errors.js";
-import { resolveWorkspace } from "./path-policy.js";
+import { matchesBlocked, resolveWorkspace } from "./path-policy.js";
 
 const PNPM_EXECUTABLE = "/opt/homebrew/bin/pnpm";
 const FALLBACK_PNPM_EXECUTABLE = "/usr/local/bin/pnpm";
@@ -77,23 +77,33 @@ const safeEnvironment = {
 
 const trimOutput = (value: string) => value.slice(-32_768);
 
-const copySandbox = async (sourceRoot: string) => {
+const omittedDirectories = new Set([
+  ".git", "node_modules", "dist", "dist-electron", "dist-native", ".next", "release",
+]);
+
+export const copyValidationSandbox = async (sourceRoot: string, blockedPatterns: string[]) => {
   const sandboxParent = await mkdtemp(path.join(os.tmpdir(), "assistant-validation-"));
   const sandboxRoot = path.join(sandboxParent, "workspace");
-  await cp(sourceRoot, sandboxRoot, {
+  try {
+    await cp(sourceRoot, sandboxRoot, {
     recursive: true,
     verbatimSymlinks: false,
-    filter: (source) => {
+    filter: async (source) => {
       const relative = path.relative(sourceRoot, source);
       if (!relative) return true;
       const segments = relative.split(path.sep);
-      return !segments.some((segment) =>
-        new Set([".git", "node_modules", "dist", "dist-electron", ".next"]).has(
-          segment,
-        ),
-      );
+      if (matchesBlocked(relative, blockedPatterns) || segments.some((segment) =>
+        omittedDirectories.has(segment) || segment.endsWith(".app") || segment.endsWith(".asar"),
+      )) return false;
+      // Do not copy links that could escape the registered workspace or become
+      // dangling pointers back into the owner's checkout.
+      return !(await lstat(source)).isSymbolicLink();
     },
-  });
+    });
+  } catch (error) {
+    await rm(sandboxParent, { recursive: true, force: true });
+    throw error;
+  }
   return { sandboxParent, sandboxRoot };
 };
 
@@ -195,6 +205,7 @@ const runProfile = (
 export const runValidationProfiles = async (input: {
   workspaceId: string;
   rootPath: string;
+  blockedPatterns: string[];
   arguments: unknown;
   signal?: AbortSignal;
 }) => {
@@ -207,7 +218,7 @@ export const runValidationProfiles = async (input: {
   const workspace = await resolveWorkspace(input.rootPath);
   const started = Date.now();
   let cleanedUp = false;
-  const sandbox = await copySandbox(workspace.canonicalRoot);
+  const sandbox = await copyValidationSandbox(workspace.canonicalRoot, input.blockedPatterns);
   const steps: ValidationStepResult[] = [];
   try {
     for (const profile of args.profiles) {

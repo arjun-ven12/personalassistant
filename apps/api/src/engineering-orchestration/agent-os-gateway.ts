@@ -66,6 +66,34 @@ export class AgentOsEngineeringGateway implements EngineeringAgentOsGateway {
           .replace(/^_+|_+$/g, "")
           .slice(0, 120),
       );
+    // A replacement lease fences the earlier task attempt, but process death
+    // cannot close its Agent OS session. Reconcile only older delegations for
+    // this exact scoped task; never touch a session created by the new attempt.
+    if (input.task.leaseGeneration > 1) {
+      await companyScope.run(
+        { ownerId: input.objective.ownerId, companyId: input.objective.companyId,
+          role: "OWNER", requestId: input.requestId },
+        async () => {
+          const sessions = await this.agentOs.listSessions(input.objective.ownerId, 500);
+          for (const session of sessions.filter((candidate) =>
+            candidate.status === "running" &&
+            candidate.delegation?.delegationId === input.task.id &&
+            candidate.delegation.memoryScopes.includes(input.objective.companyId) &&
+            candidate.delegation.memoryScopes.includes(input.objective.repositoryId) &&
+            candidate.startedAt < input.task.updatedAt,
+          )) {
+            await this.agentOs.completeIsolatedDelegation({
+              ownerId: input.objective.ownerId, sessionId: session.id,
+              outputSummary: "The prior engineering worker stopped; its task lease was replaced. No completion or file mutation is claimed.",
+              confidence: 0, aiRequestId: session.delegation!.aiRequestId,
+              providerId: session.delegation!.providerId, modelId: session.delegation!.modelId,
+              artifactCount: session.delegation!.artifactCount, sandboxStatus: "UNAVAILABLE",
+              errorCode: "WORKER_LEASE_EXPIRED", requestId: input.requestId,
+            });
+          }
+        },
+      );
+    }
     const runtime = await companyScope.run(
       {
         ownerId: input.objective.ownerId,

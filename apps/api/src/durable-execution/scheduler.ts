@@ -9,6 +9,7 @@ export interface DurableSchedulerMetrics {
   emptyTicks: number;
   totalClaimLatencyMs: number;
   totalSchedulingDelayMs: number;
+  schedulerFailures: number;
 }
 
 export interface BoundedSchedulerWorkload {
@@ -25,10 +26,14 @@ export class DurableExecutionScheduler {
     emptyTicks: 0,
     totalClaimLatencyMs: 0,
     totalSchedulingDelayMs: 0,
+    schedulerFailures: 0,
   };
   #timer: NodeJS.Timeout | undefined;
   #running = false;
   #governorProposalWorkload: BoundedSchedulerWorkload | undefined;
+  #workforceRecoveryWorkload: BoundedSchedulerWorkload | undefined;
+  #engineeringRecoveryWorkload: BoundedSchedulerWorkload | undefined;
+  #executionCleanupWorkload: BoundedSchedulerWorkload | undefined;
 
   constructor(
     readonly store: DurableExecutionStore,
@@ -46,11 +51,22 @@ export class DurableExecutionScheduler {
   setGovernorProposalWorkload(workload: BoundedSchedulerWorkload) {
     this.#governorProposalWorkload = workload;
   }
+  setWorkforceRecoveryWorkload(workload: BoundedSchedulerWorkload) {
+    this.#workforceRecoveryWorkload = workload;
+  }
+  setEngineeringRecoveryWorkload(workload: BoundedSchedulerWorkload) {
+    this.#engineeringRecoveryWorkload = workload;
+  }
+  setExecutionCleanupWorkload(workload: BoundedSchedulerWorkload) {
+    this.#executionCleanupWorkload = workload;
+  }
 
   start() {
     if (this.#timer) return;
-    this.#timer = setInterval(() => void this.tick(), this.options.pollIntervalMs);
+    const tick = () => { void this.tick().catch(() => { this.metrics.schedulerFailures += 1; }); };
+    this.#timer = setInterval(tick, this.options.pollIntervalMs);
     this.#timer.unref();
+    tick();
   }
 
   stop() {
@@ -85,6 +101,9 @@ export class DurableExecutionScheduler {
         claimed.map((item) => this.runWithHeartbeat(item)),
         ),
         this.#governorProposalWorkload?.tick() ?? Promise.resolve(),
+        this.#workforceRecoveryWorkload?.tick() ?? Promise.resolve(),
+        this.#engineeringRecoveryWorkload?.tick() ?? Promise.resolve(),
+        this.#executionCleanupWorkload?.tick() ?? Promise.resolve(),
       ]);
       this.metrics.completedSteps += results.filter(
         (result) => result.status === "fulfilled",

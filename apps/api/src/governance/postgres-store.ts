@@ -156,13 +156,13 @@ export class PostgresGovernanceStore implements GovernanceStore {
   }
 
   async createApproval(approval: StoredApprovalRequest) {
-    const result = await this.pool.query<{ record: StoredApprovalRequest }>(
+    const result = await this.pool.query<{ company_id: string; record: StoredApprovalRequest }>(
       `INSERT INTO approval_requests(
         id,owner_id,company_id,action_digest,status,record,requested_at,expires_at
       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
       ON CONFLICT(owner_id,company_id,action_digest) WHERE status='PENDING'
       DO UPDATE SET owner_id=excluded.owner_id
-      RETURNING record`,
+      RETURNING company_id,record`,
       [
         approval.id,
         approval.ownerId,
@@ -174,17 +174,17 @@ export class PostgresGovernanceStore implements GovernanceStore {
         approval.expiresAt,
       ],
     );
-    return structuredClone(result.rows[0]!.record);
+    return this.scopedApproval(result.rows[0]!);
   }
 
   async findApprovalById(id: string) {
     const activeCompanyId = companyScope.companyId();
-    const result = await this.pool.query<{ record: StoredApprovalRequest }>(
-      `SELECT record FROM approval_requests
+    const result = await this.pool.query<{ company_id: string; record: StoredApprovalRequest }>(
+      `SELECT company_id,record FROM approval_requests
        WHERE id=$1 AND ($2::uuid IS NULL OR company_id=$2)`,
       [id, activeCompanyId ?? null],
     );
-    return one(result.rows[0]);
+    return result.rows[0] ? this.scopedApproval(result.rows[0]) : undefined;
   }
 
   async findApprovalByDigest(
@@ -193,26 +193,32 @@ export class PostgresGovernanceStore implements GovernanceStore {
     statuses: ApprovalStatus[],
   ) {
     const activeCompanyId = companyScope.companyId(ownerId);
-    const result = await this.pool.query<{ record: StoredApprovalRequest }>(
-      `SELECT record FROM approval_requests
+    const result = await this.pool.query<{ company_id: string; record: StoredApprovalRequest }>(
+      `SELECT company_id,record FROM approval_requests
        WHERE owner_id=$1 AND action_digest=$2 AND status=ANY($3::varchar[])
        AND ($4::uuid IS NULL OR company_id=$4)
        ORDER BY requested_at DESC LIMIT 1`,
       [ownerId, actionDigest, statuses, activeCompanyId ?? null],
     );
-    return one(result.rows[0]);
+    return result.rows[0] ? this.scopedApproval(result.rows[0]) : undefined;
   }
 
   async listApprovals(ownerId: string, status?: ApprovalStatus) {
     const activeCompanyId = companyScope.companyId(ownerId);
-    const result = await this.pool.query<{ record: StoredApprovalRequest }>(
-      `SELECT record FROM approval_requests
+    const result = await this.pool.query<{ company_id: string; record: StoredApprovalRequest }>(
+      `SELECT company_id,record FROM approval_requests
        WHERE owner_id=$1 AND ($2::varchar IS NULL OR status=$2)
        AND ($3::uuid IS NULL OR company_id=$3)
        ORDER BY requested_at DESC`,
       [ownerId, status ?? null, activeCompanyId ?? null],
     );
-    return result.rows.map((row) => structuredClone(row.record));
+    return result.rows.map((row) => this.scopedApproval(row));
+  }
+
+  private scopedApproval(row: { company_id: string; record: StoredApprovalRequest }) {
+    if (row.record.companyId && row.record.companyId !== row.company_id)
+      throw new GovernanceError(409, "APPROVAL_SCOPE_CONFLICT", "Approval company scope is inconsistent.");
+    return { ...structuredClone(row.record), companyId: row.company_id };
   }
 
   async updateApproval(approval: StoredApprovalRequest) {
@@ -228,7 +234,8 @@ export class PostgresGovernanceStore implements GovernanceStore {
             : ["PENDING"];
     const result = await this.pool.query(
       `UPDATE approval_requests SET status=$2,record=$3,version=version+1
-       WHERE id=$1 AND owner_id=$4 AND company_id=$5 AND status=ANY($6::varchar[])`,
+       WHERE id=$1 AND owner_id=$4 AND company_id=$5
+       AND status=ANY($6::varchar[])`,
       [
         approval.id,
         approval.status,

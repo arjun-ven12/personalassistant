@@ -110,6 +110,33 @@ describe("Phase 2.3 browser security", () => {
     });
   });
 
+  it("does not trust cloud forwarded headers without an authenticated proxy peer", async () => {
+    const cloud = await buildApi({
+      corsOrigin: origin,
+      privateNetworkRequired: false,
+      nodeEnvironment: "test",
+      trustedProxyMode: "one-hop",
+      logger: false,
+      governanceStore: new InMemoryGovernanceStore(BUILT_IN_TOOLS, false),
+      networkVerifier: new StaticNetworkVerifier("PRIVATE_NETWORK"),
+    });
+    try {
+      cloud.get("/__test_remote_address", (request) => ({
+        ip: request.ip,
+        hostname: request.hostname,
+      }));
+      const response = await cloud.inject({
+        method: "GET",
+        url: "/__test_remote_address",
+        headers: { "x-forwarded-for": "203.0.113.9", "x-forwarded-host": "attacker.example" },
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ ip: "127.0.0.1", hostname: "localhost" });
+    } finally {
+      await cloud.close();
+    }
+  });
+
   it("uses a short-lived password grant for high-risk approval without execution", async () => {
     const headers = { cookie, origin, "x-csrf-token": csrf };
     const evaluation = await app.inject({

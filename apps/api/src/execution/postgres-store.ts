@@ -66,17 +66,28 @@ export class PostgresExecutionStore implements ExecutionStore {
     return result.rows.map(parseRequest);
   }
 
+  async listActiveForEngineeringWorkspace(ownerId: string, engineeringWorkspaceId: string) {
+    const result = await this.pool.query<{ record: unknown }>(
+      `SELECT record FROM execution_requests
+       WHERE owner_id=$1 AND status = ANY($2::text[])
+         AND record->'arguments'->>'engineeringWorkspaceId'=$3
+       ORDER BY created_at DESC`,
+      [ownerId, ["PENDING", "CLAIMED", "RUNNING"], engineeringWorkspaceId],
+    );
+    return result.rows.map(parseRequest);
+  }
+
   async poll(deviceId: string, now: string) {
     await this.pool.query(
-      `UPDATE execution_requests SET status='EXPIRED', completed_at=$2,
+      `UPDATE execution_requests SET status='EXPIRED', completed_at=$2::text::timestamptz,
        record=jsonb_set(jsonb_set(jsonb_set(record,'{status}','"EXPIRED"'),
        '{completedAt}',to_jsonb($2::text)),'{failureCode}','"EXECUTION_REQUEST_EXPIRED"')
-       WHERE device_id=$1 AND status='PENDING' AND expires_at <= $2`,
+       WHERE device_id=$1 AND status='PENDING' AND expires_at <= $2::text::timestamptz`,
       [deviceId, now],
     );
     const result = await this.pool.query<{ record: unknown }>(
       `SELECT record FROM execution_requests
-       WHERE device_id=$1 AND status='PENDING' AND expires_at>$2
+       WHERE device_id=$1 AND status='PENDING' AND expires_at>$2::text::timestamptz
        ORDER BY created_at ASC LIMIT 1`,
       [deviceId, now],
     );
@@ -103,6 +114,7 @@ export class PostgresExecutionStore implements ExecutionStore {
          'attemptCount',CASE WHEN $4::text='CLAIMED' THEN (record->>'attemptCount')::int+1 ELSE (record->>'attemptCount')::int END,
          'failureCode',$6::text)
        WHERE id=$1 AND device_id=$2 AND status = ANY($7::text[])
+         AND ($4::text NOT IN ('CLAIMED','RUNNING') OR expires_at>$3::timestamptz)
        RETURNING record`,
       [
         id,
@@ -114,6 +126,23 @@ export class PostgresExecutionStore implements ExecutionStore {
         from,
         at,
       ],
+    );
+    return result.rows[0] ? parseRequest(result.rows[0]) : undefined;
+  }
+
+  async startWithDeadline(id: string, deviceId: string, at: string, runningTtlSeconds: number) {
+    if (!Number.isSafeInteger(runningTtlSeconds) || runningTtlSeconds < 1 ||
+        runningTtlSeconds > 35 * 60) return undefined;
+    const deadline = new Date(new Date(at).getTime() + runningTtlSeconds * 1_000).toISOString();
+    const result = await this.pool.query<{ record: unknown }>(
+      `UPDATE execution_requests SET status='RUNNING',expires_at=$4::text::timestamptz,
+       agent_last_heartbeat_at=$3::text::timestamptz,
+       version=version+1,
+       record=record || jsonb_build_object('status','RUNNING','startedAt',$3::text,
+         'expiresAt',$4::text,'agentLastHeartbeatAt',$3::text)
+       WHERE id=$1 AND device_id=$2 AND status='CLAIMED' AND expires_at>$3::text::timestamptz
+       RETURNING record`,
+      [id, deviceId, at, deadline],
     );
     return result.rows[0] ? parseRequest(result.rows[0]) : undefined;
   }
@@ -150,6 +179,65 @@ export class PostgresExecutionStore implements ExecutionStore {
     return inserted.rowCount === 1;
   }
 
+  async completeWithResult(
+    ownerId: string,
+    result: ReadOnlyExecutionResult,
+    retentionExpiresAt: string,
+  ) {
+    const parsed = ReadOnlyExecutionResultSchema.parse(result);
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      const locked = await client.query<{ record: unknown }>(
+        "SELECT record FROM execution_requests WHERE id=$1 AND owner_id=$2 FOR UPDATE",
+        [parsed.executionRequestId, ownerId],
+      );
+      const request = locked.rows[0] ? parseRequest(locked.rows[0]) : undefined;
+      if (!request || request.deviceId !== parsed.deviceId ||
+          (request.status === "CANCELLED"
+            ? parsed.status !== "CANCELLED"
+            : !["RUNNING", "CLAIMED"].includes(request.status))) {
+        await client.query("ROLLBACK");
+        return undefined;
+      }
+      const inserted = await client.query(
+        `INSERT INTO execution_results
+         (execution_request_id,owner_id,device_id,expires_at,created_at,record)
+         VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING`,
+        [request.id, ownerId, parsed.deviceId, retentionExpiresAt, parsed.completedAt, parsed],
+      );
+      if (inserted.rowCount !== 1) {
+        await client.query("ROLLBACK");
+        return undefined;
+      }
+      let terminal = request;
+      if (request.status !== "CANCELLED") {
+        const updated = await client.query<{ record: unknown }>(
+          `UPDATE execution_requests SET status=$3::varchar,
+           completed_at=$4::text::timestamptz,version=version+1,
+           record=record || jsonb_build_object(
+             'status',$3::text,'completedAt',$4::text,'failureCode',$5::text)
+           WHERE id=$1 AND device_id=$2 AND status = ANY($6::text[])
+           RETURNING record`,
+          [request.id, parsed.deviceId, parsed.status, parsed.completedAt,
+            parsed.failureCode ?? null, ["RUNNING", "CLAIMED"]],
+        );
+        if (!updated.rows[0]) {
+          await client.query("ROLLBACK");
+          return undefined;
+        }
+        terminal = parseRequest(updated.rows[0]);
+      }
+      await client.query("COMMIT");
+      return terminal;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   async getResult(id: string) {
     const result = await this.pool.query<{ record: unknown }>(
       "SELECT record FROM execution_results WHERE execution_request_id=$1",
@@ -171,7 +259,7 @@ export class PostgresExecutionStore implements ExecutionStore {
 
   async cancelForDevice(deviceId: string, at: string) {
     const result = await this.pool.query(
-      `UPDATE execution_requests SET status='CANCELLED',completed_at=$2,version=version+1,
+      `UPDATE execution_requests SET status='CANCELLED',completed_at=$2::text::timestamptz,version=version+1,
        record=record || jsonb_build_object('status','CANCELLED','completedAt',$2::text,
        'cancellationRequestedAt',$2::text,'failureCode','TRUSTED_DEVICE_REQUIRED')
        WHERE device_id=$1 AND status = ANY($3::text[])`,
@@ -197,7 +285,8 @@ export class PostgresExecutionStore implements ExecutionStore {
        SET agent_last_heartbeat_at=$3::timestamptz,
            record=record || jsonb_build_object('agentLastHeartbeatAt',$5::text),
            version=version+1
-       WHERE id=$1 AND device_id=$2 AND status = ANY($4::text[])`,
+       WHERE id=$1 AND device_id=$2 AND status = ANY($4::text[])
+         AND expires_at>$3::timestamptz`,
       [id, deviceId, at, ["CLAIMED", "RUNNING"], at],
     );
     return result.rowCount === 1;
@@ -227,12 +316,18 @@ export class PostgresExecutionStore implements ExecutionStore {
   async cleanupExpired(now: string) {
     const requests = await this.pool.query(
       `UPDATE execution_requests
-       SET status='EXPIRED', completed_at=$1, version=version+1,
+       SET status='EXPIRED', completed_at=$1::text::timestamptz, version=version+1,
            record=record || jsonb_build_object(
              'status','EXPIRED',
              'completedAt',$1::text,
-             'failureCode','EXECUTION_REQUEST_EXPIRED')
-       WHERE status = ANY($2::text[]) AND expires_at <= $1`,
+             'failureCode',CASE WHEN status='RUNNING' AND
+               COALESCE(agent_last_heartbeat_at,created_at)
+                 <= $1::text::timestamptz - interval '30 seconds'
+               THEN 'AGENT_HEARTBEAT_LOST' ELSE 'EXECUTION_REQUEST_EXPIRED' END)
+       WHERE status = ANY($2::text[]) AND (expires_at <= $1::text::timestamptz OR
+         (status='RUNNING' AND
+          COALESCE(agent_last_heartbeat_at,created_at)
+            <= $1::text::timestamptz - interval '30 seconds'))`,
       [now, ["PENDING", "CLAIMED", "RUNNING"]],
     );
     const results = await this.pool.query(

@@ -342,4 +342,15 @@ export class PostgresEngineeringRuntimeStore implements EngineeringRuntimeStore 
       ? EngineeringValidationReportSchema.parse(result.rows[0].record)
       : undefined;
   }
+  async findLatestValidationForWorkspace(ownerId: string, companyId: string, workspaceId: string) {
+    const result = await this.pool.query<{ record: unknown }>(
+      `SELECT record FROM engineering_validation_reports
+       WHERE owner_id=$1 AND company_id=$2 AND workspace_id=$3
+       ORDER BY created_at DESC LIMIT 1`,
+      [ownerId, companyId, workspaceId],
+    );
+    return result.rows[0]
+      ? EngineeringValidationReportSchema.parse(result.rows[0].record)
+      : undefined;
+  }
 }

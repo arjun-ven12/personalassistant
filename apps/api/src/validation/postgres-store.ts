@@ -74,4 +74,24 @@ export class PostgresValidationStore implements ValidationStore {
     );
     return result.rows[0] ? parseValidation(result.rows[0]) : undefined;
   }
+
+  async completeExecution(validation: ValidationRecord) {
+    const parsed = ValidationRecordSchema.parse(validation);
+    const result = await this.pool.query(
+      `UPDATE validation_runs
+       SET status=$2,classification=$3,updated_at=$4,record=$5
+       WHERE id=$1 AND owner_id=$6 AND execution_request_id=$7
+         AND status IN ('EXECUTION_REQUESTED','RUNNING')`,
+      [
+        parsed.id,
+        parsed.status,
+        parsed.classification,
+        parsed.updatedAt,
+        parsed,
+        parsed.ownerId,
+        parsed.executionRequestId,
+      ],
+    );
+    return result.rowCount === 1;
+  }
 }
