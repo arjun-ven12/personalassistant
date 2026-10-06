@@ -110,6 +110,26 @@ application shell and non-home pages do not eagerly execute the WebGL scene code
 The Three.js vendor bundle remains large by nature, but it is cacheable and only
 loaded by the home scene.
 
+## Mobile layouts
+
+`apps/web/src/mobile.css` loads after the page styles. The app shell stacks below
+920px, with labeled, horizontally scrollable navigation. Below 620px, forms and
+detail workspaces stack, summary metrics use compact grids, and dense tables
+scroll within their own containers. Touch controls have a 44px minimum height;
+form text uses 16px to avoid mobile input zoom. Safe-area spacing and dynamic
+viewport heights accommodate mobile browser chrome. Runtime panels are bounded
+to the viewport; spatial mode panels flow vertically on phones.
+
+These changes affect presentation only. Authentication, approval, emergency stop,
+and the persistent camera/microphone runtime lifecycles use the existing paths.
+
+Validation used Chromium at 320, 390, 768, 1024, and 1440px with authenticated
+unavailable-data fixtures for 15 route shells, plus 25 populated CSS layout
+fixtures and phone sign-in/registration. Live authenticated data and physical
+devices were not tested. Existing cross-device `currentRoute` schema errors
+prevented browser mounting of Voice, Memory, Companies, Portfolio, and Services;
+their shared layouts are covered by CSS fixtures, not end-to-end route checks.
+
 ## Sound hooks
 
 No audio is implemented. The UI exposes future sound integration points by

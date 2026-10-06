@@ -7,6 +7,7 @@ import { App } from "./App.js";
 import { createApiClient } from "./api.js";
 import { expireSessionQueryCache } from "./sessionQueryCache.js";
 import "./styles.css";
+import "./mobile.css";
 
 declare global {
   interface Window {

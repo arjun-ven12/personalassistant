@@ -1,0 +1,239 @@
+/* Loaded after page styles so later desktop rules cannot undo mobile layouts. */
+.content,
+.content > *,
+.content :where(section, article, form, label, fieldset, dl, div) {
+  min-width: 0;
+}
+
+.content :where(input, select, textarea),
+.command-palette input {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.content :where(p, dd, code, pre) {
+  overflow-wrap: anywhere;
+}
+
+.content pre {
+  max-width: 100%;
+  overflow: auto;
+}
+
+.app-shell {
+  height: 100dvh;
+}
+
+@media (max-width: 920px) {
+  .app-shell {
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .app-shell .topbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .owner-menu,
+  .workspace-context,
+  .telemetry-bar,
+  .button-row,
+  .device-actions {
+    flex-wrap: wrap;
+  }
+
+  .app-shell .sidebar nav {
+    gap: 8px;
+  }
+
+  .app-shell .sidebar a {
+    width: auto;
+    min-height: 44px;
+    gap: 8px;
+    padding: 8px 12px;
+    white-space: nowrap;
+  }
+
+  .app-shell .sidebar a span {
+    display: inline;
+  }
+
+  .app-shell .sidebar a::after {
+    display: none;
+  }
+
+  .workforce-inspector,
+  .workforce-linked-entities,
+  .company-layout,
+  .spatial-runtime-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .intent-recorder-panel {
+    right: 14px;
+  }
+}
+
+@media (max-width: 620px) {
+  .content {
+    padding: 14px;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+
+  .topbar,
+  .sidebar,
+  .telemetry-bar {
+    padding-left: max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
+  }
+
+  .topbar {
+    padding-top: max(14px, env(safe-area-inset-top));
+  }
+
+  .content :where(button, input:not([type="checkbox"]):not([type="radio"]), select),
+  .topbar button,
+  .topbar select,
+  .auth-card :where(button, input) {
+    min-height: 44px;
+  }
+
+  .content :where(input, select, textarea),
+  .topbar :where(input, select),
+  .auth-card input {
+    font-size: 16px;
+  }
+
+  .company-switcher {
+    min-width: 0;
+    flex: 1 1 160px;
+  }
+
+  .company-switcher select {
+    width: 100%;
+  }
+
+  .panel,
+  .auth-card {
+    padding: 16px;
+  }
+
+  .auth-shell {
+    padding: 14px;
+    min-height: 100dvh;
+  }
+
+  .workspace-header,
+  .operational-page-header,
+  .tabbed-workspace-header,
+  .memory-page-header,
+  .home-page-header,
+  .panel-heading,
+  .section-heading,
+  .company-limit,
+  .session-list article {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .company-data-grid,
+  .company-resources,
+  .management-overview-grid,
+  .service-form-grid,
+  .service-contract-card dl,
+  .brain-summary-grid,
+  .organization-tree,
+  .capability-row,
+  .capability-inspector dl > div,
+  .workforce-department-form,
+  .workforce-member-list label,
+  .workforce-toolbar,
+  .agent-directory-toolbar,
+  .agent-task-panel,
+  .workforce-runtime-create,
+  .workforce-runtime-list > article,
+  .engineering-form-row,
+  .engineering-mission-heading,
+  .gesture-config-grid,
+  .gesture-config-row,
+  .gesture-config-flags,
+  .spatial-runtime-readout,
+  .conversation-inspector-grid,
+  .objective-modifier,
+  .objective-form-row,
+  .experiment-composer,
+  .business-integration-grid,
+  .checkbox-grid,
+  .workflow-library-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .objective-modifier .wide-control {
+    grid-column: 1 / -1;
+  }
+
+  .compact-metric-strip,
+  .objective-stats,
+  .objective-progress-grid,
+  .experiment-meta,
+  .external-outcome-summary,
+  .integration-impact,
+  .knowledge-neighborhood {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Keep column relationships intact, with scrolling inside each data table. */
+  .agent-directory-table,
+  .agent-catalog-table,
+  .table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .agent-directory-row,
+  .agent-catalog-row {
+    min-width: 360px;
+  }
+
+  .persistent-spatial-panel {
+    left: clamp(14px, var(--persistent-panel-x), max(14px, calc(100vw - 344px)));
+    top: clamp(14px, var(--persistent-panel-y), max(14px, calc(100dvh - 360px)));
+    max-height: calc(100dvh - 28px);
+    overflow-y: auto;
+  }
+
+  .intent-recorder-panel {
+    right: 14px;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    max-width: calc(100vw - 28px);
+    max-height: calc(100dvh - 28px);
+    overflow-y: auto;
+  }
+
+  .spatial-command-space {
+    overflow-y: auto;
+  }
+
+  .space-topbar,
+  .space-panel,
+  .space-dock {
+    position: relative;
+    inset: auto;
+    width: auto;
+    max-width: none;
+    margin: 14px;
+    transform: none;
+  }
+
+  .space-topbar {
+    flex-wrap: wrap;
+  }
+
+  .space-dock {
+    overflow-x: auto;
+    border-radius: var(--radius);
+  }
+}
