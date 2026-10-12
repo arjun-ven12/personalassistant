@@ -1,0 +1,655 @@
+{
+  "status": "REVIEW_REQUIRED_NOT_APPROVED",
+  "migrations": [
+    {
+      "version": "0001_phase_2_3_security",
+      "digest": "1982f6b392447bd459063a74a8051b0cb888eead258c47c8f445c5106e9c7c98"
+    },
+    {
+      "version": "0002_phase_3_1_read_only_execution",
+      "digest": "ded7c6034b4a48a654e060fbb2f6c3320ff97837b55a6e99a47b1dae8b434e2f"
+    },
+    {
+      "version": "0003_phase_3_2_read_only_hardening",
+      "digest": "568fc410cad01ef665f7f1a5c49868fd4d282d2d4d20fe83ba00407a542662d3"
+    },
+    {
+      "version": "0004_phase_4_1_repository_intelligence",
+      "digest": "0a46ebee2b9762bda86fea2e4ef534a4bda81cc54654d0127433f937371fd9e3"
+    },
+    {
+      "version": "0005_phase_4_2_semantic_code_intelligence",
+      "digest": "743ba111c2fecfc32baa7f91eb2d98ab4317762188f41cdf536dfdfa4e3694ce"
+    },
+    {
+      "version": "0006_phase_5_1_human_in_loop_patches",
+      "digest": "202774ffb24f779f155200132bf6d76032fc30c1b47a61f101c7a5e596d769c6"
+    },
+    {
+      "version": "0007_phase_5_2_verified_validation",
+      "digest": "6d04d34701c88ca0c8786e4264868543bd4fcc4ed5e7ee08e30246782143fa3b"
+    },
+    {
+      "version": "0008_phase_5_3_autonomous_workflows",
+      "digest": "f97da322d7cf66eb10aafa64ad633d9049854f2c8422524fac721f6a4f7beff2"
+    },
+    {
+      "version": "0009_phase_6_engineering_integrations",
+      "digest": "152824ee5e1787c7b72d62a3d6991ba4d29f1d5603dd8445e6bb6f524f373a44"
+    },
+    {
+      "version": "0010_phase_7_multi_agent_engineering",
+      "digest": "f6b31e60972f1ffa8a14668e1c068623b978fb1fa0bc75ceb3c9f9fb7246e94c"
+    },
+    {
+      "version": "0011_phase_8_cognitive_memory",
+      "digest": "36d8b15b3dbf83e89826c364dc7df53039cf19d380496108747133154f80d907"
+    },
+    {
+      "version": "0012_phase_9_intelligence_infrastructure",
+      "digest": "1d09733bb0639cc9f9f23aa5e1f39b823adcbfa5d8976e72ad3f185cdfd6ccfc"
+    },
+    {
+      "version": "0013_phase_10_engineering_advisor",
+      "digest": "1dd716d4117701171392a56e6a6e94a111a1d6272763ef164a4c1446d48a0170"
+    },
+    {
+      "version": "0014_phase_10_5_dynamic_agent_workforce",
+      "digest": "d02f5c010d7c85430305ff9b8fa0af0f7baf6b6d356394a7a80250e4089c70b2"
+    },
+    {
+      "version": "0015_phase_10_6_agent_os",
+      "digest": "c326f03372368806c495914a5fff093e757620e3e54020770722b353495b1dec"
+    },
+    {
+      "version": "0016_phase_10_7_agent_cognition",
+      "digest": "5491d886c50ad316c243044fc316f775d1cd85121c2f9629845b449cfe170390"
+    },
+    {
+      "version": "0017_phase_10_8_agent_evolution",
+      "digest": "d60bc7bf33544c81cd828304f0033253e4a061c8d6ade4855608a2f591291b5a"
+    },
+    {
+      "version": "0018_phase_10_9_agent_society",
+      "digest": "8086bd94700818db469fea0b189bccee71e01d00c579592168712fb3d74d533b"
+    },
+    {
+      "version": "0019_phase_11_intent_execution_engine",
+      "digest": "fefb71409751f1730fa3604149186e2d407a9d60c38f6ea253ca253c8f788ade"
+    },
+    {
+      "version": "0020_phase_12_autonomous_task_engine",
+      "digest": "a70a1ff0fa701887bf1e296c325bef0ec1ffa5d11225790374c00098ba010a07"
+    },
+    {
+      "version": "0021_phase_13_desktop_capability_layer",
+      "digest": "f46af35a52628fd09b13501f12125af3accf40fa1fdc71b35904031369933da2"
+    },
+    {
+      "version": "0022_phase_14_spatial_interaction_system",
+      "digest": "8e5b3cd039a6308d3658e15022a11a3ea087a2ae7dbd0576f77994e7e2b3c958"
+    },
+    {
+      "version": "0023_phase_14b_native_spatial_runtime",
+      "digest": "4739322e6c636406c91d640b22b6c7a87d9daa6a6df347f410e1c01c48e1449d"
+    },
+    {
+      "version": "0024_phase_14c_spatial_ui_framework",
+      "digest": "72b1b1e36b38b8485e72edf111d14bab57507a15735202f0df9164a2b66a049f"
+    },
+    {
+      "version": "0025_phase_14d_spatial_interaction_engine",
+      "digest": "b8a73fabb08ca672f8f5ab6eab000a507e4c2fed74230b1c30dfb68d8247a464"
+    },
+    {
+      "version": "0026_phase_14e_spatial_desktop_layer",
+      "digest": "ba6013c0ba1f400a26d87a6ba8019096ebd27b2f407b24a675964bcaeb03dc42"
+    },
+    {
+      "version": "0027_phase_14f_spatial_command_space",
+      "digest": "78eefbec5a00f9beeac9d113ff11160ee0d82094819bfb338824d1381a68e829"
+    },
+    {
+      "version": "0028_phase_15a_voice_operating_system",
+      "digest": "0efbc8573a4fc02a02ec9b9a172c2c328676929ae91c53f3232fc28abb481ee9"
+    },
+    {
+      "version": "0029_phase_15b_conversational_intelligence",
+      "digest": "ddf69f38ded501d19f5c2795db054485861fd15cbc78df72610ac110e2c4f531"
+    },
+    {
+      "version": "0030_phase_16_intent_recording",
+      "digest": "f443517c7fb964c639521b01b3183b654baface8cb404e4722d664c25b1a8f32"
+    },
+    {
+      "version": "0031_phase_16b_semantic_retrieval",
+      "digest": "b61868cdd07996f6d5f669c4bfd269a8a7c5e286916440a75ec46a24946b0fac"
+    },
+    {
+      "version": "0032_phase_17a_semantic_desktop_model",
+      "digest": "564796cd27dcbb00478ccee9093a3632b857c178939cceef622c913fa07f3eae"
+    },
+    {
+      "version": "0033_phase_17b_semantic_desktop_navigation",
+      "digest": "51f7f0b2e95cc33384537c28fef607a35c1ee0a4545ebd1fde54f0f3f04b7fa6"
+    },
+    {
+      "version": "0034_phase_17c_semantic_interaction_engine",
+      "digest": "4d6f5d8313973231da25bd0a2318b2b691efb14eaef134bcce6752ce0b65fc72"
+    },
+    {
+      "version": "0035_phase_17d_demonstration_learning",
+      "digest": "b6beb755960882e8bf4b5167c17f837842ea49de6765dfa34e16c354062f94bf"
+    },
+    {
+      "version": "0036_phase_17e_universal_application_adapters",
+      "digest": "3d2b4970f6e8b9abd9626ec40cbc717637feef9d54246315874cddec95773a2e"
+    },
+    {
+      "version": "0037_phase_17f_autonomous_desktop_skills",
+      "digest": "4f11b90005b8f335188cf6e3754ca4f6ce6c52648f84ab2855cdc0b0f74a8069"
+    },
+    {
+      "version": "0038_phase_17g_reviewed_native_provider_runtime",
+      "digest": "99b7033592a5d626c99077d3a425654a7eaa724fe9c5b8c1c965d9339d7cd486"
+    },
+    {
+      "version": "0039_phase_17g_provider_schema_compatibility",
+      "digest": "e2b8788a769f8d4aca40f53bb5e112feeeeeead3c0a738ffa34b675231ba73c2"
+    },
+    {
+      "version": "0040_phase_17i_native_execution_request_compatibility",
+      "digest": "250e2cda0c3de1c47aa72688f7f8168eabb115f1c236210fa6e608bbda3d067d"
+    },
+    {
+      "version": "0041_phase_18a_application_intelligence",
+      "digest": "f2cdbdda5f624eeb3f6c6004a71ac4e602b4018c92c4c88a1df4ca8cf3d350a7"
+    },
+    {
+      "version": "0042_phase_18b_workspace_intelligence",
+      "digest": "5d21c371158a46a142298201a2f4ef52630d868ca55935e622c62a59c6f07780"
+    },
+    {
+      "version": "0043_phase_18c_deep_semantic_indexers",
+      "digest": "bd2432c18802fb8cf631ec61d48a227db5101cca23e0f8aa118bb83201fa0a09"
+    },
+    {
+      "version": "0044_phase_18d_adapter_sdk",
+      "digest": "bfbc574cdbd978713abbe94c93f0850fc324281a3e4246b43ee27df443e78ddc"
+    },
+    {
+      "version": "0045_phase_18e_core_adapter_suite",
+      "digest": "83312d450ac08377da43b6677e6862769b1bd954a58138e329266141cd8521ff"
+    },
+    {
+      "version": "0046_phase_18f_cross_application_workflows",
+      "digest": "408c65612217db536b4da7cecc2fc9bc76faeef3a9aa2ea85caedfaa51d4f49d"
+    },
+    {
+      "version": "0047_phase_19a_personality_human_understanding",
+      "digest": "748f995d63780f113cf2f6afc46d9444ebcd098c0263040e82f83da97e83b7dd"
+    },
+    {
+      "version": "0048_phase_19a_part2_personality_core",
+      "digest": "dd053b8ff7676a52d4c62db36a19d12d8d8f8f0542ff831893ace8096fe60545"
+    },
+    {
+      "version": "0049_phase_19a_part3_personality_corpus",
+      "digest": "2b72b22d18e7a5e02825a110cb8bedaa6e07ce5ece637aaf823b4b7f06a41920"
+    },
+    {
+      "version": "0050_phase_19b_personal_knowledge_graph",
+      "digest": "534d2606de0e91f84a92f9deeba217fdba25ade87f431552bc192cbeb760e35b"
+    },
+    {
+      "version": "0051_phase_19c_learning_engine",
+      "digest": "20962af41d87646d47c1936eb05b5fcec494154e16b9457d97b653aa79c2c6fb"
+    },
+    {
+      "version": "0052_phase_19d_memory_studio",
+      "digest": "7b954f4088744203f010fe6133b45df6b570628698a561f94499226026c3cc65"
+    },
+    {
+      "version": "0053_phase_20b_ai_provider_registry",
+      "digest": "3ad1448bca8ca1dcd48fa22a1b9887ca19afe3f23943c315bfd1de230c5c0e07"
+    },
+    {
+      "version": "0054_phase_20d_ai_economics",
+      "digest": "d2205dfe0878356311d1acc8ff8967a5f60e6cb3b274da3a150893cac4a27b22"
+    },
+    {
+      "version": "0055_phase_20f_ai_benchmarks",
+      "digest": "d1eabfef6ed25682c1795a4602829bcd89c4d4533da108b1edc21c7c813a8233"
+    },
+    {
+      "version": "0056_phase_20r_b_durable_ai_economics",
+      "digest": "37423bcf7645a89081a8226ed80a6fde6b9f641d8087518d39da1eae16e35b28"
+    },
+    {
+      "version": "0057_phase_20r_e_durable_ai_benchmarks",
+      "digest": "f631898adc1c49b30731f69512f46a1db906a4a2921dee873b386185fb04aa1d"
+    },
+    {
+      "version": "0058_phase_20r_f3_transactional_override_grants",
+      "digest": "a8d5e7c27f75a511dbb459232be0d4c56cb3f57452738f4af2ea0122e6ea2f57"
+    },
+    {
+      "version": "0059_application_discovery_installations",
+      "digest": "7f7cc4fcbbb73b90f31e6796448a229f4726ccd4829a9c9acbbb56810d895ae5"
+    },
+    {
+      "version": "0060_phase_21a_conversation_feedback",
+      "digest": "0b9d61aba633896817683598f77222cd88963a4d2ae806c3f947f88497f01405"
+    },
+    {
+      "version": "0061_phase_21b_executive",
+      "digest": "67d20b8bb1aebdf1b0dad55ad993607db8f14b3420e6677039ac2d1dcaa0120a"
+    },
+    {
+      "version": "0062_phase_21b_objectives_risks",
+      "digest": "085f53e64d34840cdaf58bc2cff6777a9c3a42c05512f2d39f7ba3e53f1ec892"
+    },
+    {
+      "version": "0063_phase_21b_history_alerts",
+      "digest": "395887fca9cd2cbee1458b341206a2c7fb77823bce51eb7c7dba01dc85980a60"
+    },
+    {
+      "version": "0064_phase_21c_reflection",
+      "digest": "793980b4bd3937a3a9a3d13f0a8f047f2fc3ce78463e9d22b0c57903e9ff94c0"
+    },
+    {
+      "version": "0065_phase_21d_skill_evolution",
+      "digest": "90c5b3ea93b6510f7bf9283df151b4632db4cc1ca54f6fff35d8975959df4fa7"
+    },
+    {
+      "version": "0066_phase_22_3_conversation_continuity",
+      "digest": "3c49370c1e880168525b769e77a47fba409cfca665dbee6bfbadff942472ea81"
+    },
+    {
+      "version": "0067_phase_22_3_continuity_turn_claims",
+      "digest": "a7e241171da103937a6705cf50bd2ae51102e562aa56b69f657dadfec3aeea7f"
+    },
+    {
+      "version": "0068_phase_22_3_continuity_upgrade_repair",
+      "digest": "a7e241171da103937a6705cf50bd2ae51102e562aa56b69f657dadfec3aeea7f"
+    },
+    {
+      "version": "0069_phase_22_5_capability_studio",
+      "digest": "83fbd44ef290afaab39c28a259a2e0168653f27c4931b2ea7a015539373efc1d"
+    },
+    {
+      "version": "0070_phase_23_1_agent_economy",
+      "digest": "970dba20114ab9c5b5b27fdf2877d28018f5eb62f9a9e8638cf74d5f5a247bbe"
+    },
+    {
+      "version": "0071_phase_23_2_agent_workforce",
+      "digest": "b6a841a94c091feccf68e7ee3a1bb9a3459b3c6326fec7cd52edd678dba555d6"
+    },
+    {
+      "version": "0072_phase_23_3_workforce_runtime",
+      "digest": "5fd52ed71f9932ae98dc24f7adc20d7d879325a8208981f43eba941d25ac9c2c"
+    },
+    {
+      "version": "0073_phase_23_4_objective_engine",
+      "digest": "583034873f2815d94de59d4b0eed14a3098349572b4cb783ae13eff3c7730d47"
+    },
+    {
+      "version": "0074_phase_23_5_experiments",
+      "digest": "4dc25c2341d3b73f41442ef964af03980018b82fc750fc13c4b02e00da50c77c"
+    },
+    {
+      "version": "0075_phase_23_6_business_operations",
+      "digest": "9bf9919cb849db052e1f8de5f2d218fb46d5e36a1ec191c24fb791d291230421"
+    },
+    {
+      "version": "0076_phase_24_5_notifications",
+      "digest": "7a8607392d3d1c2ec761c38eb298d4244bbc40db88ab93335ae6eaa1dbd826d5"
+    },
+    {
+      "version": "0077_phase_24_6_cross_device_execution",
+      "digest": "59771fbe73ceec6adf854943a6b6d405137df171bac002eba050aee42182e916"
+    },
+    {
+      "version": "0077a_repair_cross_device_execution_tables",
+      "digest": "35d68f7aa22f1610cbe07fa144fe835bd5b51738835e8c6d61df27bc660f2a6e"
+    },
+    {
+      "version": "0078_phase_25_1_multi_company_tenancy",
+      "digest": "9dbd917ebb8f066a7fe0bf8c3a067cbdaa157870d5abf2203120500a3bbf0735"
+    },
+    {
+      "version": "0079_phase_25_2_dynamic_specialist_lifecycle",
+      "digest": "d7d3a11cf2264131c6125671590dc73fbf95cfa557bb7fa107d52e3b039c0854"
+    },
+    {
+      "version": "0080_bound_persisted_dynamic_agent_capabilities",
+      "digest": "f1b269e87e4deced089d98c918dd7171b6cf0d36cae2cf46db42ca288ff82be0"
+    },
+    {
+      "version": "0081_repair_adapter_sdk_capability_duplicates",
+      "digest": "4d20f718a31cf0a975b6e6fa7f7b30a5f040796aa7815f21cca6fe5e933e9b61"
+    },
+    {
+      "version": "0082_phase_25_2_company_lifecycle",
+      "digest": "a13537201bec37ae39968fa9da077a83ddd6c49368a3718f315e503e7e7fb41c"
+    },
+    {
+      "version": "0083_phase_25_3_reusable_agent_catalog",
+      "digest": "7300f440f6de50464fdf061e09b732518d5254b918ad94e6f267edc936365416"
+    },
+    {
+      "version": "0084_phase_25_3_organizational_workforce_completion",
+      "digest": "323636de03126cdffa379c3ba378e5d65da590676781bee2e78ca7ea809e701e"
+    },
+    {
+      "version": "0085_phase_25_3_company_scoped_agent_economy",
+      "digest": "e7f0df9fa29371edb27bf4c7c37dfb679d44ecdeb0d2e055786bf022e8fe5beb"
+    },
+    {
+      "version": "0086_phase_25_4_company_information_plane",
+      "digest": "f4733f144b6b2ac1b62dd7f35a0045af06d75c2c7127dd100be790ffff924092"
+    },
+    {
+      "version": "0087_phase_25_5_owner_portfolio_observability",
+      "digest": "fb80767b6925102ac307cb9c2fc4eb063196a672308cb01096138a25e9c6a01c"
+    },
+    {
+      "version": "0088_phase_25_6_durable_cross_company_execution",
+      "digest": "650c6a9216e9f0f57df4b509b04381ec0e2c14f6eb63334de5e11004b69692d5"
+    },
+    {
+      "version": "0089_phase_25_6_production_acceptance",
+      "digest": "c7bfff6db293f800516026cef8deb4da222fec4814a645d3adfda38a624f4484"
+    },
+    {
+      "version": "0090_phase_25_8_portfolio_intelligence",
+      "digest": "5f83d90dafbaa69a43968f31446f672329d0f8c373acc67ae733b8f72df38582"
+    },
+    {
+      "version": "0091_phase_25_8h_portfolio_orchestration",
+      "digest": "69ac4ce20c81233729596260e45035338d7df8a2c2ebcc00be2ee8caae3574ac"
+    },
+    {
+      "version": "0092_phase_25_8hf_orchestration_closure",
+      "digest": "7431c49a3ba3567f1fe3b391baa60284e873fb73c25800a8c589272d4018b1ac"
+    },
+    {
+      "version": "0093_phase_26_1_customer_operations_integrations",
+      "digest": "01704bb2f7652dacce81c412ac902bcc44bf555e98b27f3c143073e889b1e663"
+    },
+    {
+      "version": "0094_phase_26_2_commercial_integrations",
+      "digest": "1c464adedceb7bdfb30a09639285e2a2527257f71070e567899a32f5967fb647"
+    },
+    {
+      "version": "0095_phase_26_2b_commercial_hardening",
+      "digest": "8647c7d53869bb6f4af909a06b0fd0fc4d1fc55f2607a56354cd76c0914248fe"
+    },
+    {
+      "version": "0096_phase_27_1_engineering_runtime",
+      "digest": "0677372d4ce449b54420fa2ecacad1a4eb3696f51c6c94a47db05bfca017f45b"
+    },
+    {
+      "version": "0097_phase_27_2_engineering_orchestration",
+      "digest": "14c8e7f7753b86ff3260f59590c31de2546c580cd0cb1ba01c8469a78a4f073f"
+    },
+    {
+      "version": "0098_phase_27_3_engineering_integration",
+      "digest": "30d1d64ae57ba04c11a6dbcc1fe59cf003656af573b972d94197170302dc7b07"
+    },
+    {
+      "version": "0099_phase_27_4_engineering_delivery",
+      "digest": "59ed2f79cb6d8bf8f7732dedcbf4dc732f6f63f4e5bf9a169ca768df96acde2b"
+    },
+    {
+      "version": "0100_backfill_workspace_external_research_pattern",
+      "digest": "1d8217dfab39aab4331b6fa29100dd93195e10e0a3435d3644b9a4f5d4a64348"
+    },
+    {
+      "version": "0101_engineering_execution_request_compatibility",
+      "digest": "e76540a08584d303e524c77e30c0fbf75a6d7d72e54d0adb213c1cfb81be12eb"
+    },
+    {
+      "version": "0102_agent_os_delegation_event_compatibility",
+      "digest": "837798a694567566873c7def052dd20562327bfe1726d0175cfe5c9c79b3e23d"
+    },
+    {
+      "version": "0103_engineering_project_sessions",
+      "digest": "f8b4abd9c069a8ed7ba957acc61c8abdb00f4bc46a25ec41d64bd1be3a0d8724"
+    },
+    {
+      "version": "0104_workforce_execution_leases",
+      "digest": "feb95238ed825134abfd29dd56522651edffec70c82ca79371a6c3ecfd8ae7d6"
+    },
+    {
+      "version": "0105_engineering_delivery_recovery_scan",
+      "digest": "afc3f0839f0e1cbff4441577cc26539798892af29a6116d60bd4d4635c009ff4"
+    },
+    {
+      "version": "0106_engineering_delivery_integration_recovery_scan",
+      "digest": "02ce7693e9a6c22527e2b24f89d445bea8c49b0ea6b4d0b9a28438c7cd9eb678"
+    },
+    {
+      "version": "0107_engineering_delivery_preview_recovery_scan",
+      "digest": "d950e669bc5ba9c294012863cbd7bc187b9762436d45407a590ae44ce9ae4f4d"
+    },
+    {
+      "version": "0108_execution_request_timestamp_repair",
+      "digest": "b2e2582599561dcf7ec8fad9af4eb35a3581a332c9a63ddbb8ed24c0fd9ca42f"
+    },
+    {
+      "version": "0109_bind_execution_result_nonces",
+      "digest": "a79ebe30931a72dbf709e829b894c28c4a060e85985c0ae0d6053ef9d1b5263d"
+    },
+    {
+      "version": "0110_phase_28_1_universal_tools",
+      "digest": "b33322ba416cf71b14ed43bdfac34a274b12364ce022e6735092ae34bc81ed2b"
+    },
+    {
+      "version": "0111_phase_28_1_tool_reviews",
+      "digest": "b9812363625818e49c906480a273202bcd1866641c8605062fdb556ca99ba56a"
+    },
+    {
+      "version": "0112_phase_28_2_marketing",
+      "digest": "1f4f2af0bc30377dee886fcd670353a71941f2d85d76e11e860c0aabe87c2d81"
+    },
+    {
+      "version": "0113_phase_28_4_github_repositories",
+      "digest": "d2459c42e0a4479012ce8c2cf8ae2d45c1526843d106187bb85ffed0c4b2a410"
+    },
+    {
+      "version": "0114_phase_28_4_cloud_workspaces",
+      "digest": "508abb1eeb73597fc56ab72a5c5c5022442056eff4aac9827ab6544534ca8c7c"
+    }
+  ],
+  "missingVersions": [
+    "0090_repair_cross_device_execution_tables"
+  ],
+  "historicalSqlVerification": "CURRENT_SOURCE_HASHES_ONLY_NOT_PROOF_OF_HISTORICAL_SQL",
+  "legacyOriginalSqlStatus": "UNAVAILABLE_NOT_CONTENT_VERIFIED",
+  "recoveryBranch": {
+    "name": "athena-before-lineage-reconciliation",
+    "id": "br-green-star-azqy7jsy",
+    "evidence": "OWNER_REPORTED_CREATED"
+  },
+  "sourceComparison": {
+    "status": "REVIEW_REQUIRED",
+    "successfulDeploymentId": "8b4bd5f7-c8c1-4bc3-991d-94e28abdb401",
+    "deployedCommit": "7ee28be9de093a0446dfbe95b7145278b9087ea9",
+    "matchingCanonicalMigrations": [
+      "0001_phase_2_3_security",
+      "0002_phase_3_1_read_only_execution",
+      "0003_phase_3_2_read_only_hardening",
+      "0004_phase_4_1_repository_intelligence",
+      "0005_phase_4_2_semantic_code_intelligence",
+      "0006_phase_5_1_human_in_loop_patches",
+      "0007_phase_5_2_verified_validation",
+      "0008_phase_5_3_autonomous_workflows",
+      "0009_phase_6_engineering_integrations",
+      "0010_phase_7_multi_agent_engineering",
+      "0011_phase_8_cognitive_memory",
+      "0012_phase_9_intelligence_infrastructure",
+      "0013_phase_10_engineering_advisor",
+      "0014_phase_10_5_dynamic_agent_workforce",
+      "0015_phase_10_6_agent_os",
+      "0016_phase_10_7_agent_cognition",
+      "0017_phase_10_8_agent_evolution",
+      "0018_phase_10_9_agent_society",
+      "0019_phase_11_intent_execution_engine",
+      "0020_phase_12_autonomous_task_engine",
+      "0021_phase_13_desktop_capability_layer",
+      "0022_phase_14_spatial_interaction_system",
+      "0023_phase_14b_native_spatial_runtime",
+      "0024_phase_14c_spatial_ui_framework",
+      "0025_phase_14d_spatial_interaction_engine",
+      "0026_phase_14e_spatial_desktop_layer",
+      "0027_phase_14f_spatial_command_space",
+      "0028_phase_15a_voice_operating_system",
+      "0029_phase_15b_conversational_intelligence",
+      "0030_phase_16_intent_recording",
+      "0031_phase_16b_semantic_retrieval",
+      "0032_phase_17a_semantic_desktop_model",
+      "0033_phase_17b_semantic_desktop_navigation",
+      "0034_phase_17c_semantic_interaction_engine",
+      "0035_phase_17d_demonstration_learning",
+      "0036_phase_17e_universal_application_adapters",
+      "0037_phase_17f_autonomous_desktop_skills",
+      "0038_phase_17g_reviewed_native_provider_runtime",
+      "0039_phase_17g_provider_schema_compatibility",
+      "0040_phase_17i_native_execution_request_compatibility",
+      "0041_phase_18a_application_intelligence",
+      "0042_phase_18b_workspace_intelligence",
+      "0043_phase_18c_deep_semantic_indexers",
+      "0044_phase_18d_adapter_sdk",
+      "0045_phase_18e_core_adapter_suite",
+      "0046_phase_18f_cross_application_workflows",
+      "0047_phase_19a_personality_human_understanding",
+      "0048_phase_19a_part2_personality_core",
+      "0049_phase_19a_part3_personality_corpus",
+      "0050_phase_19b_personal_knowledge_graph",
+      "0051_phase_19c_learning_engine",
+      "0052_phase_19d_memory_studio",
+      "0053_phase_20b_ai_provider_registry",
+      "0054_phase_20d_ai_economics",
+      "0055_phase_20f_ai_benchmarks",
+      "0056_phase_20r_b_durable_ai_economics",
+      "0057_phase_20r_e_durable_ai_benchmarks",
+      "0058_phase_20r_f3_transactional_override_grants",
+      "0059_application_discovery_installations",
+      "0060_phase_21a_conversation_feedback",
+      "0061_phase_21b_executive",
+      "0062_phase_21b_objectives_risks",
+      "0063_phase_21b_history_alerts",
+      "0064_phase_21c_reflection",
+      "0065_phase_21d_skill_evolution",
+      "0066_phase_22_3_conversation_continuity",
+      "0067_phase_22_3_continuity_turn_claims",
+      "0068_phase_22_3_continuity_upgrade_repair",
+      "0069_phase_22_5_capability_studio",
+      "0070_phase_23_1_agent_economy",
+      "0071_phase_23_2_agent_workforce",
+      "0072_phase_23_3_workforce_runtime",
+      "0073_phase_23_4_objective_engine",
+      "0074_phase_23_5_experiments",
+      "0075_phase_23_6_business_operations",
+      "0076_phase_24_5_notifications",
+      "0077_phase_24_6_cross_device_execution",
+      "0077a_repair_cross_device_execution_tables",
+      "0078_phase_25_1_multi_company_tenancy",
+      "0079_phase_25_2_dynamic_specialist_lifecycle",
+      "0080_bound_persisted_dynamic_agent_capabilities",
+      "0081_repair_adapter_sdk_capability_duplicates",
+      "0082_phase_25_2_company_lifecycle",
+      "0083_phase_25_3_reusable_agent_catalog",
+      "0084_phase_25_3_organizational_workforce_completion",
+      "0085_phase_25_3_company_scoped_agent_economy",
+      "0086_phase_25_4_company_information_plane",
+      "0087_phase_25_5_owner_portfolio_observability",
+      "0088_phase_25_6_durable_cross_company_execution",
+      "0089_phase_25_6_production_acceptance",
+      "0090_phase_25_8_portfolio_intelligence",
+      "0091_phase_25_8h_portfolio_orchestration",
+      "0092_phase_25_8hf_orchestration_closure",
+      "0093_phase_26_1_customer_operations_integrations",
+      "0094_phase_26_2_commercial_integrations",
+      "0095_phase_26_2b_commercial_hardening",
+      "0096_phase_27_1_engineering_runtime",
+      "0097_phase_27_2_engineering_orchestration",
+      "0098_phase_27_3_engineering_integration",
+      "0099_phase_27_4_engineering_delivery",
+      "0100_backfill_workspace_external_research_pattern",
+      "0101_engineering_execution_request_compatibility",
+      "0102_agent_os_delegation_event_compatibility",
+      "0103_engineering_project_sessions",
+      "0104_workforce_execution_leases",
+      "0105_engineering_delivery_recovery_scan",
+      "0106_engineering_delivery_integration_recovery_scan",
+      "0107_engineering_delivery_preview_recovery_scan",
+      "0108_execution_request_timestamp_repair",
+      "0109_bind_execution_result_nonces"
+    ],
+    "differentCanonicalMigrations": [],
+    "missingCanonicalMigrations": [
+      "0110_phase_28_1_universal_tools",
+      "0111_phase_28_1_tool_reviews",
+      "0112_phase_28_2_marketing",
+      "0113_phase_28_4_github_repositories",
+      "0114_phase_28_4_cloud_workspaces"
+    ],
+    "unrecoverableDiagnosticVersion": [
+      "0090_repair_cross_device_execution_tables"
+    ],
+    "recoveryBranchId": "br-green-star-azqy7jsy",
+    "originalSqlStatus": "UNAVAILABLE_NOT_CONTENT_VERIFIED",
+    "earlierDeploymentComparison": [
+      {
+        "version": "0110_phase_28_1_universal_tools",
+        "earlierSuccessfulDeployedCommit": "279f131dc88d5f45d6a0d69566d56411248b74a3",
+        "matchesCurrentSha256": false
+      },
+      {
+        "version": "0111_phase_28_1_tool_reviews",
+        "earlierSuccessfulDeployedCommit": "279f131dc88d5f45d6a0d69566d56411248b74a3",
+        "matchesCurrentSha256": false
+      },
+      {
+        "version": "0112_phase_28_2_marketing",
+        "earlierSuccessfulDeployedCommit": "279f131dc88d5f45d6a0d69566d56411248b74a3",
+        "matchesCurrentSha256": false
+      },
+      {
+        "version": "0113_phase_28_4_github_repositories",
+        "earlierSuccessfulDeployedCommit": "279f131dc88d5f45d6a0d69566d56411248b74a3",
+        "matchesCurrentSha256": false
+      },
+      {
+        "version": "0114_phase_28_4_cloud_workspaces",
+        "earlierSuccessfulDeployedCommit": "279f131dc88d5f45d6a0d69566d56411248b74a3",
+        "matchesCurrentSha256": false
+      }
+    ]
+  },
+  "knownSqlDigestMeaning": "SHA256_OF_CURRENT_REVIEW_CANDIDATE_NOT_RETROACTIVE_PROOF_OF_EXECUTION",
+  "ddlSchemaComparison": {
+    "status": "SCHEMA_EFFECT_COMPARISON_ONLY_NOT_ORIGINAL_SQL_PROOF",
+    "tables": 9,
+    "summary": {
+      "columns": {
+        "productionCount": 75,
+        "referenceCount": 75,
+        "identical": true
+      },
+      "constraints": {
+        "productionCount": 29,
+        "referenceCount": 29,
+        "identical": true
+      },
+      "indexes": {
+        "productionCount": 19,
+        "referenceCount": 19,
+        "identical": true
+      }
+    },
+    "differences": {}
+  }
+}

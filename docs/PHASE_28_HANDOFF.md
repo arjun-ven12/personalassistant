@@ -1,3 +1,31 @@
+## 2026-10-12 Railway backend migration-lineage recovery
+
+Read-only production metadata confirms116ledger rows:115canonical entries
+through0114 and the documented earlier0090cross-device diagnostic label.
+0115/0116pending. Existing SHA-256 guard blocks unknown lineage/missing reviewed
+history. No production mutation, rollout or history approval performed.
+
+Owner-created Neon recovery branch:athena-before-lineage-reconciliation,
+br-green-star-azqy7jsy (owner reported; restore not tested). Original0090SQL
+unavailable after Git/source/snapshot search. Cross-device schema confirms
+repair/company controls. New finite operator-only receipt preserves that row and
+timestamp, leaves its SQL digestNULL and labels bytes unavailable. It rejects
+otherunknownversions,unapprovedreceipts,schemadrift,changedcanonicalhash and
+fabricatedoldSQLdigest. Ordinary known migration checksum gate preserved.
+
+110canonical hashes match successful deployed Git commit7ee28be9;0110–0114
+are absent from that commit. Those five candidate DDL-only scripts were
+rehearsed in an isolated test DB; production metadata matches all9tables/75columns/
+29constraints/19indexes exactly. This supports an explicit owner-reviewed schema
+baseline, not a claim of originalexecutionbyteauthenticity. Read-only CLI
+preparation produced inert evidence. No keyregistration or new IAMauthority.
+
+Review/procedure:docs/runbooks/ATHENA_MIGRATION_LINEAGE_RECOVERY.md and
+docs/evidence/MIGRATION_LINEAGE_REVIEW_20261012.json. Operator approval and
+firstproductionhistorymutation remain pending. Keep pre-deploycommand unchanged.
+Pending0115/0116require separate reviewed rollout afterbaseline. Validation:11
+focusedisolatedPostgreSQLtests pass; fullgateresults will be recorded below.
+
 
 ## 2026-10-05 Optional AWS inventory timeout repair
 
@@ -1014,3 +1042,11 @@ failed benchmark suite rerun passes1test/1file in13.88s,exit0. Do not describe
 the full run as clean. No timeout raised, no test bypassed, no benchmark source
 changed. Six pre-existing Mac generated artifacts restored after build.
 The live AWS inventory-fix pipeline result remains pending.
+
+Validation (2026-10-12):fullserialsuite253files/1,457tests pass,4opt-inlive
+files/tests skipped,664.32s,exit0. Eleven focusedisolatedPostgreSQLtests pass.
+Fullworkspace lint rerun passes0errors/1existingFastRefreshwarning after
+fixingtypedtestreads. Fullworkspace typecheck/build pass; finalAPItypecheck
+andbuildpassafterCLImetadataadditionandstrictrowguards. No privileged
+workstationoperationorproductionmutationperformed. Sixpre-existingMac
+generatedoutputsrestoredtoinitiallycleanHEADbytesafterbuild.

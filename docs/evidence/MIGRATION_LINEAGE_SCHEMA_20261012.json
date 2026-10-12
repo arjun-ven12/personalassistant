@@ -1,0 +1,915 @@
+{
+  "columns": [
+    {
+      "table_name": "engineering_cloud_workspaces",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_cloud_workspaces",
+      "column_name": "owner_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_cloud_workspaces",
+      "column_name": "company_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_cloud_workspaces",
+      "column_name": "repository_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_cloud_workspaces",
+      "column_name": "version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_cloud_workspaces",
+      "column_name": "state",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_cloud_workspaces",
+      "column_name": "expires_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_cloud_workspaces",
+      "column_name": "record",
+      "data_type": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_github_creations",
+      "column_name": "owner_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_github_creations",
+      "column_name": "company_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_github_creations",
+      "column_name": "idempotency_key",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_github_creations",
+      "column_name": "request_digest",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_github_creations",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_github_creations",
+      "column_name": "registration_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_github_creations",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_github_repositories",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_github_repositories",
+      "column_name": "owner_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_github_repositories",
+      "column_name": "company_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_github_repositories",
+      "column_name": "provider_repository_id",
+      "data_type": "bigint",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_github_repositories",
+      "column_name": "credential_reference_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_github_repositories",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_github_repositories",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_github_repositories",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "engineering_github_repositories",
+      "column_name": "record",
+      "data_type": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "marketing_artifacts",
+      "column_name": "owner_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "marketing_artifacts",
+      "column_name": "company_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "marketing_artifacts",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "marketing_artifacts",
+      "column_name": "campaign_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "marketing_artifacts",
+      "column_name": "deliverable_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "marketing_artifacts",
+      "column_name": "version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "marketing_artifacts",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "marketing_artifacts",
+      "column_name": "content_digest",
+      "data_type": "character",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": 64
+    },
+    {
+      "table_name": "marketing_artifacts",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "marketing_artifacts",
+      "column_name": "record",
+      "data_type": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "marketing_campaigns",
+      "column_name": "owner_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "marketing_campaigns",
+      "column_name": "company_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "marketing_campaigns",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "marketing_campaigns",
+      "column_name": "objective_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "marketing_campaigns",
+      "column_name": "idempotency_key",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "marketing_campaigns",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "marketing_campaigns",
+      "column_name": "version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "marketing_campaigns",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "marketing_campaigns",
+      "column_name": "record",
+      "data_type": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_definitions",
+      "column_name": "owner_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_definitions",
+      "column_name": "id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_definitions",
+      "column_name": "provider_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_definitions",
+      "column_name": "company_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_definitions",
+      "column_name": "enabled",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_definitions",
+      "column_name": "schema_digest",
+      "data_type": "character",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": 64
+    },
+    {
+      "table_name": "universal_tool_definitions",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_definitions",
+      "column_name": "record",
+      "data_type": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_invocation_receipts",
+      "column_name": "owner_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_invocation_receipts",
+      "column_name": "invocation_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_invocation_receipts",
+      "column_name": "company_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_invocation_receipts",
+      "column_name": "tool_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_invocation_receipts",
+      "column_name": "request_digest",
+      "data_type": "character",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": 64
+    },
+    {
+      "table_name": "universal_tool_invocation_receipts",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_invocation_receipts",
+      "column_name": "claimed_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_invocation_receipts",
+      "column_name": "result",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_invocation_receipts",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_invocation_receipts",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()",
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_providers",
+      "column_name": "owner_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_providers",
+      "column_name": "id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_providers",
+      "column_name": "company_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_providers",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_providers",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_providers",
+      "column_name": "record",
+      "data_type": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_reviews",
+      "column_name": "owner_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_reviews",
+      "column_name": "tool_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_reviews",
+      "column_name": "company_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_reviews",
+      "column_name": "provider_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_reviews",
+      "column_name": "schema_digest",
+      "data_type": "character",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": 64
+    },
+    {
+      "table_name": "universal_tool_reviews",
+      "column_name": "status",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_reviews",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    },
+    {
+      "table_name": "universal_tool_reviews",
+      "column_name": "record",
+      "data_type": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null,
+      "character_maximum_length": null
+    }
+  ],
+  "constraints": [
+    {
+      "table_name": "engineering_cloud_workspaces",
+      "name": "engineering_cloud_workspaces_company_id_fkey",
+      "definition": "FOREIGN KEY (company_id) REFERENCES companies(id)",
+      "convalidated": true
+    },
+    {
+      "table_name": "engineering_cloud_workspaces",
+      "name": "engineering_cloud_workspaces_owner_id_company_id_repository_key",
+      "definition": "UNIQUE (owner_id, company_id, repository_id)",
+      "convalidated": true
+    },
+    {
+      "table_name": "engineering_cloud_workspaces",
+      "name": "engineering_cloud_workspaces_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES owners(id) ON DELETE RESTRICT",
+      "convalidated": true
+    },
+    {
+      "table_name": "engineering_cloud_workspaces",
+      "name": "engineering_cloud_workspaces_pkey",
+      "definition": "PRIMARY KEY (id)",
+      "convalidated": true
+    },
+    {
+      "table_name": "engineering_cloud_workspaces",
+      "name": "engineering_cloud_workspaces_state_check",
+      "definition": "CHECK ((state = ANY (ARRAY['REQUESTED'::text, 'PROVISIONING'::text, 'BOOTING'::text, 'AUTHENTICATING'::text, 'READY'::text, 'BUSY'::text, 'SUSPENDING'::text, 'SUSPENDED'::text, 'FAILED'::text, 'DESTROYED'::text])))",
+      "convalidated": true
+    },
+    {
+      "table_name": "engineering_cloud_workspaces",
+      "name": "engineering_cloud_workspaces_version_check",
+      "definition": "CHECK ((version >= 0))",
+      "convalidated": true
+    },
+    {
+      "table_name": "engineering_github_creations",
+      "name": "engineering_github_creations_company_id_fkey",
+      "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE RESTRICT",
+      "convalidated": true
+    },
+    {
+      "table_name": "engineering_github_creations",
+      "name": "engineering_github_creations_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES owners(id) ON DELETE RESTRICT",
+      "convalidated": true
+    },
+    {
+      "table_name": "engineering_github_creations",
+      "name": "engineering_github_creations_pkey",
+      "definition": "PRIMARY KEY (owner_id, company_id, idempotency_key)",
+      "convalidated": true
+    },
+    {
+      "table_name": "engineering_github_creations",
+      "name": "engineering_github_creations_status_check",
+      "definition": "CHECK ((status = ANY (ARRAY['UNCERTAIN'::text, 'COMPLETE'::text])))",
+      "convalidated": true
+    },
+    {
+      "table_name": "engineering_github_repositories",
+      "name": "engineering_github_repositori_owner_id_company_id_provider__key",
+      "definition": "UNIQUE (owner_id, company_id, provider_repository_id)",
+      "convalidated": true
+    },
+    {
+      "table_name": "engineering_github_repositories",
+      "name": "engineering_github_repositories_company_id_fkey",
+      "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE RESTRICT",
+      "convalidated": true
+    },
+    {
+      "table_name": "engineering_github_repositories",
+      "name": "engineering_github_repositories_owner_id_fkey",
+      "definition": "FOREIGN KEY (owner_id) REFERENCES owners(id) ON DELETE RESTRICT",
+      "convalidated": true
+    },
+    {
+      "table_name": "engineering_github_repositories",
+      "name": "engineering_github_repositories_pkey",
+      "definition": "PRIMARY KEY (owner_id, company_id, id)",
+      "convalidated": true
+    },
+    {
+      "table_name": "engineering_github_repositories",
+      "name": "engineering_github_repositories_status_check",
+      "definition": "CHECK ((status = ANY (ARRAY['ACTIVE'::text, 'REVOKED'::text])))",
+      "convalidated": true
+    },
+    {
+      "table_name": "marketing_artifacts",
+      "name": "marketing_artifacts_owner_id_company_id_campaign_id_fkey",
+      "definition": "FOREIGN KEY (owner_id, company_id, campaign_id) REFERENCES marketing_campaigns(owner_id, company_id, id)",
+      "convalidated": true
+    },
+    {
+      "table_name": "marketing_artifacts",
+      "name": "marketing_artifacts_owner_id_company_id_deliverable_id_vers_key",
+      "definition": "UNIQUE (owner_id, company_id, deliverable_id, version)",
+      "convalidated": true
+    },
+    {
+      "table_name": "marketing_artifacts",
+      "name": "marketing_artifacts_pkey",
+      "definition": "PRIMARY KEY (owner_id, company_id, id)",
+      "convalidated": true
+    },
+    {
+      "table_name": "marketing_campaigns",
+      "name": "marketing_campaigns_owner_id_company_id_idempotency_key_key",
+      "definition": "UNIQUE (owner_id, company_id, idempotency_key)",
+      "convalidated": true
+    },
+    {
+      "table_name": "marketing_campaigns",
+      "name": "marketing_campaigns_pkey",
+      "definition": "PRIMARY KEY (owner_id, company_id, id)",
+      "convalidated": true
+    },
+    {
+      "table_name": "universal_tool_definitions",
+      "name": "universal_tool_definitions_owner_id_provider_id_fkey",
+      "definition": "FOREIGN KEY (owner_id, provider_id) REFERENCES universal_tool_providers(owner_id, id)",
+      "convalidated": true
+    },
+    {
+      "table_name": "universal_tool_definitions",
+      "name": "universal_tool_definitions_pkey",
+      "definition": "PRIMARY KEY (owner_id, id)",
+      "convalidated": true
+    },
+    {
+      "table_name": "universal_tool_invocation_receipts",
+      "name": "universal_tool_invocation_receipts_owner_id_tool_id_fkey",
+      "definition": "FOREIGN KEY (owner_id, tool_id) REFERENCES universal_tool_definitions(owner_id, id)",
+      "convalidated": true
+    },
+    {
+      "table_name": "universal_tool_invocation_receipts",
+      "name": "universal_tool_invocation_receipts_pkey",
+      "definition": "PRIMARY KEY (owner_id, invocation_id)",
+      "convalidated": true
+    },
+    {
+      "table_name": "universal_tool_invocation_receipts",
+      "name": "universal_tool_invocation_receipts_status_check",
+      "definition": "CHECK ((status = ANY (ARRAY['RESERVED'::text, 'COMPLETED'::text, 'INDETERMINATE'::text])))",
+      "convalidated": true
+    },
+    {
+      "table_name": "universal_tool_providers",
+      "name": "universal_tool_providers_pkey",
+      "definition": "PRIMARY KEY (owner_id, id)",
+      "convalidated": true
+    },
+    {
+      "table_name": "universal_tool_reviews",
+      "name": "universal_tool_reviews_owner_id_tool_id_fkey",
+      "definition": "FOREIGN KEY (owner_id, tool_id) REFERENCES universal_tool_definitions(owner_id, id)",
+      "convalidated": true
+    },
+    {
+      "table_name": "universal_tool_reviews",
+      "name": "universal_tool_reviews_pkey",
+      "definition": "PRIMARY KEY (owner_id, tool_id)",
+      "convalidated": true
+    },
+    {
+      "table_name": "universal_tool_reviews",
+      "name": "universal_tool_reviews_status_check",
+      "definition": "CHECK ((status = ANY (ARRAY['REVIEWED'::text, 'ENABLED'::text, 'DISABLED'::text, 'REVOKED'::text])))",
+      "convalidated": true
+    }
+  ],
+  "indexes": [
+    {
+      "table_name": "engineering_cloud_workspaces",
+      "name": "engineering_cloud_cleanup",
+      "definition": "CREATE INDEX engineering_cloud_cleanup ON engineering_cloud_workspaces USING btree (expires_at) WHERE (state <> 'DESTROYED'::text)",
+      "indisvalid": true,
+      "indisready": true
+    },
+    {
+      "table_name": "engineering_cloud_workspaces",
+      "name": "engineering_cloud_workspaces_owner_id_company_id_repository_key",
+      "definition": "CREATE UNIQUE INDEX engineering_cloud_workspaces_owner_id_company_id_repository_key ON engineering_cloud_workspaces USING btree (owner_id, company_id, repository_id)",
+      "indisvalid": true,
+      "indisready": true
+    },
+    {
+      "table_name": "engineering_cloud_workspaces",
+      "name": "engineering_cloud_workspaces_pkey",
+      "definition": "CREATE UNIQUE INDEX engineering_cloud_workspaces_pkey ON engineering_cloud_workspaces USING btree (id)",
+      "indisvalid": true,
+      "indisready": true
+    },
+    {
+      "table_name": "engineering_github_creations",
+      "name": "engineering_github_creations_pkey",
+      "definition": "CREATE UNIQUE INDEX engineering_github_creations_pkey ON engineering_github_creations USING btree (owner_id, company_id, idempotency_key)",
+      "indisvalid": true,
+      "indisready": true
+    },
+    {
+      "table_name": "engineering_github_repositories",
+      "name": "engineering_github_repositori_owner_id_company_id_provider__key",
+      "definition": "CREATE UNIQUE INDEX engineering_github_repositori_owner_id_company_id_provider__key ON engineering_github_repositories USING btree (owner_id, company_id, provider_repository_id)",
+      "indisvalid": true,
+      "indisready": true
+    },
+    {
+      "table_name": "engineering_github_repositories",
+      "name": "engineering_github_repositories_pkey",
+      "definition": "CREATE UNIQUE INDEX engineering_github_repositories_pkey ON engineering_github_repositories USING btree (owner_id, company_id, id)",
+      "indisvalid": true,
+      "indisready": true
+    },
+    {
+      "table_name": "engineering_github_repositories",
+      "name": "engineering_github_repositories_recent_idx",
+      "definition": "CREATE INDEX engineering_github_repositories_recent_idx ON engineering_github_repositories USING btree (owner_id, company_id, updated_at DESC)",
+      "indisvalid": true,
+      "indisready": true
+    },
+    {
+      "table_name": "marketing_artifacts",
+      "name": "marketing_artifacts_campaign_idx",
+      "definition": "CREATE INDEX marketing_artifacts_campaign_idx ON marketing_artifacts USING btree (owner_id, company_id, campaign_id)",
+      "indisvalid": true,
+      "indisready": true
+    },
+    {
+      "table_name": "marketing_artifacts",
+      "name": "marketing_artifacts_owner_id_company_id_deliverable_id_vers_key",
+      "definition": "CREATE UNIQUE INDEX marketing_artifacts_owner_id_company_id_deliverable_id_vers_key ON marketing_artifacts USING btree (owner_id, company_id, deliverable_id, version)",
+      "indisvalid": true,
+      "indisready": true
+    },
+    {
+      "table_name": "marketing_artifacts",
+      "name": "marketing_artifacts_pkey",
+      "definition": "CREATE UNIQUE INDEX marketing_artifacts_pkey ON marketing_artifacts USING btree (owner_id, company_id, id)",
+      "indisvalid": true,
+      "indisready": true
+    },
+    {
+      "table_name": "marketing_campaigns",
+      "name": "marketing_campaigns_objective_idx",
+      "definition": "CREATE INDEX marketing_campaigns_objective_idx ON marketing_campaigns USING btree (owner_id, company_id, objective_id)",
+      "indisvalid": true,
+      "indisready": true
+    },
+    {
+      "table_name": "marketing_campaigns",
+      "name": "marketing_campaigns_owner_id_company_id_idempotency_key_key",
+      "definition": "CREATE UNIQUE INDEX marketing_campaigns_owner_id_company_id_idempotency_key_key ON marketing_campaigns USING btree (owner_id, company_id, idempotency_key)",
+      "indisvalid": true,
+      "indisready": true
+    },
+    {
+      "table_name": "marketing_campaigns",
+      "name": "marketing_campaigns_pkey",
+      "definition": "CREATE UNIQUE INDEX marketing_campaigns_pkey ON marketing_campaigns USING btree (owner_id, company_id, id)",
+      "indisvalid": true,
+      "indisready": true
+    },
+    {
+      "table_name": "universal_tool_definitions",
+      "name": "universal_tool_definitions_eligible_idx",
+      "definition": "CREATE INDEX universal_tool_definitions_eligible_idx ON universal_tool_definitions USING btree (owner_id, company_id, provider_id) WHERE enabled",
+      "indisvalid": true,
+      "indisready": true
+    },
+    {
+      "table_name": "universal_tool_definitions",
+      "name": "universal_tool_definitions_pkey",
+      "definition": "CREATE UNIQUE INDEX universal_tool_definitions_pkey ON universal_tool_definitions USING btree (owner_id, id)",
+      "indisvalid": true,
+      "indisready": true
+    },
+    {
+      "table_name": "universal_tool_invocation_receipts",
+      "name": "universal_tool_invocation_receipts_pkey",
+      "definition": "CREATE UNIQUE INDEX universal_tool_invocation_receipts_pkey ON universal_tool_invocation_receipts USING btree (owner_id, invocation_id)",
+      "indisvalid": true,
+      "indisready": true
+    },
+    {
+      "table_name": "universal_tool_invocation_receipts",
+      "name": "universal_tool_invocation_receipts_recovery_idx",
+      "definition": "CREATE INDEX universal_tool_invocation_receipts_recovery_idx ON universal_tool_invocation_receipts USING btree (status, claimed_at) WHERE (status = ANY (ARRAY['RESERVED'::text, 'INDETERMINATE'::text]))",
+      "indisvalid": true,
+      "indisready": true
+    },
+    {
+      "table_name": "universal_tool_providers",
+      "name": "universal_tool_providers_pkey",
+      "definition": "CREATE UNIQUE INDEX universal_tool_providers_pkey ON universal_tool_providers USING btree (owner_id, id)",
+      "indisvalid": true,
+      "indisready": true
+    },
+    {
+      "table_name": "universal_tool_reviews",
+      "name": "universal_tool_reviews_pkey",
+      "definition": "CREATE UNIQUE INDEX universal_tool_reviews_pkey ON universal_tool_reviews USING btree (owner_id, tool_id)",
+      "indisvalid": true,
+      "indisready": true
+    }
+  ]
+}
