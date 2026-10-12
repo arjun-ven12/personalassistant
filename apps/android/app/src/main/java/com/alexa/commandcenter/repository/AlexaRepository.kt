@@ -12,6 +12,8 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonPrimitive
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.UUID
 
 class AlexaRepository(
@@ -24,25 +26,114 @@ class AlexaRepository(
 ) {
   private var crossDeviceRegistered = false
   private var activeCompanyId: String? = null
+  private val companyGate = Mutex()
+  suspend fun engineeringInputs(id: String): Result<List<EngineeringProjectInput>> = api.engineeringInputs(id).mapCatching { response ->
+    check(response.inputs.size <= 12 && response.inputs.all { it.objectiveId == id && EngineeringSafety.validId(it.id) && it.provenance == "OWNER_UPLOADED_UNTRUSTED" && it.byteLength in 1..262144 && it.sha256.matches(Regex("[a-f0-9]{64}")) })
+    response.inputs
+  }
+  suspend fun engineeringUpload(id: String, fileName: String, mimeType: String, bytes: ByteArray): Result<EngineeringProjectInput> = engineeringMutation { csrf ->
+    runCatching {
+      check(EngineeringSafety.validId(id) && bytes.size in 1..262144 && mimeType in setOf("image/png", "image/jpeg", "text/plain"))
+      val digest = java.security.MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+      val key = engineeringIdempotencyKey("input:$id", "$fileName:$mimeType:$digest")
+      val result = api.engineeringUpload(id, csrf, EngineeringProjectInputUpload(fileName, mimeType, android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP), key)).getOrThrow()
+      check(result.objectiveId == id && result.sha256 == digest && result.byteLength == bytes.size && result.provenance == "OWNER_UPLOADED_UNTRUSTED")
+      result
+    }
+  }
+  fun engineeringIdempotencyKey(kind: String, body: String): String {
+    val hash = java.security.MessageDigest.getInstance("SHA-256").digest("$kind:$body".toByteArray()).joinToString("") { "%02x".format(it) }
+    val key = scopedCacheKey("engineering-request:$hash") ?: error("Trusted company session is required.")
+    return cache.read(key)?.json?.takeIf(EngineeringSafety::validId) ?: UUID.randomUUID().toString().also { cache.save(key, it, System.currentTimeMillis()) }
+  }
+  suspend fun engineeringGitHubBindings(): Result<List<EngineeringGitHubBinding>> = runCatching {
+    val company = activeCompanyId ?: error("Select a company.")
+    api.engineeringConnections().getOrThrow().integrations.take(500).filter {
+      it.companyId == company && it.provider == "github" && it.status == "READY" && it.credentialRef?.let(EngineeringSafety::validId) == true
+    }.distinctBy { it.credentialRef }.also { check(activeCompanyId == company) }
+  }
+  suspend fun engineeringGitHubTool(name: String, args: Map<String, Any>, key: String, approvalId: String?): Result<EngineeringToolResult> = engineeringMutation { csrf -> runCatching {
+    check(name in setOf("list_repositories", "register_repository", "create_repository"))
+    val credential = args["credentialReferenceId"] as? String ?: error("Select a company credential.")
+    val binding = engineeringGitHubBindings().getOrThrow().firstOrNull { it.credentialRef == credential } ?: error("Company connection changed.")
+    val provider = binding.integrationId.takeIf { it.matches(Regex("engineering\\.github(?:\\.[a-z0-9_-]{3,80})?")) } ?: "engineering.github"
+    val result = api.engineeringTool(csrf, EngineeringToolRequest(key, "$provider:$name", args, approvalId, key, java.time.Instant.now().toString())).getOrThrow()
+    check(result.invocationId == key && result.toolId == "$provider:$name" && result.providerId == provider)
+    result
+  } }
+  suspend fun engineeringSnapshot(): Result<EngineeringSnapshot> {
+    val scope = activeCompanyId ?: return Result.failure(IllegalStateException("Select a company."))
+    return coroutineScope {
+      val deliveries = async { api.engineeringDeliveries() }
+      val projects = async { api.engineeringProjects() }
+      runCatching {
+        val snapshot = EngineeringSnapshot(scope, deliveries.await().getOrThrow().deliveries,
+          projects.await().getOrThrow().projects, System.currentTimeMillis())
+        check(activeCompanyId == scope && EngineeringSafety.snapshotMatches(snapshot, scope))
+        scopedCacheKey("engineering")?.let { cache.save(it, gson.toJson(snapshot), snapshot.updatedAt) }
+        snapshot
+      }
+    }
+  }
+  fun cachedEngineering(): EngineeringSnapshot? = runCatching {
+    val scope = activeCompanyId ?: return null
+    val cached = scopedCacheKey("engineering")?.let(cache::read) ?: return null
+    gson.fromJson(cached.json, EngineeringSnapshot::class.java).takeIf { EngineeringSafety.snapshotMatches(it, scope) }
+  }.getOrNull()
+  suspend fun engineeringBuild(id: String): Result<EngineeringBuild> {
+    val scope = activeCompanyId ?: return Result.failure(IllegalStateException("Select a company."))
+    return api.engineeringBuild(id).mapCatching { check(activeCompanyId == scope && EngineeringSafety.buildMatches(it, scope, id)); it }
+  }
+  suspend fun engineeringObjective(id: String) = api.engineeringObjective(id).mapCatching {
+    check(it.objective.id == id && it.objective.companyId == activeCompanyId); it
+  }
+  suspend fun engineeringIntegration(id: String) = api.engineeringIntegration(id).mapCatching {
+    check(it.candidate == null || it.candidate.companyId == activeCompanyId); it
+  }
+  private suspend fun <T> engineeringMutation(work: suspend (String) -> Result<T>): Result<T> = companyGate.withLock {
+    val company = activeCompanyId ?: return@withLock Result.failure(IllegalStateException("Select a company."))
+    if (!hasSession() || registration()?.trustStatus != DeviceTrustStatus.TRUSTED)
+      return@withLock Result.failure(AlexaApiException(AlexaFailure.Unauthorized))
+    api.csrf().fold(onSuccess = {
+      if (activeCompanyId != company) Result.failure(IllegalStateException("Company changed; review before retrying."))
+      else work(it.token).onFailure(::clearOnRevocation)
+    }, onFailure = Result<T>::failure)
+  }
+  suspend fun createEngineering(request: EngineeringCreateRequest, self: Boolean) = engineeringMutation { csrf ->
+    if (self) api.createSelfEngineering(csrf, SelfEngineeringCreateRequest(request.request, request.acceptanceCriteria, request.idempotencyKey)).map { it.controlCenter }
+    else api.createEngineering(csrf, request)
+  }
+  suspend fun engineeringControl(id: String, action: String): Result<EngineeringBuild> {
+    if (action !in setOf("pause", "resume", "recover", "cancel")) return Result.failure(IllegalArgumentException("Unknown control"))
+    return engineeringMutation { api.engineeringControl(it, id, action) }
+  }
+  suspend fun engineeringInstruction(id: String, request: EngineeringInstruction) = engineeringMutation { api.engineeringInstruction(it, id, request) }
+  suspend fun engineeringAnswer(id: String, clarificationId: String, request: EngineeringAnswer) = engineeringMutation { api.engineeringAnswer(it, id, clarificationId, request) }
+  suspend fun engineeringPreview(id: String, action: String): Result<EngineeringBuild> {
+    if (action !in setOf("status", "restart", "stop")) return Result.failure(IllegalArgumentException("Unknown preview control"))
+    return engineeringMutation { api.engineeringPreview(it, id, action) }
+  }
+  suspend fun engineeringMerge(id: String, key: String) = engineeringMutation { api.engineeringMerge(it, id, EngineeringMergeRequest(key)) }
+  suspend fun engineeringReject(id: String, reason: String?) = engineeringMutation { api.engineeringReject(it, id, EngineeringRejectRequest(reason)) }
   suspend fun login(email: String, password: String): Result<Owner> = api.login(email, password).map { it.user }
 
   suspend fun session(): Result<Owner> = api.session().mapCatching { session ->
     session.user ?: error("The server did not return an owner session.")
   }
 
-  suspend fun companies(): Result<CompanyListResponse> = api.companies().onSuccess { activeCompanyId = it.currentCompany.id }
+  suspend fun companies(): Result<CompanyListResponse> = companyGate.withLock { api.companies().onSuccess { activeCompanyId = it.currentCompany.id } }
   suspend fun portfolio(): Result<PortfolioDashboard> = api.portfolio()
   suspend fun portfolioEconomy(): Result<PortfolioEconomy> = api.portfolioEconomy()
   suspend fun portfolioApprovals(): Result<List<PortfolioApproval>> = api.portfolioApprovals()
   suspend fun portfolioSearch(query: String, type: String = "ALL"): Result<PortfolioSearchResponse> = api.portfolioSearch(query, type)
-  suspend fun selectCompany(companyId: String): Result<CompanyListResponse> = api.csrf().fold(
+  suspend fun selectCompany(companyId: String): Result<CompanyListResponse> = companyGate.withLock { api.csrf().fold(
     onSuccess = { api.selectCompany(it.token, companyId).onSuccess { selected -> activeCompanyId = selected.currentCompany.id } },
     onFailure = Result<CompanyListResponse>::failure,
-  )
-  suspend fun createCompany(name: String, description: String?, industry: String?): Result<CompanyListResponse> = api.csrf().fold(
+  ) }
+  suspend fun createCompany(name: String, description: String?, industry: String?): Result<CompanyListResponse> = companyGate.withLock { api.csrf().fold(
     onSuccess = { api.createCompany(it.token, CreateCompanyRequest(name, description, industry, UUID.randomUUID().toString())).onSuccess { created -> activeCompanyId = created.currentCompany.id } },
     onFailure = Result<CompanyListResponse>::failure,
-  )
+  ) }
   suspend fun transitionCompany(companyId: String, action: String): Result<CompanyDetailResponse> = api.csrf().fold(
     onSuccess = { api.transitionCompany(it.token, companyId, action) },
     onFailure = Result<CompanyDetailResponse>::failure,
@@ -437,7 +528,11 @@ class AlexaRepository(
     if ((error as? AlexaApiException)?.failure == AlexaFailure.DeviceRevoked) clearAuthority()
   }
 
-  private fun scopedCacheKey(key: String): String? = activeCompanyId?.let { "$it:$key" }
+  private fun scopedCacheKey(key: String): String? = activeCompanyId?.let { company ->
+    val device = registrationStore.load()?.takeIf { it.trustStatus == DeviceTrustStatus.TRUSTED }?.deviceId ?: return null
+    if (sessionStore.cookie() == null) return null
+    "$device:$company:$key"
+  }
 
   private suspend fun <T> signedVoiceRequest(
     payload: Map<String, JsonElement>,

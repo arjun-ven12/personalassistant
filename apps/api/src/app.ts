@@ -1,3 +1,38 @@
+import { AthenaCoderControlService } from "./ai/athena-coder/control.js";
+import { PostgresAthenaCoderControlStore } from "./ai/athena-coder/postgres-control-store.js";
+import { AthenaCoderEngineeringBenchmarkHarness } from "./engineering-dataset/benchmark.js";
+import { EngineeringDatasetService } from "./engineering-dataset/service.js";
+import { InMemoryEngineeringDatasetStore, PostgresEngineeringDatasetStore } from "./engineering-dataset/store.js";
+import { registerEngineeringDatasetRoutes } from "./routes/engineering-dataset.js";
+import { registerAthenaDistillationRoutes, type DistillationDependencies } from "./routes/athena-distillation.js";
+import { Ec2CloudWorkspaceProvider, createEc2Clients } from "./cloud-engineering/ec2-provider.js";
+import { Ec2InfrastructureConfigurationSchema, type Ec2EngineeringConfiguration } from "./cloud-engineering/ec2-configuration.js";
+import { WorkspaceProvisioningService } from "./cloud-engineering/provisioning.js";
+import { RailwayCloudWorkspaceProvider } from "./cloud-engineering/railway-provider.js";
+import {
+  RailwayEngineeringConfigurationSchema,
+  type RailwayEngineeringConfiguration,
+} from "./cloud-engineering/bootstrap.js";
+import {
+  InMemoryCloudWorkspaceStore,
+  PostgresCloudWorkspaceStore,
+  type CloudWorkspaceStore,
+} from "./cloud-engineering/workspace-store.js";
+import { registerCloudWorkloadRoutes } from "./cloud-engineering/workload-routes.js";
+import { CloudHttpsPreviewProvider } from "./cloud-engineering/preview-provider.js";
+import { z } from "zod";
+import {
+  EngineeringGitHubService,
+  AllowlistedGitHubCredentialResolver,
+  type GitHubCredentialResolver,
+} from "./cloud-engineering/github.js";
+import {
+  InMemoryEngineeringGitHubStore,
+  PostgresEngineeringGitHubStore,
+  type EngineeringGitHubStore,
+} from "./cloud-engineering/github-store.js";
+import { RegisteredEngineeringPlacementResolver } from "./cloud-engineering/placement.js";
+import { createGitHubGatewayAdapter } from "./cloud-engineering/gateway-adapter.js";
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
@@ -31,6 +66,35 @@ import { registerApplicationRoutes } from "./routes/applications.js";
 import { registerApplicationDiscoveryRoutes } from "./routes/application-discovery.js";
 import { registerWorkspaceRoutes } from "./routes/workspaces.js";
 import { registerToolRoutes } from "./routes/tools.js";
+import { registerUniversalToolRoutes } from "./routes/universal-tools.js";
+import { registerMarketingRoutes } from "./routes/marketing.js";
+import { MarketingService } from "./marketing/service.js";
+import { MarketingArtifactReviewService } from "./marketing/review.js";
+import { MarketingCampaignCoordinator } from "./marketing/coordinator.js";
+import { buildMarketingTelemetry } from "./marketing/telemetry.js";
+import { InMemoryMarketingStore, type MarketingStore } from "./marketing/store.js";
+import { PostgresMarketingStore } from "./marketing/postgres-store.js";
+import { UniversalToolGateway } from "./universal-tools/gateway.js";
+import {
+  UniversalToolLifecycle,
+  type ReviewedToolManifest,
+} from "./universal-tools/lifecycle.js";
+import {
+  InMemoryUniversalToolStore,
+  type UniversalToolStore,
+} from "./universal-tools/store.js";
+import { PostgresUniversalToolStore } from "./universal-tools/postgres-store.js";
+import { RemoteMcpAdapter } from "./universal-tools/mcp-client.js";
+import {
+  ReviewedDelegatingAdapter,
+  type ReviewedToolHandler,
+} from "./universal-tools/reviewed-adapter.js";
+import { createGovernanceToolAuthority } from "./universal-tools/governance-authority.js";
+import {
+  UniversalCredentialScope,
+  type UniversalMcpSecretResolver,
+} from "./universal-tools/credentials.js";
+import { createProductionUniversalAdapters } from "./universal-tools/production-adapters.js";
 import { registerPolicyRoutes } from "./routes/policies.js";
 import { registerApprovalRoutes } from "./routes/approvals.js";
 import {
@@ -87,8 +151,15 @@ import {
 } from "./engineering-delivery/store.js";
 import { PostgresEngineeringDeliveryStore } from "./engineering-delivery/postgres-store.js";
 import { registerEngineeringDeliveryRoutes } from "./routes/engineering-delivery.js";
+import { registerSelfImprovementRoutes } from "./routes/self-improvement.js";
+import { SelfImprovementService } from "./self-improvement/service.js";
+import { SelfImprovementEvidence } from "./self-improvement/evidence.js";
+import { recognizeSelfImprovementRequest } from "./self-improvement/policy.js";
 import { EngineeringProjectSessionService } from "./engineering-delivery/session-service.js";
-import { InMemoryEngineeringProjectSessionStore, PostgresEngineeringProjectSessionStore } from "./engineering-delivery/session-store.js";
+import {
+  InMemoryEngineeringProjectSessionStore,
+  PostgresEngineeringProjectSessionStore,
+} from "./engineering-delivery/session-store.js";
 import { registerEngineeringProjectSessionRoutes } from "./routes/engineering-project-sessions.js";
 import { registerExecutionRoutes } from "./routes/executions.js";
 import { registerCrossDeviceRoutes } from "./routes/cross-device.js";
@@ -482,14 +553,32 @@ export interface BuildApiOptions {
   engineeringOrchestrationStore?: EngineeringOrchestrationStore;
   engineeringIntegrationStore?: EngineeringIntegrationStore;
   engineeringDeliveryStore?: EngineeringDeliveryStore;
+  selfImprovementRepositories?: { companyId: string; repositoryId: string }[];
   engineeringWorkspaceGateway?: EngineeringWorkspaceGateway;
   engineeringActionGateway?: GovernedEngineeringActionGateway;
   engineeringTaskWorker?: EngineeringTaskWorker;
+  distillationDependencies?: DistillationDependencies;
   repositoryStore?: RepositoryStore;
   patchStore?: PatchStore;
   validationStore?: ValidationStore;
   workflowStore?: WorkflowStore;
   integrationStore?: IntegrationStore;
+  engineeringGitHubStore?: EngineeringGitHubStore;
+  engineeringGitHubCredentials?: GitHubCredentialResolver;
+  engineeringGitHubProviderIds?: string[];
+  ec2EngineeringConfigurations?: Ec2EngineeringConfiguration[];
+  ec2EngineeringCredentials?: GitHubCredentialResolver;
+  railwayEngineeringConfigurations?: RailwayEngineeringConfiguration[];
+  railwayEngineeringCredentials?: GitHubCredentialResolver;
+  cloudWorkspaceStore?: CloudWorkspaceStore;
+  universalToolStore?: UniversalToolStore;
+  marketingStore?: MarketingStore;
+  universalMcpAllowedHosts?: string[];
+  universalToolManifests?: ReviewedToolManifest[];
+  universalMcpSecretResolver?: UniversalMcpSecretResolver;
+  universalReviewedHandlers?: Partial<
+    Record<"API" | "NATIVE" | "LOCAL" | "MCP_LOCAL", ReviewedToolHandler[]>
+  >;
   businessProviders?: ReviewedBusinessProvider[];
   integrationSecretResolver?: ReviewedSecretResolver;
   agentStore?: AgentStore;
@@ -598,14 +687,30 @@ export const buildApi = async ({
   engineeringOrchestrationStore,
   engineeringIntegrationStore,
   engineeringDeliveryStore,
+  selfImprovementRepositories = [],
   engineeringWorkspaceGateway,
   engineeringActionGateway,
   engineeringTaskWorker,
+  distillationDependencies,
   repositoryStore = new InMemoryRepositoryStore(),
   patchStore = new InMemoryPatchStore(),
   validationStore = new InMemoryValidationStore(),
   workflowStore = new InMemoryWorkflowStore(),
   integrationStore = new InMemoryIntegrationStore(),
+  engineeringGitHubStore,
+  engineeringGitHubCredentials = new AllowlistedGitHubCredentialResolver({}),
+  engineeringGitHubProviderIds = ["engineering.github"],
+  ec2EngineeringConfigurations = [],
+  ec2EngineeringCredentials = new AllowlistedGitHubCredentialResolver({}),
+  railwayEngineeringConfigurations = [],
+  railwayEngineeringCredentials = new AllowlistedGitHubCredentialResolver({}),
+  cloudWorkspaceStore,
+  universalToolStore,
+  marketingStore,
+  universalMcpAllowedHosts = [],
+  universalToolManifests = [],
+  universalMcpSecretResolver,
+  universalReviewedHandlers = {},
   businessProviders = [],
   integrationSecretResolver,
   agentStore = new InMemoryAgentStore(),
@@ -747,6 +852,11 @@ export const buildApi = async ({
     (database
       ? new PostgresEngineeringDeliveryStore(database.pool)
       : new InMemoryEngineeringDeliveryStore());
+  const resolvedMarketingStore =
+    marketingStore ??
+    (database
+      ? new PostgresMarketingStore(database.pool)
+      : new InMemoryMarketingStore());
   const economicAuthority =
     aiEconomics ??
     (database
@@ -797,9 +907,9 @@ export const buildApi = async ({
     trustProxy:
       trustedProxyMode === "loopback"
         ? (address, hop) => hop === 0 && isLoopbackAddress(address)
-        // Cloud edge addresses are not an authenticated trust boundary here.
-        // Ignore forwarded headers until a reviewed peer-address policy exists.
-        : false,
+        : // Cloud edge addresses are not an authenticated trust boundary here.
+          // Ignore forwarded headers until a reviewed peer-address policy exists.
+          false,
     genReqId: () => crypto.randomUUID(),
     logController: new LogController({
       disableRequestLogging: false,
@@ -1087,6 +1197,180 @@ export const buildApi = async ({
     policyEngine,
   );
   const conversationContinuity = new ConversationContinuityService(voiceStore, now);
+  const resolvedGitHubStore =
+    engineeringGitHubStore ??
+    (database
+      ? new PostgresEngineeringGitHubStore(database.pool)
+      : new InMemoryEngineeringGitHubStore());
+  const engineeringGitHub = new EngineeringGitHubService(
+    resolvedCompanyDataStore,
+    resolvedGitHubStore,
+    engineeringGitHubCredentials,
+    fetch,
+    now,
+  );
+  const cloudStore =
+    cloudWorkspaceStore ??
+    (database
+      ? new PostgresCloudWorkspaceStore(database.pool)
+      : new InMemoryCloudWorkspaceStore());
+  const cloudServices: WorkspaceProvisioningService[] = [];
+  const cloudPreviews: CloudHttpsPreviewProvider[] = [];
+  for (const raw of railwayEngineeringConfigurations) {
+    if (!serverExecutionSigner)
+      throw Error(
+        "Cloud Engineering requires the existing server execution signing identity.",
+      );
+    const configuration = RailwayEngineeringConfigurationSchema.parse(raw);
+    if (cloudServices.some((v) => v.config.companyId === configuration.companyId))
+      throw Error("Duplicate cloud company binding.");
+    const reference = await resolvedCompanyDataStore.findCredentialReference(
+      configuration.ownerId,
+      configuration.companyId,
+      configuration.credentialReferenceId,
+    );
+    const bindings = await resolvedCompanyDataStore.listIntegrationBindings(
+      configuration.ownerId,
+      configuration.companyId,
+    );
+    if (
+      !reference ||
+      reference.provider !== "railway" ||
+      reference.status !== "READY" ||
+      !bindings.some(
+        (v) =>
+          v.provider === "railway" &&
+          v.credentialRef === reference.id &&
+          v.status === "READY" &&
+          v.capabilitiesExposed.includes("railway.workspace.provision"),
+      )
+    )
+      throw Error("Reviewed company Railway credential binding unavailable.");
+    const credential = await railwayEngineeringCredentials.resolve(
+      reference.secretLocator,
+    );
+    const provider = new RailwayCloudWorkspaceProvider({
+      projectId: configuration.projectId,
+      environmentId: configuration.environmentId,
+      companyId: configuration.companyId,
+      checkpoint: configuration.checkpoint,
+      accessToken: credential.accessToken,
+    });
+    const service = new WorkspaceProvisioningService(
+      cloudStore,
+      provider,
+      engineeringGitHub,
+      resolvedEngineeringRuntimeStore,
+      governanceStore,
+      identityStore,
+      {
+        ownerId: configuration.ownerId,
+        companyId: configuration.companyId,
+        backendOrigin: configuration.backendOrigin,
+        serverPublicKeyX: serverExecutionSigner.publicKeyX,
+        commandProfileId: configuration.commandProfileId,
+        capabilityProfileId: configuration.capabilityProfileId,
+        authorizedAgentIds: configuration.authorizedAgentIds,
+      },
+      now,
+      async () => {
+        const current = await resolvedCompanyDataStore.findCredentialReference(
+          configuration.ownerId,
+          configuration.companyId,
+          configuration.credentialReferenceId,
+        );
+        const active = await resolvedCompanyDataStore.listIntegrationBindings(
+          configuration.ownerId,
+          configuration.companyId,
+        );
+        if (
+          !current ||
+          current.provider !== "railway" ||
+          current.status !== "READY" ||
+          current.secretLocator !== reference.secretLocator ||
+          !active.some(
+            (v) =>
+              v.provider === "railway" &&
+              v.credentialRef === current.id &&
+              v.status === "READY" &&
+              v.capabilitiesExposed.includes("railway.workspace.provision"),
+          )
+        )
+          throw Error("Company Railway authority revoked.");
+      },
+    );
+    cloudServices.push(service);
+    cloudPreviews.push(new CloudHttpsPreviewProvider(service, provider));
+  }
+  for (const configuration of ec2EngineeringConfigurations) {
+    if (!serverExecutionSigner) throw Error("Cloud Engineering requires its existing signing identity.");
+    if (cloudServices.some(v=>v.config.companyId===configuration.companyId)) throw Error("Duplicate cloud company binding.");
+    const authorize = async () => {
+      const reference = await resolvedCompanyDataStore.findCredentialReference(configuration.ownerId,configuration.companyId,configuration.credentialReferenceId);
+      const bindings = await resolvedCompanyDataStore.listIntegrationBindings(configuration.ownerId,configuration.companyId);
+      if (!reference || reference.provider!=="aws" || reference.status!=="READY" || reference.secretLocator!=="aws-engineering-primary" ||
+        !bindings.some(v=>v.provider==="aws" && v.credentialRef===reference.id && v.status==="READY" && v.capabilitiesExposed.includes("aws.workspace.provision")))
+        throw Error("Reviewed company AWS credential binding unavailable or revoked.");
+      return reference;
+    };
+    const reference = await authorize();
+    const credential = await ec2EngineeringCredentials.resolve(reference.secretLocator);
+    const infrastructure = Ec2InfrastructureConfigurationSchema.parse(Object.fromEntries(
+      Object.keys(Ec2InfrastructureConfigurationSchema.shape).map(k=>[k,configuration[k as keyof typeof configuration]])
+    ));
+    const provider = new Ec2CloudWorkspaceProvider(infrastructure,createEc2Clients(configuration.region,credential.accessToken),now);
+    const service = new WorkspaceProvisioningService(cloudStore,provider,engineeringGitHub,resolvedEngineeringRuntimeStore,
+      governanceStore,identityStore,{ownerId:configuration.ownerId,companyId:configuration.companyId,backendOrigin:configuration.backendOrigin,
+        serverPublicKeyX:serverExecutionSigner.publicKeyX,commandProfileId:configuration.commandProfileId,
+        capabilityProfileId:configuration.capabilityProfileId,authorizedAgentIds:configuration.authorizedAgentIds},now,async()=>{await authorize();});
+    cloudServices.push(service);
+    if (configuration.previewEnabled && configuration.previewDomain)
+      cloudPreviews.push(new CloudHttpsPreviewProvider(service,provider,fetch,configuration.previewDomain));
+  }
+  if (cloudServices.length) {
+    let active: Promise<void> | undefined;
+    const timer = setInterval(() => {
+      if (active) return;
+      active = (async () => {
+        for (const value of await cloudStore.reconciliationCandidates(100)) {
+          const service = cloudServices.find(
+            (v) =>
+              v.config.ownerId === value.ownerId &&
+              v.config.companyId === value.companyId,
+          );
+          if (!service) continue;
+          try {
+            if (
+              value.expiresAt <= service.now().toISOString() ||
+              value.state === "SUSPENDING" ||
+              (value.state === "FAILED" && value.providerResourceId)
+            )
+              await service.destroy(value);
+            else {
+              const latest = await service.reconcile(value);
+              if (
+                latest.state === "READY" &&
+                (!latest.usage ||
+                  service.now().getTime() - Date.parse(latest.usage.observedAt) >
+                    60_000)
+              )
+                await service.refreshUsage(latest);
+            }
+          } catch {
+            /* Preserve uncertain durable state; next bounded reconciliation retries. */
+          }
+        }
+      })().finally(() => {
+        active = undefined;
+      });
+      void active.catch(() => undefined);
+    }, 30_000);
+    timer.unref();
+    app.addHook("onClose", async () => {
+      clearInterval(timer);
+      await active?.catch(() => undefined);
+    });
+  }
   const executions = new ExecutionService(
     executionStore,
     identityStore,
@@ -1104,6 +1388,13 @@ export const buildApi = async ({
       resolvedEngineeringRuntimeStore,
       resolvedEngineeringIntegrationStore,
       approvals,
+    ),
+    new RegisteredEngineeringPlacementResolver(
+      resolvedGitHubStore,
+      engineeringGitHub,
+      identityStore,
+      now,
+      resolvedEngineeringOrchestrationStore,
     ),
   );
   const repositories = new RepositoryService(
@@ -1177,6 +1468,45 @@ export const buildApi = async ({
     resolvedEngineeringRuntimeStore,
     now,
   );
+  signedEngineeringGateway.setCloudPreviewProvider(async (input, preview) => {
+    const provider = cloudPreviews.find(
+      (v) =>
+        v.workspace.config.ownerId === input.ownerId &&
+        v.workspace.config.companyId === input.companyId,
+    );
+    const cloud = provider
+      ? await cloudStore.findByRepository(
+          input.ownerId,
+          input.companyId,
+          input.repositoryId,
+        )
+      : undefined;
+    return cloud && provider
+      ? provider.expose(input.ownerId, input.companyId, input.repositoryId, preview)
+      : preview;
+  });
+  signedEngineeringGateway.setCloudPreviewRevoker(async (input) => {
+    const provider = cloudPreviews.find(
+      (v) =>
+        v.workspace.config.ownerId === input.ownerId &&
+        v.workspace.config.companyId === input.companyId,
+    );
+    if (
+      provider &&
+      (await cloudStore.findByRepository(
+        input.ownerId,
+        input.companyId,
+        input.repositoryId,
+      ))
+    )
+      await provider.revoke(input.ownerId, input.companyId, input.repositoryId);
+  });
+  const athenaCoderControl = new AthenaCoderControlService(aiRuntime, database ? new PostgresAthenaCoderControlStore(database.pool) : undefined);
+  const engineeringDataset = new EngineeringDatasetService(
+    database ? new PostgresEngineeringDatasetStore(database.pool) : new InMemoryEngineeringDatasetStore(),
+    resolvedEngineeringOrchestrationStore, resolvedEngineeringIntegrationStore, resolvedEngineeringRuntimeStore, now,
+    (companyId, repositoryId) => selfImprovementRepositories.some(v => v.companyId === companyId && v.repositoryId === repositoryId),
+  );
   const engineeringManager = new EngineeringManagerService(
     resolvedEngineeringOrchestrationStore,
     resolvedEngineeringRuntimeStore,
@@ -1187,6 +1517,19 @@ export const buildApi = async ({
       new AIRouterEngineeringTaskWorker(
         canonicalRouter,
         engineeringActionGateway ?? signedEngineeringGateway,
+        experience => engineeringDataset.capture(experience),
+        input => athenaCoderControl.eligibilityForTask(input.objective.ownerId, {
+          size: input.task.estimatedDifficulty === "LOW" ? "SMALL" : "LARGE",
+          category: input.task.taskType === "TESTING" ? "TESTS" : input.task.taskType === "DOCUMENTATION" ? "DOCS" : input.task.taskType === "FRONTEND" ? "UI" : "OTHER",
+          risk: input.task.riskLevel,
+          securitySensitive: input.task.taskType === "SECURITY" || input.context.relevantFiles.some(path => /(?:auth|security|governance|approval|tenant|agent-os|self-update)/i.test(path)),
+          authenticationRelated: /auth|credential|signing|identity/i.test(`${input.task.title} ${input.task.description}`),
+          tenantIsolationRelated: /tenant|company.{0,20}isolat/i.test(`${input.task.title} ${input.task.description}`),
+          approvalRelated: /approval|permission|authority/i.test(`${input.task.title} ${input.task.description}`),
+          migrationRelated: input.task.taskType === "DATABASE" || input.context.relevantFiles.some(path => /migration/i.test(path)),
+        }, input.objective.companyId),
+        (input, outcome) => athenaCoderControl.recordTaskOutcome(input.objective.ownerId,
+          input.task.taskType === "TESTING" ? "TESTS" : input.task.taskType === "DOCUMENTATION" ? "DOCS" : input.task.taskType === "FRONTEND" ? "UI" : "OTHER", outcome),
       ),
     governanceAudit,
     now,
@@ -1200,6 +1543,10 @@ export const buildApi = async ({
     governanceAudit,
     now,
   );
+  engineeringIntegration.setDatasetHooks({
+    collect: (ownerId, companyId, runId) => engineeringDataset.collectAccepted(ownerId, companyId, runId),
+    recordDiff: (ownerId, companyId, run, head, diff) => engineeringDataset.recordDiff(ownerId, companyId, run, head, diff),
+  });
   engineeringIntegration.setApprovals(approvals);
   engineeringIntegration.setConflictResolver(
     new AIRouterEngineeringConflictResolver(canonicalRouter),
@@ -1238,6 +1585,15 @@ export const buildApi = async ({
       await memory.promoteEngineeringFacts(input);
     },
   });
+  engineeringIntegration.setAcceptedMemoryPromoter(
+    (context, candidate, run, evidence) =>
+      engineeringManager.promoteAcceptedSelfImprovement(
+        context,
+        candidate,
+        run,
+        evidence,
+      ),
+  );
   const agentCognition = new AgentCognitionService(
     agentCognitionStore,
     agentStore,
@@ -1302,6 +1658,23 @@ export const buildApi = async ({
       const at = (now?.() ?? new Date()).getTime();
       if (at - lastExecutionCleanupAt < 30_000) return;
       await executions.cleanupExpired();
+      for (const campaign of await resolvedMarketingStore.listActiveCampaigns(20)) {
+        await companyScope.run(
+          {
+            ownerId: campaign.ownerId,
+            companyId: campaign.companyId,
+            role: "OWNER",
+            requestId: `marketing-recovery:${campaign.id}`,
+          },
+          async () => {
+            await marketingCoordinator.run({
+              ownerId: campaign.ownerId,
+              companyId: campaign.companyId,
+              campaignId: campaign.id,
+            });
+          },
+        );
+      }
       lastExecutionCleanupAt = at;
     },
   });
@@ -1762,9 +2135,7 @@ export const buildApi = async ({
         objectiveId: input.objectiveId,
         taskType: input.security ? "SECURITY" : "INTEGRATION_PREP",
         role: input.security ? "SECURITY_REVIEWER" : "REVIEWER",
-        skills: input.security
-          ? ["security", "review"]
-          : ["review"],
+        skills: input.security ? ["security", "review"] : ["review"],
         capabilities: input.security ? ["security.review"] : ["maintainability.review"],
         riskLevel: input.security ? "CRITICAL" : "HIGH",
         eligibleAgentDefinitionIds: assignments.map(({ agent }) => agent.id),
@@ -1777,9 +2148,15 @@ export const buildApi = async ({
       // Integration review reads a bounded signed diff; it does not require
       // repository file capabilities. AIRouter still enforces the model budget.
       return assignments
-        .filter(({ agent }) => agent.role === (input.security ? "security" : "review") &&
-          agent.capabilities.includes(input.security ? "security.review" : "maintainability.review"))
-        .sort((left, right) => left.agent.id.localeCompare(right.agent.id))[0]?.assignment?.id;
+        .filter(
+          ({ agent }) =>
+            agent.role === (input.security ? "security" : "review") &&
+            agent.capabilities.includes(
+              input.security ? "security.review" : "maintainability.review",
+            ),
+        )
+        .sort((left, right) => left.agent.id.localeCompare(right.agent.id))[0]
+        ?.assignment?.id;
     },
   });
   const engineeringDelivery = new EngineeringDeliveryService(
@@ -1817,8 +2194,50 @@ export const buildApi = async ({
   durableScheduler.setEngineeringRecoveryWorkload({
     tick: () => engineeringDelivery.reconcileStalledImplementations(),
   });
+  const isSelfRepository = (companyId: string, repositoryId: string) =>
+    selfImprovementRepositories.some(
+      (binding) =>
+        binding.companyId === companyId && binding.repositoryId === repositoryId,
+    );
+  const engineeringCoderBenchmark = new AthenaCoderEngineeringBenchmarkHarness(engineeringDelivery);
+  engineeringDelivery.setSelfImprovementRepository(isSelfRepository);
+  engineeringManager.setSelfImprovementRepository(isSelfRepository);
+  engineeringIntegration.setSelfImprovementRepository(isSelfRepository);
+  const selfImprovement = new SelfImprovementService(
+    engineeringDelivery,
+    engineeringManager,
+    engineeringIntegration,
+    resolvedEngineeringRuntimeStore,
+    (ownerId, companyId) => {
+      void ownerId;
+      const matches = selfImprovementRepositories.filter(
+        (binding) => binding.companyId === companyId,
+      );
+      return Promise.resolve(matches.length === 1 ? matches[0]!.repositoryId : null);
+    },
+    governanceAudit,
+  );
+  if (database) selfImprovement.setTransaction(database.transaction);
+  const selfImprovementEvidence = new SelfImprovementEvidence(
+    selfImprovement,
+    engineeringManager,
+    resolvedEngineeringOrchestrationStore,
+    economicAuthority,
+    executionStore,
+    governanceAudit,
+  );
+  engineeringDelivery.onTerminal(async (trusted, id) => {
+    const record = await resolvedEngineeringDeliveryStore.find(
+      trusted.ownerId,
+      trusted.companyId,
+      id,
+    );
+    if (record?.selfImprovement) await selfImprovementEvidence.capture(trusted, id);
+  });
   const engineeringProjectSessions = new EngineeringProjectSessionService(
-    database ? new PostgresEngineeringProjectSessionStore(database.pool) : new InMemoryEngineeringProjectSessionStore(),
+    database
+      ? new PostgresEngineeringProjectSessionStore(database.pool)
+      : new InMemoryEngineeringProjectSessionStore(),
     resolvedEngineeringRuntimeStore,
     engineeringDelivery,
     now,
@@ -1831,6 +2250,21 @@ export const buildApi = async ({
       const companyId = companyScope.companyId(input.ownerId);
       if (!companyId)
         throw new Error("A selected company is required for engineering delivery.");
+      if (recognizeSelfImprovementRequest(input.text)) {
+        const created = await selfImprovement.create(
+          { ...input, companyId },
+          {
+            request: input.text,
+            acceptanceCriteria: [],
+            idempotencyKey: `voice-self-${input.requestId}`,
+          },
+        );
+        return {
+          deliveryId: created.deliveryId,
+          projectName: "Athena self-improvement",
+          status: created.status,
+        };
+      }
       const root = (await registry.listWorkspaces(input.ownerId)).find(
         (workspace) =>
           workspace.enabled &&
@@ -1902,6 +2336,21 @@ export const buildApi = async ({
           !["DONE", "DONE_WITH_WARNINGS", "FAILED", "CANCELLED"].includes(item.status),
       );
       if (delivery) {
+        if (delivery.selfImprovement) {
+          const updated = await selfImprovement.addInstruction(
+            { ...input, companyId },
+            delivery.id,
+            {
+              instruction: input.text,
+              idempotencyKey: `voice-instruction-${input.requestId}`,
+            },
+          );
+          return {
+            projectName: "Athena self-improvement",
+            status: updated.status,
+            newObjective: false,
+          };
+        }
         const updated = await engineeringDelivery.addInstruction(
           { ...input, companyId },
           delivery.id,
@@ -2193,7 +2642,394 @@ export const buildApi = async ({
   });
   workforceRuntime.setLifecycleSink(objectives);
   crossApplicationWorkflows.setLifecycleSink(objectives);
+  const productionUniversalReady =
+    nodeEnvironment !== "production" ||
+    Boolean(database && persistenceMode === "postgresql");
+  const resolvedUniversalToolStore =
+    universalToolStore ??
+    (database
+      ? new PostgresUniversalToolStore(database.pool)
+      : new InMemoryUniversalToolStore());
+  const universalCredentials = new UniversalCredentialScope(resolvedCompanyDataStore);
+  const productionAdapters = createProductionUniversalAdapters(
+    integrations,
+    nativeProviders,
+    executionStore,
+  );
+  // Mutation authority exists only within finite handlers invoked after Gateway approval.
+  const githubProviderIds = z
+    .array(z.string().regex(/^engineering\.github(?:\.[a-z0-9_-]{3,80})?$/))
+    .min(1)
+    .max(100)
+    .parse(engineeringGitHubProviderIds);
+  if (new Set(githubProviderIds).size !== githubProviderIds.length)
+    throw Error("Duplicate reviewed GitHub provider ID.");
+  const githubAdaptersByProvider = githubProviderIds.map((providerId) =>
+    createGitHubGatewayAdapter(
+      new EngineeringGitHubService(
+        resolvedCompanyDataStore,
+        resolvedGitHubStore,
+        engineeringGitHubCredentials,
+        fetch,
+        now,
+        () => Promise.resolve(true),
+      ),
+      async (ownerId, companyId) => {
+        const provider = await resolvedUniversalToolStore.findProvider(
+          ownerId,
+          providerId,
+        );
+        return provider?.companyId === companyId && provider.status === "ENABLED"
+          ? provider.credentialReferenceId
+          : null;
+      },
+      providerId,
+      async (ownerId, companyId, registrationId) => {
+        const service = cloudServices.find(
+          (v) => v.config.ownerId === ownerId && v.config.companyId === companyId,
+        );
+        if (!service) throw Error("Reviewed cloud workspace provider unavailable.");
+        return service.prepare(ownerId, companyId, registrationId);
+      },
+    ),
+  );
+  const githubAdapters = {
+    handlers: githubAdaptersByProvider.flatMap((item) => item.handlers),
+    manifests: githubAdaptersByProvider.flatMap((item) => item.manifests),
+  };
+  const reviewedManifests = [
+    ...productionAdapters.manifests,
+    ...githubAdapters.manifests,
+    ...universalToolManifests,
+  ];
+  const remoteMcp = new RemoteMcpAdapter(universalMcpAllowedHosts, (provider) =>
+    universalCredentials.headers(provider, universalMcpSecretResolver),
+  );
+  const delegatingAdapters = (["API", "NATIVE", "LOCAL", "MCP_LOCAL"] as const).map(
+    (sourceType) =>
+      new ReviewedDelegatingAdapter(sourceType, [
+        ...(sourceType === "API" || sourceType === "NATIVE"
+          ? productionAdapters.handlers[sourceType]
+          : []),
+        ...(sourceType === "API" ? githubAdapters.handlers : []),
+        ...(universalReviewedHandlers[sourceType] ?? []),
+      ]),
+  );
+  const manifestByToolId = new Map(
+    reviewedManifests.map((manifest) => [
+      `${manifest.providerId}:${manifest.toolName}`,
+      manifest,
+    ]),
+  );
+  const universalNow = now ?? (() => new Date());
+  const universalAuthority = createGovernanceToolAuthority({
+    store: governanceStore,
+    policyEngine,
+    bindings: new Map(
+      [...manifestByToolId].map(([toolId, manifest]) => [
+        toolId,
+        {
+          governanceToolName: manifest.governanceToolName,
+          reviewedForExecution: true as const,
+        },
+      ]),
+    ),
+    trustedSession: (trusted) =>
+      trusted.sessionId && trusted.ipAddress && trusted.networkVerification
+        ? Promise.resolve({
+            sessionId: trusted.sessionId,
+            ipAddress: trusted.ipAddress,
+            networkVerification: trusted.networkVerification,
+            deviceTrusted: false,
+            signedEnvelopeVerified: false,
+          })
+        : Promise.resolve(null),
+    credentialReady: async ({ context: trusted, provider, review }) => {
+      const manifest = manifestByToolId.get(review.toolId);
+      if (!manifest) return false;
+      if (provider.sourceType === "MCP_REMOTE" && provider.credentialReferenceId) {
+        try {
+          await universalCredentials.headers(provider, universalMcpSecretResolver);
+        } catch {
+          return false;
+        }
+      }
+      return universalCredentials.ready({
+        context: trusted,
+        provider,
+        required: manifest.credentialRequired,
+      });
+    },
+    reviewedHandlerReady: ({ provider, review }) => {
+      if (provider.sourceType === "MCP_REMOTE")
+        return Promise.resolve(
+          Boolean(
+            provider.endpoint &&
+            universalMcpAllowedHosts.includes(new URL(provider.endpoint).hostname),
+          ),
+        );
+      const adapter = delegatingAdapters.find(
+        (item) => item.sourceType === provider.sourceType,
+      );
+      return Promise.resolve(Boolean(adapter?.hasHandler(review.toolId)));
+    },
+    now: universalNow,
+  });
+  const universalGateway = new UniversalToolGateway(
+    resolvedUniversalToolStore,
+    universalAuthority,
+    (event) =>
+      governanceAudit({
+        eventType:
+          event.status === "SUCCEEDED"
+            ? "INTEGRATION_OPERATION_COMPLETED"
+            : event.status === "APPROVAL_REQUIRED"
+              ? "INTEGRATION_OPERATION_APPROVAL_REQUIRED"
+              : event.status === "DENIED"
+                ? "INTEGRATION_OPERATION_DENIED"
+                : "INTEGRATION_OPERATION_FAILED",
+        ownerId: event.context.ownerId,
+        companyId: event.context.companyId,
+        outcome:
+          event.status === "SUCCEEDED"
+            ? "SUCCESS"
+            : event.status === "DENIED" || event.status === "APPROVAL_REQUIRED"
+              ? "DENIED"
+              : "FAILURE",
+        reason: `Universal tool ${event.status.toLowerCase()}.`,
+        metadata: {
+          toolId: event.toolId,
+          providerId: event.providerId,
+          requestDigest: event.requestDigest,
+          status: event.status,
+          latencyMs: event.latencyMs,
+          failureCode: event.failureCode,
+          costMinor: event.costMinor,
+          costCurrency: event.costCurrency,
+          retryCount: event.retryCount,
+        },
+        requestId: event.context.requestId,
+        ipAddress: event.context.ipAddress ?? "internal",
+      }),
+    [remoteMcp, ...delegatingAdapters],
+    universalNow,
+  );
+  const universalLifecycle = new UniversalToolLifecycle(
+    resolvedUniversalToolStore,
+    universalGateway,
+    reviewedManifests,
+    universalMcpAllowedHosts,
+    async ({ context: trusted, provider, required }) => {
+      if (!(await universalCredentials.ready({ context: trusted, provider, required })))
+        return false;
+      if (provider.sourceType === "MCP_REMOTE" && provider.credentialReferenceId) {
+        try {
+          await universalCredentials.headers(provider, universalMcpSecretResolver);
+        } catch {
+          return false;
+        }
+      }
+      return true;
+    },
+    (event) =>
+      governanceAudit({
+        eventType:
+          event.action === "PROVIDER_REGISTERED"
+            ? "INTEGRATION_INSTALLED"
+            : event.action === "TOOL_ENABLED"
+              ? "INTEGRATION_PERMISSION_GRANTED"
+              : event.action === "TOOL_REVOKED" || event.action === "TOOL_DISABLED"
+                ? "INTEGRATION_PERMISSION_REVOKED"
+                : "INTEGRATION_OPERATION_REQUESTED",
+        ownerId: event.context.ownerId,
+        companyId: event.context.companyId,
+        outcome: "SUCCESS",
+        reason: `Universal tool lifecycle: ${event.action}.`,
+        metadata: {
+          providerId: event.providerId,
+          toolId: event.toolId,
+          schemaDigest: event.schemaDigest,
+        },
+        requestId: event.context.requestId,
+        ipAddress: event.context.ipAddress ?? "internal",
+      }),
+    universalNow,
+    (toolId, sourceType) =>
+      Boolean(
+        delegatingAdapters
+          .find((item) => item.sourceType === sourceType)
+          ?.hasHandler(toolId),
+      ),
+  );
+  const marketing = new MarketingService(
+    resolvedMarketingStore,
+    objectives,
+    governanceAudit,
+    productionUniversalReady ? universalGateway : undefined,
+    now,
+    engineeringDelivery,
+    resolvedEngineeringDeliveryStore,
+    aiRouter,
+    memory,
+    memoryStore,
+    workforceRuntime,
+    agentStore,
+    resolvedWorkforceRuntimeStore,
+  );
+  if (database) marketing.setTransaction(database.transaction);
+  const marketingReview = new MarketingArtifactReviewService(
+    resolvedMarketingStore,
+    registry,
+    policyEngine,
+    approvals,
+    governanceAudit,
+  );
+  const marketingCoordinator = new MarketingCampaignCoordinator({
+    service: marketing,
+    store: resolvedMarketingStore,
+    trustedContext: async ({ ownerId, companyId, campaignId }) => {
+      const campaign = await resolvedMarketingStore.findCampaign(
+        ownerId,
+        companyId,
+        campaignId,
+      );
+      if (!campaign?.automationContext) return null;
+      const session = await identityStore.findSessionById(
+        campaign.automationContext.sessionId,
+      );
+      const membership = await resolvedCompanyStore.findMembership(ownerId, companyId);
+      if (
+        !session ||
+        session.userId !== ownerId ||
+        session.revokedAt ||
+        Date.parse(session.expiresAt) <= (now?.() ?? new Date()).getTime() ||
+        Date.parse(session.idleExpiresAt) <= (now?.() ?? new Date()).getTime() ||
+        Date.parse(session.absoluteExpiresAt) <= (now?.() ?? new Date()).getTime() ||
+        membership?.role !== "OWNER"
+      )
+        return null;
+      const network = await networkVerifier.verify({
+        remoteAddress: session.ipAddress,
+      });
+      const state = await governanceStore.getSecurityState();
+      if (network.state !== "PRIVATE_NETWORK" || state.emergencyStopActive) return null;
+      return {
+        ownerId,
+        companyId,
+        sessionId: session.id,
+        ipAddress: session.ipAddress,
+        requestId: `marketing-auto:${campaignId}`,
+        networkState: network.state,
+        emergencyStopActive: state.emergencyStopActive,
+      };
+    },
+    onApprovalRequired: async (trusted, campaign) => {
+      for (const item of campaign.deliverables.filter(
+        (item) =>
+          item.approvalState === "REQUIRED" &&
+          item.artifactRef?.startsWith("marketing-artifact:"),
+      )) {
+        const artifactId = item.artifactRef!.slice("marketing-artifact:".length);
+        const reviewContext = {
+          ...trusted,
+          deviceTrusted: false,
+          signedEnvelopeVerified: false,
+          networkVerification: trusted.networkState,
+        };
+        const artifact = (
+          await resolvedMarketingStore.listArtifacts(
+            trusted.ownerId,
+            trusted.companyId,
+            campaign.id,
+          )
+        ).find((record) => record.id === artifactId);
+        const decision = artifact?.approvalRequestId
+          ? await approvals.get(trusted.ownerId, artifact.approvalRequestId)
+          : null;
+        if (decision && ["APPROVED", "REJECTED"].includes(decision.status)) {
+          const finalized = await marketingReview.finalize(
+            reviewContext,
+            campaign.id,
+            artifactId,
+          );
+          if (finalized.type === "BRAND_STRATEGY" && finalized.status === "APPROVED")
+            await marketing.promoteBrand(trusted, campaign.id, finalized.contentDigest);
+        } else await marketingReview.request(reviewContext, campaign.id, artifactId);
+      }
+    },
+  });
+  engineeringDelivery.onTerminal(async (trusted, deliveryId) => {
+    const delivery = await resolvedEngineeringDeliveryStore.find(
+      trusted.ownerId,
+      trusted.companyId,
+      deliveryId,
+    );
+    const key = delivery?.instructionKeys.find((item) =>
+      item.startsWith("marketing-landing-"),
+    );
+    const campaignId = key?.slice("marketing-landing-".length);
+    if (campaignId && delivery) {
+      const campaign = await resolvedMarketingStore.findCampaign(
+        trusted.ownerId,
+        trusted.companyId,
+        campaignId,
+      );
+      if (campaign) {
+        const projection = buildMarketingTelemetry(campaign, {
+          receipts: await resolvedUniversalToolStore.listReceipts(
+            trusted.ownerId,
+            trusted.companyId,
+            500,
+          ),
+          modelLedger: await economicAuthority.listLedger(trusted.ownerId, 100_000),
+          engineeringDelivery: delivery,
+        });
+        if (
+          !(await resolvedMarketingStore.updateCampaign(
+            {
+              ...campaign,
+              version: campaign.version + 1,
+              engineeringBenchmark: projection.engineeringBenchmark,
+            },
+            campaign.version,
+          ))
+        )
+          throw new Error("Engineering benchmark capture changed concurrently.");
+        await governanceAudit({
+          ...trusted,
+          eventType: "OBJECTIVE_STATE_CHANGED",
+          outcome: "SUCCESS",
+          reason:
+            "Recorded linked Engineering completion benchmark from runtime evidence.",
+          metadata: { campaignId, engineeringDeliveryId: deliveryId },
+        });
+      }
+      marketingCoordinator.handleEngineeringDeliveryChanged({
+        ownerId: trusted.ownerId,
+        companyId: trusted.companyId,
+        campaignId,
+      });
+    }
+  });
+  workforceRuntime.setLifecycleSink({
+    handleWorkforceTaskChanged: async (task) => {
+      await objectives.handleWorkforceTaskChanged(task);
+      await marketingCoordinator.handleWorkforceTaskChanged(task);
+    },
+  });
   const context: ApiRouteContext = {
+    marketing,
+    marketingReview,
+    marketingCoordinator,
+    ...(productionUniversalReady
+      ? {
+          universalTools: {
+            gateway: universalGateway,
+            lifecycle: universalLifecycle,
+            store: resolvedUniversalToolStore,
+          },
+        }
+      : {}),
     deploymentMode,
     identity,
     security,
@@ -2237,9 +3073,14 @@ export const buildApi = async ({
     executionStore,
     engineeringManager,
     engineeringOrchestrationStore: resolvedEngineeringOrchestrationStore,
+    engineeringDataset,
+    athenaCoderControl,
+    engineeringCoderBenchmark,
     engineeringIntegration,
     engineeringIntegrationStore: resolvedEngineeringIntegrationStore,
     engineeringDelivery,
+    selfImprovement,
+    selfImprovementEvidence,
     engineeringDeliveryStore: resolvedEngineeringDeliveryStore,
     engineeringProjectSessions,
     repositories,
@@ -2485,13 +3326,19 @@ export const buildApi = async ({
   registerApplicationDiscoveryRoutes(app, context);
   registerWorkspaceRoutes(app, context);
   registerToolRoutes(app, context);
+  registerUniversalToolRoutes(app, context);
+  registerMarketingRoutes(app, context);
   registerPolicyRoutes(app, context);
   registerApprovalRoutes(app, context);
   registerSecurityRoutes(app, context);
   registerExecutionRoutes(app, context);
+  registerCloudWorkloadRoutes(app, context, cloudServices);
   registerEngineeringOrchestrationRoutes(app, context);
   registerEngineeringIntegrationRoutes(app, context);
+  registerEngineeringDatasetRoutes(app, context);
+  registerAthenaDistillationRoutes(app, context, database, distillationDependencies);
   registerEngineeringDeliveryRoutes(app, context);
+  registerSelfImprovementRoutes(app, context);
   registerEngineeringProjectSessionRoutes(app, context);
   registerCrossDeviceRoutes(app, context);
   registerRepositoryRoutes(app, context);

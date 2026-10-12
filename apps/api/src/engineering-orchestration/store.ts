@@ -1,3 +1,4 @@
+import { assertProjectInputQuota } from "../cloud-engineering/project-inputs.js";
 import {
   EngineeringArtifactSchema,
   EngineeringEventSchema,
@@ -279,7 +280,9 @@ export class InMemoryEngineeringOrchestrationStore
 
   saveArtifact(value: EngineeringArtifact) {
     const artifact = EngineeringArtifactSchema.parse(value);
-    this.#artifacts.set(key(artifact.ownerId, artifact.companyId, artifact.id), artifact);
+    const artifactKey = key(artifact.ownerId, artifact.companyId, artifact.id);
+    assertProjectInputQuota(this.listArtifacts(artifact.ownerId, artifact.companyId, artifact.objectiveId), artifact);
+    if (!this.#artifacts.has(artifactKey)) this.#artifacts.set(artifactKey, artifact);
   }
 
   listArtifacts(ownerId: string, companyId: string, objectiveId: string) {

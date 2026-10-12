@@ -2,6 +2,7 @@ import type { AIModelRole } from "@alexa-control/shared";
 import { AIRuntimeService } from "./runtime-service.js";
 import { AIModelRegistry, AIProviderRegistry } from "./registry.js";
 import { OllamaProvider } from "./providers/ollama.js";
+import { AthenaCoderMacOllamaBackend, AthenaCoderProvider, type AthenaCoderMacReview } from "./providers/athena-coder.js";
 import { OpenAIProvider } from "./providers/openai.js";
 import type { LocalModelRuntime } from "../local-ai/runtime.js";
 import { AIEconomicsService } from "./economics/service.js";
@@ -13,6 +14,7 @@ export const createAIRuntime = (input: {
   ollamaEnabled: boolean;
   ollamaModel: string;
   ollamaMaxConcurrentRequests?: number;
+  athenaCoderMacReview?: AthenaCoderMacReview;
   openAIEnabled: boolean;
   openAIKey?: string;
   openAIModel: string;
@@ -34,10 +36,15 @@ export const createAIRuntime = (input: {
     fetch,
     input.openAIEnabled,
   );
+  const athenaCoder = new AthenaCoderProvider([
+    new AthenaCoderMacOllamaBackend(input.ollamaRuntime, input.athenaCoderMacReview),
+  ]);
   providers.register(ollama);
   providers.register(openai);
+  providers.register(athenaCoder);
   models.upsert(ollama.modelDescriptor());
   models.upsert(openai.modelDescriptor());
+  for (const model of athenaCoder.modelDescriptors()) models.upsert(model);
   const runtime = new AIRuntimeService(providers, models);
   const mappings: Array<[AIModelRole, string, string]> = input.roleMappings ?? [
     ["FAST_INTERPRETER", "openai", input.openAIModel],

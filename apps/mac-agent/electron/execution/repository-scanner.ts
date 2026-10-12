@@ -497,7 +497,7 @@ const buildSemanticIndex = async (input: {
             workspaceId: input.workspaceId,
             sourceFile: relativePath,
             importedModule,
-            importedNames,
+            importedNames: importedNames.slice(0, 200),
             isTypeOnly: Boolean(clause?.isTypeOnly),
             line: pos.line,
             column: pos.column,

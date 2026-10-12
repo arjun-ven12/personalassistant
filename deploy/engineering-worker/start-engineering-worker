@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+# Fixed reviewed runtime entry point. No arguments, client paths, or generated shell.
+if [ "$#" -ne 0 ]; then exit 64; fi
+exec /usr/local/bin/node /opt/athena/worker.js

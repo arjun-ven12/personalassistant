@@ -1,0 +1,26 @@
+[Unit]
+Description=Finite signed Athena Engineering worker
+Requires=athena-watchdog.service athena-network.service
+After=athena-network.service
+OnFailure=athena-expire.service
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/node /opt/athena/worker.js
+User=root
+Group=root
+UMask=0077
+NoNewPrivileges=true
+ProtectHome=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/run/athena /workspace /var/lib/docker
+RestrictAddressFamilies=AF_UNIX AF_INET AF_NETLINK
+LimitCORE=0
+TasksMax=64
+CPUQuota=200%
+MemoryMax=512M
+KillMode=control-group
+TimeoutStopSec=5
+StandardOutput=null
+StandardError=null
+Restart=no

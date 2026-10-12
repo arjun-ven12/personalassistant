@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-05",
+  "awsFailure": "Pipeline CREATE_FAILED: ImageTestsConfiguration.TimeoutMinutes minimum",
+  "cause": "Template used 30; AWS CloudFormation validates minimum 60",
+  "fix": "Set legacy ImageTestsConfiguration.TimeoutMinutes to 60; AWS documents value ignored",
+  "actualSecurityDeadlines": "UNCHANGED; watchdog, sealed 3500-second deadline and step timeouts preserved",
+  "approvedInputHashes": "UNCHANGED",
+  "schemaValidator": "cfn-lint 1.57.1, Singapore schema; 0 errors, 1 redundant Fn::Sub warning",
+  "focusedTestsPassed": 6,
+  "fullValidation": "Previous run interrupted before completion; focused tests and cfn-lint passed; full gates require rerun",
+  "proposedStackName": "athena-engineering-image-builder-r3",
+  "proposedRecipeVersion": "1.0.2",
+  "proposedBuildRevision": "review-20261005-03",
+  "stackDeployed": true,
+  "ownerReportedStackStatus": "CREATE_COMPLETE"
+}

@@ -1,3 +1,5 @@
+import type { EngineeringModelAttempt } from "@alexa-control/shared";
+import { isOwnerProjectInput, projectInputContext } from "../cloud-engineering/project-inputs.js";
 import { createHash } from "node:crypto";
 
 import {
@@ -15,6 +17,10 @@ import {
   type EngineeringContextPackage,
   type EngineeringFailureCategory,
   type EngineeringModelTier,
+  type EngineeringMergeCandidate,
+  type EngineeringIntegrationRun,
+  type EngineeringIntegrationReview,
+  type EngineeringValidationReport,
   type EngineeringObjective,
   type EngineeringTask,
   type EngineeringTaskResult,
@@ -26,6 +32,7 @@ import type { NetworkVerificationState } from "@alexa-control/shared";
 import type { AgentRegistryService } from "../agents/service.js";
 import type { AgentStore } from "../agents/store.js";
 import { companyScope } from "../companies/scope.js";
+import { classifySelfImprovement, needsSelfImprovementClarification } from "../self-improvement/policy.js";
 import type { GovernanceAuditWriter } from "../governance/approval-service.js";
 import type { EngineeringRuntimeStore } from "../engineering-runtime/store.js";
 import { validationFailureSummary } from "./ai-worker.js";
@@ -152,6 +159,7 @@ export interface EngineeringTaskWorker {
       summary: string;
       contract?: Record<string, unknown>;
     }>;
+    modelAttempts?: EngineeringModelAttempt[];
     modelProvider?: string | null;
     modelName?: string | null;
     aiRequestId?: string | null;
@@ -311,6 +319,7 @@ export class EngineeringManagerService {
   private agentOs?: EngineeringAgentOsGateway;
   private workforceMatcher?: EngineeringWorkforceMatcher;
   private memory?: EngineeringMemoryGateway;
+  private selfImprovementRepository?: (companyId: string, repositoryId: string) => boolean;
 
   constructor(
     readonly store: EngineeringOrchestrationStore,
@@ -336,6 +345,71 @@ export class EngineeringManagerService {
     this.memory = gateway;
   }
 
+  /** Promote only validated stable artifacts from an exact, owner-approved self merge. */
+  async promoteAcceptedSelfImprovement(
+    context: ManagerContext,
+    candidate: EngineeringMergeCandidate,
+    run: EngineeringIntegrationRun,
+    evidence: { validation: EngineeringValidationReport; reviews: EngineeringIntegrationReview[] },
+  ) {
+    if (!this.memory || candidate.status !== "MERGED" || !candidate.mergedAt ||
+        candidate.mergedHeadCommit !== candidate.headCommit ||
+        candidate.validatedHeadCommit !== candidate.headCommit ||
+        candidate.reviewedHeadCommit !== candidate.headCommit ||
+        candidate.ownerId !== context.ownerId || candidate.companyId !== context.companyId ||
+        candidate.runId !== run.id || candidate.objectiveId !== run.objectiveId ||
+        candidate.repositoryId !== run.repositoryId || run.status !== "READY" ||
+        run.validationReportId !== candidate.validationReportId || run.reviewId !== candidate.reviewReportId ||
+        run.securityReviewRequired && run.securityReviewId !== candidate.securityReviewId)
+      return;
+    const objective = await this.requireObjective(context.ownerId, context.companyId, candidate.objectiveId);
+    if (!objective.selfImprovement || objective.status !== "COMPLETED" ||
+        objective.repositoryId !== candidate.repositoryId ||
+        !this.selfImprovementRepository?.(context.companyId, candidate.repositoryId) ||
+        (objective.riskLevel === "HIGH" || objective.riskLevel === "CRITICAL") && !candidate.securityReviewId)
+      return;
+    const validation = await this.runtimeStore.findValidation(context.ownerId, context.companyId, candidate.validationReportId);
+    if (validation?.status !== "PASS" || validation.workspaceId !== candidate.integrationWorkspaceId ||
+        evidence.validation.id !== validation.id || evidence.validation.status !== "PASS" ||
+        evidence.validation.workspaceId !== candidate.integrationWorkspaceId) return;
+    const [artifacts, results] = await Promise.all([
+      this.store.listArtifacts(context.ownerId, context.companyId, objective.id),
+      this.store.listResults(context.ownerId, context.companyId, objective.id),
+    ]);
+    const stable = new Set(["ARCHITECTURE_DECISION", "API_CONTRACT", "SCHEMA_CHANGE", "TEST_EXPECTATIONS", "MIGRATION_NOTES"]);
+    const selected = results.filter((result) =>
+      candidate.tasksIncluded.includes(result.taskId) && result.status === "SUCCEEDED" &&
+      result.validationStatus === "PASS" && ["PASS", "NOT_REQUIRED"].includes(result.reviewStatus) &&
+      result.filesChanged.length > 0).sort((a, b) => b.completedAt.localeCompare(a.completedAt));
+    const byTask = new Map<string, EngineeringTaskResult>();
+    for (const result of selected) if (!byTask.has(result.taskId)) byTask.set(result.taskId, result);
+    const authorIds = new Set([...byTask.values()].map((result) => result.agentId));
+    const passing = (id: string) => evidence.reviews.some((review) => review.id === id &&
+      review.runId === run.id && review.headCommit === candidate.headCommit &&
+      ["PASS", "PASS_WITH_WARNINGS"].includes(review.verdict) &&
+      !authorIds.has(review.reviewerAgentId));
+    if (!passing(candidate.reviewReportId) ||
+        (run.securityReviewRequired || objective.riskLevel === "HIGH" || objective.riskLevel === "CRITICAL") &&
+          (!candidate.securityReviewId || !passing(candidate.securityReviewId))) return;
+    await companyScope.run({ ownerId: context.ownerId, companyId: context.companyId,
+      role: "OWNER" as const, requestId: context.requestId }, async () => {
+      for (const result of [...byTask.values()].slice(0, 30)) {
+        const facts = artifacts.filter((artifact) => artifact.taskId === result.taskId &&
+          artifact.producerAgentId === result.agentId && stable.has(artifact.type))
+          .slice(0, 5).map((artifact) => ({ type: artifact.type, title: artifact.title, summary: artifact.summary }));
+        if (!facts.length) continue;
+        await this.memory!.promote({ ownerId: context.ownerId, companyId: context.companyId,
+          repositoryId: candidate.repositoryId, agentId: result.agentId, taskId: result.taskId,
+          resultId: result.id, artifacts: facts, requestId: context.requestId,
+          ipAddress: context.ipAddress });
+      }
+    });
+  }
+
+  setSelfImprovementRepository(predicate: (companyId: string, repositoryId: string) => boolean) {
+    this.selfImprovementRepository = predicate;
+  }
+
   async addInstruction(
     context: ManagerContext,
     objectiveId: string,
@@ -356,6 +430,18 @@ export class EngineeringManagerService {
       context.companyId,
       objectiveId,
     );
+    if (this.selfImprovementRepository?.(context.companyId, objective.repositoryId) && !objective.selfImprovement)
+      throw new EngineeringOrchestrationError("REPOSITORY_NOT_AUTHORIZED", "A legacy objective cannot add work against Athena's registered repository.");
+    if (objective.selfImprovement) {
+      const repository = await this.runtimeStore.findRepository(context.ownerId, context.companyId, objective.repositoryId);
+      if (!repository || repository.status !== "ACTIVE")
+        throw new EngineeringOrchestrationError("REPOSITORY_NOT_AUTHORIZED", "The registered Athena repository is unavailable.");
+      const delta = classifySelfImprovement(instruction, [], repository.protectedPaths);
+      const levels = { LOW: 0, MEDIUM: 1, HIGH: 2, CRITICAL: 3 } as const;
+      if (levels[delta.riskLevel] > levels[objective.riskLevel] ||
+          (delta.engineeringMode === "FULL" && objective.engineeringMode === "FAST"))
+        throw new EngineeringOrchestrationError("INVALID_STATE", "This instruction expands the risk or scope of a self-improvement objective; create a separate reviewed objective.");
+    }
     if (
       ["COMPLETED", "FAILED", "CANCELLED", "NEEDS_CLARIFICATION"].includes(
         objective.status,
@@ -413,6 +499,10 @@ export class EngineeringManagerService {
         "INVALID_STATE",
         "No repository-authorized agent is available for the added instruction.",
       );
+    const highRisk = objective.riskLevel === "HIGH" || objective.riskLevel === "CRITICAL";
+    const reviewerAgentId = highRisk ? await this.independentReviewer(objective, agentId) : null;
+    if (highRisk && !reviewerAgentId)
+      throw new EngineeringOrchestrationError("INVALID_STATE", "High-risk instruction requires an independent reviewer.");
     const dependencies = tasks
       .filter(
         (task) => !task.readOnly && !["COMPLETE", "CANCELLED"].includes(task.status),
@@ -440,16 +530,16 @@ export class EngineeringManagerService {
       estimatedDifficulty: "LOW",
       assignedAgentId: agentId,
       assignedRole: role,
-      reviewerAgentId: null,
+      reviewerAgentId,
       modelPolicy: {
-        initialTier: "LUNA",
-        currentTier: "LUNA",
+        initialTier: highRisk ? "TERRA" : "LUNA",
+        currentTier: highRisk ? "TERRA" : "LUNA",
         maxTier: "SOL",
         escalationCount: 0,
-        reason: "A bounded incremental requirement starts with Luna.",
+        reason: highRisk ? "High-risk self-improvement requires a stronger implementation model." : "A bounded incremental requirement starts with Luna.",
       },
       readOnly: false,
-      reviewRequired: false,
+      reviewRequired: highRisk,
       status: dependencies.length ? "PLANNED" : "READY",
       attempt: 0,
       maxAttempts: 3,
@@ -687,8 +777,10 @@ export class EngineeringManagerService {
     return task;
   }
 
-  async create(context: ManagerContext, body: unknown) {
+  async create(context: ManagerContext, body: unknown, options?: { engineeringMode: "FAST" | "FULL"; selfImprovement?: true }) {
     const request = CreateEngineeringObjectiveRequestSchema.parse(body);
+    if (this.selfImprovementRepository?.(context.companyId, request.repositoryId) && !options?.selfImprovement)
+      throw new EngineeringOrchestrationError("REPOSITORY_NOT_AUTHORIZED", "Athena's registered repository requires the governed self-improvement flow.");
     const repository = await this.runtimeStore.findRepository(
       context.ownerId,
       context.companyId,
@@ -717,7 +809,9 @@ export class EngineeringManagerService {
         "The existing Engineering Manager agent is unavailable.",
       );
     const at = this.now().toISOString();
-    const ambiguous = this.ambiguity(request.description, request.acceptanceCriteria);
+    const ambiguous = options?.selfImprovement && needsSelfImprovementClarification(request.description)
+      ? "Which specific Athena component or behavior should change, and what result should it achieve?"
+      : this.ambiguity(request.description, request.acceptanceCriteria);
     const objective = EngineeringObjectiveSchema.parse({
       schemaVersion: "1",
       id: crypto.randomUUID(),
@@ -726,6 +820,8 @@ export class EngineeringManagerService {
       workflowId: null,
       managerAgentId: manager.id,
       ...request,
+      engineeringMode: options?.engineeringMode ?? "FULL",
+      selfImprovement: options?.selfImprovement ?? false,
       repositoryId: repository.id,
       status: ambiguous ? "NEEDS_CLARIFICATION" : "PLANNING",
       clarificationQuestion: ambiguous,
@@ -808,6 +904,10 @@ export class EngineeringManagerService {
         context.companyId,
         objectiveId,
       );
+      if (this.selfImprovementRepository?.(context.companyId, objective.repositoryId) && !objective.selfImprovement)
+        throw new EngineeringOrchestrationError("REPOSITORY_NOT_AUTHORIZED", "A legacy objective cannot schedule work against Athena's registered repository.");
+      if (objective.selfImprovement && !this.selfImprovementRepository?.(context.companyId, objective.repositoryId))
+        throw new EngineeringOrchestrationError("REPOSITORY_NOT_AUTHORIZED", "The configured Athena repository binding is unavailable; no further work may be scheduled.");
       if (
         ["PAUSED", "CANCELLED", "COMPLETED", "FAILED", "NEEDS_CLARIFICATION"].includes(
           objective.status,
@@ -880,6 +980,10 @@ export class EngineeringManagerService {
       context.companyId,
       objectiveId,
     );
+    if (this.selfImprovementRepository?.(context.companyId, objective.repositoryId) && !objective.selfImprovement)
+      throw new EngineeringOrchestrationError("REPOSITORY_NOT_AUTHORIZED", "A legacy objective cannot resume work against Athena's registered repository.");
+    if (objective.selfImprovement && !this.selfImprovementRepository?.(context.companyId, objective.repositoryId))
+      throw new EngineeringOrchestrationError("REPOSITORY_NOT_AUTHORIZED", "The configured Athena repository binding is unavailable.");
     if (!["PAUSED", "BLOCKED"].includes(objective.status))
       throw new EngineeringOrchestrationError(
         "INVALID_STATE",
@@ -1105,6 +1209,8 @@ export class EngineeringManagerService {
       context.companyId,
       objectiveId,
     );
+    if (this.selfImprovementRepository?.(context.companyId, objective.repositoryId) && !objective.selfImprovement)
+      throw new EngineeringOrchestrationError("REPOSITORY_NOT_AUTHORIZED", "A legacy objective cannot clarify work against Athena's registered repository.");
     const clarification = objective.clarification;
     if (!clarification || clarification.id !== clarificationId)
       throw new EngineeringOrchestrationError(
@@ -1130,9 +1236,19 @@ export class EngineeringManagerService {
         "CLARIFICATION_STALE",
         "The clarification is stale or its objective is no longer resumable.",
       );
+    if (objective.selfImprovement && objective.riskLevel !== "HIGH" && objective.riskLevel !== "CRITICAL") {
+      const repository = await this.runtimeStore.findRepository(context.ownerId, context.companyId, objective.repositoryId);
+      if (!repository || repository.status !== "ACTIVE")
+        throw new EngineeringOrchestrationError("REPOSITORY_NOT_AUTHORIZED", "The registered Athena repository is unavailable.");
+      if (classifySelfImprovement(answer.answer, [], repository.protectedPaths).riskLevel === "HIGH")
+        throw new EngineeringOrchestrationError("INVALID_STATE", "The clarification expands Athena authority risk; submit a separate high-risk objective.");
+    }
     const at = this.now().toISOString();
     const answered = EngineeringObjectiveSchema.parse({
       ...objective,
+      description: objective.selfImprovement
+        ? bounded(`${objective.description}\nOwner clarification: ${answer.answer}`, 8_000)
+        : objective.description,
       constraints: [
         ...objective.constraints,
         bounded(`Owner clarification: ${answer.answer}`, 1_000),
@@ -1782,6 +1898,7 @@ export class EngineeringManagerService {
         validationStatus: outcome.validationStatus,
         validationReportId: outcome.validationReportId ?? null,
         reviewStatus,
+        modelAttempts: outcome.modelAttempts ?? [],
         modelProvider: outcome.modelProvider ?? null,
         modelName: outcome.modelName ?? null,
         modelTier: task.modelPolicy.currentTier,
@@ -1821,7 +1938,10 @@ export class EngineeringManagerService {
         ))
       )
         return;
-      if (this.memory && outcome.artifacts?.length)
+      // Self-modification artifacts are not stable repository knowledge until
+      // a separately approved candidate is merged. The integration merge hook
+      // performs accepted-memory promotion after exact-head checks.
+      if (!objective.selfImprovement && this.memory && outcome.artifacts?.length)
         await companyScope.run(
           {
             ownerId: context.ownerId,
@@ -2009,13 +2129,15 @@ export class EngineeringManagerService {
       !/\b(auth|permission|security|tenant|billing|payment|database|migration|dependency|delete|remove|rewrite)\b/.test(
         text,
       );
-    const seeds: TaskSeed[] = tinyEdit
+    const fastPath = objective.engineeringMode === "FAST" &&
+      objective.riskLevel !== "HIGH" && objective.riskLevel !== "CRITICAL";
+    const seeds: TaskSeed[] = tinyEdit || fastPath
       ? [
           {
             key: "focused-edit",
             title: "Inspect and apply the focused project change",
             description: `Inspect the relevant code in ${repository.displayName}, apply only the requested small change, and run registered targeted validation.`,
-            type: "FRONTEND",
+            type: /\b(ui|frontend|web|component|page|screen|layout|dashboard)\b/.test(text) ? "FRONTEND" : "BACKEND",
             role: "GENERALIST_ENGINEER",
             dependencies: [],
             skills: ["frontend.implementation"],
@@ -2040,7 +2162,7 @@ export class EngineeringManagerService {
             readOnly: true,
           },
         ];
-    if (!tinyEdit) {
+    if (!tinyEdit && !fastPath) {
       const implementationKeys: string[] = [];
       const add = (seed: TaskSeed) => {
         if (!seeds.some((value) => value.key === seed.key)) seeds.push(seed);
@@ -2403,7 +2525,8 @@ export class EngineeringManagerService {
         objective.id,
       )
     )
-      .filter((artifact) => task.dependencies.includes(artifact.taskId))
+      .filter((artifact) => isOwnerProjectInput(artifact) || task.dependencies.includes(artifact.taskId))
+      .map((artifact) => isOwnerProjectInput(artifact) ? projectInputContext(artifact) : artifact)
       .slice(0, 50);
     const priorValidation = task.workspaceId && task.lastFailureSummary
       ? await this.runtimeStore.findLatestValidationForWorkspace(

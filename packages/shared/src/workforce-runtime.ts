@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MarketingDeliverableTypeSchema } from "./marketing.js";
 
 const boundedRef = z.string().min(1).max(160);
 
@@ -17,6 +18,16 @@ export const WorkforceTaskStatusSchema = z.enum([
   "CANCELLED",
   "EXPIRED",
 ]);
+
+export const WorkforceMarketingResultSchema = z.object({
+  companyId: z.string().uuid(),
+  campaignId: z.string().uuid(),
+  objectiveId: z.string().uuid(),
+  deliverableId: z.string().uuid(),
+  deliverableType: MarketingDeliverableTypeSchema,
+  agentId: z.string().min(1).max(160),
+  content: z.json(),
+}).strict();
 
 export const WorkforceMessageTypeSchema = z.enum([
   "TASK",
@@ -217,6 +228,7 @@ export const WorkforceRuntimeTaskSchema = z
     requirement: SpecialistRequirementSchema.nullable().default(null),
     workforceGap: WorkforceGapResolutionSchema.nullable().default(null),
     resultSummary: z.string().max(4_000).nullable(),
+    marketingResult: WorkforceMarketingResultSchema.nullable().default(null),
     completionProvenance: WorkforceCompletionProvenanceSchema.nullable().optional(),
     failureCode: z.string().max(100).nullable().default(null),
     failureMessage: z.string().max(240).nullable().default(null),

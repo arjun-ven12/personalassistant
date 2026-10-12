@@ -1,3 +1,4 @@
+import { recognizeSelfImprovementRequest } from "../self-improvement/policy.js";
 import {
   ClarificationSessionRecordSchema,
   CommandCenterResponseSchema,
@@ -419,6 +420,7 @@ export class IntentExecutionService {
   }
 
   private categoryFor(value: string): IntentCategory {
+    if (recognizeSelfImprovementRequest(value)) return "software_development";
     if (includesAny(value, ["git", "commit", "branch", "pull", "repo"]))
       return "repository_operations";
     if (includesAny(value, ["code", "test", "build", "bug", "react", "api"]))

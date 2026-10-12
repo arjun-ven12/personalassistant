@@ -1,0 +1,14 @@
+[Unit]
+Description=Reviewed Athena container networks and host firewall
+Requires=docker.service
+After=docker.service
+Before=athena-watchdog.service athena-worker.service
+OnFailure=athena-expire.service
+[Service]
+Type=oneshot
+ExecStart=/opt/athena/configure-network
+RemainAfterExit=yes
+StandardOutput=null
+StandardError=null
+[Install]
+WantedBy=multi-user.target

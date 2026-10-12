@@ -2,6 +2,7 @@ import {
   CreateEngineeringIntegrationRequestSchema,
   EngineeringIntegrationViewSchema,
   MergeEngineeringCandidateRequestSchema,
+  RejectSelfImprovementCandidateRequestSchema,
 } from "@alexa-control/shared";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
@@ -96,6 +97,13 @@ export const registerEngineeringIntegrationRoutes = (
     const { runId } = Params.parse(request.params);
     return EngineeringIntegrationViewSchema.parse(await context.engineeringIntegration.merge(
       integrationContext(request), runId, MergeEngineeringCandidateRequestSchema.parse(request.body),
+    ));
+  });
+  app.post("/api/engineering-integrations/:runId/reject", { preHandler: mutate }, async (request) => {
+    const { runId } = Params.parse(request.params);
+    const { reason } = RejectSelfImprovementCandidateRequestSchema.parse(request.body);
+    return EngineeringIntegrationViewSchema.parse(await context.engineeringIntegration.rejectCandidate(
+      integrationContext(request), runId, reason,
     ));
   });
 };

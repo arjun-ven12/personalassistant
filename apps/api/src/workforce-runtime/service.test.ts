@@ -10,6 +10,7 @@ import type { ExternalHarvestService } from "../external-harvest/service.js";
 import type { GovernanceAuditWriter } from "../governance/approval-service.js";
 import { WorkforceRuntimeService } from "./service.js";
 import { InMemoryWorkforceRuntimeStore } from "./store.js";
+import { companyScope } from "../companies/scope.js";
 
 const ownerId = "10000000-0000-4000-8000-000000000001";
 const departmentId = "20000000-0000-4000-8000-000000000001";
@@ -543,5 +544,44 @@ describe("WorkforceRuntimeService", () => {
     expect(result.task.completionProvenance).toMatchObject({ completionType: "EXECUTED", agentSessionId: "50000000-0000-4000-8000-000000000002", modelRequestId: "61000000-0000-4000-8000-000000000001" });
     expect(counts()).toEqual({ routerCalls: 0, osCalls: 0, rewardCalls: 0, sandboxCalls: 1 });
     expect(activations).toEqual(["backend_agent:ACTIVE","backend_agent:DORMANT"]);
+  });
+
+  it("persists one exact-company structured marketing result from the existing Agent OS execution", async () => {
+    const campaignId = crypto.randomUUID();
+    const objectiveId = crypto.randomUUID();
+    const deliverableId = crypto.randomUUID();
+    await companyScope.run({ ownerId, companyId: organizationId, role: "OWNER", requestId: "marketing-structured" }, async () => {
+      const { service, counts } = setup();
+      const assignment = (await service.agentStore.findAssignment(ownerId, "backend_agent", organizationId))!;
+      await service.agentStore.saveAssignment({ ...assignment, status: "ACTIVE" });
+      const content = { title: "Launch message", variants: [{ channel: "WEB", headline: "Controlled assistance",
+        body: "A bounded draft for review.", cta: "Request access" }] };
+      const routed = vi.spyOn(service.aiRouter, "executeStructured").mockResolvedValue({
+        outcome: "SUCCESS", structuredOutput: { summary: "Bounded launch copy.", confidence: 0.9,
+          evidence: [], leads: [], verification: null, marketingContent: content },
+        requestId: "60000000-0000-4000-8000-000000000001", providerId: "local", modelId: "shared",
+        usage: { totalTokens: 800 },
+      } as never);
+      const task = (await create(service, { idempotencyKey: `marketing:${campaignId}:${deliverableId}`,
+        createdByAgentId: "engineering_manager", assignedAgentId: "backend_agent", maxRetries: 0,
+        inputs: { marketingCampaignId: campaignId, marketingObjectiveId: objectiveId,
+          marketingDeliverableId: deliverableId, marketingDeliverableType: "MESSAGING",
+          marketingCompanyId: organizationId, marketingAgentId: "backend_agent" },
+      })).task;
+      const result = await service.execute(ownerId, task.id, "marketing-structured", "127.0.0.1");
+      expect(result.task.status).toBe("COMPLETED");
+      expect(result.task.marketingResult).toEqual({ companyId: organizationId, campaignId, objectiveId,
+        deliverableId, deliverableType: "MESSAGING", agentId: "backend_agent", content });
+      expect(result.task.completionProvenance).toMatchObject({ completionType: "EXECUTED",
+        modelRequestId: "60000000-0000-4000-8000-000000000001" });
+      expect(result.task).toMatchObject({ providerId: "local", modelId: "shared", organizationId,
+        assignedAgentId: "backend_agent", memoryScopeRefs: [] });
+      expect(routed).toHaveBeenCalledOnce();
+      expect(counts().osCalls).toBe(1);
+      const rebuilt = new WorkforceRuntimeService(service.store, service.agentStore, service.workforce,
+        service.economy, service.agentOs, service.externalHarvest, service.aiRouter, service.capabilityStudio,
+        service.agentFactory, service.audit, service.now);
+      expect((await rebuilt.store.findTask(ownerId, task.id))?.marketingResult?.content).toEqual(content);
+    });
   });
 });

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import type { ApiClient } from "./api.js";
 import {
   crossDeviceCommandPath,
+  crossDeviceCurrentRoute,
   webClientInstanceId,
   webCrossDeviceCapabilities,
 } from "./crossDeviceClient.js";
@@ -76,7 +77,7 @@ export const CrossDeviceRuntime = ({
       try {
         const response = await apiClient.pollCrossDeviceCommands({
           clientInstanceId,
-          currentRoute: window.location.pathname,
+          currentRoute: crossDeviceCurrentRoute(window.location.pathname),
           limit: 5,
         });
         for (const command of response.commands) void execute(command);
@@ -97,7 +98,7 @@ export const CrossDeviceRuntime = ({
       displayName: `${navigator.platform || "Browser"} Web`,
       platform: navigator.platform || "web",
       capabilities: webCrossDeviceCapabilities,
-      currentRoute: window.location.pathname,
+      currentRoute: crossDeviceCurrentRoute(window.location.pathname),
     }).then(() => void poll()).catch(() => {
       if (!stopped) timer = window.setTimeout(() => void poll(), 5_000);
     });

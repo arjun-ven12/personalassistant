@@ -655,7 +655,7 @@ export class NativeProviderRuntime {
     });
     await this.store.saveExecution(
       ProviderExecutionRecordSchema.parse({
-        id: crypto.randomUUID(),
+        id: queued.executionRequestId,
         ownerId: input.ownerId,
         executionRequestId: queued.executionRequestId,
         providerId: provider.id,

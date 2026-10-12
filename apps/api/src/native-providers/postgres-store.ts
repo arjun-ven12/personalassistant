@@ -143,12 +143,18 @@ export class PostgresNativeProviderStore implements NativeProviderStore {
   }
   async saveExecution(record: ProviderExecutionRecord) {
     const parsed = ProviderExecutionRecordSchema.parse(record);
-    await insertRecord(this.pool, "provider_execution", parsed, {
-      provider_id: parsed.providerId,
-      capability: parsed.capability,
-      status: parsed.status,
-      requested_at: parsed.requestedAt,
-    });
+    await this.pool.query(
+      `INSERT INTO provider_execution(id, owner_id, provider_id, capability, status, requested_at, record)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (owner_id, id) DO UPDATE SET
+         provider_id=EXCLUDED.provider_id,
+         capability=EXCLUDED.capability,
+         status=EXCLUDED.status,
+         requested_at=EXCLUDED.requested_at,
+         record=EXCLUDED.record
+       WHERE EXCLUDED.status <> 'requested' OR provider_execution.status = 'requested'`,
+      [parsed.id, parsed.ownerId, parsed.providerId, parsed.capability, parsed.status, parsed.requestedAt, parsed],
+    );
   }
   async findExecutionByRequest(ownerId: string, executionRequestId: string) {
     const result = await this.pool.query<{ record: unknown }>(

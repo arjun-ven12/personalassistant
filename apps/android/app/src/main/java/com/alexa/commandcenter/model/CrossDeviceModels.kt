@@ -49,4 +49,5 @@ data class CrossDevicePollResponse(
   val client: CrossDeviceClient,
   val commands: List<CrossDeviceCommand> = emptyList(),
   val polledAt: String,
+  val engineeringRevision: String? = null,
 )

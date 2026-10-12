@@ -141,6 +141,16 @@ describe("credential-gated representative commercial read adapters", () => {
       externalReferenceId: "ga4:123456789:conversions",
     });
   });
+  it("returns a bounded verified metric for a dimensionless GA4 read", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(() => Promise.resolve(Response.json({ metricHeaders: [{ name: "activeUsers", type: "TYPE_INTEGER" }], rowCount: 1, rows: [{ metricValues: [{ value: "42" }] }] })));
+    const provider = new GoogleAnalytics4Provider(fetcher);
+    const action = BusinessActionRequestSchema.parse({ capability: "analytics.query_metric", idempotencyKey: "ga4-active-users-read", reason: "Read a reviewed GA4 test metric.",
+      metricId: "activeUsers", dimensions: [], periodStart: "2026-09-01T00:00:00.000Z", periodEnd: "2026-09-04T00:00:00.000Z" });
+    const context = { ...base, credential: { accessToken: "google-analytics-access-token", propertyId: "123456789" } };
+    expect(await provider.execute(action, context)).toMatchObject({ outcome: "VERIFIED", metric: { metricId: "activeUsers", value: 42, unit: "TYPE_INTEGER", observedAt: "2026-09-04T00:00:00.000Z" } });
+    fetcher.mockImplementationOnce(() => Promise.resolve(Response.json({ metricHeaders: [{ name: "activeUsers", type: "TYPE_INTEGER" }], rowCount: 0, rows: [] })));
+    expect(await provider.execute(action, context)).toMatchObject({ outcome: "FAILED", failureKind: "INVALID_RECORD" });
+  });
   it("restricts Shopify requests to a validated development-store host", async () => {
     const fetcher = vi.fn<typeof fetch>().mockImplementation(ok),
       provider = new ShopifyDevelopmentStoreProvider(fetcher),

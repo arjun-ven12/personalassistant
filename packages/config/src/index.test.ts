@@ -7,6 +7,14 @@ import {
 } from "./index.js";
 
 describe("environment validation", () => {
+  it("requires exact server-owned self-improvement repository bindings", () => {
+    const binding = { companyId: "10000000-0000-4000-8000-000000000001", repositoryId: "20000000-0000-4000-8000-000000000002" };
+    expect(parseApiEnvironment({}).ALEXA_SELF_IMPROVEMENT_REPOSITORIES).toEqual([]);
+    expect(parseApiEnvironment({ ALEXA_SELF_IMPROVEMENT_REPOSITORIES: JSON.stringify([binding]) })
+      .ALEXA_SELF_IMPROVEMENT_REPOSITORIES).toEqual([binding]);
+    for (const value of ["invalid", JSON.stringify([binding, binding]), JSON.stringify([{ ...binding, path: "/tmp" }])])
+      expect(() => parseApiEnvironment({ ALEXA_SELF_IMPROVEMENT_REPOSITORIES: value })).toThrow();
+  });
   it("applies secure development defaults", () => {
     const api = parseApiEnvironment({});
     expect(api.PRIVATE_NETWORK_REQUIRED).toBe(true);

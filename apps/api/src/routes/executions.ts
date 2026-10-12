@@ -47,12 +47,14 @@ const AgentOperationSchema = z.discriminatedUnion("operation", [
 const authenticateAgent = async (request: FastifyRequest, context: ApiRouteContext) => {
   const envelope = SignedCommandEnvelopeSchema.parse(request.body);
   const device = await context.identity.store.findDeviceById(envelope.deviceId);
-  if (!device || device.trustStatus !== "TRUSTED" || device.deviceType !== "MAC_AGENT")
+  if (!device || device.trustStatus !== "TRUSTED" || (device.deviceType !== "MAC_AGENT" && device.deviceType !== "CLOUD_WORKER"))
     throw new ExecutionError(
       403,
       "TRUSTED_DEVICE_REQUIRED",
       "A trusted device is required.",
     );
+  if (device.deviceType === "CLOUD_WORKER" && (typeof device.metadata.workloadExpiresAt !== "string" || Date.parse(device.metadata.workloadExpiresAt) <= Date.now() || !Number.isFinite(Date.parse(device.metadata.workloadExpiresAt))))
+    throw new ExecutionError(403, "TRUSTED_DEVICE_REQUIRED", "Cloud workload identity expired.");
   const network = await context.networkVerifier.verify({
     remoteAddress: request.socket.remoteAddress ?? request.ip,
     ...(typeof request.headers["tailscale-user-login"] === "string"
@@ -288,6 +290,8 @@ export const registerExecutionRoutes = (
       const { device, operation } = await authenticateAgent(request, context);
       const emergencyStopActive = await context.emergencyStopActive();
       if (operation.operation === "poll") {
+        if (device.deviceType === "CLOUD_WORKER" && operation.nativeProviderHostStatus)
+          throw new ExecutionError(403, "CLOUD_WORKER_SCOPE_DENIED", "Cloud workers cannot report native provider status.");
         if (operation.nativeProviderHostStatus) {
           await context.nativeProviders.reportHostStatus({
             ownerId: device.ownerId,
@@ -303,6 +307,13 @@ export const registerExecutionRoutes = (
             ? null
             : await (async () => {
                 const envelope = await context.executions.poll(device.id);
+                if (device.deviceType === "CLOUD_WORKER" && envelope &&
+                    (envelope.request.toolName !== "engineering.repository_capability" ||
+                     device.metadata.companyId !== (envelope.request.arguments as { companyId?: unknown }).companyId ||
+                     device.metadata.repositoryId !== (envelope.request.arguments as { repositoryId?: unknown }).repositoryId ||
+                     device.metadata.workspaceLocatorId !== envelope.request.workspaceId ||
+                     device.metadata.executionScope !== "ENGINEERING_ONLY"))
+                  throw new ExecutionError(403, "CLOUD_WORKER_SCOPE_DENIED", "Cloud worker execution scope is invalid.");
                 const request = envelope
                   ? nativeProviderRequestFor(envelope.request)
                   : null;

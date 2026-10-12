@@ -9,6 +9,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "start:cloud": "node dist/index.js",
+    "start:engineering-worker": "node dist/engineering-worker.js",
     "db:migrate:container": "node dist/database.js deploy",
     "verify:cloud-config": "node dist/validate-environment.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -82,6 +83,10 @@
   "dependencies": {
     "@alexa-control/config": "workspace:*",
     "@alexa-control/shared": "workspace:*",
+    "@aws-sdk/client-ec2": "^3.1146.0",
+    "@aws-sdk/client-elastic-load-balancing-v2": "^3.1146.0",
+    "@aws-sdk/client-scheduler": "^3.1146.0",
+    "@aws-sdk/client-ssm": "^3.1146.0",
     "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.1.0",
     "@fastify/helmet": "13.0.2",
@@ -93,6 +98,7 @@
     "fastify": "^5.12.1",
     "google-auth-library": "^10.9.1",
     "pg": "8.16.3",
+    "railway": "^3.12.0",
     "redis": "^6.2.1",
     "zod": "^4.0.14"
   },

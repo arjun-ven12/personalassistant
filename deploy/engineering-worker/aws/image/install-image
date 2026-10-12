@@ -1,0 +1,38 @@
+#!/bin/sh
+set -eu
+# REVIEW REQUIRED: infrastructure image bake only, never runtime/user-data/SSM.
+# Do not execute through Athena's runtime credential or on the owner's Mac.
+[ "$#" -eq 0 ]
+[ "$(id -u)" -eq 0 ]
+[ "$(/usr/local/bin/node --version | cut -d. -f1)" = v24 ]
+test -x /usr/bin/git
+test -x /usr/bin/docker
+test -x /usr/bin/python3
+test -x /usr/sbin/iptables
+test -x /usr/bin/systemctl
+test -x /usr/bin/busctl
+# Infrastructure preparer has verified one exact agent; retain its installation.
+test -f /opt/athena-build/ssm-installation.json
+/usr/bin/docker image inspect alexa-engineering-node:1 >/dev/null
+/usr/bin/docker image inspect athena-registry-proxy:1 >/dev/null
+install -d -m 0700 /etc/athena /run/athena /workspace /workspace/worktrees /workspace/repositories
+install -d -m 0755 /opt/athena /var/empty
+install -m 0555 /opt/athena-build/provisioned-engineering-worker.js /opt/athena/worker.js
+install -m 0555 /opt/athena-build/ec2-helper.js /opt/athena/ec2-helper.js
+install -m 0555 /opt/athena-build/registry-proxy.js /opt/athena/registry-proxy.js
+install -m 0555 /opt/athena-build/image/configure-network /opt/athena/configure-network
+install -m 0444 /opt/athena-build/image/task-firewall.rules /etc/athena/task-firewall.rules
+install -m 0444 /opt/athena-build/image/daemon.json /etc/docker/daemon.json
+install -m 0444 /opt/athena-build/image/90-athena.conf /etc/sysctl.d/90-athena.conf
+install -m 0444 /opt/athena-build/image/99-athena-private.cfg /etc/cloud/cloud.cfg.d/99-athena-private.cfg
+for unit in athena-worker.service athena-watchdog.service athena-expire.service athena-deadline.timer athena-network.service; do
+  install -m 0444 "/opt/athena-build/image/$unit" "/etc/systemd/system/$unit"
+done
+install -m 0444 /opt/athena-build/ssm-installation.json /etc/athena/ssm-installation.json
+printf '%s\n' aws-ec2 > /etc/athena/provider
+chmod 0444 /etc/athena/provider
+# Seal file and Docker IDs while the builder is running; AMI/snapshot ID is recorded separately.
+/usr/local/bin/node /opt/athena/ec2-helper.js seal-image
+# No worker starts in the image bake. Services only execute on a future bootstrap.
+/usr/bin/systemctl daemon-reload
+/usr/bin/systemctl enable athena-watchdog.service athena-deadline.timer

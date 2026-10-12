@@ -1,0 +1,8 @@
+[Unit]
+Description=Terminate an expired or unsafe ephemeral worker
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/node /opt/athena/ec2-helper.js expire
+User=root
+StandardOutput=null
+StandardError=null

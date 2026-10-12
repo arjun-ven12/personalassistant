@@ -1,3 +1,6 @@
+import { parseEc2EngineeringConfiguration } from "./cloud-engineering/ec2-configuration.js";
+import { parseRailwayEngineeringConfiguration } from "./cloud-engineering/bootstrap.js";
+import { AllowlistedGitHubCredentialResolver } from "./cloud-engineering/github.js";
 import { parseApiEnvironment } from "@alexa-control/config";
 
 import { buildApi, LOG_REDACTION_PATHS } from "./app.js";
@@ -168,6 +171,8 @@ import { createAIRuntime, createCanonicalAIServices } from "./ai/bootstrap.js";
 import { AIEconomicsService } from "./ai/economics/service.js";
 import { PostgresAIEconomicsStore } from "./ai/economics/postgres-store.js";
 import { FcmPushProvider } from "./notifications/provider.js";
+import { REVIEWED_REMOTE_MCP_MANIFESTS } from "./universal-tools/reviewed-manifests.js";
+import { UniversalMcpSecretResolver } from "./universal-tools/credentials.js";
 
 if (process.env.NODE_ENV !== "production") {
   try {
@@ -178,6 +183,9 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 const environment = parseApiEnvironment(process.env);
+const universalMcpSecretResolver = new UniversalMcpSecretResolver(
+  JSON.parse(process.env.UNIVERSAL_MCP_SECRETS_JSON ?? "[]") as unknown,
+);
 const integrationSecretResolver = new AllowlistedEnvironmentSecretResolver({
   "gmail:gmail-primary": environment.GMAIL_OAUTH_CREDENTIAL_JSON,
   "payments:stripe-test": environment.STRIPE_TEST_CREDENTIAL_JSON,
@@ -471,6 +479,17 @@ const app = await buildApi({
   recentAuthTtlSeconds: environment.RECENT_AUTH_TTL_SECONDS,
   recoveryCodeCount: environment.RECOVERY_CODE_COUNT,
   allowedHosts: environment.ALLOWED_HOSTS,
+  universalMcpAllowedHosts: environment.UNIVERSAL_MCP_ALLOWED_HOSTS,
+  selfImprovementRepositories: environment.ALEXA_SELF_IMPROVEMENT_REPOSITORIES,
+  universalMcpSecretResolver,
+  ec2EngineeringConfigurations: parseEc2EngineeringConfiguration(environment.AWS_ENGINEERING_CONFIG),
+  ec2EngineeringCredentials: new AllowlistedGitHubCredentialResolver({"aws-engineering-primary":environment.AWS_ENGINEERING_CREDENTIAL}),
+  railwayEngineeringConfigurations: parseRailwayEngineeringConfiguration(environment.RAILWAY_ENGINEERING_CONFIG),
+  railwayEngineeringCredentials: new AllowlistedGitHubCredentialResolver({"railway-engineering-primary":environment.RAILWAY_ENGINEERING_API_TOKEN}),
+  engineeringGitHubProviderIds: environment.GITHUB_ENGINEERING_PROVIDER_IDS,
+  engineeringGitHubCredentials: new AllowlistedGitHubCredentialResolver({ "github-primary": environment.GITHUB_ENGINEERING_ACCESS_TOKEN }),
+  universalToolManifests: environment.UNIVERSAL_MCP_ALLOWED_HOSTS.includes("mcp.deepwiki.com")
+    ? [...REVIEWED_REMOTE_MCP_MANIFESTS] : [],
   trustedProxyMode: environment.TRUSTED_PROXY_MODE,
   persistenceMode:
     environment.STORE_MODE === "postgres" ? "postgresql" : "in_memory_development",

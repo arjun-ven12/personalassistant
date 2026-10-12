@@ -1,7 +1,13 @@
-import type {
-  CrossDeviceCapability,
-  CrossDeviceCommand,
+import {
+  CrossDeviceRouteSchema,
+  type CrossDeviceCapability,
+  type CrossDeviceCommand,
 } from "@alexa-control/shared";
+
+export const crossDeviceCurrentRoute = (pathname: string) => {
+  const route = CrossDeviceRouteSchema.safeParse(pathname);
+  return route.success ? route.data : null;
+};
 
 const storageKey = "alexa.cross-device.client-instance.v1";
 
@@ -27,7 +33,10 @@ export const webClientInstanceId = () => {
 export const isCrossDeviceUtterance = (utterance: string) =>
   /\b(?:on|to|there|that device|same device)\s+(?:(?:my|the)\s+)?(?:mac|macbook|desktop|phone|android|mobile|web|browser|website|dashboard)\b/i.test(
     utterance,
-  ) || /\b(?:show|open)\s+(?:this|current (?:screen|page))\s+(?:on|there)\b/i.test(utterance) ||
+  ) ||
+  /\b(?:show|open)\s+(?:this|current (?:screen|page))\s+(?:on|there)\b/i.test(
+    utterance,
+  ) ||
   /\b(?:here|this device|current device)\b/i.test(utterance);
 
 export const crossDeviceCommandPath = (command: CrossDeviceCommand) => {

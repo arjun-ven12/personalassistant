@@ -7,6 +7,7 @@ import {
 } from "./ai.js";
 import { AIEconomicContextSchema } from "./ai-economics.js";
 import { CognitiveContextProfileSchema } from "./ai-context.js";
+import { AthenaCoderAttemptTelemetrySchema } from "./athena-coder.js";
 
 export const AIComplexityLevelSchema = z.enum(["LOW", "MEDIUM", "HIGH", "VERY_HIGH"]);
 export const AIRiskLevelSchema = z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]);
@@ -96,6 +97,7 @@ export const AIRouterAttemptSchema = z
     latencyMs: z.number().nonnegative().optional(),
     confidence: z.number().min(0).max(1).optional(),
     errorCode: z.string().max(80).optional(),
+    athenaCoder: AthenaCoderAttemptTelemetrySchema.optional(),
   })
   .strict();
 

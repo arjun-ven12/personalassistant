@@ -53,6 +53,7 @@ import {
 import type { z } from "zod";
 
 import type { GovernanceAuditWriter } from "../governance/approval-service.js";
+import { recognizeSelfImprovementRequest } from "../self-improvement/policy.js";
 import type { IntentExecutionService } from "../intent/service.js";
 import type { HumanUnderstandingService } from "../human-understanding/service.js";
 import type { AIRouterService } from "../ai/router/service.js";
@@ -674,7 +675,7 @@ export class VoiceRuntimeService {
       parsed.isFinal &&
       !interruption &&
       !mustNotExecute &&
-      softwareBuildRequest(parsed.transcript) &&
+      (softwareBuildRequest(parsed.transcript) || recognizeSelfImprovementRequest(parsed.transcript)) &&
       input.governanceSessionId &&
       input.networkState
     ) {

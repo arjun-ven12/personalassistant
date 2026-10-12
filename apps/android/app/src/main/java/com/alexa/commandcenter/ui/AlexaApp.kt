@@ -23,6 +23,7 @@ import java.util.Date
 @Composable
 fun AlexaApp(
   state: AlexaUiState,
+  engineeringActions: EngineeringCallbacks = EngineeringCallbacks(),
   environment: AlexaEnvironmentConfig,
   onLogin: (String, String) -> Unit,
   onCreatePairing: () -> Unit,
@@ -71,6 +72,7 @@ fun AlexaApp(
         AlexaScreenState.BiometricLocked -> CenterMessage("Unlock Athena with biometrics")
         AlexaScreenState.Shell -> CommandCenterShell(
           state = state,
+          engineeringActions = engineeringActions,
           environment = environment,
           onRefresh = onRefresh,
           onCompanySelected = onCompanySelected,

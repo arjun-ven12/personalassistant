@@ -12,6 +12,7 @@ import {
   Home,
   Layers3,
   MemoryStick,
+  Megaphone,
   Mic2,
   MonitorCog,
   Search,
@@ -58,6 +59,7 @@ import { CommandStudioPage } from "./CommandStudioPage.js";
 import { ConversationPage } from "./ConversationPage.js";
 import { ExecutivePage } from "./ExecutivePage.js";
 import { ObjectivesPage } from "./ObjectivesPage.js";
+import { MarketingCampaignsPage } from "./MarketingCampaignsPage.js";
 import { PersonalityPage } from "./PersonalityPage.js";
 import { PersistentSpatialRuntimeProvider } from "./PersistentSpatialRuntime.js";
 import { PersistentVoiceRuntimeProvider } from "./PersistentVoiceRuntime.js";
@@ -97,6 +99,7 @@ const navigation: Array<{
   { path: "/agents", label: "Agents", icon: Bot, section: "Operations" },
   { path: "/workflows", label: "Workflows", icon: Workflow, section: "Operations" },
   { path: "/objectives", label: "Objectives", icon: Target, section: "Operations" },
+  { path: "/marketing", label: "Marketing", icon: Megaphone, section: "Operations" },
   { path: "/skills", label: "Skills", icon: Sparkles, section: "Operations" },
   {
     path: "/applications",
@@ -645,6 +648,9 @@ export const App = ({ apiClient }: { apiClient: ApiClient }) => {
                   ) : null}
                   {pathname === "/objectives" ? (
                     <ObjectivesPage apiClient={apiClient} />
+                  ) : null}
+                  {pathname === "/marketing" ? (
+                    <MarketingCampaignsPage apiClient={apiClient} />
                   ) : null}
                   {pathname === "/skills" ? (
                     <OperationalPage

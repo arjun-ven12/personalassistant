@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "2.2",
+  "description": "Finite nonsecret measured Engineering evidence; no parameters",
+  "parameters": {},
+  "mainSteps": [{
+    "action": "aws:runShellScript",
+    "name": "MeasuredEvidence",
+    "inputs": {"timeoutSeconds": "20", "runCommand": ["/usr/local/bin/node /opt/athena/ec2-helper.js evidence"]}
+  }]
+}

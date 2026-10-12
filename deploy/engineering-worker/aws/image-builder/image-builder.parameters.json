@@ -1,0 +1,46 @@
+[
+  {
+    "ParameterKey": "BaseAmiId",
+    "ParameterValue": "ami-0ba4172b23e57d5a8"
+  },
+  {
+    "ParameterKey": "RootDeviceName",
+    "ParameterValue": "/dev/sda1"
+  },
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": "vpc-04179b719aaccf907"
+  },
+  {
+    "ParameterKey": "SubnetId",
+    "ParameterValue": "subnet-0c35a5bf3347d05ce"
+  },
+  {
+    "ParameterKey": "BuildRevision",
+    "ParameterValue": "review-20261005-01"
+  },
+  {
+    "ParameterKey": "RecipeVersion",
+    "ParameterValue": "1.0.0"
+  },
+  {
+    "ParameterKey": "CompanyId",
+    "ParameterValue": "c2ac447f-0747-4b78-80f1-2cc4fff8d82f"
+  },
+  {
+    "ParameterKey": "PayloadSha256",
+    "ParameterValue": "658679b5b50d86dc85f4ba73f66ed54021e13a486d365a6ab8d58972f7bed28e"
+  },
+  {
+    "ParameterKey": "ToolingSha256",
+    "ParameterValue": "e09a2555ecaaaa2145ec2c7656f4e60a012295bca420275c09ec99326e59ba13"
+  },
+  {
+    "ParameterKey": "LockSha256",
+    "ParameterValue": "5ee9e7ed7d480fea8b10adc04441c3fc38b748b76a0ba81e68473108d9e0dc36"
+  },
+  {
+    "ParameterKey": "CreateImageBuilderServiceRole",
+    "ParameterValue": "true"
+  }
+]

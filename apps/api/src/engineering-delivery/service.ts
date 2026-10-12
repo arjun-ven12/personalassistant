@@ -85,6 +85,7 @@ const recoverableReviewWarning =
   "No independent repository-authorized reviewer is available.";
 const expiredWorkerWarning =
   "An engineering worker lease expired. No uncertain file mutation was replayed; Retry this same run with a trusted owner session.";
+const interruptedSelfStartWarning = "Self-improvement initialization stopped before execution started. Retry this same objective.";
 const expiredIntegrationWarning =
   "Engineering integration stopped without an active lease. Retry this same run to resume the reviewed candidate or the smallest safe integration step.";
 const expiredPreviewWarning =
@@ -102,6 +103,7 @@ const recoverableExistingRunWarnings = new Set([
 export class EngineeringDeliveryService {
   readonly terminalListeners = new Set<(context: EngineeringDeliveryContext, deliveryId: string) => Promise<void>>();
   #lastRecoveryScanMs = 0;
+  private selfImprovementRepository?: (companyId: string, repositoryId: string) => boolean;
   constructor(
     readonly store: EngineeringDeliveryStore,
     readonly runtime: EngineeringRuntimeStore,
@@ -121,20 +123,34 @@ export class EngineeringDeliveryService {
     this.terminalListeners.add(listener);
   }
 
+  setSelfImprovementRepository(predicate: (companyId: string, repositoryId: string) => boolean) {
+    this.selfImprovementRepository = predicate;
+  }
+
   private async notifyTerminal(context: EngineeringDeliveryContext, deliveryId: string) {
     await Promise.allSettled([...this.terminalListeners].map((listener) => listener(context, deliveryId)));
   }
 
-  async create(context: EngineeringDeliveryContext, body: unknown) {
+  async create(context: EngineeringDeliveryContext, body: unknown, options?: {
+    selfImprovement: { riskLevel: "LOW" | "MEDIUM" | "HIGH"; engineeringMode: "FAST" | "FULL"; targetAreas: string[]; requestDigest?: string };
+    deferDrive?: boolean;
+  }) {
     const request = CreateSoftwareObjectiveRequestSchema.parse(body);
+    if (request.repositoryId && this.selfImprovementRepository?.(context.companyId, request.repositoryId) && !options?.selfImprovement)
+      throw new EngineeringDeliveryError("DEVELOPMENT_ROOT_DENIED", "Athena's registered repository requires the governed self-improvement flow.");
     const existing = await this.store.findByIdempotencyKey(
       context.ownerId,
       context.companyId,
       request.idempotencyKey,
     );
     if (existing) {
+      const existingObjective = await this.manager.view(context.ownerId, context.companyId, existing.objectiveId);
       if (
         existing.sourceRequest !== request.request ||
+        Boolean(existing.selfImprovement) !== Boolean(options?.selfImprovement) ||
+        (options?.selfImprovement && existing.selfImprovement?.requestDigest !== options.selfImprovement.requestDigest) ||
+        request.acceptanceCriteria.some((criterion) => !existingObjective.objective.acceptanceCriteria.includes(criterion)) ||
+        (options?.selfImprovement && existing.selfImprovement?.riskLevel !== options.selfImprovement.riskLevel) ||
         (existing.repositoryId !== request.repositoryId &&
           request.repositoryId !== null)
       )
@@ -179,7 +195,7 @@ export class EngineeringDeliveryService {
       constraints: request.constraints,
       protectedAreas: repository.protectedPaths,
       priority: request.deadlineAt ? "HIGH" : "NORMAL",
-      riskLevel: interpretation.complexity === "HIGH_RISK" ? "HIGH" : "MEDIUM",
+      riskLevel: options?.selfImprovement?.riskLevel ?? (interpretation.complexity === "HIGH_RISK" ? "HIGH" : "MEDIUM"),
       budget: null,
       deadlineAt: request.deadlineAt,
       maxParallelTasks:
@@ -188,7 +204,7 @@ export class EngineeringDeliveryService {
           : interpretation.complexity === "MEDIUM"
             ? 4
             : 5,
-    });
+    }, options?.selfImprovement ? { engineeringMode: options.selfImprovement.engineeringMode, selfImprovement: true } : undefined);
     const objective = objectiveView.objective;
     const at = this.now().toISOString();
     const implementationIds = objectiveView.tasks
@@ -207,11 +223,12 @@ export class EngineeringDeliveryService {
       repositoryId: repository.id,
       integrationRunId: null,
       candidateId: null,
-      intent: interpretation.intent,
+      intent: options?.selfImprovement ? "SELF_IMPROVEMENT" : interpretation.intent,
+      selfImprovement: options?.selfImprovement ?? null,
       projectMode: request.repositoryId ? "EXISTING" : "NEW",
       projectName: interpretation.projectName,
       sourceRequest: request.request,
-      complexity: interpretation.complexity,
+      complexity: options?.selfImprovement?.riskLevel === "HIGH" ? "HIGH_RISK" : interpretation.complexity,
       stack: interpretation.stack,
       features: interpretation.features.map((name) => ({
         id: crypto.randomUUID(),
@@ -253,15 +270,21 @@ export class EngineeringDeliveryService {
       projectMode: delivery.projectMode,
       complexity: delivery.complexity,
     });
-    if (delivery.status !== "OWNER_INPUT_REQUIRED")
-      void this.drive(context, delivery.id).catch((error) =>
-        this.fail(context, delivery.id, error),
-      );
+    if (delivery.status !== "OWNER_INPUT_REQUIRED" && !options?.deferDrive)
+      this.start(context, delivery.id);
     return this.controlCenter(context.ownerId, context.companyId, delivery.id);
+  }
+
+  start(context: EngineeringDeliveryContext, id: string) {
+    void this.drive(context, id).catch((error) => this.fail(context, id, error));
   }
 
   async drive(context: EngineeringDeliveryContext, deliveryId: string, recoveringIntegration = false) {
     let delivery = await this.require(context.ownerId, context.companyId, deliveryId);
+    if (this.selfImprovementRepository?.(context.companyId, delivery.repositoryId) && !delivery.selfImprovement)
+      throw new EngineeringDeliveryError("DEVELOPMENT_ROOT_DENIED", "A legacy delivery cannot continue against Athena's registered repository outside self-improvement governance.");
+    if (delivery.selfImprovement && !this.selfImprovementRepository?.(context.companyId, delivery.repositoryId))
+      throw new EngineeringDeliveryError("DEVELOPMENT_ROOT_DENIED", "The configured Athena repository binding is unavailable; self-improvement cannot continue.");
     if (["PAUSED", "CANCELLED", "OWNER_INPUT_REQUIRED"].includes(delivery.status))
       return this.controlCenter(context.ownerId, context.companyId, delivery.id);
     delivery = await this.update(delivery, { status: "IMPLEMENTING" });
@@ -465,7 +488,7 @@ export class EngineeringDeliveryService {
       eventId: `engineering-delivery:${delivery.id}:${delivery.updatedAt}`,
       category: "IMPORTANT_OBJECTIVE_COMPLETED",
       severity: warnings.length ? "NORMAL" : "LOW",
-      objectKind: "OBJECTIVE",
+      objectKind: "ENGINEERING_BUILD",
       objectId: delivery.id,
       stateVersion: delivery.updatedAt,
       title: notificationTitle,
@@ -540,6 +563,11 @@ export class EngineeringDeliveryService {
   }
   async resume(context: EngineeringDeliveryContext, id: string) {
     const delivery = await this.require(context.ownerId, context.companyId, id);
+    if (delivery.selfImprovement && delivery.status === "BLOCKED" && delivery.warnings.at(-1) === interruptedSelfStartWarning) {
+      await this.update(delivery, { status: "IMPLEMENTING", warnings: delivery.warnings.slice(0, -1) });
+      this.start(context, id);
+      return this.controlCenter(context.ownerId, context.companyId, id);
+    }
     if (delivery.status === "BLOCKED" && delivery.warnings.at(-1) === expiredWorkerWarning)
       return this.recover(context, id);
     if (delivery.status === "BLOCKED" && delivery.warnings.at(-1) === expiredIntegrationWarning) {
@@ -669,6 +697,26 @@ export class EngineeringDeliveryService {
     ]);
     let blocked = 0;
     for (const delivery of candidates) {
+      if (delivery.selfImprovement && delivery.status === "PLANNING") {
+        const updated = EngineeringDeliverySchema.parse({
+          ...delivery, status: "BLOCKED",
+          warnings: [...delivery.warnings, interruptedSelfStartWarning].slice(-50),
+          updatedAt: this.now().toISOString(),
+        });
+        if (await this.store.saveIfUpdatedAt(updated, delivery.updatedAt)) {
+          blocked += 1;
+          await this.audit({
+            eventType: "ENGINEERING_DELIVERY_RECOVERY_BLOCKED",
+            ownerId: delivery.ownerId,
+            ipAddress: "internal",
+            outcome: "DENIED",
+            reason: "Self-improvement creation committed without a started worker; owner resume is required.",
+            requestId: `self-improvement-recovery:${delivery.id}`,
+            metadata: { companyId: delivery.companyId, deliveryId: delivery.id, objectiveId: delivery.objectiveId },
+          });
+        }
+        continue;
+      }
       const view = await this.manager.view(delivery.ownerId, delivery.companyId, delivery.objectiveId);
       const active = view.tasks.filter((task) => task.status === "ACTIVE");
       if (!active.length || active.some((task) => !task.leaseExpiresAt ||
@@ -918,6 +966,10 @@ export class EngineeringDeliveryService {
       : 0;
     return EngineeringControlCenterSchema.parse({
       delivery: refreshed,
+      codingModels: view.results.slice(0,30).map(result => ({taskId: result.taskId, provider: result.modelProvider, model: result.modelName,
+        localAttempt: result.modelProvider === "athena_coder" && result.status === "SUCCEEDED" && result.validationStatus === "PASS" ? "PASS" :
+          result.modelAttempts.some(v => v.providerId === "athena_coder") && result.modelProvider !== "athena_coder" ? "ESCALATED" : "UNKNOWN",
+        attempts: result.modelAttempts, paidCostAvoidedUsd: null})),
       overallProgress: progress,
       recoveryAvailable: (refreshed.status === "IMPLEMENTING" ||
         (refreshed.status === "BLOCKED" && refreshed.warnings.at(-1) === expiredWorkerWarning)) && view.tasks.some(

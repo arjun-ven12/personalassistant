@@ -81,6 +81,34 @@ describe("NativeProviderRuntime", () => {
     expect(store.listDiagnostics(ownerId, 10)).toHaveLength(1);
     expect(store.listExecution(crypto.randomUUID(), 10)).toHaveLength(0);
   });
+  it("keeps a signed terminal result when dispatch saves its requested record later", async () => {
+    const { ownerId, service, store } = setup();
+    const executionRequestId = crypto.randomUUID();
+    await service.recordTransportResult({
+      ownerId,
+      executionRequestId,
+      request: {
+        providerId: "provider.vscode",
+        applicationId: "vscode",
+        capability: "focus",
+        arguments: {},
+      },
+      result: null,
+      status: "FAILED",
+      failureCode: "DEVICE_OFFLINE",
+      startedAt: "2026-08-05T00:00:00.000Z",
+      completedAt: "2026-08-05T00:00:01.000Z",
+    });
+    const terminal = store.findExecutionByRequest(ownerId, executionRequestId);
+    expect(terminal?.status).toBe("failed");
+    store.saveExecution({
+      ...terminal!,
+      status: "requested",
+      completedAt: null,
+    });
+    expect(store.findExecutionByRequest(ownerId, executionRequestId)).toEqual(terminal);
+    expect(store.listExecution(ownerId, 10)).toHaveLength(1);
+  });
   it("registers reviewed finite providers without raw automation surfaces", async () => {
     const { ownerId, service } = setup();
 

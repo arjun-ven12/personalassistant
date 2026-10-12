@@ -307,6 +307,23 @@ const setup = (aiRouter?: VoiceRuntimeService["aiRouter"]) => {
 };
 
 describe("VoiceRuntimeService", () => {
+  it("routes clear self-improvement requests through the same governed Engineering gateway", async () => {
+    const { ownerId, voice } = setup();
+    const start = vi.fn(() => Promise.resolve({ deliveryId: crypto.randomUUID(),
+      projectName: "Athena self-improvement", status: "PLANNING" }));
+    const addInstruction = vi.fn(() => Promise.resolve(null));
+    voice.setEngineeringDelivery({ start, status: () => Promise.resolve(null), addInstruction });
+    const dashboard = await voice.createSession({ ownerId, body: { wakeWordEnabled: true },
+      requestId: crypto.randomUUID(), ipAddress: "127.0.0.1" });
+    const sessionId = dashboard.sessions[0]!.id;
+    for (const transcript of ["Athena, improve your Engineering dashboard", "Improve your memory retrieval"])
+      await voice.recordTranscript({ ownerId, governanceSessionId: crypto.randomUUID(),
+        networkState: "PRIVATE_NETWORK", ipAddress: "127.0.0.1", requestId: crypto.randomUUID(),
+        body: { sessionId, transcript, isFinal: true, confidence: 0.98, wakeWordDetected: true } });
+    expect(start).toHaveBeenCalledTimes(2);
+    expect(addInstruction).not.toHaveBeenCalled();
+    expect(start.mock.calls[0]).toBeDefined();
+  });
   it("routes natural software delivery, live status, and follow-up instructions through the engineering gateway", async () => {
     const { ownerId, voice } = setup();
     const start = vi.fn(() =>

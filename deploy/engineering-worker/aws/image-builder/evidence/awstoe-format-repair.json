@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-05",
+  "awsFailure": "TestComponent CREATE_FAILED: Config not declared but referenced",
+  "cause": "AWSTOE interpreted literal Docker Go-template double braces as undeclared parameter",
+  "fix": "Construct fixed Docker format delimiters at Python runtime after AWSTOE parsing",
+  "securityChecksPreserved": [
+    "CgroupVersion=2",
+    "CgroupDriver=systemd",
+    "exact Docker image digest",
+    "Config.User=65532:65532"
+  ],
+  "focusedTestsPassed": 6,
+  "fullValidation": "PASS: focused 6; lint 0 errors/1 warning; typecheck/build; serial 245 files/1414 tests passed, 4 files/4 tests skipped, 574.20s",
+  "approvedInputArtifactHashes": "UNCHANGED",
+  "proposedRecipeVersion": "1.0.1",
+  "proposedBuildRevision": "review-20261005-02",
+  "runtimePermissionsActivated": false,
+  "previewEnabled": false,
+  "redeployed": false,
+  "ownerReportedStackStatus": "ROLLBACK_COMPLETE",
+  "ownerReportedServiceRoleAfterRollback": "ABSENT",
+  "proposedRetryStackName": "athena-engineering-image-builder-r2"
+}

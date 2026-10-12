@@ -190,6 +190,7 @@ export const CrossDevicePollResponseSchema = z
     client: CrossDeviceClientInstanceSchema,
     commands: z.array(CrossDeviceCommandSchema).max(20),
     polledAt: z.iso.datetime(),
+    engineeringRevision: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   })
   .strict();
 

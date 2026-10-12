@@ -34,6 +34,8 @@ export const EngineeringControlCenterPage = ({
   const client = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [request, setRequest] = useState("");
+  const [selfMode, setSelfMode] = useState(false);
+  const selfRequestKey = useRef<string | null>(null);
   const [projectName, setProjectName] = useState("");
   const [mode, setMode] = useState<"NEW" | "EXISTING">("NEW");
   const [rootId, setRootId] = useState("");
@@ -50,6 +52,7 @@ export const EngineeringControlCenterPage = ({
     queryFn: apiClient.getEngineeringDeliveries,
     refetchInterval: 5_000,
   });
+  const dataset = useQuery({queryKey: ["engineering-dataset"], queryFn: apiClient.getEngineeringDatasetStats, refetchInterval: 30000});
   const projects = useQuery({
     queryKey: ["engineering-projects"],
     queryFn: apiClient.getEngineeringProjects,
@@ -132,6 +135,12 @@ export const EngineeringControlCenterPage = ({
     },
   });
   const integrationRunId = center.data?.delivery.integrationRunId;
+  const selfImprovement = useQuery({
+    queryKey: ["self-improvement", selectedId],
+    queryFn: () => apiClient.getSelfImprovement(selectedId!),
+    enabled: Boolean(selectedId && center.data?.delivery.selfImprovement),
+    refetchInterval: 5_000,
+  });
   const integration = useQuery({
     queryKey: ["engineering-integration", integrationRunId],
     queryFn: () => apiClient.getEngineeringIntegration(integrationRunId!),
@@ -148,8 +157,13 @@ export const EngineeringControlCenterPage = ({
     await client.invalidateQueries({ queryKey: ["engineering-control-center"] });
   };
   const create = useMutation({
-    mutationFn: () =>
-      apiClient.createSoftwareObjective({
+    mutationFn: async () => {
+      if (selfMode) {
+        const idempotencyKey = selfRequestKey.current ?? crypto.randomUUID();
+        selfRequestKey.current = idempotencyKey;
+        return (await apiClient.createSelfImprovement({ request, acceptanceCriteria: [], idempotencyKey })).controlCenter;
+      }
+      return apiClient.createSoftwareObjective({
         request,
         projectName: projectName || null,
         repositoryId: mode === "EXISTING" ? repositoryId : null,
@@ -159,11 +173,21 @@ export const EngineeringControlCenterPage = ({
         deadlineAt: null,
         visibleMode: false,
         idempotencyKey: crypto.randomUUID(),
-      }),
+      });
+    },
     onSuccess: async (data) => {
+      selfRequestKey.current = null;
       setRequest("");
       setProjectName("");
       await refresh(data);
+    },
+  });
+  const rejectSelfImprovement = useMutation({
+    mutationFn: () => apiClient.rejectSelfImprovement(selectedId!, { reason: null }),
+    onSuccess: async (view) => {
+      await refresh(view.controlCenter);
+      await client.invalidateQueries({ queryKey: ["self-improvement", selectedId] });
+      await client.invalidateQueries({ queryKey: ["engineering-integration", integrationRunId] });
     },
   });
   const sendProjectMessage = useMutation({
@@ -295,6 +319,17 @@ export const EngineeringControlCenterPage = ({
 
   return (
     <section className="engineering-control-center wide-page">
+      <details className="panel">
+        <summary>Engineering dataset</summary>
+        {dataset.data ? <>
+          <p>{dataset.data.eligibleExamples} eligible · {dataset.data.excludedExamples} excluded · {dataset.data.failedAttempts} failed attempts</p>
+          <p>Categories: {Object.entries(dataset.data.categories).map(([key, count]) => `${key}: ${count}`).join(", ") || "No accepted examples"}</p>
+          <p>Source models: {Object.entries(dataset.data.models).map(([key, count]) => `${key}: ${count}`).join(", ") || "None"}</p>
+          <p>Languages/frameworks: {[...Object.keys(dataset.data.languages), ...Object.keys(dataset.data.frameworks)].join(", ") || "None"}</p>
+          <p>Frozen versions: {dataset.data.snapshots.map(value => `${value.key} (${value.members.length})`).join(", ") || "None"}</p>
+          <p>Cloud performance comparison pending live baseline.</p>
+        </> : <p>{dataset.isError ? "Dataset status unavailable." : "Loading dataset status…"}</p>}
+      </details>
       <div className="engineering-command-row">
         <div className="engineering-composer-stack">
         <div className="engineering-mode-switch" role="tablist" aria-label="Engineering mode">
@@ -303,6 +338,10 @@ export const EngineeringControlCenterPage = ({
         </div>
         {composerMode === "DELIVERY" ? (
         <form className="panel engineering-request-form" onSubmit={submit}>
+          <label><input type="checkbox" checked={selfMode} onChange={(event) => {
+            setSelfMode(event.target.checked); selfRequestKey.current = null;
+          }} /> Improve Athena itself</label>
+          {selfMode ? <p>Uses this company's registered Athena repository. Work stops at a reviewed update candidate.</p> : null}
           <div className="engineering-terminal-topline" aria-hidden="true">
             <span className="engineering-terminal-dots"><i /><i /><i /></span>
             <span>engineering@governed:~</span>
@@ -319,13 +358,14 @@ export const EngineeringControlCenterPage = ({
             <span aria-hidden="true">&gt;_</span>
             <textarea
               aria-label="Software objective"
-              onChange={(event) => setRequest(event.target.value)}
+              onChange={(event) => { setRequest(event.target.value); selfRequestKey.current = null; }}
               placeholder="Build me a responsive SaaS landing page with pricing, testimonials, FAQ and a dark design."
               required
               value={request}
             />
           </label>
           <div className="engineering-form-row">
+            {!selfMode ? <>
             <input
               aria-label="Project name"
               onChange={(event) => setProjectName(event.target.value)}
@@ -369,12 +409,13 @@ export const EngineeringControlCenterPage = ({
                 ))}
               </select>
             )}
+            </> : null}
             <button
               disabled={
                 create.isPending ||
                 !request ||
-                (mode === "NEW" && !rootId) ||
-                (mode === "EXISTING" && !repositoryId)
+                (!selfMode && mode === "NEW" && !rootId) ||
+                (!selfMode && mode === "EXISTING" && !repositoryId)
               }
               type="submit"
             >
@@ -600,6 +641,15 @@ export const EngineeringControlCenterPage = ({
               <p className="eyebrow">{data.delivery.intent.replaceAll("_", " ")}</p>
               <h2>{data.delivery.projectName}</h2>
               <p>{data.delivery.sourceRequest}</p>
+              {data.delivery.selfImprovement ? <p>
+                {selfImprovement.data?.riskLevel ?? data.delivery.selfImprovement.riskLevel} risk ·
+                {selfImprovement.data?.engineeringMode ?? data.delivery.selfImprovement.engineeringMode} path ·
+                {selfImprovement.data?.requiresOwnerApproval ? "Owner approval required" : "Candidate creation only"}
+              </p> : null}
+              {data.delivery.selfImprovement && selfImprovement.data?.integration?.candidate?.status === "READY"
+                ? <button type="button" disabled={rejectSelfImprovement.isPending}
+                  onClick={() => rejectSelfImprovement.mutate()}>Reject update candidate</button> : null}
+              {rejectSelfImprovement.error instanceof Error ? <p role="alert">{rejectSelfImprovement.error.message}</p> : null}
             </div>
             <div className={`engineering-status ${data.delivery.status.toLowerCase()}`}>
               {data.delivery.status.replaceAll("_", " ")}
@@ -872,6 +922,10 @@ export const EngineeringControlCenterPage = ({
                 <h2><span className="engineering-panel-index">06</span> Changed files</h2>
                 <WalletCards size={17} />
               </div>
+              {data.codingModels.filter(value => value.model).map(value => <p key={value.taskId}>
+                Model: {value.provider === "athena_coder" ? "AthenaCoder" : value.model}
+                {value.localAttempt === "UNKNOWN" ? "" : ` · Local attempt: ${value.localAttempt}`}
+              </p>)}
               <div className="engineering-files">
                 {data.delivery.filesChanged.length ? (
                   data.delivery.filesChanged.map((file) => (

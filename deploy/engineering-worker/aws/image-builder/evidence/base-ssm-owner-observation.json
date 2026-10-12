@@ -1,0 +1,34 @@
+{
+  "expectedBaseAmiId": "ami-0ba4172b23e57d5a8",
+  "instanceId": "i-09c137314e06b4b47",
+  "instanceIdentityVerified": false,
+  "limitations": [
+    "Operator terminal output; no independent remote inspection by Codex.",
+    "Runtime release/revision observed, not yet owner-approved with archive digest.",
+    "DEB detached signature PASS does not verify this Snap archive.",
+    "Kernel ABI observed; concrete package/kernel lock still pending.",
+    "Installed Snap archive is root-readable. Collector must use an owner-accessible byte-identical copy; no chmod of protected source or root execution of whole collector."
+  ],
+  "previewEnabled": false,
+  "runningKernelAbi": "7.0.0-1012-aws",
+  "runtimePermissionsActivated": false,
+  "ssm": {
+    "archiveDigestEvidence": "Owner executed read-only sudo sha256sum on the exact installed archive; independent public immutable Snap Store copy matches SHA256 and Store SHA3-384.",
+    "archiveSha256": "53e14f4e402a3de500dbfd162368922a07117638dcfc14c1e2c0340cbf979de7",
+    "currentPath": "/snap/amazon-ssm-agent/13349",
+    "minimumVersionSatisfied": true,
+    "publisher": "aws verified marker reported",
+    "refreshHeldObserved": false,
+    "revision": "13349",
+    "runtimeVersion": "3.3.4793.0",
+    "serviceEnabled": null,
+    "serviceState": "active",
+    "storeCopyDigestMatches": true,
+    "storeDownloadUrl": "https://api.snapcraft.io/api/v1/snaps/download/T09mpujiTnzSdSCuqNkE7YXXTWDq13tC_13349.snap",
+    "storeSha3_384": "99cdccabcdd14712e1ff4fd375603c4c5edc7cb89c3ba468d28c72131a5636ec0b3e4e11529928683955f1a483f95524",
+    "strategy": "snap",
+    "tracking": "latest/stable"
+  },
+  "status": "OWNER_REPORTED_BASE_OBSERVATION_NOT_RELEASED",
+  "ubuntuRelease": "24.04.4 LTS"
+}

@@ -1,3 +1,6 @@
+import type { AthenaCoderControlService } from "../ai/athena-coder/control.js";
+import type { AthenaCoderEngineeringBenchmarkHarness } from "../engineering-dataset/benchmark.js";
+import type { EngineeringDatasetService } from "../engineering-dataset/service.js";
 import type { NetworkVerifier } from "@alexa-control/shared";
 
 import type { IdentityService } from "../identity/service.js";
@@ -135,8 +138,20 @@ import type { EngineeringIntegrationService } from "../engineering-integration/s
 import type { EngineeringIntegrationStore } from "../engineering-integration/store.js";
 import type { EngineeringDeliveryService } from "../engineering-delivery/service.js";
 import type { EngineeringDeliveryStore } from "../engineering-delivery/store.js";
+import type { SelfImprovementService } from "../self-improvement/service.js";
+import type { SelfImprovementEvidence } from "../self-improvement/evidence.js";
+import type { UniversalToolGateway } from "../universal-tools/gateway.js";
+import type { UniversalToolLifecycle } from "../universal-tools/lifecycle.js";
+import type { UniversalToolStore } from "../universal-tools/store.js";
+import type { MarketingService } from "../marketing/service.js";
+import type { MarketingArtifactReviewService } from "../marketing/review.js";
+import type { MarketingCampaignCoordinator } from "../marketing/coordinator.js";
 
 export interface ApiRouteContext {
+  marketing: MarketingService;
+  marketingReview: MarketingArtifactReviewService;
+  marketingCoordinator: MarketingCampaignCoordinator;
+  universalTools?: { gateway: UniversalToolGateway; lifecycle: UniversalToolLifecycle; store: UniversalToolStore };
   deploymentMode: "private" | "cloud";
   identity: IdentityService;
   security: SecurityMiddleware;
@@ -177,8 +192,13 @@ export interface ApiRouteContext {
   engineeringManager: EngineeringManagerService;
   engineeringOrchestrationStore: EngineeringOrchestrationStore;
   engineeringIntegration: EngineeringIntegrationService;
+  engineeringDataset: EngineeringDatasetService;
+  athenaCoderControl: AthenaCoderControlService;
+  engineeringCoderBenchmark: AthenaCoderEngineeringBenchmarkHarness;
   engineeringIntegrationStore: EngineeringIntegrationStore;
   engineeringDelivery: EngineeringDeliveryService;
+  selfImprovement: SelfImprovementService;
+  selfImprovementEvidence: SelfImprovementEvidence;
   engineeringDeliveryStore: EngineeringDeliveryStore;
   engineeringProjectSessions: EngineeringProjectSessionService;
   repositories: RepositoryService;

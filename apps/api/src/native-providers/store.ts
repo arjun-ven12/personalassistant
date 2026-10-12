@@ -129,7 +129,10 @@ export class InMemoryNativeProviderStore implements NativeProviderStore {
     );
   }
   saveExecution(record: ProviderExecutionRecord) {
-    this.#execution.set(record.id, clone(ProviderExecutionRecordSchema.parse(record)));
+    const parsed = ProviderExecutionRecordSchema.parse(record);
+    const existing = this.#execution.get(parsed.id);
+    if (parsed.status === "requested" && existing?.status !== undefined && existing.status !== "requested") return;
+    this.#execution.set(parsed.id, clone(parsed));
   }
   findExecutionByRequest(ownerId: string, executionRequestId: string) {
     const found = [...this.#execution.values()].find(

@@ -429,8 +429,17 @@ import {
   type CreateCompanyRequest,
   type UpdateCompanyRequest,
   CompanyDataDashboardSchema,
+  CompanyCredentialReferenceSchema,
+  CompanyIntegrationBindingSchema,
+  UpsertCompanyCredentialReferenceRequestSchema,
+  UpsertCompanyIntegrationBindingRequestSchema,
   ResolvedCompanyAgentContextSchema,
   EngineeringControlCenterSchema,
+  EngineeringDatasetStatsSchema,
+  CreateSelfImprovementRequestSchema,
+  SelfImprovementViewSchema,
+  SelfImprovementTelemetrySchema,
+  RejectSelfImprovementCandidateRequestSchema,
   EngineeringIntegrationViewSchema,
   MergeEngineeringCandidateRequestSchema,
   EngineeringDeliverySchema,
@@ -442,6 +451,8 @@ import {
   UpdateEngineeringProjectSessionQueueRequestSchema,
   CreateSoftwareObjectiveRequestSchema,
   AddEngineeringInstructionRequestSchema,
+  MarketingCampaignSchema,
+  MarketingArtifactSchema,
 } from "@alexa-control/shared";
 import { z } from "zod";
 
@@ -573,6 +584,25 @@ export const createApiClient = (baseUrl: string) => {
   };
 
   return {
+    getMarketingCampaigns: () =>
+      requestAndValidate(
+        baseUrl,
+        "/api/marketing-campaigns",
+        z.object({ campaigns: z.array(MarketingCampaignSchema).max(100) }).strict(),
+      ),
+    getMarketingCampaign: (campaignId: string) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/marketing-campaigns/${encodeURIComponent(campaignId)}`,
+        z
+          .object({
+            campaign: MarketingCampaignSchema,
+            artifacts: z.array(MarketingArtifactSchema),
+            progressPercent: z.number().int().min(0).max(100),
+            approvalsPending: z.number().int().nonnegative(),
+          })
+          .strict(),
+      ),
     getEngineeringProjectSessions: () =>
       requestAndValidate(
         baseUrl,
@@ -612,6 +642,7 @@ export const createApiClient = (baseUrl: string) => {
         "/api/engineering-deliveries",
         z.object({ deliveries: z.array(EngineeringDeliverySchema) }).strict(),
       ),
+    getEngineeringDatasetStats: () => requestAndValidate(baseUrl, "/api/engineering-dataset", EngineeringDatasetStatsSchema),
     getEngineeringProjects: () =>
       requestAndValidate(
         baseUrl,
@@ -643,6 +674,32 @@ export const createApiClient = (baseUrl: string) => {
         "/api/engineering-deliveries",
         EngineeringControlCenterSchema,
         jsonBody(CreateSoftwareObjectiveRequestSchema.parse(input)),
+      ),
+    createSelfImprovement: (input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/self-improvement",
+        SelfImprovementViewSchema,
+        jsonBody(CreateSelfImprovementRequestSchema.parse(input)),
+      ),
+    getSelfImprovement: (id: string) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/self-improvement/${encodeURIComponent(id)}`,
+        SelfImprovementViewSchema,
+      ),
+    getSelfImprovementTelemetry: (id: string) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/self-improvement/${encodeURIComponent(id)}/telemetry`,
+        SelfImprovementTelemetrySchema,
+      ),
+    rejectSelfImprovement: (id: string, input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        `/api/self-improvement/${encodeURIComponent(id)}/reject`,
+        SelfImprovementViewSchema,
+        jsonBody(RejectSelfImprovementCandidateRequestSchema.parse(input)),
       ),
     controlEngineeringDelivery: (
       id: string,
@@ -726,6 +783,32 @@ export const createApiClient = (baseUrl: string) => {
       ),
     getCompanyData: () =>
       requestAndValidate(baseUrl, "/api/company-data", CompanyDataDashboardSchema),
+    upsertCompanyCredentialReference: (companyId: string, input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/company-data/credentials",
+        CompanyCredentialReferenceSchema.omit({ secretLocator: true }),
+        {
+          ...jsonBody(UpsertCompanyCredentialReferenceRequestSchema.parse(input)),
+          headers: {
+            "Content-Type": "application/json",
+            "x-company-id": z.string().uuid().parse(companyId),
+          },
+        },
+      ),
+    upsertCompanyIntegrationBinding: (companyId: string, input: unknown) =>
+      requestAndValidate(
+        baseUrl,
+        "/api/company-data/integrations",
+        CompanyIntegrationBindingSchema,
+        {
+          ...jsonBody(UpsertCompanyIntegrationBindingRequestSchema.parse(input)),
+          headers: {
+            "Content-Type": "application/json",
+            "x-company-id": z.string().uuid().parse(companyId),
+          },
+        },
+      ),
     getCompanyAgentDataContext: (assignmentId: string) =>
       requestAndValidate(
         baseUrl,

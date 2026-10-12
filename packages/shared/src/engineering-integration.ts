@@ -227,6 +227,7 @@ export const EngineeringMergeCandidateSchema = z
     validatedHeadCommit: CommitSchema,
     reviewedHeadCommit: CommitSchema,
     mergeIdempotencyKey: z.string().min(8).max(200).nullable().default(null),
+    rejectionReason: z.string().max(500).nullable().default(null),
     mergedAt: z.iso.datetime().nullable().default(null),
     mergedHeadCommit: CommitSchema.nullable().default(null),
     createdAt: z.iso.datetime(),

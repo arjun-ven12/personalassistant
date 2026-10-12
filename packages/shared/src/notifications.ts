@@ -25,6 +25,7 @@ export const ExecutiveNotificationSeveritySchema = z.enum([
 ]);
 
 export const ExecutiveNotificationObjectKindSchema = z.enum([
+  "ENGINEERING_BUILD",
   "APPROVAL",
   "OBJECTIVE",
   "WORKFLOW",

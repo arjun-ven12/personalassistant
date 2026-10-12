@@ -257,6 +257,8 @@ export class IdentityService {
     deviceType: DeviceType;
     publicKey: Ed25519PublicKey;
   }) {
+    if (input.deviceType === "CLOUD_WORKER")
+      throw new ApiSecurityError(403, "DEVICE_TYPE_RESTRICTED", "Cloud workers require server-owned registration.");
     const now = this.now();
     const intent = await this.store.consumePairingIntent(
       hashSecret(input.pairingCode),

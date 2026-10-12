@@ -14,10 +14,12 @@ import {
   MergeEngineeringCandidateRequestSchema,
   EngineeringPreparedCommitSchema,
   EngineeringTaskResultSchema,
+  isSelfImprovementAuthorityPath,
   type EngineeringAcceptanceEvidenceSchema,
   type EngineeringCapability,
   type EngineeringChangeMapEntry,
   type EngineeringIntegrationReview,
+  type EngineeringMergeCandidate,
   type EngineeringIntegrationConflict,
   type EngineeringIntegrationRun,
   type EngineeringTask,
@@ -209,12 +211,17 @@ const matchesPath = (path: string, patterns: string[]) =>
   });
 
 const sensitivePath = (path: string) =>
+  isSelfImprovementAuthorityPath(path) ||
   /(^|\/)(auth|authentication|permissions?|tenant|secrets?|credentials?|crypto|billing|payments?|governance|polic(?:y|ies)|approvals?|migrations?|infrastructure|deploy)(\/|\.|-)/i.test(
     path,
   ) ||
   /(^|\/)(package\.json|pnpm-lock\.yaml|package-lock\.json|pyproject\.toml)$/.test(
     path,
   );
+
+const fullSelfValidationPassed = (report: EngineeringValidationReport | undefined) =>
+  report?.status === "PASS" && (["LINT", "TYPECHECK", "TEST", "BUILD"] as const)
+    .every((kind) => report.steps.some((step) => step.kind === kind && step.status === "PASS"));
 
 const latestSuccessfulResults = (
   tasks: EngineeringTask[],
@@ -258,10 +265,24 @@ const deterministicOrder = (tasks: EngineeringTask[]) => {
 };
 
 export class EngineeringIntegrationService {
+  private selfImprovementRepository?: (companyId: string, repositoryId: string) => boolean;
   private reviewerSelector?: EngineeringIntegrationReviewerSelector;
   private conflictResolver?: EngineeringIntegrationConflictResolver;
   private approvals?: ApprovalService;
   private manager?: EngineeringIntegrationRepairManager;
+  private acceptedMemoryPromoter?: (context: EngineeringIntegrationContext, candidate: EngineeringMergeCandidate, run: EngineeringIntegrationRun, evidence: { validation: EngineeringValidationReport; reviews: EngineeringIntegrationReview[] }) => Promise<void>;
+  private datasetCollector?: (ownerId: string, companyId: string, runId: string) => Promise<unknown>;
+  private datasetDiffRecorder?: (ownerId: string, companyId: string, run: EngineeringIntegrationRun, head: string, diff: ReturnType<typeof EngineeringDiffResultSchema.parse>) => Promise<void>;
+
+  setDatasetHooks(hooks: { collect: NonNullable<EngineeringIntegrationService["datasetCollector"]>; recordDiff: NonNullable<EngineeringIntegrationService["datasetDiffRecorder"]> }) {
+    this.datasetCollector = hooks.collect; this.datasetDiffRecorder = hooks.recordDiff;
+  }
+  private async collectDataset(context: EngineeringIntegrationContext, runId: string) {
+    if (!this.datasetCollector) return;
+    try { await this.datasetCollector(context.ownerId, context.companyId, runId); } catch {
+      await this.auditEvent(context, "ENGINEERING_DATASET_COLLECTION_FAILED", "Accepted Engineering dataset collection failed; retry the same merge identity.", {integrationRunId: runId});
+    }
+  }
   private readonly active = new Map<string, AbortController>();
 
   constructor(
@@ -291,6 +312,59 @@ export class EngineeringIntegrationService {
     this.manager = manager;
   }
 
+  setAcceptedMemoryPromoter(promoter: (context: EngineeringIntegrationContext, candidate: EngineeringMergeCandidate, run: EngineeringIntegrationRun, evidence: { validation: EngineeringValidationReport; reviews: EngineeringIntegrationReview[] }) => Promise<void>) {
+    this.acceptedMemoryPromoter = promoter;
+  }
+
+  private async promoteAcceptedMemory(context: EngineeringIntegrationContext, view: { candidate: EngineeringMergeCandidate | null; run: EngineeringIntegrationRun }) {
+    if (!this.acceptedMemoryPromoter || view.candidate?.status !== "MERGED" ||
+        !view.candidate.mergedAt || view.candidate.mergedHeadCommit !== view.candidate.headCommit ||
+        view.candidate.validatedHeadCommit !== view.candidate.headCommit ||
+        view.candidate.reviewedHeadCommit !== view.candidate.headCommit ||
+        view.run.status !== "READY" ||
+        view.run.validationReportId !== view.candidate.validationReportId ||
+        view.run.reviewId !== view.candidate.reviewReportId ||
+        view.run.securityReviewRequired && view.run.securityReviewId !== view.candidate.securityReviewId) return;
+    const objective = await this.requireObjective(context, view.run.objectiveId);
+    if (!objective.selfImprovement) return;
+    const [validation, reviews, results] = await Promise.all([
+      this.runtime.findValidation(context.ownerId, context.companyId, view.candidate.validationReportId),
+      this.store.listReviews(context.ownerId, context.companyId, view.run.id),
+      this.orchestration.listResults(context.ownerId, context.companyId, view.run.objectiveId),
+    ]);
+    const authors = new Set(results.filter((result) => view.candidate!.tasksIncluded.includes(result.taskId))
+      .map((result) => result.agentId));
+    const passes = (id: string) => reviews.some((review) => review.id === id &&
+      review.headCommit === view.candidate!.headCommit &&
+      ["PASS", "PASS_WITH_WARNINGS"].includes(review.verdict) &&
+      !authors.has(review.reviewerAgentId));
+    if (validation?.status !== "PASS" || validation.workspaceId !== view.candidate.integrationWorkspaceId ||
+        !passes(view.candidate.reviewReportId) ||
+        (view.run.securityReviewRequired || objective.riskLevel === "HIGH" || objective.riskLevel === "CRITICAL") &&
+          (!view.candidate.securityReviewId || !passes(view.candidate.securityReviewId)) ||
+        (objective.riskLevel === "HIGH" || objective.riskLevel === "CRITICAL") && !fullSelfValidationPassed(validation)) return;
+    try {
+      await this.acceptedMemoryPromoter(context, view.candidate, view.run, { validation, reviews });
+    } catch {
+      // The native merge already succeeded. Keep its durable truth; same-key
+      // retry can safely reattempt idempotent memory promotion.
+      await this.auditEvent(context, "ENGINEERING_MEMORY_PROMOTION_FAILED", "Accepted self-improvement memory promotion failed after governed merge; retry the same merge identity.", {
+        integrationRunId: view.run.id, mergeCandidateId: view.candidate.id,
+      });
+    }
+  }
+
+  setSelfImprovementRepository(predicate: (companyId: string, repositoryId: string) => boolean) {
+    this.selfImprovementRepository = predicate;
+  }
+
+  private assertSelfBinding(objective: { selfImprovement: boolean; companyId: string; repositoryId: string }) {
+    if (this.selfImprovementRepository?.(objective.companyId, objective.repositoryId) && !objective.selfImprovement)
+      throw new EngineeringIntegrationError("REPOSITORY_NOT_AUTHORIZED", "A legacy objective cannot integrate or merge changes to Athena's registered repository.");
+    if (objective.selfImprovement && !this.selfImprovementRepository?.(objective.companyId, objective.repositoryId))
+      throw new EngineeringIntegrationError("REPOSITORY_NOT_AUTHORIZED", "The configured Athena repository binding is unavailable.");
+  }
+
   async merge(context: EngineeringIntegrationContext, runId: string, body: unknown) {
     const { idempotencyKey } = MergeEngineeringCandidateRequestSchema.parse(body);
     const initial = await this.view(context.ownerId, context.companyId, runId);
@@ -298,7 +372,11 @@ export class EngineeringIntegrationService {
     if (!candidate || initial.run.status !== "READY")
       throw new EngineeringIntegrationError("MERGE_DENIED", "A READY integration candidate is required.");
     if (candidate.status === "MERGED") {
-      if (candidate.mergeIdempotencyKey === idempotencyKey) return initial;
+      if (candidate.mergeIdempotencyKey === idempotencyKey) {
+        await this.promoteAcceptedMemory(context, initial);
+        await this.collectDataset(context, runId);
+        return initial;
+      }
       throw new EngineeringIntegrationError("MERGE_DENIED", "Candidate was merged under a different request identity.");
     }
     if (!["READY", "MERGING"].includes(candidate.status) ||
@@ -308,6 +386,13 @@ export class EngineeringIntegrationService {
     if (!repository || repository.status !== "ACTIVE" ||
         !repository.protectedBranches.includes(repository.defaultBranch))
       throw new EngineeringIntegrationError("REPOSITORY_NOT_AUTHORIZED", "Registered protected target branch is unavailable.");
+    const objective = await this.requireObjective(context, candidate.objectiveId);
+    this.assertSelfBinding(objective);
+    if (objective.selfImprovement && candidate.filesChanged.some((path) =>
+      isSelfImprovementAuthorityPath(path) || matchesPath(path, repository.protectedPaths)) &&
+      (objective.riskLevel !== "HIGH" && objective.riskLevel !== "CRITICAL" ||
+        !initial.run.securityReviewRequired || !candidate.securityReviewId))
+      throw new EngineeringIntegrationError("MERGE_DENIED", "Athena authority changes require a high-risk objective and independent security review.");
     if (!this.approvals)
       throw new EngineeringIntegrationError("MERGE_DENIED", "Canonical approval service is unavailable.");
     const action = engineeringMergeAction(candidate, repository.workspaceLocatorId, repository.defaultBranch, idempotencyKey);
@@ -371,8 +456,15 @@ export class EngineeringIntegrationService {
           !passing(liveCandidate.reviewReportId) ||
           claimed.securityReviewRequired && (!liveCandidate.securityReviewId || !passing(liveCandidate.securityReviewId)))
         throw new EngineeringIntegrationError("MERGE_DENIED", "Current validation or required independent review is not passing.");
-      const authorIds = new Set((await this.orchestration.listResults(context.ownerId, context.companyId, claimed.objectiveId))
-        .filter((result) => claimed.taskIds.includes(result.taskId)).map((result) => result.agentId));
+      if (objective.selfImprovement && (objective.riskLevel === "HIGH" || objective.riskLevel === "CRITICAL") &&
+          !fullSelfValidationPassed(validation))
+        throw new EngineeringIntegrationError("MERGE_DENIED", "High-risk Athena merge requires passing lint, typecheck, tests, and build on the exact candidate.");
+      const authorResults = (await this.orchestration.listResults(context.ownerId, context.companyId, claimed.objectiveId))
+        .filter((result) => claimed.taskIds.includes(result.taskId) && result.status === "SUCCEEDED");
+      if (objective.selfImprovement && (objective.riskLevel === "HIGH" || objective.riskLevel === "CRITICAL") &&
+          authorResults.some((result) => result.filesChanged.length > 0 && !["TERRA", "SOL", "ASTRA"].includes(result.modelTier)))
+        throw new EngineeringIntegrationError("MERGE_DENIED", "High-risk Athena changes require a stronger implementation model.");
+      const authorIds = new Set(authorResults.map((result) => result.agentId));
       if (reviews.some((review) =>
         [liveCandidate.reviewReportId, liveCandidate.securityReviewId].includes(review.id) && authorIds.has(review.reviewerAgentId)))
         throw new EngineeringIntegrationError("MERGE_DENIED", "Authoring engineering identity cannot provide sole review authority.");
@@ -432,7 +524,10 @@ export class EngineeringIntegrationService {
         integrationRunId: runId, mergeCandidateId: candidate.id, headCommit: merged.headCommit,
         alreadyMerged: merged.alreadyMerged,
       });
-      return this.view(context.ownerId, context.companyId, runId);
+      const accepted = await this.view(context.ownerId, context.companyId, runId);
+      await this.promoteAcceptedMemory(context, accepted);
+      await this.collectDataset(context, runId);
+      return accepted;
     } finally {
       clearInterval(heartbeat);
       if (!dispatched || confirmed) await this.store.releaseLease({
@@ -453,6 +548,7 @@ export class EngineeringIntegrationService {
     if (existing) return this.view(context.ownerId, context.companyId, existing.id);
 
     const objective = await this.requireObjective(context, request.objectiveId);
+    this.assertSelfBinding(objective);
     const [repository, tasks, allResults] = await Promise.all([
       this.runtime.findRepository(
         context.ownerId,
@@ -497,6 +593,13 @@ export class EngineeringIntegrationService {
     const mutating = selected.filter(
       (result) => result.workspaceId && result.filesChanged.length > 0,
     );
+    if (objective.selfImprovement && (objective.riskLevel === "HIGH" || objective.riskLevel === "CRITICAL") &&
+        mutating.some((result) => !["TERRA", "SOL", "ASTRA"].includes(result.modelTier)))
+      throw new EngineeringIntegrationError("INTEGRATION_NOT_READY", "High-risk Athena changes require a stronger implementation model before candidate creation.");
+    if (objective.selfImprovement && objective.riskLevel !== "HIGH" && objective.riskLevel !== "CRITICAL" &&
+        mutating.some((result) => result.filesChanged.some((path) =>
+          isSelfImprovementAuthorityPath(path) || matchesPath(path, repository.protectedPaths))))
+      throw new EngineeringIntegrationError("INTEGRATION_NOT_READY", "Athena authority or protected paths changed outside a high-risk self-improvement objective. A stronger independent implementation and review are required.");
     if (mutating.length === 0)
       throw new EngineeringIntegrationError(
         "INTEGRATION_NOT_READY",
@@ -751,6 +854,9 @@ export class EngineeringIntegrationService {
     runId: string,
     workerId: string,
   ) {
+    const existingRun = await this.store.findRun(context.ownerId, context.companyId, runId);
+    if (!existingRun) throw new EngineeringIntegrationError("INTEGRATION_NOT_FOUND", "Integration run was not found in this company scope.");
+    this.assertSelfBinding(await this.requireObjective(context, existingRun.objectiveId));
     const claimedAt = this.now();
     const claimed = await this.store.acquireLease({
       ownerId: context.ownerId,
@@ -822,6 +928,9 @@ export class EngineeringIntegrationService {
             !pendingResult.workspaceId || !pendingResult.filesChanged.length))
           return this.view(context.ownerId, context.companyId, run.id);
         if (pendingId && pendingResult && pendingTask) {
+          if (objective.selfImprovement && (objective.riskLevel === "HIGH" || objective.riskLevel === "CRITICAL") &&
+              !["TERRA", "SOL", "ASTRA"].includes(pendingResult.modelTier))
+            throw new EngineeringIntegrationError("INTEGRATION_NOT_READY", "High-risk Athena repair requires a stronger implementation model.");
           const workspace = await this.runtime.findWorkspace(context.ownerId, context.companyId, pendingResult.workspaceId!);
           const repository = await this.runtime.findRepository(context.ownerId, context.companyId, run.repositoryId);
           if (!workspace || !repository ||
@@ -829,6 +938,9 @@ export class EngineeringIntegrationService {
               workspace.taskId !== pendingTask.id || workspace.agentId !== pendingResult.agentId ||
               !repository.authorizedAgentIds.includes(pendingResult.agentId))
             throw new EngineeringIntegrationError("INTEGRATION_NOT_READY", "Repair workspace lost its registered common-base scope.");
+          if (objective.selfImprovement && objective.riskLevel !== "HIGH" && objective.riskLevel !== "CRITICAL" &&
+              pendingResult.filesChanged.some((path) => isSelfImprovementAuthorityPath(path) || matchesPath(path, repository.protectedPaths)))
+            throw new EngineeringIntegrationError("INTEGRATION_NOT_READY", "Repair changed Athena authority or protected paths outside a high-risk objective.");
           const updatedMap = [...run.changeMap];
           for (const path of pendingResult.filesChanged) {
             const prior = updatedMap.find((entry) => entry.path === path);
@@ -1103,6 +1215,9 @@ export class EngineeringIntegrationService {
             "INTEGRATION_NOT_READY",
             "Prepared task files differ from the validated task result.",
           );
+        if (objective.selfImprovement && objective.riskLevel !== "HIGH" && objective.riskLevel !== "CRITICAL" &&
+            prepared.files.some((path) => isSelfImprovementAuthorityPath(path) || matchesPath(path, integrationRepository.protectedPaths)))
+          throw new EngineeringIntegrationError("INTEGRATION_NOT_READY", "Prepared task changed Athena authority or protected paths outside a high-risk objective.");
         // Rebuild even after a crash between saving the result and the run;
         // newly discovered paths retain contract/security review requirements.
         const changeMap = [...run.changeMap];
@@ -1358,6 +1473,9 @@ export class EngineeringIntegrationService {
         }
         throw new EngineeringIntegrationError("VALIDATION_FAILED", "Full registered repository validation did not pass.");
       }
+      if (objective.selfImprovement && (objective.riskLevel === "HIGH" || objective.riskLevel === "CRITICAL") &&
+          !fullSelfValidationPassed(await this.runtime.findValidation(context.ownerId, context.companyId, validation.validationReportId)))
+        throw new EngineeringIntegrationError("VALIDATION_FAILED", "High-risk Athena candidate requires passing registered lint, typecheck, tests, and build checks.");
       await this.assertHead(context, run, agentId, headCommit, controller.signal);
       const diff = EngineeringDiffResultSchema.parse(
         (
@@ -1384,6 +1502,11 @@ export class EngineeringIntegrationService {
           "REVIEW_FAILED",
           "Combined diff is truncated, binary, or contains likely secrets; owner review is required.",
         );
+      if (this.datasetDiffRecorder) {
+        try { await this.datasetDiffRecorder(context.ownerId, context.companyId, run, headCommit, diff); } catch {
+          // Missing immutable diff evidence keeps dataset eligibility denied.
+        }
+      }
       run = await this.saveFenced(
         {
           ...run,
@@ -1717,6 +1840,44 @@ export class EngineeringIntegrationService {
       { integrationRunId: run.id },
     );
     return this.view(context.ownerId, context.companyId, runId);
+  }
+
+  async rejectCandidate(context: EngineeringIntegrationContext, runId: string, reason: string | null) {
+    if (reason !== null && (reason.trim().length < 1 || reason.length > 500))
+      throw new EngineeringIntegrationError("MERGE_DENIED", "Candidate rejection reason must be bounded.");
+    const initial = await this.view(context.ownerId, context.companyId, runId);
+    if (initial.run.status !== "READY" || initial.candidate?.status !== "READY")
+      throw new EngineeringIntegrationError("MERGE_DENIED", "Only a READY candidate can be rejected.");
+    const workerId = `reject:${context.requestId}`;
+    const now = this.now();
+    const claimed = await this.store.acquireReadyLease({
+      ownerId: context.ownerId, companyId: context.companyId, runId, workerId,
+      now: now.toISOString(), expiresAt: new Date(now.getTime() + this.leaseMs).toISOString(),
+    });
+    if (!claimed) throw new EngineeringIntegrationError("INTEGRATION_BUSY", "Candidate decision lease is unavailable.");
+    try {
+      const current = await this.view(context.ownerId, context.companyId, runId);
+      if (current.candidate?.id !== initial.candidate.id || current.candidate.status !== "READY" ||
+          current.candidate.headCommit !== initial.candidate.headCommit)
+        throw new EngineeringIntegrationError("MERGE_DENIED", "Candidate changed before rejection.");
+      const rejected = EngineeringMergeCandidateSchema.parse({
+        ...current.candidate,
+        status: "BLOCKED",
+        rejectionReason: reason?.trim() ?? null,
+        updatedAt: this.now().toISOString(),
+      });
+      if (!await this.store.saveCandidateFenced(rejected, workerId, claimed.leaseGeneration, this.now().toISOString()))
+        throw new EngineeringIntegrationError("LEASE_LOST", "Candidate rejection lease was lost.");
+      await this.auditEvent(context, "ENGINEERING_MERGE_CANDIDATE_REJECTED", "Owner rejected a reviewable engineering candidate.", {
+        integrationRunId: runId, mergeCandidateId: rejected.id,
+      });
+      return this.view(context.ownerId, context.companyId, runId);
+    } finally {
+      await this.store.releaseLease({
+        ownerId: context.ownerId, companyId: context.companyId, runId,
+        workerId, generation: claimed.leaseGeneration, now: this.now().toISOString(),
+      });
+    }
   }
 
   async view(ownerId: string, companyId: string, runId: string) {

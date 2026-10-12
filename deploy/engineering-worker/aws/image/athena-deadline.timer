@@ -1,0 +1,9 @@
+[Unit]
+Description=Independent absolute deadline for ephemeral Engineering
+[Timer]
+OnBootSec=3500s
+AccuracySec=1s
+RandomizedDelaySec=0
+Unit=athena-expire.service
+[Install]
+WantedBy=timers.target

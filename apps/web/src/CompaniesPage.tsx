@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import type { CompanyLifecycleAction, CompanyStatus } from "@alexa-control/shared";
 import type { ApiClient } from "./api.js";
 import { retainQueryAcrossCompanySwitch } from "./companyQueryCache.js";
+import { EngineeringCredentialSetup } from "./EngineeringCredentialSetup.js";
 
 const actionFor = (
   status: CompanyStatus,
@@ -57,7 +58,13 @@ export const CompaniesPage = ({
     "Data" | "Metrics" | "Integrations" | "Memory"
   >("Data");
   const [managementTab, setManagementTab] = useState<
-    "Overview" | "Strategy" | "KPIs" | "Objectives" | "Departments" | "Reviews" | "Decisions"
+    | "Overview"
+    | "Strategy"
+    | "KPIs"
+    | "Objectives"
+    | "Departments"
+    | "Reviews"
+    | "Decisions"
   >("Overview");
   const [glossaryQuery, setGlossaryQuery] = useState("");
   useEffect(() => {
@@ -282,43 +289,314 @@ export const CompaniesPage = ({
                 ))}
               </div>
               {isActiveCompany ? (
-                <section className="company-management-intelligence" aria-label="Company management intelligence">
-                  <div className="company-data-tabs management-tabs" role="tablist" aria-label="Company management">
-                    {(["Overview", "Strategy", "KPIs", "Objectives", "Departments", "Reviews", "Decisions"] as const).map((tab) => (
-                      <button aria-selected={managementTab === tab} key={tab} onClick={() => setManagementTab(tab)} role="tab" type="button">{tab}</button>
+                <section
+                  className="company-management-intelligence"
+                  aria-label="Company management intelligence"
+                >
+                  <div
+                    className="company-data-tabs management-tabs"
+                    role="tablist"
+                    aria-label="Company management"
+                  >
+                    {(
+                      [
+                        "Overview",
+                        "Strategy",
+                        "KPIs",
+                        "Objectives",
+                        "Departments",
+                        "Reviews",
+                        "Decisions",
+                      ] as const
+                    ).map((tab) => (
+                      <button
+                        aria-selected={managementTab === tab}
+                        key={tab}
+                        onClick={() => setManagementTab(tab)}
+                        role="tab"
+                        type="button"
+                      >
+                        {tab}
+                      </button>
                     ))}
                   </div>
-                  {companyManagement.isPending ? <p className="notice">Resolving evidence-backed management state…</p> : null}
+                  {companyManagement.isPending ? (
+                    <p className="notice">
+                      Resolving evidence-backed management state…
+                    </p>
+                  ) : null}
                   {managementTab === "Overview" && companyManagement.data ? (
                     <div className="management-overview-grid">
-                      <article><small>Company health</small><strong data-management-state={companyManagement.data.health}>{companyManagement.data.health}</strong></article>
-                      <article><small>Objectives at risk</small><strong>{companyManagement.data.executiveBrief.objectivesAtRisk}</strong></article>
-                      <article><small>Budget alerts</small><strong>{companyManagement.data.executiveBrief.budgetAlerts}</strong></article>
-                      <article><small>Latest review</small><strong>{companyManagement.data.latestReview ? new Date(companyManagement.data.latestReview.generatedAt).toLocaleDateString() : "Not generated"}</strong></article>
-                      <div className="management-wide-card"><h3>Top priorities</h3>{companyManagement.data.executiveBrief.topPriorities.length ? companyManagement.data.executiveBrief.topPriorities.map((item) => <p key={item}>{item}</p>) : <p>No approved strategic priorities yet. Create and activate an Objective to populate this view.</p>}</div>
-                      <div className="management-wide-card"><h3>Evidence-based diagnosis</h3>{companyManagement.data.diagnoses.length ? companyManagement.data.diagnoses.map((item) => <p key={item.id}><strong>{item.evidenceState} · {item.category}</strong><br />{item.summary} <a href={item.actionPath === "DATA" || item.actionPath === "INTEGRATIONS" ? "/companies" : item.actionPath === "OBJECTIVE" ? "/objectives" : item.actionPath === "WORKFORCE" ? "/agents" : item.actionPath === "APPROVALS" ? "/approvals" : item.actionPath === "SERVICES" ? "/services" : item.actionPath === "SYSTEM" || item.actionPath === "AI" ? "/portfolio" : "/companies"}>Open evidence</a></p>) : <p>No bounded diagnosis is available yet.</p>}</div>
+                      <article>
+                        <small>Company health</small>
+                        <strong data-management-state={companyManagement.data.health}>
+                          {companyManagement.data.health}
+                        </strong>
+                      </article>
+                      <article>
+                        <small>Objectives at risk</small>
+                        <strong>
+                          {companyManagement.data.executiveBrief.objectivesAtRisk}
+                        </strong>
+                      </article>
+                      <article>
+                        <small>Budget alerts</small>
+                        <strong>
+                          {companyManagement.data.executiveBrief.budgetAlerts}
+                        </strong>
+                      </article>
+                      <article>
+                        <small>Latest review</small>
+                        <strong>
+                          {companyManagement.data.latestReview
+                            ? new Date(
+                                companyManagement.data.latestReview.generatedAt,
+                              ).toLocaleDateString()
+                            : "Not generated"}
+                        </strong>
+                      </article>
+                      <div className="management-wide-card">
+                        <h3>Top priorities</h3>
+                        {companyManagement.data.executiveBrief.topPriorities.length ? (
+                          companyManagement.data.executiveBrief.topPriorities.map(
+                            (item) => <p key={item}>{item}</p>,
+                          )
+                        ) : (
+                          <p>
+                            No approved strategic priorities yet. Create and activate an
+                            Objective to populate this view.
+                          </p>
+                        )}
+                      </div>
+                      <div className="management-wide-card">
+                        <h3>Evidence-based diagnosis</h3>
+                        {companyManagement.data.diagnoses.length ? (
+                          companyManagement.data.diagnoses.map((item) => (
+                            <p key={item.id}>
+                              <strong>
+                                {item.evidenceState} · {item.category}
+                              </strong>
+                              <br />
+                              {item.summary}{" "}
+                              <a
+                                href={
+                                  item.actionPath === "DATA" ||
+                                  item.actionPath === "INTEGRATIONS"
+                                    ? "/companies"
+                                    : item.actionPath === "OBJECTIVE"
+                                      ? "/objectives"
+                                      : item.actionPath === "WORKFORCE"
+                                        ? "/agents"
+                                        : item.actionPath === "APPROVALS"
+                                          ? "/approvals"
+                                          : item.actionPath === "SERVICES"
+                                            ? "/services"
+                                            : item.actionPath === "SYSTEM" ||
+                                                item.actionPath === "AI"
+                                              ? "/portfolio"
+                                              : "/companies"
+                                }
+                              >
+                                Open evidence
+                              </a>
+                            </p>
+                          ))
+                        ) : (
+                          <p>No bounded diagnosis is available yet.</p>
+                        )}
+                      </div>
                     </div>
                   ) : null}
                   {managementTab === "Strategy" && companyManagement.data ? (
-                    <article className="management-detail-card">{companyManagement.data.strategy ? <><div className="panel-heading"><h3>{companyManagement.data.strategy.strategicIntent}</h3><strong>v{companyManagement.data.strategy.version} · {companyManagement.data.strategy.status}</strong></div><h4>Priorities</h4>{companyManagement.data.strategy.priorities.map((item) => <p key={item}>{item}</p>)}<h4>Assumptions</h4>{companyManagement.data.strategy.assumptions.map((item) => <p key={item}>{item}</p>)}<small>Budget envelope: {companyManagement.data.strategy.budgetEnvelope ?? "not bound"} · horizon {companyManagement.data.strategy.timeHorizon}</small></> : <div className="portfolio-empty"><strong>No approved strategy.</strong><p>Create a measurable Objective and activate its Executive plan. Athena will not invent a binding strategy or KPI target.</p><a href="/objectives">Open Objectives</a></div>}</article>
+                    <article className="management-detail-card">
+                      {companyManagement.data.strategy ? (
+                        <>
+                          <div className="panel-heading">
+                            <h3>{companyManagement.data.strategy.strategicIntent}</h3>
+                            <strong>
+                              v{companyManagement.data.strategy.version} ·{" "}
+                              {companyManagement.data.strategy.status}
+                            </strong>
+                          </div>
+                          <h4>Priorities</h4>
+                          {companyManagement.data.strategy.priorities.map((item) => (
+                            <p key={item}>{item}</p>
+                          ))}
+                          <h4>Assumptions</h4>
+                          {companyManagement.data.strategy.assumptions.map((item) => (
+                            <p key={item}>{item}</p>
+                          ))}
+                          <small>
+                            Budget envelope:{" "}
+                            {companyManagement.data.strategy.budgetEnvelope ??
+                              "not bound"}{" "}
+                            · horizon {companyManagement.data.strategy.timeHorizon}
+                          </small>
+                        </>
+                      ) : (
+                        <div className="portfolio-empty">
+                          <strong>No approved strategy.</strong>
+                          <p>
+                            Create a measurable Objective and activate its Executive
+                            plan. Athena will not invent a binding strategy or KPI
+                            target.
+                          </p>
+                          <a href="/objectives">Open Objectives</a>
+                        </div>
+                      )}
+                    </article>
                   ) : null}
                   {managementTab === "KPIs" && companyManagement.data ? (
-                    <div className="management-table">{companyManagement.data.kpis.map((kpi) => <article key={kpi.metricId}><div><strong>{kpi.name}</strong><small>{kpi.canonicalKey} · definition v{kpi.definitionVersion} · {kpi.freshness}</small></div><b>{kpi.value ?? "—"} {kpi.unit}</b><span>{kpi.target === null ? "No approved target" : `Target ${kpi.target}`} · {kpi.status} · {kpi.trend}</span></article>)}{!companyManagement.data.kpis.length ? <p className="portfolio-empty">No canonical metrics are defined. Connect a source and define semantic metrics in Data.</p> : null}</div>
+                    <div className="management-table">
+                      {companyManagement.data.kpis.map((kpi) => (
+                        <article key={kpi.metricId}>
+                          <div>
+                            <strong>{kpi.name}</strong>
+                            <small>
+                              {kpi.canonicalKey} · definition v{kpi.definitionVersion} ·{" "}
+                              {kpi.freshness}
+                            </small>
+                          </div>
+                          <b>
+                            {kpi.value ?? "—"} {kpi.unit}
+                          </b>
+                          <span>
+                            {kpi.target === null
+                              ? "No approved target"
+                              : `Target ${kpi.target}`}{" "}
+                            · {kpi.status} · {kpi.trend}
+                          </span>
+                        </article>
+                      ))}
+                      {!companyManagement.data.kpis.length ? (
+                        <p className="portfolio-empty">
+                          No canonical metrics are defined. Connect a source and define
+                          semantic metrics in Data.
+                        </p>
+                      ) : null}
+                    </div>
                   ) : null}
                   {managementTab === "Objectives" && companyManagement.data ? (
-                    <div className="management-table">{companyManagement.data.objectives.map((objective) => <article key={objective.objectiveId}><div><strong>{objective.title}</strong><small>{objective.status} · {objective.recommendation}</small></div><b>{objective.progressPercent}%</b><span>{objective.risk} risk · schedule {objective.components.schedule} · budget {objective.components.budget} · data {objective.components.dataConfidence}</span></article>)}{!companyManagement.data.objectives.length ? <p className="portfolio-empty">No company objectives exist. Create one to establish accountable progress and budget evidence.</p> : null}</div>
+                    <div className="management-table">
+                      {companyManagement.data.objectives.map((objective) => (
+                        <article key={objective.objectiveId}>
+                          <div>
+                            <strong>{objective.title}</strong>
+                            <small>
+                              {objective.status} · {objective.recommendation}
+                            </small>
+                          </div>
+                          <b>{objective.progressPercent}%</b>
+                          <span>
+                            {objective.risk} risk · schedule{" "}
+                            {objective.components.schedule} · budget{" "}
+                            {objective.components.budget} · data{" "}
+                            {objective.components.dataConfidence}
+                          </span>
+                        </article>
+                      ))}
+                      {!companyManagement.data.objectives.length ? (
+                        <p className="portfolio-empty">
+                          No company objectives exist. Create one to establish
+                          accountable progress and budget evidence.
+                        </p>
+                      ) : null}
+                    </div>
                   ) : null}
                   {managementTab === "Departments" && companyManagement.data ? (
-                    <div className="management-table">{companyManagement.data.departments.map((department) => <article key={department.id}><div><strong>{department.name}</strong><small>{department.activeAgents} active agents · {department.availableCredits} credits</small></div><b>{department.objectiveCount} objectives</b><span>{department.kpiCount} owned KPIs · {department.risks.length} risks</span></article>)}{!companyManagement.data.departments.length ? <p className="portfolio-empty">No departments are configured. Build the company workforce to assign accountability.</p> : null}</div>
+                    <div className="management-table">
+                      {companyManagement.data.departments.map((department) => (
+                        <article key={department.id}>
+                          <div>
+                            <strong>{department.name}</strong>
+                            <small>
+                              {department.activeAgents} active agents ·{" "}
+                              {department.availableCredits} credits
+                            </small>
+                          </div>
+                          <b>{department.objectiveCount} objectives</b>
+                          <span>
+                            {department.kpiCount} owned KPIs · {department.risks.length}{" "}
+                            risks
+                          </span>
+                        </article>
+                      ))}
+                      {!companyManagement.data.departments.length ? (
+                        <p className="portfolio-empty">
+                          No departments are configured. Build the company workforce to
+                          assign accountability.
+                        </p>
+                      ) : null}
+                    </div>
                   ) : null}
                   {managementTab === "Reviews" && companyManagement.data ? (
-                    <article className="management-detail-card"><div className="panel-heading"><h3>Latest management review</h3><button disabled={generateReview.isPending} onClick={() => generateReview.mutate()} type="button">{generateReview.isPending ? "Generating…" : "Generate review"}</button></div>{companyManagement.data.latestReview ? <><strong>{companyManagement.data.latestReview.cadence} · {companyManagement.data.latestReview.companyState}</strong><p>{companyManagement.data.latestReview.recommendations.join(" ") || "No recommendations."}</p><small>{new Date(companyManagement.data.latestReview.generatedAt).toLocaleString()} · advisory only</small></> : <p>No review has been generated. Reviews persist structured evidence and recommendations, never hidden reasoning.</p>}</article>
+                    <article className="management-detail-card">
+                      <div className="panel-heading">
+                        <h3>Latest management review</h3>
+                        <button
+                          disabled={generateReview.isPending}
+                          onClick={() => generateReview.mutate()}
+                          type="button"
+                        >
+                          {generateReview.isPending ? "Generating…" : "Generate review"}
+                        </button>
+                      </div>
+                      {companyManagement.data.latestReview ? (
+                        <>
+                          <strong>
+                            {companyManagement.data.latestReview.cadence} ·{" "}
+                            {companyManagement.data.latestReview.companyState}
+                          </strong>
+                          <p>
+                            {companyManagement.data.latestReview.recommendations.join(
+                              " ",
+                            ) || "No recommendations."}
+                          </p>
+                          <small>
+                            {new Date(
+                              companyManagement.data.latestReview.generatedAt,
+                            ).toLocaleString()}{" "}
+                            · advisory only
+                          </small>
+                        </>
+                      ) : (
+                        <p>
+                          No review has been generated. Reviews persist structured
+                          evidence and recommendations, never hidden reasoning.
+                        </p>
+                      )}
+                    </article>
                   ) : null}
                   {managementTab === "Decisions" && companyManagement.data ? (
-                    <div className="management-table">{companyManagement.data.decisions.map((decision) => <article key={decision.id}><div><strong>{decision.question}</strong><small>{decision.status} · {decision.alternatives.join(" / ")}</small></div><b>{decision.selectedOption ?? "Pending"}</b><span>Expected: {decision.expectedOutcome ?? "not recorded"} · Actual: {decision.actualOutcome ?? "not reviewed"}</span></article>)}{!companyManagement.data.decisions.length ? <p className="portfolio-empty">No structured management decisions have been recorded.</p> : null}</div>
+                    <div className="management-table">
+                      {companyManagement.data.decisions.map((decision) => (
+                        <article key={decision.id}>
+                          <div>
+                            <strong>{decision.question}</strong>
+                            <small>
+                              {decision.status} · {decision.alternatives.join(" / ")}
+                            </small>
+                          </div>
+                          <b>{decision.selectedOption ?? "Pending"}</b>
+                          <span>
+                            Expected: {decision.expectedOutcome ?? "not recorded"} ·
+                            Actual: {decision.actualOutcome ?? "not reviewed"}
+                          </span>
+                        </article>
+                      ))}
+                      {!companyManagement.data.decisions.length ? (
+                        <p className="portfolio-empty">
+                          No structured management decisions have been recorded.
+                        </p>
+                      ) : null}
+                    </div>
                   ) : null}
-                  {companyManagement.error instanceof Error ? <p className="error-banner">{companyManagement.error.message}</p> : null}
-                  {generateReview.error instanceof Error ? <p className="error-banner">{generateReview.error.message}</p> : null}
+                  {companyManagement.error instanceof Error ? (
+                    <p className="error-banner">{companyManagement.error.message}</p>
+                  ) : null}
+                  {generateReview.error instanceof Error ? (
+                    <p className="error-banner">{generateReview.error.message}</p>
+                  ) : null}
                 </section>
               ) : null}
               {isActiveCompany ? (
@@ -443,6 +721,18 @@ export const CompaniesPage = ({
                   ) : null}
                   {dataTab === "Integrations" && companyData.data ? (
                     <div className="company-data-grid single">
+                      {isActiveCompany && detailId ? (
+                        <EngineeringCredentialSetup
+                          key={detailId}
+                          apiClient={apiClient}
+                          companyId={detailId}
+                          companyName={
+                            companies.data?.currentCompany.name ?? "the active company"
+                          }
+                          bindings={companyData.data.integrations}
+                          onSaved={refresh}
+                        />
+                      ) : null}
                       <article>
                         <h3>Governed integration bindings</h3>
                         {companyData.data.integrations.length ? (

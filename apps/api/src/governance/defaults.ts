@@ -44,6 +44,10 @@ const defineTool = (
   });
 
 export const BUILT_IN_TOOLS: ToolDefinition[] = [
+  defineTool("marketing.review_artifact", "medium", "explicit", []),
+  defineTool("universal.external_read", "read_only", "session", []),
+  defineTool("universal.external_write", "medium", "explicit", []),
+  defineTool("universal.external_publish", "high", "recent_authentication", []),
   defineTool(
     "repository.initialize_project",
     "medium",

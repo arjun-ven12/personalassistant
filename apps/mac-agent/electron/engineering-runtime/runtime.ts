@@ -406,8 +406,33 @@ export interface EngineeringDependencyRunner {
 }
 
 /** Dependency networking is confined to a reviewed container and lifecycle scripts are disabled. */
+/** Cloud-only preparation of a canonical task mount; never traverses symlinks or exposes host paths. */
+export async function prepareCloudTaskMount(root: string) {
+  if(process.platform!=="linux" || process.getuid?.()!==0)
+    throw new NativeEngineeringRuntimeError("COMMAND_SANDBOX_UNAVAILABLE","Reviewed Linux supervisor required.");
+  const canonical = await realpath(root);
+  if (canonical!==root || !/^\/workspace\/(worktrees|repositories)\/[^/]+(?:\/[^/]+)*$/.test(root))
+    throw new NativeEngineeringRuntimeError("COMMAND_SANDBOX_UNAVAILABLE", "Cloud task mount denied.");
+  let count=0;
+  const walk=async (entry:string):Promise<void>=>{
+    if(++count>100_000)throw new NativeEngineeringRuntimeError("COMMAND_SANDBOX_UNAVAILABLE","Cloud task mount exceeds quota.");
+    // Open each child through a pinned parent descriptor. Never chown through a mutable ancestor or symlink.
+    if((await lstat(entry)).isSymbolicLink()) return;
+    const handle=await open(entry,constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK);
+    try {
+      const info=await handle.stat();
+      if(!info.isDirectory()&&!info.isFile())throw new NativeEngineeringRuntimeError("COMMAND_SANDBOX_UNAVAILABLE","Cloud task special file denied.");
+      await handle.chown(65532,65532);
+      if(info.isDirectory())for(const name of await readdir(`/proc/self/fd/${handle.fd}`))
+        await walk(`/proc/self/fd/${handle.fd}/${name}`);
+    }finally{await handle.close();}
+  };
+  await walk(canonical);
+}
+export const CLOUD_CONTAINER_RESTRICTIONS = ["--read-only", "--tmpfs", "/tmp:rw,nosuid,nodev,size=64m,mode=1777"] as const;
+
 export class DockerEngineeringDependencyRunner implements EngineeringDependencyRunner {
-  constructor(readonly dockerExecutable = "/usr/local/bin/docker") {}
+  constructor(readonly dockerExecutable = "/usr/local/bin/docker", readonly cloudIsolation = false) {}
 
   async run(input: Parameters<EngineeringDependencyRunner["run"]>[0]) {
     if (!(["pnpm", "npm"] as const).includes(input.packageManager as "pnpm" | "npm"))
@@ -448,6 +473,7 @@ export class DockerEngineeringDependencyRunner implements EngineeringDependencyR
                 "--registry=https://registry.npmjs.org",
               ]
             : ["uninstall", ...input.packages, "--ignore-scripts"];
+    if (this.cloudIsolation) await prepareCloudTaskMount(input.cwd);
     const started = Date.now();
     const executable =
       input.packageManager === "pnpm" ? EXECUTABLES.pnpm : EXECUTABLES.npm;
@@ -459,7 +485,10 @@ export class DockerEngineeringDependencyRunner implements EngineeringDependencyR
         "--pull",
         "never",
         "--network",
-        "bridge",
+        this.cloudIsolation ? "athena-dependencies" : "bridge",
+        ...(this.cloudIsolation ? ["--label", "athena.role=dependency", ...CLOUD_CONTAINER_RESTRICTIONS,
+          "--env", "HTTPS_PROXY=http://athena-registry-proxy:3128", "--env", "HTTP_PROXY=http://athena-registry-proxy:3128",
+          "--env", "npm_config_https_proxy=http://athena-registry-proxy:3128", "--env", "npm_config_proxy=http://athena-registry-proxy:3128"] : []),
         "--memory",
         "2g",
         "--cpus",
@@ -471,7 +500,7 @@ export class DockerEngineeringDependencyRunner implements EngineeringDependencyR
         "--security-opt",
         "no-new-privileges",
         "--user",
-        `${process.getuid?.() ?? 65534}:${process.getgid?.() ?? 65534}`,
+        this.cloudIsolation ? "65532:65532" : `${process.getuid?.() ?? 65534}:${process.getgid?.() ?? 65534}`,
         "--workdir",
         "/workspace",
         "--mount",
@@ -532,13 +561,14 @@ export class DockerEngineeringDependencyRunner implements EngineeringDependencyR
 /** Docker is invoked with fixed containment flags and never pulls images implicitly. */
 export class DockerEngineeringRunner implements NetworkIsolatedEngineeringRunner {
   readonly networkIsolated = true as const;
-  constructor(readonly dockerExecutable = "/usr/local/bin/docker") {}
+  constructor(readonly dockerExecutable = "/usr/local/bin/docker", readonly cloudIsolation = false) {}
 
   async run(input: {
     cwd: string;
     command: EngineeringCommandDefinition;
     signal?: AbortSignal;
   }) {
+    if (this.cloudIsolation) await prepareCloudTaskMount(input.cwd);
     const command = input.command;
     const containerName = `alexa-engineering-${crypto.randomUUID()}`;
     const image =
@@ -559,6 +589,7 @@ export class DockerEngineeringRunner implements NetworkIsolatedEngineeringRunner
         "never",
         "--network",
         "none",
+        ...(this.cloudIsolation ? ["--label", "athena.role=task", ...CLOUD_CONTAINER_RESTRICTIONS] : []),
         "--memory",
         "2g",
         "--cpus",
@@ -570,7 +601,7 @@ export class DockerEngineeringRunner implements NetworkIsolatedEngineeringRunner
         "--security-opt",
         "no-new-privileges",
         "--user",
-        `${process.getuid?.() ?? 65534}:${process.getgid?.() ?? 65534}`,
+        this.cloudIsolation ? "65532:65532" : `${process.getuid?.() ?? 65534}:${process.getgid?.() ?? 65534}`,
         "--workdir",
         "/workspace",
         "--mount",
@@ -624,6 +655,7 @@ export class NativeEngineeringRuntime {
     readonly commandRunner?: NetworkIsolatedEngineeringRunner,
     readonly dependencyRunner?: EngineeringDependencyRunner,
     readonly dockerExecutable = "/usr/local/bin/docker",
+    readonly cloudIsolation = false,
   ) {}
 
   async initializeProject(input: {
@@ -880,6 +912,7 @@ try {
     const expiresAt = new Date(
       now.getTime() + input.server.maxLifetimeMs,
     ).toISOString();
+    if (this.cloudIsolation) await prepareCloudTaskMount(worktree);
     const child = spawn(
       this.dockerExecutable,
       [
@@ -891,6 +924,7 @@ try {
         "never",
         "--network",
         PREVIEW_NETWORK,
+        ...(this.cloudIsolation ? ["--label", "athena.role=preview", ...CLOUD_CONTAINER_RESTRICTIONS] : []),
         "--memory",
         "2g",
         "--cpus",
@@ -902,7 +936,7 @@ try {
         "--security-opt",
         "no-new-privileges",
         "--user",
-        `${process.getuid?.() ?? 65534}:${process.getgid?.() ?? 65534}`,
+        this.cloudIsolation ? "65532:65532" : `${process.getuid?.() ?? 65534}:${process.getgid?.() ?? 65534}`,
         "--workdir",
         "/workspace",
         "--mount",
@@ -1076,10 +1110,11 @@ try {
       executable: this.dockerExecutable,
       args: [
         "run", "-d", "--rm", "--name", name, "--pull", "never",
-        "--network", "bridge", "-p", `127.0.0.1:${port}:${port}`,
+        ...(this.cloudIsolation ? ["--label", "athena.role=relay"] : []),
+        "--network", this.cloudIsolation ? "athena-relay" : "bridge", "-p", `127.0.0.1:${port}:${port}`,
         "--memory", "128m", "--cpus", "0.5", "--pids-limit", "64",
         "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
-        "--read-only", "--user", `${process.getuid?.() ?? 65534}:${process.getgid?.() ?? 65534}`,
+        "--read-only", "--user", this.cloudIsolation ? "65532:65532" : `${process.getuid?.() ?? 65534}:${process.getgid?.() ?? 65534}`,
         "--env", `ALEXA_PREVIEW_TARGET=${target}`,
         "--env", `ALEXA_PREVIEW_PORT=${port}`,
         DEPENDENCY_IMAGE, "/usr/local/bin/node", "-e", PREVIEW_RELAY,

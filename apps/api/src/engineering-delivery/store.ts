@@ -95,7 +95,7 @@ export class InMemoryEngineeringDeliveryStore implements EngineeringDeliveryStor
 
   listStaleImplementations(cutoff: string, limit: number) {
     return [...this.#records.values()]
-      .filter((item) => item.status === "IMPLEMENTING" && item.updatedAt < cutoff)
+      .filter((item) => (item.status === "IMPLEMENTING" || item.selfImprovement && item.status === "PLANNING") && item.updatedAt < cutoff)
       .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
       .slice(0, limit)
       .map((value) => structuredClone(value));

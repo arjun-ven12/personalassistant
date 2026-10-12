@@ -55,6 +55,7 @@ private val CcMuted = AlexaMutedContent
 @Composable
 fun CommandCenterShell(
   state: AlexaUiState,
+  engineeringActions: EngineeringCallbacks = EngineeringCallbacks(),
   environment: AlexaEnvironmentConfig,
   onRefresh: () -> Unit,
   onCompanySelected: (String) -> Unit,
@@ -121,6 +122,7 @@ fun CommandCenterShell(
       "SHOW_SCREEN" -> when (command.arguments.route) {
         "/", null -> destination = "Home"
         "/objectives" -> destination = "Objectives"
+        "/engineering" -> destination = "Engineering"
         "/agents" -> destination = "Workforce"
         "/approvals" -> destination = "Approvals"
         "/conversation" -> { destination = "Athena"; secondaryDestination = null }
@@ -141,6 +143,7 @@ fun CommandCenterShell(
     when (target.kind) {
       "APPROVAL" -> { destination = "Approvals"; selectedApprovalId = target.objectId; onApprovalSelected(target.objectId) }
       "OBJECTIVE" -> destination = "Objectives"
+      "ENGINEERING_BUILD" -> { destination = "Engineering"; engineeringActions.open(target.objectId) }
       "WORKFLOW" -> { destination = "Athena"; secondaryDestination = "Workflows" }
       "AGENT" -> { destination = "Workforce"; onAgentSelected(target.objectId) }
       "ECONOMY" -> { destination = "Athena"; secondaryDestination = "Economy" }
@@ -159,7 +162,7 @@ fun CommandCenterShell(
   }
   val leftDestinations = listOf(
     "Home" to Icons.Outlined.Home,
-    "Objectives" to Icons.Outlined.Flag,
+    "Engineering" to Icons.Outlined.Code,
   )
   val rightDestinations = listOf(
     "Workforce" to Icons.Outlined.Groups,
@@ -232,6 +235,7 @@ fun CommandCenterShell(
         }
         Box(Modifier.weight(1f)) { when (destination) {
           "Home" -> if (state.portfolioMode) PortfolioHome(state, onCompanySelected, onPortfolioSearch) else ExecutiveHome(state, onRefresh, onObjectiveAction, onApprovalDecision)
+          "Engineering" -> EngineeringScreen(state, engineeringActions.copy(approvals = { destination = "Approvals" }))
           "Objectives" -> ObjectivesScreen(state, onCreateObjective, onObjectiveAction, onModifyObjective)
           "Workforce" -> WorkforceScreen(state.commandCenter?.workforce, state.agentDetails, onAgentSelected)
           "Approvals" -> ApprovalsScreen(state, selectedApprovalId, { selectedApprovalId = it; if (it.isNotBlank()) onApprovalSelected(it) }, onApprovalDecisionWithReason)

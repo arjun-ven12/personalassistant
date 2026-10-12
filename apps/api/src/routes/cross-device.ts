@@ -13,6 +13,7 @@ import {
 } from "@alexa-control/shared";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { createHash } from "node:crypto";
 
 import type { ApiRouteContext } from "./context.js";
 import { authenticateTrustedDeviceEnvelope } from "./voice.js";
@@ -170,8 +171,19 @@ export const registerCrossDeviceRoutes = (app: FastifyInstance, context: ApiRout
       }
       if (payload.operation === "heartbeat")
         return CrossDeviceClientInstanceSchema.parse(await context.crossDevice.heartbeat({ ...common, body: payload.request }));
-      if (payload.operation === "poll")
-        return CrossDevicePollResponseSchema.parse(await context.crossDevice.poll({ ...common, body: payload.request }));
+      if (payload.operation === "poll") {
+        const polled = await context.crossDevice.poll({ ...common, body: payload.request });
+        const deliveries = await context.engineeringDelivery.list(device.ownerId, payload.companyId);
+        // Bounded canonical events invalidate Android state as tasks change, even
+        // before the delivery projection itself is refreshed.
+        const revisions = await Promise.all(deliveries.slice(0, 100).map(async (delivery) => {
+          const events = await context.engineeringOrchestrationStore.listEvents(device.ownerId, payload.companyId, delivery.objectiveId, 1);
+          return [delivery.id, delivery.updatedAt, events[0]?.id ?? null];
+        }));
+        const engineeringRevision = createHash("sha256").update(JSON.stringify(revisions
+          .sort((a, b) => a[0]!.localeCompare(b[0]!)))).digest("hex");
+        return CrossDevicePollResponseSchema.parse({ ...polled, engineeringRevision });
+      }
       if (payload.operation === "receipt")
         return CrossDeviceCommandSchema.parse(await context.crossDevice.receipt({ ...common, body: payload.request }));
       if (payload.operation === "status")

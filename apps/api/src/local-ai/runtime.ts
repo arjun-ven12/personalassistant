@@ -7,7 +7,7 @@ import {
 
 import { LocalAIError } from "./errors.js";
 
-export type OllamaModelInfo = { name: string; size?: number; modifiedAt?: string };
+export type OllamaModelInfo = { name: string; size?: number; modifiedAt?: string; digest?: string };
 
 export interface LocalModelRuntime {
   readonly id: string;
@@ -62,6 +62,7 @@ export class OllamaLocalRuntime implements LocalModelRuntime {
           ? [
               {
                 name: value.name,
+                ...(typeof value.digest === "string" ? { digest: value.digest } : {}),
                 ...(typeof value.size === "number" ? { size: value.size } : {}),
                 ...(typeof value.modified_at === "string"
                   ? { modifiedAt: value.modified_at }

@@ -6,6 +6,21 @@ import { describe, expect, it } from "vitest";
 import { scanRepositoryMetadata } from "./repository-scanner.js";
 
 describe("repository metadata scanner", () => {
+  it("preserves accurate symbol columns on long source lines", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "assistant-repo-long-line-"));
+    await writeFile(path.join(root, "index.ts"),
+      `import { ${Array.from({ length: 205 }, (_, index) => `name${index}`).join(", ")} } from "./dep";\n${" ".repeat(1_005)}export const farRight = true;\n`);
+    const scan = await scanRepositoryMetadata({
+      workspaceId: "workspace",
+      rootPath: root,
+      blockedPatterns: [],
+      maxEntries: 100,
+    });
+    expect(scan.semanticIndex.symbols.find((symbol) => symbol.name === "farRight")?.column)
+      .toBeGreaterThan(1_000);
+    expect(scan.semanticIndex.imports[0]?.importedNames).toHaveLength(200);
+  });
+
   it("collects deterministic metadata without file contents or ignored directories", async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "assistant-repo-index-"));
     await mkdir(path.join(root, "src"), { recursive: true });

@@ -12,6 +12,8 @@ COPY packages/shared/package.json packages/shared/package.json
 RUN pnpm install --frozen-lockfile --filter @alexa-control/api...
 
 COPY apps/api apps/api
+# Engineering transport imports reviewed runtime source; no Mac app is deployed.
+COPY apps/mac-agent/electron apps/mac-agent/electron
 COPY packages/config packages/config
 COPY packages/shared packages/shared
 RUN pnpm --filter @alexa-control/api build

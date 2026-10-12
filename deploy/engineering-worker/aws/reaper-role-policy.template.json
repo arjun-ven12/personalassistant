@@ -1,0 +1,16 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "ec2:TerminateInstances",
+      "Resource": "arn:aws:ec2:ap-southeast-1:${ACCOUNT_ID}:instance/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/athena:company": "${COMPANY_ID}",
+          "ec2:ResourceTag/athena:runtime": "${RUNTIME_DIGEST}"
+        }
+      }
+    }
+  ]
+}

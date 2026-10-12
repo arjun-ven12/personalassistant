@@ -107,6 +107,7 @@ sealed interface AlexaFailure {
   data object RateLimited : AlexaFailure
   data object RecentAuthRequired : AlexaFailure
   data object ApprovalConflict : AlexaFailure
+  data object EngineeringApprovalRequired : AlexaFailure
   data object InvalidResponse : AlexaFailure
   data class Unknown(val safeMessage: String) : AlexaFailure
 }
@@ -163,6 +164,6 @@ data class NotificationTarget(val kind: String, val objectId: String, val eventI
     (companyId == null || runCatching { java.util.UUID.fromString(companyId) }.isSuccess)
 
   companion object {
-    private val VALID_KINDS = setOf("APPROVAL", "OBJECTIVE", "WORKFLOW", "AGENT", "ECONOMY", "EXPERIMENT", "SYSTEM", "DEVICE")
+    private val VALID_KINDS = setOf("ENGINEERING_BUILD", "APPROVAL", "OBJECTIVE", "WORKFLOW", "AGENT", "ECONOMY", "EXPERIMENT", "SYSTEM", "DEVICE")
   }
 }

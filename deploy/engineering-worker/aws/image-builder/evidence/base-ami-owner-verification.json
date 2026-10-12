@@ -1,0 +1,28 @@
+{
+  "Architecture": "x86_64",
+  "BootMode": "uefi-preferred",
+  "CreationDate": "2026-09-04T11:46:06.000Z",
+  "ImageId": "ami-0ba4172b23e57d5a8",
+  "Name": "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-20260904",
+  "OwnerId": "099720109477",
+  "Public": true,
+  "RootDeviceName": "/dev/sda1",
+  "RootDeviceType": "ebs",
+  "State": "available",
+  "VirtualizationType": "hvm",
+  "deleteOnTermination": true,
+  "instanceStoreMappings": [
+    "/dev/sdb",
+    "/dev/sdc"
+  ],
+  "metadataExport": "base-ami-describe-images-owner-export.json",
+  "region": "ap-southeast-1",
+  "rootSnapshotId": "snap-0930a0f50200e3c0b",
+  "rootVolumeGiB": 8,
+  "rootVolumeType": "gp3",
+  "sourceRootEncrypted": false,
+  "sourceRootEncryptionNote": "Public Canonical source snapshot is unencrypted. Separate inspection/build/worker root volume encryption must remain enforced; this does not approve an unencrypted worker.",
+  "status": "PASS_OWNER_REPORTED_AWS_VERIFICATION",
+  "verifiedBy": "Owner supplied read-only AWS result in this conversation; Codex did not authenticate to AWS.",
+  "verifiedInAccount": "737073451069"
+}

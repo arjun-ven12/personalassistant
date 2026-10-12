@@ -197,6 +197,14 @@ export interface EngineeringExecutionScopeVerifier {
   }): Promise<boolean>;
 }
 
+/** Server-owned placement record. A client or model cannot select a cloud worker. */
+export interface EngineeringExecutionPlacementResolver {
+  resolve(input: { ownerId: string; request: EngineeringTransportRequest }): Promise<
+    | { type: "MAC" }
+    | { type: "CLOUD"; workerDeviceId: string }
+  >;
+}
+
 export class ExecutionService {
   constructor(
     readonly store: ExecutionStore,
@@ -215,6 +223,7 @@ export class ExecutionService {
     }) => Promise<void>,
     readonly privateNetworkRequired = true,
     readonly engineeringScopeVerifier?: EngineeringExecutionScopeVerifier,
+    readonly engineeringPlacement?: EngineeringExecutionPlacementResolver,
   ) {}
 
   async create(input: {
@@ -426,15 +435,28 @@ export class ExecutionService {
         "The file is blocked by workspace policy.",
       );
 
+    const placement = engineeringInput
+      ? this.engineeringPlacement
+        ? await this.engineeringPlacement.resolve({ ownerId: input.ownerId, request: engineeringInput })
+        : { type: "MAC" as const }
+      : { type: "MAC" as const };
     const devices = (await this.identityStore.listDevices(input.ownerId)).filter(
-      (device) => device.deviceType === "MAC_AGENT" && device.trustStatus === "TRUSTED",
+      (device) => device.deviceType === (placement.type === "CLOUD" ? "CLOUD_WORKER" : "MAC_AGENT") && device.trustStatus === "TRUSTED",
     );
-    const device = selectPreferredMacAgent(devices, parsed.deviceId);
+    if (placement.type === "CLOUD" && parsed.deviceId)
+      throw new ExecutionError(403, "CLOUD_WORKER_SELECTION_DENIED", "Clients cannot select a cloud worker device.");
+    const device = placement.type === "CLOUD"
+      ? devices.find((candidate) => candidate.id === placement.workerDeviceId &&
+          candidate.metadata.companyId === engineeringInput?.companyId &&
+          candidate.metadata.repositoryId === engineeringInput?.repositoryId &&
+          candidate.metadata.workspaceLocatorId === engineeringInput?.workspaceLocatorId &&
+          candidate.metadata.executionScope === "ENGINEERING_ONLY")
+      : selectPreferredMacAgent(devices, parsed.deviceId);
     if (!device)
       throw new ExecutionError(
         403,
         "TRUSTED_DEVICE_REQUIRED",
-        "A trusted Mac agent is required.",
+        placement.type === "CLOUD" ? "A trusted scoped cloud worker is required." : "A trusted Mac agent is required.",
       );
 
     const effectiveArguments =

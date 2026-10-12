@@ -1,0 +1,15 @@
+{
+  "failure": "InstallPinnedTooling Invalid Node archive",
+  "cause": "Official archive root directory lacks trailing slash; previous prefix check rejected it",
+  "actualApprovedNodeArchiveMembersValidated": 5888,
+  "regressionPythonTests": 4,
+  "negativeSubcases": 14,
+  "newComponentRecipeVersion": "1.0.3",
+  "newBuildRevision": "review-20261005-04",
+  "approvedArtifactHashesChanged": false,
+  "networkFixLiveEvidence": "SSM command succeeded; both approved S3 inputs downloaded",
+  "failedBuildArn": "arn:aws:imagebuilder:ap-southeast-1:737073451069:image/athena-engineering-image-builder-r3-recipe/1.0.2/3",
+  "failedBuilderTerminated": "OWNER_LOG_CONFIRMED",
+  "stackUpdated": false,
+  "workerReady": false
+}

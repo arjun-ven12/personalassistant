@@ -32,6 +32,23 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 interface AlexaApiService {
+  @GET("api/engineering-objectives/{id}/inputs") suspend fun engineeringInputs(@Path("id") id: String): Response<EngineeringProjectInputs>
+  @POST("api/engineering-objectives/{id}/inputs") suspend fun engineeringUpload(@Path("id") id: String, @Header("X-CSRF-Token") csrf: String, @Body request: EngineeringProjectInputUpload): Response<EngineeringProjectInput>
+  @GET("api/company-data") suspend fun engineeringConnections(): Response<EngineeringCompanyConnections>
+  @POST("api/universal-tools/invocations") suspend fun engineeringTool(@Header("X-CSRF-Token") csrf: String, @Body request: EngineeringToolRequest): Response<EngineeringToolResult>
+  @GET("api/engineering-deliveries") suspend fun engineeringDeliveries(): Response<EngineeringDeliveryList>
+  @GET("api/engineering-deliveries/projects") suspend fun engineeringProjects(): Response<EngineeringProjectList>
+  @GET("api/engineering-deliveries/{id}") suspend fun engineeringBuild(@Path("id") id: String): Response<EngineeringBuild>
+  @GET("api/engineering-objectives/{id}") suspend fun engineeringObjective(@Path("id") id: String): Response<EngineeringObjectiveView>
+  @GET("api/engineering-integrations/{id}") suspend fun engineeringIntegration(@Path("id") id: String): Response<EngineeringIntegration>
+  @POST("api/engineering-deliveries") suspend fun createEngineering(@Header("X-CSRF-Token") csrf: String, @Body request: EngineeringCreateRequest): Response<EngineeringBuild>
+  @POST("api/self-improvement") suspend fun createSelfEngineering(@Header("X-CSRF-Token") csrf: String, @Body request: SelfEngineeringCreateRequest): Response<SelfEngineeringView>
+  @POST("api/engineering-deliveries/{id}/{action}") suspend fun engineeringControl(@Path("id") id: String, @Path("action") action: String, @Header("X-CSRF-Token") csrf: String, @Body body: Map<String, String> = emptyMap()): Response<EngineeringBuild>
+  @POST("api/engineering-deliveries/{id}/instructions") suspend fun engineeringInstruction(@Path("id") id: String, @Header("X-CSRF-Token") csrf: String, @Body request: EngineeringInstruction): Response<EngineeringBuild>
+  @POST("api/engineering-objectives/{id}/clarifications/{clarificationId}/answer") suspend fun engineeringAnswer(@Path("id") id: String, @Path("clarificationId") clarificationId: String, @Header("X-CSRF-Token") csrf: String, @Body request: EngineeringAnswer): Response<EngineeringObjectiveView>
+  @POST("api/engineering-deliveries/{id}/preview/{action}") suspend fun engineeringPreview(@Path("id") id: String, @Path("action") action: String, @Header("X-CSRF-Token") csrf: String, @Body body: Map<String, String> = emptyMap()): Response<EngineeringBuild>
+  @POST("api/engineering-integrations/{id}/merge") suspend fun engineeringMerge(@Path("id") id: String, @Header("X-CSRF-Token") csrf: String, @Body request: EngineeringMergeRequest): Response<EngineeringIntegration>
+  @POST("api/engineering-integrations/{id}/reject") suspend fun engineeringReject(@Path("id") id: String, @Header("X-CSRF-Token") csrf: String, @Body request: EngineeringRejectRequest): Response<EngineeringIntegration>
   @POST("api/auth/login") suspend fun login(@Body request: LoginRequest): Response<AuthResponse>
   @GET("api/auth/session") suspend fun session(): Response<SessionResponse>
   @GET("api/security/csrf") suspend fun csrf(): Response<CsrfResponse>
@@ -87,6 +104,23 @@ class AlexaApiClient private constructor(
   private val gson: Gson,
   private val activeCompanyId: AtomicReference<String?>,
 ) {
+  suspend fun engineeringInputs(id: String) = call { service.engineeringInputs(id) }
+  suspend fun engineeringUpload(id: String, csrf: String, request: EngineeringProjectInputUpload) = call { service.engineeringUpload(id, csrf, request) }
+  suspend fun engineeringConnections() = call { service.engineeringConnections() }
+  suspend fun engineeringTool(csrf: String, request: EngineeringToolRequest) = call { service.engineeringTool(csrf, request) }
+  suspend fun engineeringDeliveries() = call { service.engineeringDeliveries() }
+  suspend fun engineeringProjects() = call { service.engineeringProjects() }
+  suspend fun engineeringBuild(id: String) = call { service.engineeringBuild(id) }
+  suspend fun engineeringObjective(id: String) = call { service.engineeringObjective(id) }
+  suspend fun engineeringIntegration(id: String) = call { service.engineeringIntegration(id) }
+  suspend fun createEngineering(csrf: String, request: EngineeringCreateRequest) = call { service.createEngineering(csrf, request) }
+  suspend fun createSelfEngineering(csrf: String, request: SelfEngineeringCreateRequest) = call { service.createSelfEngineering(csrf, request) }
+  suspend fun engineeringControl(csrf: String, id: String, action: String) = call { service.engineeringControl(id, action, csrf) }
+  suspend fun engineeringInstruction(csrf: String, id: String, request: EngineeringInstruction) = call { service.engineeringInstruction(id, csrf, request) }
+  suspend fun engineeringAnswer(csrf: String, id: String, clarificationId: String, request: EngineeringAnswer) = call { service.engineeringAnswer(id, clarificationId, csrf, request) }
+  suspend fun engineeringPreview(csrf: String, id: String, action: String) = call { service.engineeringPreview(id, action, csrf) }
+  suspend fun engineeringMerge(csrf: String, id: String, request: EngineeringMergeRequest) = call { service.engineeringMerge(id, csrf, request) }
+  suspend fun engineeringReject(csrf: String, id: String, request: EngineeringRejectRequest) = call { service.engineeringReject(id, csrf, request) }
   suspend fun login(email: String, password: String) = call { service.login(LoginRequest(email, password)) }
   suspend fun session() = call { service.session() }
   suspend fun csrf() = call { service.csrf() }
@@ -224,6 +258,7 @@ private fun Response<*>.toFailure(gson: Gson): AlexaFailure {
     "INVALID_SIGNATURE", "SIGNED_REQUEST_EXPIRED", "DUPLICATE_NONCE" -> AlexaFailure.SignedRequestRejected
     "RECENT_AUTHENTICATION_REQUIRED" -> AlexaFailure.RecentAuthRequired
     "APPROVAL_EXPIRED", "APPROVAL_ALREADY_DECIDED", "APPROVAL_NOT_FOUND" -> AlexaFailure.ApprovalConflict
+    "MERGE_APPROVAL_REQUIRED" -> AlexaFailure.EngineeringApprovalRequired
     else -> if (code() == 401) AlexaFailure.Unauthorized else AlexaFailure.InvalidResponse
   }
 }

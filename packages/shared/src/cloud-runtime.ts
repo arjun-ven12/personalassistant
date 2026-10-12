@@ -40,7 +40,7 @@ export const CanonicalDeviceSummarySchema = z
   .object({
     id: z.string().uuid(),
     name: z.string().trim().min(1).max(100),
-    type: z.enum(["WEB_BROWSER", "MAC_AGENT", "ANDROID", "SERVER"]),
+    type: z.enum(["WEB_BROWSER", "MAC_AGENT", "CLOUD_WORKER", "ANDROID", "SERVER"]),
     trustState: z.enum(["UNREGISTERED", "PENDING", "TRUSTED", "REVOKED", "EXPIRED"]),
     presence: DevicePresenceStateSchema,
     lastSeenAt: z.iso.datetime().nullable(),

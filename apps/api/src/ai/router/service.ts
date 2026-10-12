@@ -6,6 +6,10 @@ import {
   type AIRouterMetrics,
   type AIRouterRequest,
   type AIRouterResponse,
+  AthenaCoderEligibilitySchema,
+  AthenaCoderRuntimeMetadataSchema,
+  isAthenaCoderEligible,
+  type AthenaCoderEligibility,
 } from "@alexa-control/shared";
 import { companyScope } from "../../companies/scope.js";
 import { AIProviderError } from "../errors.js";
@@ -48,7 +52,11 @@ export interface AgentInternalEconomyAccounting {
   }): Promise<void>;
 }
 
-export type AIRouterExecutionOptions = { signal?: AbortSignal };
+/** Passed by server-owned Engineering policy after task metadata is checked. */
+export type AIRouterExecutionOptions = {
+  signal?: AbortSignal;
+  athenaCoder?: AthenaCoderEligibility;
+};
 
 const roleForPurpose = (
   purpose: AIRouterRequest["purpose"],
@@ -333,7 +341,7 @@ export class AIRouterService {
         latencyMs: Math.round(performance.now() - started),
       });
     }
-    const candidates = await this.candidates(request, role, complexity, structured);
+    const candidates = await this.candidates(request, role, complexity, structured, options);
     if (!candidates.length)
       return this.failure(
         request,
@@ -666,6 +674,7 @@ export class AIRouterService {
           continue;
         }
       }
+      let providerCallStarted: number | undefined;
       try {
         this.activeRequests.update(canonicalRequestId, {
           state: "INFERENCE",
@@ -702,15 +711,18 @@ export class AIRouterService {
         let repaired = false;
         let result;
         try {
+          providerCallStarted = performance.now();
           result = await invoke();
         } catch (error) {
           if (
             schema &&
             error instanceof AIProviderError &&
-            error.code === "OUTPUT_VALIDATION_FAILED"
+            error.code === "OUTPUT_VALIDATION_FAILED" &&
+            candidate.providerId !== "athena_coder"
           ) {
             repaired = true;
             this.counters.retries += 1;
+            providerCallStarted = performance.now();
             result = await invoke();
           } else {
             throw error;
@@ -774,6 +786,7 @@ export class AIRouterService {
             reason: `Confidence ${confidence.toFixed(2)} is below the ${this.acceptThreshold(complexity).toFixed(2)} acceptance threshold.`,
             latencyMs: result.latencyMs,
             confidence,
+            ...(candidate.athenaCoder ? { athenaCoder: { ...candidate.athenaCoder, providerCallMs: result.latencyMs } } : {}),
           });
           if (
             request.allowClarification &&
@@ -811,6 +824,7 @@ export class AIRouterService {
             ? "Validated provider result satisfied the route policy after one bounded structured-output repair."
             : "Validated provider result satisfied the route policy.",
           latencyMs: result.latencyMs,
+          ...(candidate.athenaCoder ? { athenaCoder: { ...candidate.athenaCoder, providerCallMs: result.latencyMs } } : {}),
           ...(confidence === undefined ? {} : { confidence }),
         });
         if (candidate.locality === "LOCAL") this.counters.local += 1;
@@ -831,7 +845,11 @@ export class AIRouterService {
             ),
             selectedModel: candidate.modelId,
             selectedProvider: candidate.providerId,
-            reason: complexityReason,
+            reason: candidate.providerId === "athena_coder"
+              ? "Measured routine Engineering task selected AthenaCoder."
+              : attempts.some((item) => item.providerId === "athena_coder")
+                ? `AthenaCoder did not satisfy the route; ${candidate.providerId} supplied the validated fallback.`
+                : complexityReason,
             escalated: attempts.length > 1,
             clarified: false,
             ...(economicTrace
@@ -915,6 +933,8 @@ export class AIRouterService {
           reason:
             error instanceof Error ? error.message.slice(0, 300) : "Provider failed.",
           errorCode: error instanceof AIProviderError ? error.code : "UNKNOWN",
+          ...(providerCallStarted === undefined ? {} : { latencyMs: Math.round(performance.now() - providerCallStarted) }),
+          ...(candidate.athenaCoder ? { athenaCoder: { ...candidate.athenaCoder, providerCallMs: providerCallStarted === undefined ? null : Math.round(performance.now() - providerCallStarted) } } : {}),
         });
         if (!request.allowFallback || !isRetryable(error)) break;
         this.counters.retries += 1;
@@ -937,6 +957,7 @@ export class AIRouterService {
     role: NonNullable<AIRouterRequest["requestedRole"]>,
     complexity: AIComplexityLevel,
     structured: boolean,
+    options: AIRouterExecutionOptions,
   ) {
     const models = this.runtime.listModels();
     const health = await this.runtime.providerHealth();
@@ -954,6 +975,16 @@ export class AIRouterService {
     const explicit = request.model?.type === "MODEL" ? request.model : undefined;
     return models
       .filter((model) => model.enabled && model.capabilities.textGeneration)
+      .filter((model) => {
+        if (model.providerId !== "athena_coder") return true;
+        if (request.purpose !== "CODING" || role !== "CODER" || request.risk !== "LOW") return false;
+        const runtime = AthenaCoderRuntimeMetadataSchema.safeParse(model.metadata);
+        if (!runtime.success || !runtime.data.reviewed || runtime.data.benchmarkStatus !== "MEASURED" || !runtime.data.artifactDigest) return false;
+        const eligibility = options.athenaCoder
+          ? AthenaCoderEligibilitySchema.safeParse(options.athenaCoder)
+          : undefined;
+        return Boolean(eligibility?.success && eligibility.data.activeModelId === model.modelId && isAthenaCoderEligible(eligibility.data));
+      })
       .filter((model) => {
         const provider = providers.find((item) => item.providerId === model.providerId);
         return Boolean(provider?.enabled && provider.configured);
@@ -999,12 +1030,14 @@ export class AIRouterService {
       })
       .sort(
         (a, b) =>
-          this.score(b, request, role, complexity, mapped) -
-          this.score(a, request, role, complexity, mapped),
+          this.score(b, request, role, complexity, mapped, options) -
+          this.score(a, request, role, complexity, mapped, options),
       )
-      .map(
-        (model) =>
-          ({
+      .map((model) => {
+          const runtime = model.providerId === "athena_coder"
+            ? AthenaCoderRuntimeMetadataSchema.safeParse(model.metadata)
+            : undefined;
+          return ({
             providerId: model.providerId,
             modelId: model.modelId,
             locality: model.locality,
@@ -1013,8 +1046,22 @@ export class AIRouterService {
             providerTrust:
               providers.find((provider) => provider.providerId === model.providerId)
                 ?.trustClassification ?? "UNTRUSTED",
-          }) as const,
-      );
+            ...(runtime?.success ? { athenaCoder: {
+              placement: runtime.data.placement,
+              backend: runtime.data.backend,
+              modelVersion: runtime.data.version,
+              artifactDigest: runtime.data.artifactDigest,
+              ...(runtime.data.distillation ? { distillationRunId: runtime.data.distillation.runId } : {}),
+              selectionReason: "MEASURED_ROUTINE_ENGINEERING" as const,
+              providerCallMs: null,
+              coldStartMs: null,
+              promptIngestionMs: null,
+              generationMs: null,
+              paidApiCostUsd: runtime.data.placement === "MAC_OLLAMA" ? 0 : null,
+              infrastructureCostUsd: null,
+            } } : {}),
+          }) as const;
+        });
   }
 
   private roleCompatible(
@@ -1038,10 +1085,13 @@ export class AIRouterService {
     role: NonNullable<AIRouterRequest["requestedRole"]>,
     complexity: AIComplexityLevel,
     mapped?: ReturnType<AIRuntimeService["listRoles"]>[number],
+    options?: AIRouterExecutionOptions,
   ) {
     let score = model.locality === "LOCAL" ? 100 : 50;
     if (mapped?.providerId === model.providerId && mapped.modelId === model.modelId)
       score += 1_000;
+    if (model.providerId === "athena_coder" && options?.athenaCoder)
+      score += 2_000;
     if (request.locality === "ALLOW_REMOTE" && model.locality === "REMOTE") score += 12;
     if (request.latency === "FAST" && model.locality === "LOCAL") score += 8;
     if (request.latency === "QUALITY" && model.capabilities.reasoning) score += 12;

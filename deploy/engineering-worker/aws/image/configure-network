@@ -1,0 +1,26 @@
+#!/bin/sh
+set -eu
+# AMI-owned finite setup, no arguments/environment-selected commands or paths.
+[ "$#" -eq 0 ]
+[ "$(id -u)" -eq 0 ]
+/usr/bin/docker network create --internal --subnet 172.30.0.0/24 athena-dependencies
+/usr/bin/docker network create --internal --subnet 172.31.0.0/24 alexa-engineering-preview
+/usr/bin/docker network create --internal --subnet 172.28.0.0/24 athena-relay
+/usr/bin/docker network create --subnet 172.29.0.0/24 athena-egress
+/usr/sbin/iptables -N ATHENA-TASKS
+/usr/sbin/iptables -A ATHENA-TASKS -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+/usr/sbin/iptables -A ATHENA-TASKS -s 172.29.0.2/32 -d 10.0.0.0/8 -j DROP
+/usr/sbin/iptables -A ATHENA-TASKS -s 172.29.0.2/32 -d 172.16.0.0/12 -j DROP
+/usr/sbin/iptables -A ATHENA-TASKS -s 172.29.0.2/32 -d 192.168.0.0/16 -j DROP
+/usr/sbin/iptables -A ATHENA-TASKS -s 172.29.0.2/32 -d 169.254.0.0/16 -j DROP
+/usr/sbin/iptables -A ATHENA-TASKS -s 172.29.0.2/32 -d 127.0.0.0/8 -j DROP
+/usr/sbin/iptables -A ATHENA-TASKS -s 172.29.0.2/32 -p tcp --dport 443 -j ACCEPT
+/usr/sbin/iptables -A ATHENA-TASKS -s 172.30.0.0/24 -d 172.30.0.2/32 -p tcp --dport 3128 -j ACCEPT
+/usr/sbin/iptables -A ATHENA-TASKS -s 172.31.0.0/24 -d 172.31.0.0/24 -p tcp --dport 4173 -j ACCEPT
+/usr/sbin/iptables -A ATHENA-TASKS -s 172.16.0.0/12 -j DROP
+/usr/sbin/iptables -A ATHENA-TASKS -d 172.16.0.0/12 -j DROP
+/usr/sbin/iptables -A ATHENA-TASKS -j RETURN
+/usr/sbin/iptables -I DOCKER-USER 1 -j ATHENA-TASKS
+/usr/sbin/iptables -I INPUT 1 -s 172.16.0.0/12 -j DROP
+/usr/bin/docker run -d --name athena-registry-proxy --pull never --network athena-egress --ip 172.29.0.2 --label athena.role=proxy --read-only --user 65532:65532 --cap-drop ALL --security-opt no-new-privileges --memory 128m --cpus 0.5 --pids-limit 32 --log-driver none athena-registry-proxy:1
+/usr/bin/docker network connect --ip 172.30.0.2 athena-dependencies athena-registry-proxy

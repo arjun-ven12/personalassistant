@@ -39,8 +39,7 @@ export const createPairingCode = () =>
     () => PAIRING_ALPHABET[randomInt(PAIRING_ALPHABET.length)],
   ).join("");
 
-export const fingerprintPublicKey = (key: Ed25519PublicKey) =>
-  `SHA256:${hashSecret(JSON.stringify({ crv: key.crv, kty: key.kty, x: key.x }))}`;
+export { fingerprintPublicKey } from "./public-key.js";
 
 export const verifyEnvelopeSignature = async (
   publicKey: Ed25519PublicKey,

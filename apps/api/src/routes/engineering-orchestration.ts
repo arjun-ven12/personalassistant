@@ -1,3 +1,4 @@
+import { EngineeringProjectInputService, isOwnerProjectInput, projectInputContext } from "../cloud-engineering/project-inputs.js";
 import { EngineeringObjectiveViewSchema } from "@alexa-control/shared";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
@@ -43,6 +44,16 @@ export const registerEngineeringOrchestrationRoutes = (
     };
   };
 
+  const inputs = new EngineeringProjectInputService(context.engineeringOrchestrationStore, context.governanceAudit);
+  app.get("/api/engineering-objectives/:objectiveId/inputs", { preHandler: read }, async (request) => {
+    const company = context.companyContext.get(request);
+    return { inputs: await inputs.list(company.ownerId, company.companyId, Params.parse(request.params).objectiveId) };
+  });
+  app.post("/api/engineering-objectives/:objectiveId/inputs", { preHandler: mutate, bodyLimit: 360_000, config: { rateLimit: { max: 12, timeWindow: "1 minute" } } }, async (request) => {
+    if (await context.emergencyStopActive()) throw Object.assign(Error("Emergency stop is active."), { statusCode: 403 });
+    return inputs.upload(managerContext(request), Params.parse(request.params).objectiveId, request.body);
+  });
+
   app.get("/api/engineering-objectives", { preHandler: read }, async (request) => {
     const company = context.companyContext.get(request);
     return {
@@ -58,13 +69,8 @@ export const registerEngineeringOrchestrationRoutes = (
     async (request) => {
       const company = context.companyContext.get(request);
       const { objectiveId } = Params.parse(request.params);
-      return EngineeringObjectiveViewSchema.parse(
-        await context.engineeringManager.view(
-          company.ownerId,
-          company.companyId,
-          objectiveId,
-        ),
-      );
+      const view = await context.engineeringManager.view(company.ownerId, company.companyId, objectiveId);
+      return EngineeringObjectiveViewSchema.parse({ ...view, artifacts: view.artifacts.map((artifact) => isOwnerProjectInput(artifact) ? projectInputContext(artifact) : artifact) });
     },
   );
   app.post("/api/engineering-objectives", { preHandler: mutate }, async (request) =>

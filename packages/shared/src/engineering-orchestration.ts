@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AIRouterAttemptSchema } from "./ai-router.js";
 
 import { EngineeringCapabilitySchema } from "./engineering-runtime.js";
 
@@ -134,6 +135,8 @@ export const EngineeringObjectiveSchema = z
     protectedAreas: z.array(z.string().min(1).max(300)).max(100),
     priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]),
     riskLevel: EngineeringRiskLevelSchema,
+    engineeringMode: z.enum(["FAST", "FULL"]).default("FULL"),
+    selfImprovement: z.boolean().default(false),
     budget: EngineeringObjectiveBudgetSchema.nullable(),
     deadlineAt: z.iso.datetime().nullable(),
     status: EngineeringObjectiveStatusSchema,
@@ -239,6 +242,8 @@ export const EngineeringArtifactSchema = z
   })
   .strict();
 
+export const EngineeringModelAttemptSchema = AIRouterAttemptSchema.pick({providerId: true, modelId: true, status: true, latencyMs: true, athenaCoder: true});
+export type EngineeringModelAttempt = z.infer<typeof EngineeringModelAttemptSchema>;
 export const EngineeringTaskResultSchema = z
   .object({
     schemaVersion: z.literal("1"),
@@ -255,6 +260,7 @@ export const EngineeringTaskResultSchema = z
     validationStatus: z.enum(["PASS", "FAIL", "SKIPPED", "NOT_CONFIGURED", "ERROR"]),
     validationReportId: z.string().uuid().nullable(),
     reviewStatus: z.enum(["NOT_REQUIRED", "PENDING", "PASS", "FAIL"]),
+    modelAttempts: z.array(EngineeringModelAttemptSchema).max(36).default([]),
     modelProvider: z.string().max(80).nullable(),
     modelName: z.string().max(160).nullable(),
     modelTier: EngineeringModelTierSchema,
@@ -293,6 +299,8 @@ export const EngineeringEventTypeSchema = z.enum([
   "OBJECTIVE_RECOVERED",
   "OWNER_CLARIFICATION_REQUIRED",
   "OWNER_CLARIFICATION_ANSWERED",
+  "BENCHMARK_RECORDED",
+  "PROJECT_INPUT_ATTACHED",
 ]);
 
 export const EngineeringEventSchema = z

@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "artifact": "amazon-ssm-agent.deb",
+  "upstreamVersion": "3.3.5390.0",
+  "debianVersion": "3.3.5390.0-1",
+  "sha256": "f8a5ecfd8235a0bf8c129e567ba83656e62c5eceeeff971916f461f85522fcd0",
+  "signatureSha256": "f9419683e0cb13be8af064dda98001836c7e758f0b527a55a4a7a0a4021b95d2",
+  "awsFingerprint": "1C5B395CBE5E74E2F1CA21592784DBF388D19D46",
+  "verificationLibrary": "openpgp@6.3.0",
+  "tamperedArtifactRejected": true
+}

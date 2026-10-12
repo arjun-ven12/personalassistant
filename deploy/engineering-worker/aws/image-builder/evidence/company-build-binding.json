@@ -1,0 +1,9 @@
+{
+  "companyId": "c2ac447f-0747-4b78-80f1-2cc4fff8d82f",
+  "companyName": "Default Company",
+  "source": "Owner provided canonical company UUID from Athena",
+  "imageBuilderServiceRoleObserved": "ABSENT_OWNER_REPORTED",
+  "buildRevision": "review-20261005-01",
+  "recipeVersion": "1.0.0",
+  "stackDeployed": false
+}

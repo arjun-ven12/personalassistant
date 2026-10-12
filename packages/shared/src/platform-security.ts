@@ -14,6 +14,9 @@ export const RecentAuthPurposeSchema = z.enum([
   "modify_security_settings",
   "revoke_trusted_device",
   "generate_recovery_codes",
+  "engineering_dataset_policy",
+  "engineering_dataset_export",
+  "athena_coder_control",
 ]);
 
 export const RecentAuthChallengeRequestSchema = z

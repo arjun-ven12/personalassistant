@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { EngineeringModelAttemptSchema } from "./engineering-orchestration.js";
 
 import { RegistryIdSchema } from "./applications.js";
 import {
@@ -11,6 +12,7 @@ export const EngineeringSoftwareIntentSchema = z.enum([
   "BUILD_SOFTWARE",
   "MODIFY_SOFTWARE",
   "FIX_SOFTWARE",
+  "SELF_IMPROVEMENT",
 ]);
 export const EngineeringComplexitySchema = z.enum([
   "TRIVIAL",
@@ -117,6 +119,12 @@ export const EngineeringDeliverySchema = z
     integrationRunId: z.string().uuid().nullable(),
     candidateId: z.string().uuid().nullable(),
     intent: EngineeringSoftwareIntentSchema,
+    selfImprovement: z.object({
+      riskLevel: z.enum(["LOW", "MEDIUM", "HIGH"]),
+      engineeringMode: z.enum(["FAST", "FULL"]),
+      targetAreas: z.array(EngineeringRelativePathSchema).max(30),
+      requestDigest: z.string().regex(/^[a-f0-9]{64}$/).nullable().default(null),
+    }).strict().nullable().default(null),
     projectMode: z.enum(["NEW", "EXISTING"]),
     projectName: z.string().min(1).max(100),
     sourceRequest: z.string().min(5).max(8_000),
@@ -171,6 +179,10 @@ export const EngineeringControlCenterSchema = z
           .strict(),
       )
       .max(6),
+    codingModels: z.array(z.object({taskId: z.string().uuid(), provider: z.string().max(80).nullable(), model: z.string().max(160).nullable(),
+      localAttempt: z.enum(["PASS", "ESCALATED", "UNKNOWN"]), attempts: z.array(EngineeringModelAttemptSchema).max(36),
+      paidCostAvoidedUsd: z.number().nonnegative().nullable(),
+    }).strict()).max(30).default([]),
     completedTasks: z.number().int().nonnegative(),
     blockedTasks: z.number().int().nonnegative(),
     blocker: z.object({

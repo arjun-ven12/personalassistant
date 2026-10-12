@@ -138,6 +138,7 @@ export class ReadOnlyExecutionClient {
       undefined,
     readonly engineeringRuntime: NativeEngineeringRuntime | undefined = undefined,
     readonly resultOutbox: EncryptedExecutionResultOutbox | undefined = undefined,
+    readonly requestGuard: ((request: ReadOnlyExecutionRequest) => void) | undefined = undefined,
   ) {}
 
   start() {
@@ -224,6 +225,7 @@ export class ReadOnlyExecutionClient {
   }
 
   private async execute(request: ReadOnlyExecutionRequest) {
+    this.requestGuard?.(request);
     this.status.currentExecutionRequestId = request.id;
     await this.post({ operation: "claim", requestId: request.id });
     await this.post({ operation: "start", requestId: request.id });

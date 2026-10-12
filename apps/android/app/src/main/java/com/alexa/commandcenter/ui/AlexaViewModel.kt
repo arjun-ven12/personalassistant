@@ -68,6 +68,15 @@ data class AlexaUiState(
   val lastUpdatedAt: Long? = null,
   val device: DeviceRegistration? = null,
   val error: String? = null,
+  val engineering: EngineeringSnapshot? = null,
+  val engineeringBuild: EngineeringBuild? = null,
+  val engineeringObjective: EngineeringObjectiveView? = null,
+  val engineeringIntegration: EngineeringIntegration? = null,
+  val engineeringBusy: Boolean = false,
+  val engineeringGitHubBindings: List<EngineeringGitHubBinding> = emptyList(),
+  val engineeringGitHubRepos: List<EngineeringGitHubRepository> = emptyList(),
+  val engineeringGitHubMessage: String? = null,
+  val engineeringInputs: List<EngineeringProjectInput> = emptyList(),
 ) { val shouldSecureWindow: Boolean get() = screen !is AlexaScreenState.Shell }
 
 class AlexaViewModel(
@@ -84,6 +93,105 @@ class AlexaViewModel(
   private var pendingApprovalStepUp: PendingApprovalStepUp? = null
   private var foregroundStateSync: Job? = null
   private var executiveRefresh: Job? = null
+  private var engineeringRevision: String? = null
+  private fun engineeringKey(kind: String, body: String): String = repository.engineeringIdempotencyKey(kind, body)
+
+  fun loadEngineeringGitHub() = viewModelScope.launch {
+    val company = mutableState.value.companies?.currentCompany?.id ?: return@launch
+    repository.engineeringGitHubBindings().onSuccess {
+      if (mutableState.value.companies?.currentCompany?.id == company) mutableState.value = mutableState.value.copy(engineeringGitHubBindings = it)
+    }.onFailure(::showFailure)
+  }
+  fun engineeringGitHub(name: String, credential: String, repoId: Long?, projectName: String?, approvalId: String?) = engineeringWork {
+    val key = engineeringKey("github:$name", "$credential:$repoId:$projectName")
+    val args = mutableMapOf<String, Any>("credentialReferenceId" to credential)
+    if (name == "register_repository") args["providerRepositoryId"] = repoId ?: return@engineeringWork Result.failure(IllegalArgumentException("Select a repository."))
+    if (name == "create_repository") { args["name"] = projectName.orEmpty().trim(); args["private"] = true; args["idempotencyKey"] = key }
+    repository.engineeringGitHubTool(name, args, key, approvalId).mapCatching { result ->
+      mutableState.value = mutableState.value.copy(engineeringGitHubMessage = when (result.status) {
+        "SUCCEEDED" -> if (name == "list_repositories") "Authorized repositories loaded." else "Repository registered. Cloud workspace preparation is required before building."
+        "APPROVAL_REQUIRED" -> "Approve this exact GitHub operation in the biometric inbox, then select that approval and retry."
+        "INDETERMINATE" -> "Outcome is uncertain. Review the persisted receipt before retrying; creation will not be repeated."
+        else -> "GitHub operation unavailable: ${result.failureCode ?: result.status}. A reviewed provider and company credential are required."
+      })
+      if (result.status == "SUCCEEDED" && name == "list_repositories") {
+        val repositories = com.google.gson.Gson().fromJson(result.structuredOutput, EngineeringGitHubRepositories::class.java).repositories
+        check(repositories.size <= 100 && repositories.all { it.providerRepositoryId > 0 && it.fullName.length <= 201 && it.defaultBranch.length <= 200 })
+        mutableState.value = mutableState.value.copy(engineeringGitHubRepos = repositories)
+      }
+      if (result.status == "APPROVAL_REQUIRED") refresh()
+    }
+  }
+  fun refreshEngineering() = viewModelScope.launch {
+    val company = mutableState.value.companies?.currentCompany?.id ?: return@launch
+    if (mutableState.value.connection != ConnectionState.ONLINE) {
+      mutableState.value = mutableState.value.copy(engineering = repository.cachedEngineering() ?: mutableState.value.engineering)
+      return@launch
+    }
+    repository.engineeringSnapshot().onSuccess {
+      if (mutableState.value.companies?.currentCompany?.id == company)
+        mutableState.value = mutableState.value.copy(engineering = it)
+    }.onFailure(::showFailure)
+    mutableState.value.engineeringBuild?.delivery?.id?.let { loadEngineeringBuild(it) }
+  }
+
+  fun loadEngineeringBuild(id: String) = viewModelScope.launch {
+    val company = mutableState.value.companies?.currentCompany?.id ?: return@launch
+    repository.engineeringBuild(id).fold(onSuccess = { build ->
+      val objective = repository.engineeringObjective(build.delivery.objectiveId).getOrNull()
+      val integration = build.delivery.integrationRunId?.let { repository.engineeringIntegration(it).getOrNull() }
+      val inputs = repository.engineeringInputs(build.delivery.objectiveId).getOrDefault(emptyList())
+      if (mutableState.value.companies?.currentCompany?.id == company)
+        mutableState.value = mutableState.value.copy(engineeringBuild = build,
+          engineeringObjective = objective, engineeringIntegration = integration, engineeringInputs = inputs)
+    }, onFailure = ::showFailure)
+  }
+
+  fun uploadEngineeringInput(id: String, fileName: String, mimeType: String, bytes: ByteArray) = engineeringWork {
+    repository.engineeringUpload(id, fileName, mimeType, bytes).map { input ->
+      mutableState.value = mutableState.value.copy(engineeringInputs = (mutableState.value.engineeringInputs + input).distinctBy { it.id })
+    }
+  }
+
+  fun closeEngineeringBuild() { mutableState.value = mutableState.value.copy(engineeringBuild = null, engineeringObjective = null, engineeringIntegration = null, engineeringInputs = emptyList()) }
+
+  fun createEngineering(request: String, repositoryId: String?, self: Boolean) = engineeringWork {
+    val input = EngineeringCreateRequest(request.trim(), repositoryId = if (self) null else repositoryId,
+      idempotencyKey = engineeringKey("create", "$self:$repositoryId:${request.trim()}"))
+    repository.createEngineering(input, self).onSuccess { loadEngineeringBuild(it.delivery.id) }.map { Unit }
+  }
+  fun controlEngineering(id: String, action: String) = engineeringWork {
+    repository.engineeringControl(id, action).onSuccess { loadEngineeringBuild(id) }.map { Unit }
+  }
+  fun instructEngineering(id: String, text: String) = engineeringWork {
+    repository.engineeringInstruction(id, EngineeringInstruction(text.trim(), engineeringKey("instruction:$id", text.trim())))
+      .onSuccess { loadEngineeringBuild(id) }.map { Unit }
+  }
+  fun answerEngineering(id: String, clarificationId: String, text: String) = engineeringWork {
+    repository.engineeringAnswer(id, clarificationId, EngineeringAnswer(text.trim(), engineeringKey("answer:$clarificationId", text.trim())))
+      .onSuccess { mutableState.value.engineeringBuild?.delivery?.id?.let(::loadEngineeringBuild) }.map { Unit }
+  }
+  fun previewEngineering(id: String, action: String) = engineeringWork {
+    repository.engineeringPreview(id, action).onSuccess { loadEngineeringBuild(id) }.map { Unit }
+  }
+  fun mergeEngineering(runId: String) = engineeringWork {
+    // The server creates/reuses the canonical exact-head approval. The owner
+    // decides it in the existing biometric inbox, then retries this same key.
+    repository.engineeringMerge(runId, engineeringKey("merge", runId)).onFailure {
+      refresh(); loadEngineeringBuild(mutableState.value.engineeringBuild?.delivery?.id ?: return@onFailure)
+    }.map { Unit }
+  }
+  fun rejectEngineering(runId: String, reason: String?) = engineeringWork {
+    repository.engineeringReject(runId, reason).onSuccess { mutableState.value.engineeringBuild?.delivery?.id?.let(::loadEngineeringBuild) }.map { Unit }
+  }
+  private fun engineeringWork(work: suspend () -> Result<Unit>) = viewModelScope.launch {
+    if (mutableState.value.connection != ConnectionState.ONLINE || mutableState.value.screen !is AlexaScreenState.Shell)
+      return@launch showOfflineActionError()
+    if (mutableState.value.engineeringBusy) return@launch
+    mutableState.value = mutableState.value.copy(engineeringBusy = true)
+    try { work().onSuccess { refreshEngineering() }.onFailure(::showFailure) }
+    finally { mutableState.value = mutableState.value.copy(engineeringBusy = false) }
+  }
 
   init {
     connectivity.start()
@@ -102,6 +210,7 @@ class AlexaViewModel(
           "WORKFLOW" -> loadWorkflowDetail(target.objectId, force = true)
           "AGENT" -> loadAgentDetail(target.objectId, force = true)
           "EXPERIMENT" -> loadExperiments("__all__", force = true)
+          "ENGINEERING_BUILD" -> refreshEngineering()
         }
       }
     }
@@ -213,11 +322,14 @@ class AlexaViewModel(
   }
 
   fun selectCompany(companyId: String) = viewModelScope.launch {
+    if (mutableState.value.engineeringBusy) return@launch
     if (companyId == mutableState.value.companies?.currentCompany?.id) return@launch
     mutableState.value = mutableState.value.copy(
       commandCenter = null, agentDetails = emptyMap(), workflowDetails = emptyMap(),
       experimentDashboards = emptyMap(), approvalDetails = emptyMap(), conversations = null,
       selectedConversationId = null, activeVoiceSessionId = null, notificationTarget = null,
+      engineering = null, engineeringBuild = null, engineeringObjective = null, engineeringIntegration = null,
+      engineeringGitHubBindings = emptyList(), engineeringGitHubRepos = emptyList(), engineeringGitHubMessage = null, engineeringInputs = emptyList(),
     )
     repository.selectCompany(companyId).fold(
       onSuccess = { mutableState.value = mutableState.value.copy(companies = it, portfolioMode = false, error = null); refresh() },
@@ -353,7 +465,7 @@ class AlexaViewModel(
   }
 
   fun openNotification(target: NotificationTarget) {
-    if (!target.isValid()) return
+    if (!target.isValid() || mutableState.value.engineeringBusy) return
     val activeCompanyId = mutableState.value.companies?.currentCompany?.id
     if (target.companyId != null && target.companyId != activeCompanyId) {
       viewModelScope.launch {
@@ -361,6 +473,8 @@ class AlexaViewModel(
           commandCenter = null, agentDetails = emptyMap(), workflowDetails = emptyMap(),
           experimentDashboards = emptyMap(), approvalDetails = emptyMap(), conversations = null,
           selectedConversationId = null, activeVoiceSessionId = null, notificationTarget = null,
+          engineering = null, engineeringBuild = null, engineeringObjective = null, engineeringIntegration = null,
+      engineeringGitHubBindings = emptyList(), engineeringGitHubRepos = emptyList(), engineeringGitHubMessage = null, engineeringInputs = emptyList(),
         )
         repository.selectCompany(target.companyId).fold(
           onSuccess = {
@@ -379,6 +493,7 @@ class AlexaViewModel(
       "APPROVAL" -> loadApprovalDetail(target.objectId, force = true)
       "WORKFLOW" -> loadWorkflowDetail(target.objectId)
       "AGENT" -> loadAgentDetail(target.objectId)
+      "ENGINEERING_BUILD" -> loadEngineeringBuild(target.objectId)
     }
   }
 
@@ -550,7 +665,7 @@ class AlexaViewModel(
 
   private fun requireBiometric() {
     suspendVoiceActivity()
-    mutableState.value = mutableState.value.copy(screen = AlexaScreenState.BiometricLocked, error = null)
+    mutableState.value = mutableState.value.copy(screen = AlexaScreenState.BiometricLocked, error = null, engineering = null, engineeringBuild = null, engineeringObjective = null, engineeringIntegration = null, engineeringGitHubBindings = emptyList(), engineeringGitHubRepos = emptyList(), engineeringGitHubMessage = null, engineeringInputs = emptyList())
     viewModelScope.launch { biometricRequests.emit(BiometricRequest(BiometricPurpose.UNLOCK)) }
   }
 
@@ -608,7 +723,7 @@ class AlexaViewModel(
     }
     if (failure == AlexaFailure.Unauthorized) {
       repository.clearSession()
-      mutableState.value = mutableState.value.copy(screen = AlexaScreenState.Login, error = "Authentication is required.")
+      mutableState.value = mutableState.value.copy(screen = AlexaScreenState.Login, error = "Authentication is required.", engineering = null, engineeringBuild = null, engineeringObjective = null, engineeringIntegration = null, engineeringGitHubBindings = emptyList(), engineeringGitHubRepos = emptyList(), engineeringGitHubMessage = null, engineeringInputs = emptyList())
       return
     }
     mutableState.value = mutableState.value.copy(error = when (failure) {
@@ -620,6 +735,7 @@ class AlexaViewModel(
       AlexaFailure.SignedRequestRejected -> "Athena could not verify this device request. Your session and device pairing remain intact."
       AlexaFailure.RecentAuthRequired -> "Biometric confirmation is required for this approval."
       AlexaFailure.ApprovalConflict -> "This approval is no longer pending."
+      AlexaFailure.EngineeringApprovalRequired -> "Review this candidate's exact approval in Approvals, complete biometric authentication, then retry merge."
       else -> "The request could not be completed."
     })
   }
@@ -702,12 +818,17 @@ class AlexaViewModel(
         delay(foregroundSync.pollIntervalMs)
         if (mutableState.value.connection == ConnectionState.ONLINE) {
           repository.syncCrossDeviceClient().onSuccess { response ->
+            if (response.engineeringRevision != null && response.engineeringRevision != engineeringRevision) {
+              engineeringRevision = response.engineeringRevision
+              if (mutableState.value.engineering != null) refreshEngineering()
+            }
             response.commands.firstOrNull()?.let { command ->
               if (mutableState.value.crossDeviceCommand?.id != command.id)
                 mutableState.value = mutableState.value.copy(crossDeviceCommand = command)
             }
           }
           if (foregroundSync.shouldRefreshExecutive(cycle)) refreshExecutiveSnapshot()
+          if (cycle % 6 == 0 && mutableState.value.engineering != null) refreshEngineering()
           cycle += 1
         }
       }

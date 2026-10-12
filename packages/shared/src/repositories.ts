@@ -270,7 +270,7 @@ const SemanticLocationSchema = z
   .object({
     relativePath: RelativeRepositoryPathSchema,
     line: z.number().int().positive().max(1_000_000),
-    column: z.number().int().positive().max(1_000),
+    column: z.number().int().positive().max(1_000_000),
   })
   .strict();
 
@@ -287,7 +287,7 @@ export const SemanticSymbolRecordSchema = z
     language: z.enum(["TypeScript", "JavaScript"]),
     relativePath: RelativeRepositoryPathSchema,
     line: z.number().int().positive().max(1_000_000),
-    column: z.number().int().positive().max(1_000),
+    column: z.number().int().positive().max(1_000_000),
     visibility: z.enum(["public", "private", "protected", "internal", "unknown"]),
     exported: z.boolean(),
     metadata: z.record(z.string().max(80), z.json()).optional(),
@@ -305,7 +305,7 @@ export const SemanticImportRecordSchema = z
     importedNames: z.array(z.string().min(1).max(255)).max(200),
     isTypeOnly: z.boolean(),
     line: z.number().int().positive().max(1_000_000),
-    column: z.number().int().positive().max(1_000),
+    column: z.number().int().positive().max(1_000_000),
   })
   .strict();
 
@@ -319,7 +319,7 @@ export const SemanticExportRecordSchema = z
     exportedName: z.string().min(1).max(255),
     localName: z.string().min(1).max(255).nullable(),
     line: z.number().int().positive().max(1_000_000),
-    column: z.number().int().positive().max(1_000),
+    column: z.number().int().positive().max(1_000_000),
   })
   .strict();
 
@@ -376,7 +376,7 @@ export const ApiRouteRecordSchema = z
     handlerName: z.string().max(255).nullable(),
     authRequired: z.boolean(),
     line: z.number().int().positive().max(1_000_000),
-    column: z.number().int().positive().max(1_000),
+    column: z.number().int().positive().max(1_000_000),
   })
   .strict();
 
@@ -398,7 +398,7 @@ export const DatabaseModelRecordSchema = z
     fields: z.array(z.string().min(1).max(255)).max(500),
     relationships: z.array(z.string().min(1).max(255)).max(500),
     line: z.number().int().positive().max(1_000_000),
-    column: z.number().int().positive().max(1_000),
+    column: z.number().int().positive().max(1_000_000),
   })
   .strict();
 

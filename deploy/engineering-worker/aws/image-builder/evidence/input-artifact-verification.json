@@ -1,0 +1,14 @@
+{
+  "status": "INPUT_PINS_VALIDATED_REQUIRES_OWNER_APPROVAL_NOT_RELEASED",
+  "inventorySha256": "7f1f1e5a2cd3ed6bd4f68e7232557904457224ef219854e74471d4e74e669b85",
+  "LockSha256": "5ee9e7ed7d480fea8b10adc04441c3fc38b748b76a0ba81e68473108d9e0dc36",
+  "ToolingSha256": "e09a2555ecaaaa2145ec2c7656f4e60a012295bca420275c09ec99326e59ba13",
+  "PayloadSha256": "658679b5b50d86dc85f4ba73f66ed54021e13a486d365a6ab8d58972f7bed28e",
+  "basePackageCount": 651,
+  "inheritedUnchangedCount": 648,
+  "installedOrUpgradedCount": 10,
+  "archiveMembersVerified": 14,
+  "kernelAbi": "7.0.0-1014-aws",
+  "previewEnabled": false,
+  "runtimePermissionsActivated": false
+}

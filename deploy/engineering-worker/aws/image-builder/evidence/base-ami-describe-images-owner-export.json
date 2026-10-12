@@ -1,0 +1,50 @@
+{
+  "Images": [
+    {
+      "Architecture": "x86_64",
+      "BlockDeviceMappings": [
+        {
+          "DeviceName": "/dev/sda1",
+          "Ebs": {
+            "DeleteOnTermination": true,
+            "Encrypted": false,
+            "SnapshotId": "snap-0930a0f50200e3c0b",
+            "VolumeSize": 8,
+            "VolumeType": "gp3"
+          }
+        },
+        {
+          "DeviceName": "/dev/sdb",
+          "VirtualName": "ephemeral0"
+        },
+        {
+          "DeviceName": "/dev/sdc",
+          "VirtualName": "ephemeral1"
+        }
+      ],
+      "BootMode": "uefi-preferred",
+      "CreationDate": "2026-09-04T11:46:06.000Z",
+      "DeprecationTime": "2028-09-04T11:46:06.000Z",
+      "Description": "Canonical, Ubuntu, 24.04, amd64 noble image",
+      "EnaSupport": true,
+      "FreeTierEligible": true,
+      "Hypervisor": "xen",
+      "ImageId": "ami-0ba4172b23e57d5a8",
+      "ImageLocation": "amazon/ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-20260904",
+      "ImageOwnerAlias": "amazon",
+      "ImageType": "machine",
+      "ImdsSupport": "v2.0",
+      "Name": "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-20260904",
+      "OwnerId": "099720109477",
+      "PlatformDetails": "Linux/UNIX",
+      "Public": true,
+      "PublicSsmParameterName": "aws/service/canonical/ubuntu/server/noble/stable/current/amd64/hvm/ebs-gp3/ami-id",
+      "RootDeviceName": "/dev/sda1",
+      "RootDeviceType": "ebs",
+      "SriovNetSupport": "simple",
+      "State": "available",
+      "UsageOperation": "RunInstances",
+      "VirtualizationType": "hvm"
+    }
+  ]
+}

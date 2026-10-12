@@ -1,0 +1,260 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadResourceEvidence",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeImages",
+        "ec2:DescribeInstances",
+        "ec2:DescribeVolumes",
+        "ec2:DescribeSecurityGroups"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-southeast-1"
+        }
+      }
+    },
+    {
+      "Sid": "UseReviewedImageAndNetwork",
+      "Effect": "Allow",
+      "Action": "ec2:RunInstances",
+      "Resource": [
+        "arn:aws:ec2:ap-southeast-1::image/${AMI_ID}",
+        "arn:aws:ec2:ap-southeast-1:${ACCOUNT_ID}:subnet/${SUBNET_ID}",
+        "arn:aws:ec2:ap-southeast-1:${ACCOUNT_ID}:security-group/${WORKER_SG_ID}",
+        "arn:aws:ec2:ap-southeast-1:${ACCOUNT_ID}:network-interface/*"
+      ]
+    },
+    {
+      "Sid": "CreateBoundedCompanyInstance",
+      "Effect": "Allow",
+      "Action": "ec2:RunInstances",
+      "Resource": "arn:aws:ec2:ap-southeast-1:${ACCOUNT_ID}:instance/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:InstanceType": "t3.medium",
+          "aws:RequestTag/athena:company": "${COMPANY_ID}",
+          "aws:RequestTag/athena:runtime": "${RUNTIME_DIGEST}",
+          "ec2:InstanceProfile": "arn:aws:iam::${ACCOUNT_ID}:instance-profile/${WORKER_ROLE_NAME}",
+          "ec2:MetadataHttpTokens": "required"
+        },
+        "NumericLessThanEquals": {
+          "ec2:MetadataHttpPutResponseHopLimit": "1"
+        }
+      }
+    },
+    {
+      "Sid": "CreateCompanyVolume",
+      "Effect": "Allow",
+      "Action": "ec2:RunInstances",
+      "Resource": "arn:aws:ec2:ap-southeast-1:${ACCOUNT_ID}:volume/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/athena:company": "${COMPANY_ID}",
+          "aws:RequestTag/athena:runtime": "${RUNTIME_DIGEST}"
+        },
+        "NumericLessThanEquals": {
+          "ec2:VolumeSize": "10"
+        },
+        "Bool": {
+          "ec2:Encrypted": "true"
+        }
+      }
+    },
+    {
+      "Sid": "TagOnlyAtLaunch",
+      "Effect": "Allow",
+      "Action": "ec2:CreateTags",
+      "Resource": [
+        "arn:aws:ec2:ap-southeast-1:${ACCOUNT_ID}:instance/*",
+        "arn:aws:ec2:ap-southeast-1:${ACCOUNT_ID}:volume/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": "RunInstances",
+          "aws:RequestTag/athena:company": "${COMPANY_ID}"
+        }
+      }
+    },
+    {
+      "Sid": "StopDestroyOnlyCompanyInstances",
+      "Effect": "Allow",
+      "Action": ["ec2:StopInstances", "ec2:TerminateInstances"],
+      "Resource": "arn:aws:ec2:ap-southeast-1:${ACCOUNT_ID}:instance/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/athena:company": "${COMPANY_ID}",
+          "ec2:ResourceTag/athena:runtime": "${RUNTIME_DIGEST}"
+        }
+      }
+    },
+    {
+      "Sid": "PassOnlyWorkerRole",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::${ACCOUNT_ID}:role/${WORKER_ROLE_NAME}",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "ec2.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "PassOnlyReaperRole",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::${ACCOUNT_ID}:role/${REAPER_ROLE_NAME}",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "scheduler.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "PinnedSsmDocuments",
+      "Effect": "Allow",
+      "Action": "ssm:SendCommand",
+      "Resource": [
+        "arn:aws:ssm:ap-southeast-1:${ACCOUNT_ID}:document/AthenaEngineeringEvidenceV1",
+        "arn:aws:ssm:ap-southeast-1:${ACCOUNT_ID}:document/AthenaEngineeringPreviewGrantV1"
+      ]
+    },
+    {
+      "Sid": "CompanySsmTargets",
+      "Effect": "Allow",
+      "Action": "ssm:SendCommand",
+      "Resource": "arn:aws:ec2:ap-southeast-1:${ACCOUNT_ID}:instance/*",
+      "Condition": {
+        "StringEquals": {
+          "ssm:resourceTag/athena:company": "${COMPANY_ID}"
+        }
+      }
+    },
+    {
+      "Sid": "ReadFiniteCommandResult",
+      "Effect": "Allow",
+      "Action": "ssm:GetCommandInvocation",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-southeast-1"
+        }
+      }
+    },
+    {
+      "Sid": "DenyGenericShellAndSessions",
+      "Effect": "Deny",
+      "Action": [
+        "ssm:StartSession",
+        "ssm:ResumeSession",
+        "ssm:StartAutomationExecution"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DenyGenericShellDocuments",
+      "Effect": "Deny",
+      "Action": "ssm:SendCommand",
+      "Resource": [
+        "arn:aws:ssm:ap-southeast-1::document/AWS-RunShellScript",
+        "arn:aws:ssm:ap-southeast-1::document/AWS-RunPowerShellScript",
+        "arn:aws:ssm:ap-southeast-1::document/AWS-RunRemoteScript"
+      ]
+    },
+    {
+      "Sid": "WorkspaceDeadlineSchedules",
+      "Effect": "Allow",
+      "Action": ["scheduler:CreateSchedule", "scheduler:GetSchedule"],
+      "Resource": "arn:aws:scheduler:ap-southeast-1:${ACCOUNT_ID}:schedule/${SCHEDULE_GROUP}/athena-*"
+    },
+    {
+      "Sid": "ReadReviewedIngress",
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:DescribeListeners",
+        "elasticloadbalancing:DescribeRules",
+        "elasticloadbalancing:DescribeTargetGroups"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-southeast-1"
+        }
+      }
+    },
+    {
+      "Sid": "CreateTaggedTaskIngress",
+      "Effect": "Allow",
+      "Action": "elasticloadbalancing:CreateTargetGroup",
+      "Resource": "arn:aws:elasticloadbalancing:ap-southeast-1:${ACCOUNT_ID}:targetgroup/athena-*/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/athena:company": "${COMPANY_ID}"
+        }
+      }
+    },
+    {
+      "Sid": "ManageTaskTargets",
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:RegisterTargets",
+        "elasticloadbalancing:DeleteTargetGroup"
+      ],
+      "Resource": "arn:aws:elasticloadbalancing:ap-southeast-1:${ACCOUNT_ID}:targetgroup/athena-*/*",
+      "Condition": {
+        "StringEquals": {
+          "elasticloadbalancing:ResourceTag/athena:company": "${COMPANY_ID}"
+        }
+      }
+    },
+    {
+      "Sid": "CreateReviewedListenerRule",
+      "Effect": "Allow",
+      "Action": "elasticloadbalancing:CreateRule",
+      "Resource": "${LISTENER_ARN}",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/athena:company": "${COMPANY_ID}"
+        }
+      }
+    },
+    {
+      "Sid": "RevokeTaskRule",
+      "Effect": "Allow",
+      "Action": "elasticloadbalancing:DeleteRule",
+      "Resource": "${LISTENER_RULE_ARN_PREFIX}*",
+      "Condition": {
+        "StringEquals": {
+          "elasticloadbalancing:ResourceTag/athena:company": "${COMPANY_ID}"
+        }
+      }
+    },
+    {
+      "Sid": "TagTargetOnlyAtCreation",
+      "Effect": "Allow",
+      "Action": "elasticloadbalancing:AddTags",
+      "Resource": "arn:aws:elasticloadbalancing:ap-southeast-1:${ACCOUNT_ID}:targetgroup/athena-*/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/athena:company": "${COMPANY_ID}",
+          "elasticloadbalancing:CreateAction": "CreateTargetGroup"
+        }
+      }
+    },
+    {
+      "Sid": "TagRuleOnlyAtCreation",
+      "Effect": "Allow",
+      "Action": "elasticloadbalancing:AddTags",
+      "Resource": "${LISTENER_RULE_ARN_PREFIX}*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/athena:company": "${COMPANY_ID}",
+          "elasticloadbalancing:CreateAction": "CreateRule"
+        }
+      }
+    }
+  ]
+}

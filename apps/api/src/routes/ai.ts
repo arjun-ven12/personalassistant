@@ -10,10 +10,13 @@ import {
   AIProviderHealthSchema,
   AIRequestPurposeSchema,
   CognitiveContextProfileSchema,
+  AthenaCoderRuntimeMetadataSchema,
 } from "@alexa-control/shared";
 import type { FastifyInstance } from "fastify";
+import type { FastifyRequest } from "fastify";
 import { z } from "zod";
 import type { ApiRouteContext } from "./context.js";
+import { ApiSecurityError } from "../identity/errors.js";
 
 const mutationGuards = (context: ApiRouteContext) => [
   context.security.requireAuthentication,
@@ -101,6 +104,15 @@ const makeRouterRequest = (
   });
 
 export const registerAIRoutes = (app: FastifyInstance, context: ApiRouteContext) => {
+  const visibleModels = (request: FastifyRequest) => {
+    const ownerId = context.security.getIdentity(request).user.id;
+    const companyId = context.companyContext.get(request).companyId;
+    return context.aiRuntime.listModels().filter(model => {
+      if (!model.metadata?.distillation) return true;
+      const metadata = AthenaCoderRuntimeMetadataSchema.safeParse(model.metadata);
+      return metadata.success && metadata.data.distillation?.ownerId === ownerId && metadata.data.distillation.companyId === companyId;
+    });
+  };
   app.get(
     "/api/ai/providers",
     { preHandler: [context.security.requireAuthentication] },
@@ -149,18 +161,18 @@ export const registerAIRoutes = (app: FastifyInstance, context: ApiRouteContext)
   );
   app.get(
     "/api/ai/models",
-    { preHandler: [context.security.requireAuthentication] },
-    () => context.aiRuntime.listModels(),
+    { preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany] },
+    request => visibleModels(request),
   );
   app.get(
     "/api/ai/models/:modelId",
-    { preHandler: [context.security.requireAuthentication] },
+    { preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany] },
     (request) => {
       const modelId = z
         .object({ modelId: z.string().min(1).max(160) })
         .parse(request.params).modelId;
       return (
-        context.aiRuntime.listModels().find((item) => item.modelId === modelId) ?? {
+        visibleModels(request).find((item) => item.modelId === modelId) ?? {
           error: "MODEL_NOT_FOUND",
         }
       );
@@ -168,8 +180,8 @@ export const registerAIRoutes = (app: FastifyInstance, context: ApiRouteContext)
   );
   app.get(
     "/api/ai/model-roles",
-    { preHandler: [context.security.requireAuthentication] },
-    () => context.aiRuntime.listRoles(),
+    { preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany] },
+    request => context.aiRuntime.listRoles().filter(role => visibleModels(request).some(model => model.modelId === role.modelId && model.providerId === role.providerId)),
   );
   app.put(
     "/api/ai/model-roles/:role",
@@ -178,6 +190,8 @@ export const registerAIRoutes = (app: FastifyInstance, context: ApiRouteContext)
       const identity = context.security.getIdentity(request);
       const role = roleParams.parse(request.params).role;
       const body = roleBody.parse(request.body);
+      if (context.aiRuntime.models.get(body.providerId, body.modelId).metadata?.distillation)
+        throw new ApiSecurityError(403, "MODEL_VERSION_PATH_REQUIRED", "Trained versions use the governed distillation activation path.");
       const mapping = context.aiRuntime.setRole({ role, ...body });
       await context.governanceAudit({
         eventType: "GOVERNANCE_STATE_CHANGED",

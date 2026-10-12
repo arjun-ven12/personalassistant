@@ -26,6 +26,7 @@ import com.alexa.commandcenter.security.AndroidSecureValues
 import com.alexa.commandcenter.security.DeviceRegistrationStore
 import com.alexa.commandcenter.security.SecureCache
 import com.alexa.commandcenter.security.SessionStore
+import com.alexa.commandcenter.ui.EngineeringCallbacks
 import com.alexa.commandcenter.ui.AlexaApp
 import com.alexa.commandcenter.ui.AlexaViewModel
 import com.alexa.commandcenter.ui.AlexaScreenState
@@ -116,6 +117,19 @@ class MainActivity : FragmentActivity() {
     setContent {
       AlexaApp(
         state = model.state.collectAsState().value,
+        engineeringActions = EngineeringCallbacks(
+          refresh = { model.refreshEngineering() }, open = { model.loadEngineeringBuild(it) },
+          close = model::closeEngineeringBuild,
+          upload = { id, name, mime, bytes -> model.uploadEngineeringInput(id, name, mime, bytes) },
+          githubLoad = { model.loadEngineeringGitHub() },
+          github = { name, credential, repo, project, approval -> model.engineeringGitHub(name, credential, repo, project, approval) },
+          create = { request, repo, self -> model.createEngineering(request, repo, self) },
+          control = { id, action -> model.controlEngineering(id, action) },
+          instruction = { id, text -> model.instructEngineering(id, text) },
+          answer = { id, clarification, text -> model.answerEngineering(id, clarification, text) },
+          preview = { id, action -> model.previewEngineering(id, action) },
+          merge = { model.mergeEngineering(it) }, reject = { id, reason -> model.rejectEngineering(id, reason) },
+        ),
         environment = environment,
         onLogin = model::login,
         onCreatePairing = model::createPairingIntent,

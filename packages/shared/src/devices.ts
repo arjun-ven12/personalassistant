@@ -5,6 +5,7 @@ import { CapabilitySchema } from "./capabilities.js";
 export const DeviceTypeSchema = z.enum([
   "WEB_BROWSER",
   "MAC_AGENT",
+  "CLOUD_WORKER",
   "ANDROID",
   "SERVER",
 ]);
@@ -60,7 +61,7 @@ export const PairingRequestSchema = z
   .object({
     pairingCode: z.string().regex(/^[A-Z0-9]{8}$/),
     deviceName: z.string().trim().min(1).max(100),
-    deviceType: DeviceTypeSchema,
+    deviceType: DeviceTypeSchema.exclude(["CLOUD_WORKER"]),
     publicKey: Ed25519PublicKeySchema,
   })
   .strict();

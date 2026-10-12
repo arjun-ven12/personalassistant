@@ -332,6 +332,23 @@ const fixture = (now: () => Date = () => new Date(at)) => {
 };
 
 describe("EngineeringDeliveryService", () => {
+  it("denies generic delivery creation on the server-bound Athena repository", async () => {
+    const { service, manager } = fixture();
+    const createSpy = vi.spyOn(manager, "create");
+    service.setSelfImprovementRepository((company, repository) => company === companyId && repository === repositoryId);
+    const input = { request: "Improve Athena Engineering dashboard cards.", repositoryId,
+      acceptanceCriteria: ["Cards remain readable."], idempotencyKey: "self-improvement-delivery-test" };
+    await expect(service.create(context, input)).rejects.toMatchObject({ code: "DEVELOPMENT_ROOT_DENIED" });
+    expect(createSpy).not.toHaveBeenCalled();
+    const created = await service.create(context, input, { selfImprovement: {
+      riskLevel: "LOW", engineeringMode: "FAST", targetAreas: [],
+    } });
+    expect(created.delivery.intent).toBe("SELF_IMPROVEMENT");
+    expect(created.delivery.selfImprovement).toMatchObject({ riskLevel: "LOW", engineeringMode: "FAST" });
+    expect(createSpy).toHaveBeenCalledWith(expect.anything(), expect.anything(), {
+      engineeringMode: "FAST", selfImprovement: true,
+    });
+  });
   it("shows the exact escalated repair conflict instead of a generic failure", async () => {
     const { service, store } = fixture();
     const created = await service.create(context, {

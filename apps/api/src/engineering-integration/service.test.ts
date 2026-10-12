@@ -777,6 +777,46 @@ describe("EngineeringIntegrationService", () => {
     expect(stale.candidate?.status).toBe("STALE");
   });
 
+  it("promotes self knowledge only after a governed exact-head merge and retries safely", async () => {
+    const fixture = await setup();
+    const { service, orchestration, objectiveId, approvals, gateway, store } = fixture;
+    const objective = orchestration.findObjective(ownerId, companyId, objectiveId)!;
+    orchestration.saveObjective({ ...objective, selfImprovement: true, engineeringMode: "FAST" });
+    service.setSelfImprovementRepository((company, repo) => company === companyId && repo === repositoryId);
+    const promoted = new Set<string>();
+    const promoter = vi.fn<Parameters<EngineeringIntegrationService["setAcceptedMemoryPromoter"]>[0]>((_context, candidate, _run, evidence) => {
+      expect(candidate.status).toBe("MERGED");
+      expect(candidate.headCommit).toBe(candidate.reviewedHeadCommit);
+      expect(evidence.validation.status).toBe("PASS");
+      promoted.add(candidate.id);
+      return Promise.resolve();
+    });
+    service.setAcceptedMemoryPromoter(promoter);
+    const created = await service.create(context, { objectiveId, idempotencyKey: "self-memory-candidate" });
+    await service.execute(context, created.run.id, "self-memory-worker");
+    expect(promoter).not.toHaveBeenCalled();
+    await approveMerge(service, approvals, created.run.id, "self-memory-merge");
+    await service.merge(context, created.run.id, { idempotencyKey: "self-memory-merge" });
+    await service.merge(context, created.run.id, { idempotencyKey: "self-memory-merge" });
+    expect(promoter).toHaveBeenCalledTimes(2);
+    expect(promoted.size).toBe(1);
+    expect(gateway.merges).toBe(1);
+    const candidate = store.findCandidateByRun(ownerId, companyId, created.run.id)!;
+    store.saveCandidate({ ...candidate, reviewedHeadCommit: "f".repeat(40) });
+    await service.merge(context, created.run.id, { idempotencyKey: "self-memory-merge" });
+    expect(promoter).toHaveBeenCalledTimes(2);
+  });
+
+  it("blocks a high-risk self candidate without all four validation kinds", async () => {
+    const { service, orchestration, objectiveId } = await setup(1, "HIGH");
+    orchestration.saveObjective({ ...orchestration.findObjective(ownerId, companyId, objectiveId)!, selfImprovement: true });
+    service.setSelfImprovementRepository(() => true);
+    const created = await service.create(context, { objectiveId, idempotencyKey: "self-full-validation" });
+    await expect(service.execute(context, created.run.id, "self-validation-worker"))
+      .rejects.toMatchObject({ code: "VALIDATION_FAILED" });
+    expect((await service.view(ownerId, companyId, created.run.id)).candidate).toBeNull();
+  });
+
   it("merges a READY candidate only with canonical recent-auth approval and remains idempotent", async () => {
     const { service, store, gateway, approvals, objectiveId } = await setup();
     const created = await service.create(context, { objectiveId, idempotencyKey: "merge-ready-candidate" });
@@ -796,6 +836,18 @@ describe("EngineeringIntegrationService", () => {
     await expect(service.merge(context, created.run.id, { idempotencyKey: "different-key" }))
       .rejects.toMatchObject({ code: "MERGE_DENIED" });
     expect(store.findCandidateByRun(ownerId, companyId, created.run.id)?.status).toBe("MERGED");
+  });
+
+  it("persists an owner rejection and prevents a rejected candidate from merging", async () => {
+    const { service, gateway, objectiveId } = await setup();
+    const created = await service.create(context, { objectiveId, idempotencyKey: "reject-candidate" });
+    const ready = await service.execute(context, created.run.id, "integration-reject");
+    expect(ready.candidate?.status).toBe("READY");
+    const rejected = await service.rejectCandidate(context, created.run.id, "Scope changed");
+    expect(rejected.candidate).toMatchObject({ status: "BLOCKED", rejectionReason: "Scope changed" });
+    await expect(service.merge(context, created.run.id, { idempotencyKey: "merge-after-rejection" }))
+      .rejects.toMatchObject({ code: "MERGE_DENIED" });
+    expect(gateway.merges).toBe(0);
   });
 
   it("denies stale, failed-review, missing-security-review and cross-company merge", async () => {

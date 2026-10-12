@@ -1521,4 +1521,7 @@ The Human Understanding hybrid memory-retrieval path was then checked and
 found to bypass those context filters for legacy sensitive records. It now
 applies the same guard before ranking/returning memories. A focused retrieval
 regression plus memory tests passed (12 total); API typecheck and targeted lint
-passed. This is a fail-closed omission, not deletion of the owner's record.
+passed, as did API build and diff check. Deployment
+`e95a2fb5-1dd7-4f79-adb8-06255ca7bdd2` reached `SUCCESS`; the proxied
+public runtime-health endpoint returned HTTP 200. This is a fail-closed
+omission, not deletion of the owner's record.

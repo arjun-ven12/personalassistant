@@ -24,6 +24,13 @@ const durationSeconds = (minimum: number, maximum: number, fallback: number) =>
 const optionalSecret = z.string().trim().min(1).optional();
 const decimalValue = z.string().regex(/^\d+(\.\d{1,8})?$/);
 
+const selfImprovementRepositories = z.preprocess((value) => {
+  if (typeof value !== "string") return value;
+  try { return JSON.parse(value) as unknown; } catch { return value; }
+}, z.array(z.object({ companyId: z.string().uuid(), repositoryId: z.string().uuid() }).strict())
+  .max(100).refine((bindings) => new Set(bindings.map((binding) => binding.companyId)).size === bindings.length,
+    "Only one self-improvement repository may be bound per company."));
+
 export const ApiEnvironmentSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -51,6 +58,8 @@ export const ApiEnvironmentSchema = z
     TAILSCALE_TRUST_SERVE_PROXY: booleanValue.default(false),
     TRUSTED_PROXY_MODE: z.enum(["none", "loopback", "one-hop"]).default("none"),
     ALLOWED_HOSTS: csv.default(["localhost", "127.0.0.1"]),
+    UNIVERSAL_MCP_ALLOWED_HOSTS: csv.default([]),
+    ALEXA_SELF_IMPROVEMENT_REPOSITORIES: selfImprovementRepositories.default([]),
     STORE_MODE: z.enum(["memory", "postgres"]).default("memory"),
     DATABASE_URL: z.string().trim().min(1).optional(),
     DATABASE_POOL_SIZE: z.coerce.number().int().min(1).max(100).default(20),
@@ -163,6 +172,12 @@ export const ApiEnvironmentSchema = z
     XERO_SANDBOX_CREDENTIAL_JSON: optionalSecret,
     GOOGLE_ADS_TEST_CREDENTIAL_JSON: optionalSecret,
     GOOGLE_ANALYTICS_CREDENTIAL_JSON: optionalSecret,
+    RAILWAY_ENGINEERING_API_TOKEN: optionalSecret,
+    AWS_ENGINEERING_CREDENTIAL: optionalSecret,
+    AWS_ENGINEERING_CONFIG: z.string().max(32768).optional(),
+    RAILWAY_ENGINEERING_CONFIG: z.string().max(32768).optional(),
+    GITHUB_ENGINEERING_ACCESS_TOKEN: optionalSecret,
+    GITHUB_ENGINEERING_PROVIDER_IDS: z.string().default("engineering.github").transform((value) => value.split(",").map((id) => id.trim())).pipe(z.array(z.string().regex(/^engineering\.github(?:\.[a-z0-9_-]{3,80})?$/)).min(1).max(100)),
     SHOPIFY_DEVELOPMENT_CREDENTIAL_JSON: optionalSecret,
     FCM_PROJECT_ID: z.string().trim().min(1).max(160).optional(),
     LOCAL_AI_ENABLED: booleanValue.default(true),

@@ -655,3 +655,34 @@ describe("AIRouterEngineeringTaskWorker", () => {
     });
   });
 });
+
+
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+describe("AthenaCoder Engineering integration", () => {
+  it("captures actual observable context and retains local validation failure for paid repair", async () => {
+    const executeStructured = vi.fn()
+      .mockResolvedValueOnce({requestId: crypto.randomUUID(), providerId: "athena_coder", modelId: "registered-coder", outcome: "SUCCESS", decision: {reason: "measured"}, structuredOutput: {summary: "Create bounded file", operations: [{capability: "repository.file_create", input: {path: "src/new.ts", content: "export const value = 1;"}}, {capability: "repository.validate", input: {}}], artifacts: []}})
+      .mockResolvedValueOnce({requestId: crypto.randomUUID(), providerId: "openai", modelId: "luna", outcome: "SUCCESS", decision: {reason: "fallback"}, structuredOutput: {summary: "Revalidate repair", operations: [{capability: "repository.validate", input: {}}], artifacts: []}});
+    const invoke = vi.fn<GovernedEngineeringActionGateway["invoke"]>()
+      .mockResolvedValueOnce({output: {path: "src/new.ts"}, filesChanged: ["src/new.ts"]})
+      .mockResolvedValueOnce({output: {}, validationStatus: "FAIL"})
+      .mockResolvedValueOnce({output: {}, validationStatus: "PASS"});
+    const capture = vi.fn().mockResolvedValue(undefined);
+    const eligibility = {source: "TRUSTED_ENGINEERING_POLICY" as const, activeModelId: "registered-coder", size: "SMALL" as const, category: "TESTS" as const, risk: "LOW" as const, securitySensitive: false, authenticationRelated: false, tenantIsolationRelated: false, approvalRelated: false, migrationRelated: false, measuredP95LatencyMs: 1000, measuredSuccessRate: 0.9, maxAcceptableP95LatencyMs: 5000, minAcceptableSuccessRate: 0.8};
+    const worker = new AIRouterEngineeringTaskWorker({executeStructured} as unknown as AIRouterService, {invoke}, capture, () => Promise.resolve(eligibility));
+    const result = await worker.execute({objective, task, agentDefinitionId, context, modelTier: "LUNA", workspaceId: task.workspaceId, signal: new AbortController().signal, transport});
+    expect(result).toMatchObject({status: "SUCCEEDED", modelName: "luna"});
+    expect(executeStructured.mock.calls[0]?.[1]).toMatchObject({athenaCoder: eligibility});
+    expect(executeStructured.mock.calls[1]?.[1]).not.toHaveProperty("athenaCoder");
+    expect(capture).toHaveBeenCalledWith(expect.objectContaining({outcome: "SUCCEEDED", rounds: expect.arrayContaining([expect.objectContaining({provider: "athena_coder"}), expect.objectContaining({provider: "openai"})]), failures: expect.arrayContaining([expect.any(String)])}));
+    const repairRequest = executeStructured.mock.calls[1]?.[0] as Parameters<AIRouterService["executeStructured"]>[0];
+    expect(JSON.stringify(repairRequest.input)).toContain("repository.validate");
+  });
+  it("capture failure does not replay or grant execution authority", async () => {
+    const executeStructured = vi.fn().mockResolvedValue({requestId: crypto.randomUUID(), outcome: "SUCCESS", decision: {reason: "test"}, structuredOutput: {summary: "No action", operations: [], artifacts: []}});
+    const invoke = vi.fn<GovernedEngineeringActionGateway["invoke"]>();
+    const worker = new AIRouterEngineeringTaskWorker({executeStructured} as unknown as AIRouterService, {invoke}, () => Promise.reject(new Error("store unavailable")));
+    const result = await worker.execute({objective, task, agentDefinitionId, context, modelTier: "LUNA", workspaceId: task.workspaceId, signal: new AbortController().signal, transport});
+    expect(result.status).toBe("FAILED"); expect(invoke).not.toHaveBeenCalled(); expect(executeStructured).toHaveBeenCalledTimes(3);
+  });
+});

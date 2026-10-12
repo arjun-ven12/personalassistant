@@ -22,3 +22,5 @@ external-research/
 external-research/*
 !external-research/README.md
 !external-research/notes/
+apps/api/dist-worker/
+.cache/

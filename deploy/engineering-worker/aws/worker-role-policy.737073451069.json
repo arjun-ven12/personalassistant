@@ -1,0 +1,49 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssm:UpdateInstanceInformation",
+        "ssmmessages:CreateControlChannel",
+        "ssmmessages:CreateDataChannel",
+        "ssmmessages:OpenControlChannel",
+        "ssmmessages:OpenDataChannel"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-southeast-1"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetDocument",
+        "ssm:DescribeDocument"
+      ],
+      "Resource": [
+        "arn:aws:ssm:ap-southeast-1:737073451069:document/AthenaEngineeringEvidenceV1",
+        "arn:aws:ssm:ap-southeast-1:737073451069:document/AthenaEngineeringPreviewGrantV1"
+      ]
+    },
+    {
+      "Effect": "Deny",
+      "Action": [
+        "ssm:GetParameter",
+        "ssm:GetParameters",
+        "ssm:GetParametersByPath",
+        "secretsmanager:*",
+        "iam:*",
+        "ec2:*",
+        "scheduler:*",
+        "elasticloadbalancing:*",
+        "ssm:SendCommand",
+        "ssm:StartSession",
+        "s3:*"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

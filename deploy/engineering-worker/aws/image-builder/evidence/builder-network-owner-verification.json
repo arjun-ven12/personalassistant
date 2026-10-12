@@ -1,0 +1,35 @@
+{
+  "source": "Owner read-only VPC/subnet/route-table/instance/SSM exports",
+  "vpcId": "vpc-04179b719aaccf907",
+  "vpcCidr": "10.84.0.0/24",
+  "existingSubnets": [
+    {
+      "id": "subnet-0c35a5bf3347d05ce",
+      "cidr": "10.84.0.0/26",
+      "az": "ap-southeast-1a",
+      "mapPublicIp": false
+    },
+    {
+      "id": "subnet-0c6587bfbe480c38f",
+      "cidr": "10.84.0.64/26",
+      "az": "ap-southeast-1b",
+      "mapPublicIp": false
+    }
+  ],
+  "routeTableId": "rtb-08c9c017691e1b4a0",
+  "defaultRouteGatewayId": "igw-0b96c42de697a4d46",
+  "defaultRouteState": "active",
+  "builderInstanceId": "i-0510b697ab7f394d9",
+  "builderPublicIp": null,
+  "ssmRegistered": false,
+  "newBuilderSubnetCidr": "10.84.0.128/26",
+  "newBuilderSubnetAz": "ap-southeast-1a",
+  "newBuilderSubnetMapPublicIp": true,
+  "builderSecurityGroupIngress": "NONE",
+  "builderSecurityGroupEgress": "TCP443_ONLY",
+  "existingSubnetSettingsChanged": false,
+  "runtimeIamChanged": false,
+  "approvedArtifactHashesChanged": false,
+  "stackUpdateApplied": false,
+  "liveSsmFixVerified": false
+}

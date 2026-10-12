@@ -1,0 +1,9 @@
+{
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "live-restore": false,
+  "ipv6": false,
+  "userland-proxy": false,
+  "log-driver": "none",
+  "default-ulimits": {"nofile": {"Name": "nofile", "Hard": 1024, "Soft": 1024}},
+  "default-cgroupns-mode": "private"
+}

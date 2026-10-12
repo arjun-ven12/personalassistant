@@ -446,7 +446,16 @@ export const EngineeringPreviewResultSchema = z
       .refine((value) => {
         const url = new URL(value);
         return (
-          url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname)
+          !url.username &&
+          !url.password &&
+          !url.hash &&
+          ((url.protocol === "http:" &&
+            ["localhost", "127.0.0.1"].includes(url.hostname)) ||
+            (url.protocol === "https:" &&
+              !["localhost", "127.0.0.1"].includes(url.hostname) &&
+              !url.port &&
+              !url.search &&
+              /^\/p\/[A-Za-z0-9_-]{43}$/.test(url.pathname)))
         );
       })
       .nullable(),
@@ -785,7 +794,10 @@ const EngineeringTransportOperationSchema = z.discriminatedUnion("capability", [
           commit: z.string().regex(/^[0-9a-f]{40,64}$/),
           sourceWorkspaceId: z.string().uuid(),
           sourceWorktreeLocator: z.string().regex(/^ew-[0-9a-f-]{36}$/),
-          expectedHead: z.string().regex(/^[0-9a-f]{40,64}$/).optional(),
+          expectedHead: z
+            .string()
+            .regex(/^[0-9a-f]{40,64}$/)
+            .optional(),
         })
         .strict(),
     })
@@ -830,10 +842,12 @@ const EngineeringTransportOperationSchema = z.discriminatedUnion("capability", [
   z
     .object({
       capability: z.literal("repository.revert_commit"),
-      input: z.object({
-        targetCommit: z.string().regex(/^[0-9a-f]{40,64}$/),
-        expectedHead: z.string().regex(/^[0-9a-f]{40,64}$/),
-      }).strict(),
+      input: z
+        .object({
+          targetCommit: z.string().regex(/^[0-9a-f]{40,64}$/),
+          expectedHead: z.string().regex(/^[0-9a-f]{40,64}$/),
+        })
+        .strict(),
     })
     .strict(),
   z

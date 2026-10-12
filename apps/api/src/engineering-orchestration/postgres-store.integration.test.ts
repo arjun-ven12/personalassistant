@@ -1,3 +1,5 @@
+import { EngineeringProjectInputService } from "../cloud-engineering/project-inputs.js";
+import { EngineeringEventSchema } from "@alexa-control/shared";
 import {
   EngineeringObjectiveSchema,
   EngineeringRepositorySchema,
@@ -190,4 +192,25 @@ describe.skipIf(!connectionString)("engineering orchestration PostgreSQL leases"
       }),
     ).resolves.toBe(false);
   });
+  it("persists bounded owner inputs and serializes concurrent objective quota checks", async () => {
+    const inputs = new EngineeringProjectInputService(store, () => Promise.resolve());
+    const context = { ownerId, companyId, requestId: crypto.randomUUID(), ipAddress: "127.0.0.1" };
+    const request = { fileName: "requirements.txt", mimeType: "text/plain", contentBase64: Buffer.from("Compact status indicator").toString("base64"), idempotencyKey: crypto.randomUUID() };
+    const first = await inputs.upload(context, objectiveId, request);
+    expect(await inputs.upload(context, objectiveId, request)).toEqual(first);
+    const results = await Promise.allSettled(Array.from({ length: 20 }, () => inputs.upload(context, objectiveId, { ...request, idempotencyKey: crypto.randomUUID() })));
+    expect(results.filter((item) => item.status === "fulfilled")).toHaveLength(11);
+    const reconstructed = new EngineeringProjectInputService(new PostgresEngineeringOrchestrationStore(database.pool), () => Promise.resolve());
+    expect(await reconstructed.list(ownerId, companyId, objectiveId)).toHaveLength(12);
+    await expect(inputs.upload({ ...context, companyId: crypto.randomUUID() }, objectiveId, request)).rejects.toMatchObject({ statusCode: 404 });
+    await expect(inputs.upload(context, objectiveId, { ...request, contentBase64: Buffer.from("Changed input").toString("base64") })).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  it("returns the latest bounded event window in chronological order for Android invalidation", async () => {
+    const events = [0, 1, 2].map((index) => EngineeringEventSchema.parse({ id: crypto.randomUUID(), ownerId, companyId, objectiveId, taskId: null, type: "OBJECTIVE_PAUSED", summary: "Bounded event fixture", metadata: {}, createdAt: new Date(Date.now() + 1000 + index * 1000).toISOString() }));
+    for (const event of events) await store.saveEvent(event);
+    expect((await store.listEvents(ownerId, companyId, objectiveId, 1))[0]?.id).toBe(events[2]?.id);
+    expect((await store.listEvents(ownerId, companyId, objectiveId, 2)).map((event) => event.id)).toEqual([events[1]?.id, events[2]?.id]);
+  });
+
 });

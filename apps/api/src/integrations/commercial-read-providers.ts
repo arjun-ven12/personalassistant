@@ -323,6 +323,12 @@ export class GoogleAnalytics4Provider
       const rowCount = z.number().int().nonnegative().parse(body.rowCount ?? (rows.length === 0 ? 0 : undefined));
       if (rowCount !== rows.length || rows.some((row) => row.dimensionValues.length !== dimensionHeaders.length || !/^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(row.metricValues[0]!.value) || !Number.isFinite(Number(row.metricValues[0]!.value))))
         throw new ProviderHttpError("INVALID_RECORD", false);
+      if (action.capability === "analytics.query_metric" && action.dimensions.length === 0) {
+        if (rows.length !== 1) throw new ProviderHttpError("INVALID_RECORD", false);
+        return { ...result("Google Analytics 4", `ga4:${propertyId}:${action.metricId}`),
+          metric: { metricId: action.metricId, value: Number(rows[0]!.metricValues[0]!.value),
+            unit: metricHeaders[0]!.type, observedAt: action.periodEnd } };
+      }
       return result("Google Analytics 4", `ga4:${propertyId}:${action.metricId}`);
     } catch (error) {
       return failure(error, "Google Analytics 4");

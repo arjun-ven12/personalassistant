@@ -1,0 +1,21 @@
+{
+  "source": "Owner read-only DescribeInstanceTypes CloudShell export",
+  "region": "ap-southeast-1",
+  "InstanceType": "c7i-flex.large",
+  "FreeTierEligible": true,
+  "DefaultVCpus": 2,
+  "MemoryMiB": 4096,
+  "SupportedArchitectures": [
+    "x86_64"
+  ],
+  "change": "Image Builder Infrastructure.InstanceTypes only",
+  "stackName": "athena-engineering-image-builder-r3",
+  "buildRevision": "review-20261005-03",
+  "recipeVersion": "1.0.2",
+  "stackUpdateApplied": true,
+  "approvedInputHashesUnchanged": true,
+  "fullValidation": "PASS: focused6; lint0errors/1warning; all typechecks/build; serial245files/1414tests passed,4files/4tests skipped,457.87s",
+  "launchedBuilderInstanceId": "i-0510b697ab7f394d9",
+  "liveState": "EC2_REACHABILITY_PASSED_SSM_UNAVAILABLE",
+  "imageBuildArn": "arn:aws:imagebuilder:ap-southeast-1:737073451069:image/athena-engineering-image-builder-r3-recipe/1.0.2/2"
+}

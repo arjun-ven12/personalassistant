@@ -1,3 +1,4 @@
+import { isOwnerProjectInput, assertProjectInputQuota } from "../cloud-engineering/project-inputs.js";
 import {
   EngineeringArtifactSchema,
   EngineeringEventSchema,
@@ -193,6 +194,20 @@ export class PostgresEngineeringOrchestrationStore
   }
   async saveArtifact(value: EngineeringArtifact) {
     const item = EngineeringArtifactSchema.parse(value);
+    if (isOwnerProjectInput(item)) {
+      const client = await this.pool.connect();
+      try {
+        await client.query("BEGIN");
+        const objective = await client.query("SELECT id FROM engineering_objectives WHERE owner_id=$1 AND company_id=$2 AND id=$3 FOR UPDATE", [item.ownerId, item.companyId, item.objectiveId]);
+        if (!objective.rowCount) throw Error("Project input objective scope is unavailable.");
+        const prior = await client.query<{ record: unknown }>("SELECT record FROM engineering_task_artifacts WHERE owner_id=$1 AND company_id=$2 AND objective_id=$3 AND record->>'producerAgentId'='owner-input'", [item.ownerId,item.companyId,item.objectiveId]);
+        assertProjectInputQuota(prior.rows.map((row) => record(EngineeringArtifactSchema, row)), item);
+        await client.query("INSERT INTO engineering_task_artifacts(id,owner_id,company_id,objective_id,task_id,created_at,record) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(id) DO NOTHING", [item.id,item.ownerId,item.companyId,item.objectiveId,item.taskId,item.createdAt,item]);
+        await client.query("COMMIT");
+      } catch (error) { await client.query("ROLLBACK"); throw error; }
+      finally { client.release(); }
+      return;
+    }
     await this.pool.query("INSERT INTO engineering_task_artifacts(id,owner_id,company_id,objective_id,task_id,created_at,record) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(id) DO NOTHING",[item.id,item.ownerId,item.companyId,item.objectiveId,item.taskId,item.createdAt,item]);
   }
   async listArtifacts(ownerId: string, companyId: string, objectiveId: string) {
@@ -204,7 +219,7 @@ export class PostgresEngineeringOrchestrationStore
     await this.pool.query("INSERT INTO engineering_orchestration_events(id,owner_id,company_id,objective_id,task_id,type,created_at,record) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(id) DO NOTHING",[item.id,item.ownerId,item.companyId,item.objectiveId,item.taskId,item.type,item.createdAt,item]);
   }
   async listEvents(ownerId: string, companyId: string, objectiveId: string, limit: number) {
-    const result = await this.pool.query<{ record: unknown }>("SELECT record FROM engineering_orchestration_events WHERE owner_id=$1 AND company_id=$2 AND objective_id=$3 ORDER BY created_at LIMIT $4",[ownerId,companyId,objectiveId,limit]);
-    return result.rows.map((row) => record(EngineeringEventSchema,row));
+    const result = await this.pool.query<{ record: unknown }>("SELECT record FROM engineering_orchestration_events WHERE owner_id=$1 AND company_id=$2 AND objective_id=$3 ORDER BY created_at DESC,id DESC LIMIT $4",[ownerId,companyId,objectiveId,limit]);
+    return result.rows.reverse().map((row) => record(EngineeringEventSchema,row));
   }
 }

@@ -81,7 +81,7 @@ export class PostgresEngineeringDeliveryStore implements EngineeringDeliveryStor
 
   async listStaleImplementations(cutoff: string, limit: number) {
     const result = await this.pool.query<{ record: unknown }>(
-      "SELECT record FROM engineering_deliveries WHERE status='IMPLEMENTING' AND updated_at<$1 ORDER BY updated_at ASC LIMIT $2",
+      "SELECT record FROM engineering_deliveries WHERE (status='IMPLEMENTING' OR (status='PLANNING' AND record->'selfImprovement' IS NOT NULL AND record->'selfImprovement' <> 'null'::jsonb)) AND updated_at<$1 ORDER BY updated_at ASC LIMIT $2",
       [cutoff, limit],
     );
     return result.rows.map(parse);

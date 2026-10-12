@@ -1,0 +1,20 @@
+[Unit]
+Description=Independent bounded Athena lifetime supervisor
+Requires=athena-network.service
+After=cloud-final.service athena-network.service
+OnFailure=athena-expire.service
+ConditionPathExists=/run/athena/bootstrap.json
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/node /opt/athena/ec2-helper.js watchdog
+User=root
+UMask=0077
+LimitCORE=0
+TasksMax=32
+MemoryMax=128M
+StandardOutput=null
+StandardError=null
+Restart=no
+KillMode=control-group
+[Install]
+WantedBy=multi-user.target
