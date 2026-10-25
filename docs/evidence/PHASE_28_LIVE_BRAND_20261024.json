@@ -1,0 +1,677 @@
+{
+  "campaign": [
+    {
+      "id": "2ca1e39e-c8f5-4554-b65c-ed30ef57ca67",
+      "objective_id": "c9180b3c-c456-4ac0-a21a-b04fc312a497",
+      "status": "BLOCKED",
+      "version": 11,
+      "updated_at": "2026-10-24T08:18:51.639Z"
+    }
+  ],
+  "deliverables": [
+    {
+      "id": "8458ad0b-9b57-47c1-99f8-6cc2c13c3754",
+      "type": "RESEARCH",
+      "status": "DRAFT_READY",
+      "blocker_code": null,
+      "invocation_ids": [
+        "fc0a21cf-aadc-4175-aad7-b472a2fa9a36"
+      ]
+    },
+    {
+      "id": "b97bacc3-601e-49f0-b6d7-d2b7e7688073",
+      "type": "BRAND_STRATEGY",
+      "status": "DRAFT_READY",
+      "blocker_code": null,
+      "invocation_ids": []
+    },
+    {
+      "id": "487ee123-eb00-40b7-94ae-4ba2c0795279",
+      "type": "LAUNCH_PACKAGE",
+      "status": "READY",
+      "blocker_code": "COORDINATION_REVIEW_REQUIRED",
+      "invocation_ids": []
+    }
+  ],
+  "receipts": [
+    {
+      "invocation_id": "fc0a21cf-aadc-4175-aad7-b472a2fa9a36",
+      "status": "COMPLETED",
+      "result_status": "SUCCEEDED",
+      "failure_code": null,
+      "external_operation_id": "22ef0ff7-7297-4cb6-84ad-8062d9482cbd",
+      "started_at": "2026-10-24T07:58:44.654Z",
+      "completed_at": "2026-10-24T07:59:18.146Z"
+    }
+  ],
+  "ledger": [
+    {
+      "request_id": "ff0881a6-ce92-42e6-95ca-3fb01bb83569",
+      "provider_key": "openai",
+      "model_key": "gpt-5.6-luna",
+      "status": "SETTLED",
+      "input_tokens": 6198,
+      "output_tokens": 1551,
+      "total_tokens": 7749,
+      "usage_source": "PROVIDER_REPORTED",
+      "estimated_cost_usd": "0.02697100",
+      "actual_cost_usd": "0.02170800",
+      "started_at": "2026-10-24T08:18:35.154Z",
+      "completed_at": "2026-10-24T08:18:51.534Z"
+    },
+    {
+      "request_id": "6c50f3c6-150d-4b4c-9358-8242d8f8f314",
+      "provider_key": "openai",
+      "model_key": "gpt-5.6-luna",
+      "status": "FAILED",
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "usage_source": "ESTIMATED",
+      "estimated_cost_usd": "0.02697100",
+      "actual_cost_usd": "0.00000000",
+      "started_at": "2026-10-24T07:59:19.660Z",
+      "completed_at": "2026-10-24T07:59:52.756Z"
+    },
+    {
+      "request_id": "22ef0ff7-7297-4cb6-84ad-8062d9482cbd",
+      "provider_key": "openai",
+      "model_key": "gpt-5.6-luna",
+      "status": "SETTLED",
+      "input_tokens": 24555,
+      "output_tokens": 2944,
+      "total_tokens": 27499,
+      "usage_source": "PROVIDER_REPORTED",
+      "estimated_cost_usd": "0.03928900",
+      "actual_cost_usd": "0.05399500",
+      "started_at": "2026-10-24T07:58:46.145Z",
+      "completed_at": "2026-10-24T07:59:18.102Z"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "00afbdfa-6451-4e97-9cf0-2b8eeb53c76f",
+      "deliverable_id": "8458ad0b-9b57-47c1-99f8-6cc2c13c3754",
+      "version": 1,
+      "status": "DRAFT",
+      "content_digest": "7b5b313df726819643d5bf74616db4ca71655339535cb5ac7a36921c85d29a91",
+      "created_at": "2026-10-24T07:59:18.171Z",
+      "type": "RESEARCH",
+      "provenance": {
+        "kind": "TOOL_GATEWAY",
+        "taskId": "8458ad0b-9b57-47c1-99f8-6cc2c13c3754",
+        "agentId": null,
+        "modelId": "gpt-5.6-luna",
+        "sources": [
+          {
+            "url": "https://openai.com/chatgpt/pricing",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://support.anthropic.com/en/articles/8325610-how-much-does-claude-pro-cost",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://support.anthropic.com/en/articles/11049762-choosing-a-claude-ai-plan",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://www.anthropic.com/pricing?subjects=claude&type=product",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://www-cdn.anthropic.com/files/4zrzovbb/website/5678bc2f5978e5bcd4f1fe7c14b2c72284dcf9f8.pdf",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://help.openai.com/en/articles/6950777-wh",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://help.openai.com/en/articles/9793128-about-chatgpt-pro-tiers",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://openai.com/index/introducing-chatgpt-go/?trk=article-ssr-frontend-pulse_x-social-details_comments-action_comment-text",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://docs.anthropic.com/en/docs/about-claude/pricing?4810b549_page=3&73cdfb14_page=2&939688b5_page=1&e768fcd2_page=2",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://www.microsoft.com/en-us/store/b/copilotpro?msockid=117b4dfcef72630c12ea5b8ceeb66289",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://help.openai.com/en/articles/6783457-what-is-chatgpt",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://help.openai.com/en/articles/10421635-multi-currency-billing-faq%60",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://help.openai.com/en/articles/9039756-billing-settings-in-chatgpt-vs-platform",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://cdn-dynmedia-1.microsoft.com/is/content/microsoftcorp/microsoft/bade/documents/products-and-services/en-us/bizapps/Microsoft-Copilot-Studio-Licensing-Guide-May-2026-PUB.pdf",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://www-cdn.anthropic.com/files/4zrzovbb/website/31021aea87c30ccaecbd2e966e49a03834bfd1d2.pdf",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://info.microsoft.com/rs/157-GQE-382/images/EN-WBNR-SlideDeck-SREVM85353-EMEA%20ABS%20Partner%20Community%20Call%2027.01.26.pdf?version=0%3Focid%3Dlp_pg497645_gdc_comm_ba",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://cdn-dynmedia-1.microsoft.com/is/content/microsoftcorp/microsoft/bade/documents/products-and-services/en-us/microsoft-365/Copilot-Studio-Licensing-Guide.pdf",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://www.vellum.ai/",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://www.limitless.ai/privacy",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://www.limitless.ai/",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://www.limitless.ai/new",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://austr.ai/en/",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://www.softwaretailor.com/products/ai-assistant",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://www.limitless.ai/privacy-policy",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://help.limitless.ai/en/articles/9124757-pendant-faq",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://www.apna.bot/",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://staging.limitless.ai/",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://jarvis.institute/",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://www.nolo-app.com/",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://www.govinfo.gov/content/pkg/CMR-HS1-00193155/pdf/CMR-HS1-00193155.pdf",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://www.nist.gov/system/files/documents/2024/02/15/ID016%20-%20Computing%20Research%20Association%20Computing%20Community%20Consortium.PDF",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://assets.ringcentral.com/us/datasheet/rc-ai-assistant-privacy-datasheet.pdf",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://apnews.com/article/84fcb42a0ba8a2b1e81deed22dd1db16",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          },
+          {
+            "url": "https://en.wikipedia.org/wiki/Lumo_%28AI_assistant%29",
+            "retrievedAt": "2026-10-24T07:59:18.139Z"
+          }
+        ],
+        "providerId": "openai",
+        "modelRequestId": "22ef0ff7-7297-4cb6-84ad-8062d9482cbd",
+        "toolInvocationId": "fc0a21cf-aadc-4175-aad7-b472a2fa9a36"
+      },
+      "observations": 15
+    },
+    {
+      "id": "93a318cb-1265-4e82-9fbd-7b370e2a5a8c",
+      "deliverable_id": "b97bacc3-601e-49f0-b6d7-d2b7e7688073",
+      "version": 1,
+      "status": "DRAFT",
+      "content_digest": "b5159a32c8ca44240d6422058b5a492c15d4629d301e93a5621e460be370cb20",
+      "created_at": "2026-10-24T08:18:51.583Z",
+      "type": "BRAND_STRATEGY",
+      "provenance": {
+        "kind": "AI_ROUTER",
+        "taskId": "b97bacc3-601e-49f0-b6d7-d2b7e7688073",
+        "agentId": null,
+        "modelId": "gpt-5.6-luna",
+        "sources": [],
+        "providerId": "openai",
+        "modelRequestId": "ff0881a6-ce92-42e6-95ca-3fb01bb83569",
+        "toolInvocationId": null
+      },
+      "observations": 0
+    }
+  ],
+  "status": "APPROVED_BRAND_MEMORY_SAVED_PACKAGE_READY",
+  "routerFailure": {
+    "requestId": "6c50f3c6-150d-4b4c-9358-8242d8f8f314",
+    "outcome": "ROUTING_FAILED",
+    "attemptStatus": "REJECTED_INVALID_OUTPUT",
+    "errorCode": "OUTPUT_VALIDATION_FAILED",
+    "diagnostic": "Local schema validation: three invalid_type issues with redacted field paths",
+    "latencyMs": 34542,
+    "providerRepairRetry": true,
+    "failedProviderBilling": "UNKNOWN"
+  },
+  "brandClientStartAt": "2026-10-24T07:58:44.486Z",
+  "screenshot": "docs/evidence/PHASE_28_BRAND_BLOCKED_20261024.jpg",
+  "firstFailedAttempt": {
+    "campaign": [
+      {
+        "id": "2ca1e39e-c8f5-4554-b65c-ed30ef57ca67",
+        "objective_id": "c9180b3c-c456-4ac0-a21a-b04fc312a497",
+        "status": "BLOCKED",
+        "version": 6,
+        "updated_at": "2026-10-24T07:59:52.791Z"
+      }
+    ],
+    "deliverables": [
+      {
+        "id": "8458ad0b-9b57-47c1-99f8-6cc2c13c3754",
+        "type": "RESEARCH",
+        "status": "DRAFT_READY",
+        "blocker_code": null,
+        "invocation_ids": [
+          "fc0a21cf-aadc-4175-aad7-b472a2fa9a36"
+        ]
+      },
+      {
+        "id": "b97bacc3-601e-49f0-b6d7-d2b7e7688073",
+        "type": "BRAND_STRATEGY",
+        "status": "BLOCKED",
+        "blocker_code": "MODEL_GENERATION_FAILED_REVIEW_RETRY",
+        "invocation_ids": []
+      },
+      {
+        "id": "487ee123-eb00-40b7-94ae-4ba2c0795279",
+        "type": "LAUNCH_PACKAGE",
+        "status": "PLANNED",
+        "blocker_code": null,
+        "invocation_ids": []
+      }
+    ],
+    "receipts": [
+      {
+        "invocation_id": "fc0a21cf-aadc-4175-aad7-b472a2fa9a36",
+        "status": "COMPLETED",
+        "result_status": "SUCCEEDED",
+        "failure_code": null,
+        "external_operation_id": "22ef0ff7-7297-4cb6-84ad-8062d9482cbd",
+        "started_at": "2026-10-24T07:58:44.654Z",
+        "completed_at": "2026-10-24T07:59:18.146Z"
+      }
+    ],
+    "ledger": [
+      {
+        "request_id": "6c50f3c6-150d-4b4c-9358-8242d8f8f314",
+        "provider_key": "openai",
+        "model_key": "gpt-5.6-luna",
+        "status": "FAILED",
+        "input_tokens": null,
+        "output_tokens": null,
+        "total_tokens": null,
+        "usage_source": "ESTIMATED",
+        "estimated_cost_usd": "0.02697100",
+        "actual_cost_usd": "0.00000000",
+        "started_at": "2026-10-24T07:59:19.660Z",
+        "completed_at": "2026-10-24T07:59:52.756Z"
+      },
+      {
+        "request_id": "22ef0ff7-7297-4cb6-84ad-8062d9482cbd",
+        "provider_key": "openai",
+        "model_key": "gpt-5.6-luna",
+        "status": "SETTLED",
+        "input_tokens": 24555,
+        "output_tokens": 2944,
+        "total_tokens": 27499,
+        "usage_source": "PROVIDER_REPORTED",
+        "estimated_cost_usd": "0.03928900",
+        "actual_cost_usd": "0.05399500",
+        "started_at": "2026-10-24T07:58:46.145Z",
+        "completed_at": "2026-10-24T07:59:18.102Z"
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "00afbdfa-6451-4e97-9cf0-2b8eeb53c76f",
+        "deliverable_id": "8458ad0b-9b57-47c1-99f8-6cc2c13c3754",
+        "version": 1,
+        "status": "DRAFT",
+        "content_digest": "7b5b313df726819643d5bf74616db4ca71655339535cb5ac7a36921c85d29a91",
+        "created_at": "2026-10-24T07:59:18.171Z",
+        "type": "RESEARCH",
+        "provenance": {
+          "kind": "TOOL_GATEWAY",
+          "taskId": "8458ad0b-9b57-47c1-99f8-6cc2c13c3754",
+          "agentId": null,
+          "modelId": "gpt-5.6-luna",
+          "sources": [
+            {
+              "url": "https://openai.com/chatgpt/pricing",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://support.anthropic.com/en/articles/8325610-how-much-does-claude-pro-cost",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://support.anthropic.com/en/articles/11049762-choosing-a-claude-ai-plan",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://www.anthropic.com/pricing?subjects=claude&type=product",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://www-cdn.anthropic.com/files/4zrzovbb/website/5678bc2f5978e5bcd4f1fe7c14b2c72284dcf9f8.pdf",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://help.openai.com/en/articles/6950777-wh",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://help.openai.com/en/articles/9793128-about-chatgpt-pro-tiers",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://openai.com/index/introducing-chatgpt-go/?trk=article-ssr-frontend-pulse_x-social-details_comments-action_comment-text",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://docs.anthropic.com/en/docs/about-claude/pricing?4810b549_page=3&73cdfb14_page=2&939688b5_page=1&e768fcd2_page=2",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://www.microsoft.com/en-us/store/b/copilotpro?msockid=117b4dfcef72630c12ea5b8ceeb66289",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://help.openai.com/en/articles/6783457-what-is-chatgpt",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://help.openai.com/en/articles/10421635-multi-currency-billing-faq%60",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://help.openai.com/en/articles/9039756-billing-settings-in-chatgpt-vs-platform",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://cdn-dynmedia-1.microsoft.com/is/content/microsoftcorp/microsoft/bade/documents/products-and-services/en-us/bizapps/Microsoft-Copilot-Studio-Licensing-Guide-May-2026-PUB.pdf",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://www-cdn.anthropic.com/files/4zrzovbb/website/31021aea87c30ccaecbd2e966e49a03834bfd1d2.pdf",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://info.microsoft.com/rs/157-GQE-382/images/EN-WBNR-SlideDeck-SREVM85353-EMEA%20ABS%20Partner%20Community%20Call%2027.01.26.pdf?version=0%3Focid%3Dlp_pg497645_gdc_comm_ba",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://cdn-dynmedia-1.microsoft.com/is/content/microsoftcorp/microsoft/bade/documents/products-and-services/en-us/microsoft-365/Copilot-Studio-Licensing-Guide.pdf",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://www.vellum.ai/",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://www.limitless.ai/privacy",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://www.limitless.ai/",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://www.limitless.ai/new",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://austr.ai/en/",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://www.softwaretailor.com/products/ai-assistant",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://www.limitless.ai/privacy-policy",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://help.limitless.ai/en/articles/9124757-pendant-faq",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://www.apna.bot/",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://staging.limitless.ai/",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://jarvis.institute/",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://www.nolo-app.com/",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://www.govinfo.gov/content/pkg/CMR-HS1-00193155/pdf/CMR-HS1-00193155.pdf",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://www.nist.gov/system/files/documents/2024/02/15/ID016%20-%20Computing%20Research%20Association%20Computing%20Community%20Consortium.PDF",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://assets.ringcentral.com/us/datasheet/rc-ai-assistant-privacy-datasheet.pdf",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://apnews.com/article/84fcb42a0ba8a2b1e81deed22dd1db16",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            },
+            {
+              "url": "https://en.wikipedia.org/wiki/Lumo_%28AI_assistant%29",
+              "retrievedAt": "2026-10-24T07:59:18.139Z"
+            }
+          ],
+          "providerId": "openai",
+          "modelRequestId": "22ef0ff7-7297-4cb6-84ad-8062d9482cbd",
+          "toolInvocationId": "fc0a21cf-aadc-4175-aad7-b472a2fa9a36"
+        },
+        "observations": 15
+      }
+    ]
+  },
+  "brandRetryClientClickAt": "2026-10-24T08:18:33.225Z",
+  "researchReusedWithoutNewInvocation": true,
+  "brandArtifactCount": 1,
+  "knownModelCostUsd": "0.07570300",
+  "failedModelCostUsd": "UNKNOWN",
+  "searchFees": "UNKNOWN",
+  "humanContentApproval": "OWNER_APPROVED_EXACT_DRAFT",
+  "publicActions": "NONE",
+  "retryClickToStoredBrandSeconds": 18.358,
+  "elapsedQualification": "Successful retry interval excludes earlier failure and implementation/deployment/validation pause; not total objective completion time",
+  "approvalRequestId": "0c50387b-d6c0-4402-b52e-7c78931f240a",
+  "approvalActionDigest": "91e91c95bc71da66b70a850007750e145ad2c7bdf892446de39bc68254312d68",
+  "approvalScreenshot": "docs/evidence/PHASE_28_BRAND_APPROVAL_20261024.jpg",
+  "memoryStatus": "LIVE_VERIFIED_PERSISTED",
+  "liveCompletion": {
+    "campaign": [
+      {
+        "id": "2ca1e39e-c8f5-4554-b65c-ed30ef57ca67",
+        "objective_id": "c9180b3c-c456-4ac0-a21a-b04fc312a497",
+        "status": "PACKAGE_READY",
+        "version": 17,
+        "updated_at": "2026-10-24T09:00:36.938Z"
+      }
+    ],
+    "deliverables": [
+      {
+        "id": "8458ad0b-9b57-47c1-99f8-6cc2c13c3754",
+        "type": "RESEARCH",
+        "status": "DRAFT_READY",
+        "blocker_code": null,
+        "approval_state": "NOT_REQUIRED",
+        "invocation_ids": [
+          "fc0a21cf-aadc-4175-aad7-b472a2fa9a36"
+        ]
+      },
+      {
+        "id": "b97bacc3-601e-49f0-b6d7-d2b7e7688073",
+        "type": "BRAND_STRATEGY",
+        "status": "COMPLETED",
+        "blocker_code": null,
+        "approval_state": "APPROVED",
+        "invocation_ids": []
+      },
+      {
+        "id": "487ee123-eb00-40b7-94ae-4ba2c0795279",
+        "type": "LAUNCH_PACKAGE",
+        "status": "DRAFT_READY",
+        "blocker_code": "COORDINATION_REVIEW_REQUIRED",
+        "approval_state": "NOT_REQUIRED",
+        "invocation_ids": []
+      }
+    ],
+    "approvedBrandMemories": [
+      {
+        "id": "ec011647-c7ba-4f58-b0e0-607a866116bf",
+        "company_id": "c2ac447f-0747-4b78-80f1-2cc4fff8d82f",
+        "memory_type": "semantic",
+        "content_characters": 5707,
+        "tags": [
+          "marketing-brand-approved",
+          "marketing-company:c2ac447f-0747-4b78-80f1-2cc4fff8d82f",
+          "marketing-campaign:2ca1e39e-c8f5-4554-b65c-ed30ef57ca67",
+          "brand:b5159a32c8ca44240d6422058b5a492c15d4629d301e93a5621e460be370cb20"
+        ],
+        "evidence": [
+          {
+            "excerpt": null,
+            "reference": "marketing-artifact:93a318cb-1265-4e82-9fbd-7b370e2a5a8c:b5159a32c8ca44240d6422058b5a492c15d4629d301e93a5621e460be370cb20",
+            "observedAt": "2026-10-24T09:00:32.053Z",
+            "sourceType": "manual"
+          }
+        ]
+      }
+    ],
+    "ledger": [
+      {
+        "request_id": "ff0881a6-ce92-42e6-95ca-3fb01bb83569",
+        "provider_key": "openai",
+        "model_key": "gpt-5.6-luna",
+        "status": "SETTLED",
+        "input_tokens": 6198,
+        "output_tokens": 1551,
+        "total_tokens": 7749,
+        "usage_source": "PROVIDER_REPORTED",
+        "estimated_cost_usd": "0.02697100",
+        "actual_cost_usd": "0.02170800",
+        "started_at": "2026-10-24T08:18:35.154Z",
+        "completed_at": "2026-10-24T08:18:51.534Z"
+      },
+      {
+        "request_id": "6c50f3c6-150d-4b4c-9358-8242d8f8f314",
+        "provider_key": "openai",
+        "model_key": "gpt-5.6-luna",
+        "status": "FAILED",
+        "input_tokens": null,
+        "output_tokens": null,
+        "total_tokens": null,
+        "usage_source": "ESTIMATED",
+        "estimated_cost_usd": "0.02697100",
+        "actual_cost_usd": "0.00000000",
+        "started_at": "2026-10-24T07:59:19.660Z",
+        "completed_at": "2026-10-24T07:59:52.756Z"
+      },
+      {
+        "request_id": "22ef0ff7-7297-4cb6-84ad-8062d9482cbd",
+        "provider_key": "openai",
+        "model_key": "gpt-5.6-luna",
+        "status": "SETTLED",
+        "input_tokens": 24555,
+        "output_tokens": 2944,
+        "total_tokens": 27499,
+        "usage_source": "PROVIDER_REPORTED",
+        "estimated_cost_usd": "0.03928900",
+        "actual_cost_usd": "0.05399500",
+        "started_at": "2026-10-24T07:58:46.145Z",
+        "completed_at": "2026-10-24T07:59:18.102Z"
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "00afbdfa-6451-4e97-9cf0-2b8eeb53c76f",
+        "status": "DRAFT",
+        "type": "RESEARCH",
+        "content_digest": "7b5b313df726819643d5bf74616db4ca71655339535cb5ac7a36921c85d29a91",
+        "created_at": "2026-10-24T07:59:18.171Z"
+      },
+      {
+        "id": "93a318cb-1265-4e82-9fbd-7b370e2a5a8c",
+        "status": "APPROVED",
+        "type": "BRAND_STRATEGY",
+        "content_digest": "b5159a32c8ca44240d6422058b5a492c15d4629d301e93a5621e460be370cb20",
+        "created_at": "2026-10-24T08:18:51.583Z"
+      },
+      {
+        "id": "29e79ec4-33f5-4aff-80de-1c344d44c35b",
+        "status": "DRAFT",
+        "type": "LAUNCH_PACKAGE",
+        "content_digest": "299394b7b87cb6d58efc9d9020a0d3b5f14ef0e511728f55620864010ce49bee",
+        "created_at": "2026-10-24T09:00:36.921Z"
+      }
+    ],
+    "memorySaveClientClickAt": "2026-10-24T09:00:31.685Z",
+    "packageResumeClientClickAt": "2026-10-24T09:00:36.705Z",
+    "resumeToPackagePersistSeconds": 0.216,
+    "memoryCount": 1,
+    "newModelRequests": 0,
+    "newResearchInvocations": 0,
+    "screenshot": "docs/evidence/PHASE_28_BRAND_PACKAGE_COMPLETE_20261024.jpg",
+    "qualification": "PACKAGE_READY is a reviewable draft package, not publishing or full business-operations acceptance. Package deliverable retains historical COORDINATION_REVIEW_REQUIRED blocker_code despite DRAFT_READY status; UI no longer shows blocked."
+  }
+}

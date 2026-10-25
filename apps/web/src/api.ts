@@ -452,6 +452,12 @@ import {
   CreateSoftwareObjectiveRequestSchema,
   AddEngineeringInstructionRequestSchema,
   MarketingCampaignSchema,
+  MarketingTelemetrySchema,
+  MarketingDeliverableSchema,
+  CreateMarketingCampaignRequestSchema,
+  UniversalToolSchema,
+  UniversalToolReviewSchema,
+  UniversalToolInspectionSchema,
   MarketingArtifactSchema,
 } from "@alexa-control/shared";
 import { z } from "zod";
@@ -584,12 +590,32 @@ export const createApiClient = (baseUrl: string) => {
   };
 
   return {
+    getMarketingResearchTool: () => requestAndValidate(baseUrl, "/api/universal-tools/tools/athena.business-research%3Aresearch_market", UniversalToolInspectionSchema),
+    registerMarketingResearchTool: () => requestAndValidate(baseUrl, "/api/universal-tools/finite-providers", z.array(UniversalToolSchema).max(20), jsonBody({ providerId: "athena.business-research", credentialReferenceId: null })),
+    reviewMarketingResearchTool: (schemaDigest: string) => requestAndValidate(baseUrl, "/api/universal-tools/tools/athena.business-research%3Aresearch_market/review", UniversalToolReviewSchema,
+      jsonBody({ schemaDigest: z.string().regex(/^[a-f0-9]{64}$/).parse(schemaDigest) })),
+    activateMarketingResearchTool: () => requestAndValidate(baseUrl, "/api/universal-tools/tools/athena.business-research%3Aresearch_market/activate", UniversalToolReviewSchema, jsonBody({})),
+    createMarketingCampaign: (input: unknown) => requestAndValidate(baseUrl, "/api/marketing-campaigns", MarketingCampaignSchema,
+      jsonBody(CreateMarketingCampaignRequestSchema.parse(input))),
+    startMarketingCampaign: (campaignId: string) => requestAndValidate(baseUrl,
+      `/api/marketing-campaigns/${encodeURIComponent(z.uuid().parse(campaignId))}/start`,
+      z.object({ status: z.literal("QUEUED"), campaignId: z.uuid() }).strict(), jsonBody({})),
+    pauseMarketingCampaign: (campaignId: string) => requestAndValidate(baseUrl,
+      `/api/marketing-campaigns/${encodeURIComponent(z.uuid().parse(campaignId))}/pause`, MarketingCampaignSchema, jsonBody({})),
+    recoverMarketingDeliverable: (campaignId: string, deliverableId: string) => requestAndValidate(baseUrl,
+      `/api/marketing-campaigns/${encodeURIComponent(z.uuid().parse(campaignId))}/deliverables/${encodeURIComponent(z.uuid().parse(deliverableId))}/recover`,
+      MarketingDeliverableSchema, jsonBody({})),
+    promoteMarketingBrand: (campaignId: string, contentDigest: string) => requestAndValidate(baseUrl,
+      `/api/marketing-campaigns/${encodeURIComponent(z.uuid().parse(campaignId))}/brand-memory`,
+      z.object({ memoryId: z.uuid() }).strict(), jsonBody({ contentDigest: z.string().regex(/^[a-f0-9]{64}$/).parse(contentDigest) })),
     getMarketingCampaigns: () =>
       requestAndValidate(
         baseUrl,
         "/api/marketing-campaigns",
         z.object({ campaigns: z.array(MarketingCampaignSchema).max(100) }).strict(),
       ),
+    getMarketingTelemetry: (campaignId: string) => requestAndValidate(baseUrl,
+      `/api/marketing-campaigns/${encodeURIComponent(z.uuid().parse(campaignId))}/telemetry`, MarketingTelemetrySchema),
     getMarketingCampaign: (campaignId: string) =>
       requestAndValidate(
         baseUrl,

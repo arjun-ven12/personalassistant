@@ -1,7 +1,7 @@
 import {
   AIUsageLedgerEntrySchema, EngineeringBenchmarkRunSchema, EngineeringDeliverySchema,
-  MarketingCampaignSchema,
-  type AIUsageLedgerEntry, type EngineeringDelivery, type MarketingCampaign,
+  MarketingCampaignSchema, MarketingTelemetrySchema,
+  type AIUsageLedgerEntry, type EngineeringDelivery, type MarketingCampaign, type MarketingArtifact,
 } from "@alexa-control/shared";
 
 import type { ToolInvocationReceipt } from "../universal-tools/store.js";
@@ -17,7 +17,7 @@ const unitsDecimal = (value: bigint) => `${value / SCALE}.${(value % SCALE).toSt
 /** A bounded read projection over existing durable economic and execution records. */
 export function buildMarketingTelemetry(
   rawCampaign: MarketingCampaign,
-  source: { receipts: readonly ToolInvocationReceipt[]; modelLedger: readonly AIUsageLedgerEntry[]; engineeringDelivery: EngineeringDelivery | null },
+  source: { receipts: readonly ToolInvocationReceipt[]; modelLedger: readonly AIUsageLedgerEntry[]; engineeringDelivery: EngineeringDelivery | null; artifacts?: readonly MarketingArtifact[] },
 ) {
   const campaign = MarketingCampaignSchema.parse(rawCampaign);
   const taskIds = new Set(campaign.deliverables.flatMap((item) =>
@@ -46,16 +46,20 @@ export function buildMarketingTelemetry(
   let modelCalls = 0;
   let inputTokens = 0;
   let outputTokens = 0;
+  const accountedRequests = new Set<string>();
   for (const unparsed of source.modelLedger) {
     const entry = AIUsageLedgerEntrySchema.parse(unparsed);
-    if (entry.ownerId !== campaign.ownerId || !entry.taskId || !taskIds.has(entry.taskId) ||
-        !["SETTLED", "ADJUSTED"].includes(entry.status)) continue;
+    if (entry.ownerId !== campaign.ownerId || !entry.taskId || !taskIds.has(entry.taskId)) continue;
+    accountedRequests.add(entry.requestId);
     modelCalls++;
     inputTokens += entry.usage.inputTokens ?? 0;
     outputTokens += entry.usage.outputTokens ?? 0;
-    if (entry.actualCostUsd === undefined) unknownModelCostCount++;
+    if (entry.actualCostUsd === undefined || entry.status === "ESTIMATED" || entry.usage.source === "ESTIMATED") unknownModelCostCount++;
     else modelCostUnits += decimalUnits(entry.actualCostUsd);
   }
+  const expectedRequests = new Set((source.artifacts ?? []).filter(artifact => artifact.ownerId === campaign.ownerId && artifact.companyId === campaign.companyId && artifact.campaignId === campaign.id)
+    .flatMap(artifact => artifact.provenance?.modelRequestId ? [artifact.provenance.modelRequestId] : []));
+  for (const request of expectedRequests) if (!accountedRequests.has(request)) unknownModelCostCount++;
   const linkedObjective = campaign.deliverables.find((item) => item.type === "LANDING_PAGE")?.engineeringObjectiveId;
   const delivery = source.engineeringDelivery ? EngineeringDeliverySchema.parse(source.engineeringDelivery) : null;
   if (delivery && (delivery.ownerId !== campaign.ownerId || delivery.companyId !== campaign.companyId ||
@@ -81,7 +85,7 @@ export function buildMarketingTelemetry(
     source: "RUNTIME",
   }) : null;
   const knownUsdUnits = modelCostUnits + engineeringCostUnits + BigInt(toolCostMinorByCurrency.USD ?? 0) * 1_000_000n;
-  return {
+  return MarketingTelemetrySchema.parse({
     campaignId: campaign.id, objectiveId: campaign.objectiveId,
     knownUsd: unitsDecimal(knownUsdUnits), modelKnownUsd: unitsDecimal(modelCostUnits),
     engineeringKnownUsd: unitsDecimal(engineeringCostUnits), toolCostMinorByCurrency,
@@ -89,8 +93,8 @@ export function buildMarketingTelemetry(
     unknownToolCostCount, unknownModelCostCount, unknownEngineeringCostCount,
     completeCostAttribution: unknownToolCostCount === 0 && unknownModelCostCount === 0 && unknownEngineeringCostCount === 0 &&
       source.receipts.length < 500 && source.modelLedger.length < 100_000,
-    analyticsReceiptsAttributable: campaign.deliverables.filter((item) => item.type === "ANALYTICS_REPORT").every((item) => item.toolInvocationIds.length > 0 && item.toolInvocationIds.every((id) => receiptById.has(id))),
+    analyticsReceiptsAttributable: campaign.deliverables.some(item => item.type === "ANALYTICS_REPORT") && campaign.deliverables.filter((item) => item.type === "ANALYTICS_REPORT").every((item) => item.toolInvocationIds.length > 0 && item.toolInvocationIds.every((id) => receiptById.has(id))),
     engineeringChildCreatedAt: delivery?.createdAt ?? null,
     engineeringBenchmark,
-  };
+  });
 }

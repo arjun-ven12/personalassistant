@@ -52,6 +52,8 @@ describe("approved brand context", () => {
       await service.promoteBrand(context, campaign.id, revised.contentDigest);
       const retrieved = await approvedBrandContext(ownerId, companyId, store, memoryStore);
       expect(retrieved).toHaveLength(1);
+      expect(await approvedBrandContext(ownerId, companyId, store, memoryStore, "Other Product")).toEqual([]);
+      expect(await approvedBrandContext(ownerId, companyId, store, memoryStore, " product ")).toHaveLength(1);
       expect(JSON.parse(retrieved[0]!)).toMatchObject({ positioning: "Reviewed positioning",
         messagingPillars: brandContent.messagingPillars, prohibitedClaims: brandContent.prohibitedClaims });
       const originalContent = records[0]!.content;

@@ -950,6 +950,7 @@ export class WorkforceRuntimeService {
                 parentTranscriptIncluded: false,
               },
             },
+            ...(marketing ? [{ sourceType: "EXTERNAL" as const, trustLevel: "UNTRUSTED" as const, content: marketing.context }] : []),
           ],
           outputMode: "STRUCTURED",
           schema: outputSchema,
@@ -979,6 +980,7 @@ export class WorkforceRuntimeService {
           taskId: task.id,
           economicContext: {
             ownerId,
+            ...(companyScope.companyId(ownerId) ? { companyId: companyScope.companyId(ownerId)! } : {}),
             purpose: "REASONING",
             autonomyMode: "ASSISTED",
             taskId: task.id,

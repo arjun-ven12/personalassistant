@@ -92,7 +92,12 @@ export class PostgresMarketingStore implements MarketingStore {
   }
   async listArtifacts(ownerId: string, companyId: string, campaignId: string) {
     const result = await this.pool.query<{ record: unknown }>(
-      "SELECT record FROM marketing_artifacts WHERE owner_id=$1 AND company_id=$2 AND campaign_id=$3 ORDER BY created_at,id LIMIT 200",
+      `SELECT a.record FROM marketing_artifacts a JOIN marketing_campaigns c
+         ON c.owner_id=a.owner_id AND c.company_id=a.company_id AND c.id=a.campaign_id
+       WHERE a.owner_id=$1 AND a.company_id=$2 AND a.campaign_id=$3
+       ORDER BY EXISTS (SELECT 1 FROM jsonb_array_elements(c.record->'deliverables') d
+         WHERE d->>'artifactRef'='marketing-artifact:'||a.id::text) DESC,
+         a.created_at DESC,a.version DESC,a.id DESC LIMIT 200`,
       [ownerId,companyId,campaignId],
     );
     return result.rows.map((row) => MarketingArtifactSchema.parse(row.record));

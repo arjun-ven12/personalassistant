@@ -1,5 +1,6 @@
 import {
   AIRouterRequestSchema,
+  AIDataRoutingPolicySchema,
   AIRouterResponseSchema,
   type AIComplexityLevel,
   type AIRouteDecision,
@@ -74,9 +75,10 @@ const isRetryable = (error: unknown) =>
   error instanceof AIProviderError && error.retryable;
 
 export class AIRouterService {
+  private companyDataPolicy?: (ownerId: string, companyId: string, sensitivity: z.infer<typeof AIDataRoutingPolicySchema>["sensitivity"]) => Promise<unknown>;
   private emergencyStopCheck: () => Promise<boolean> = () => Promise.resolve(false);
   private agentEconomy?: AgentInternalEconomyAccounting;
-  private readonly attempts: Array<AIRouterResponse> = [];
+  private readonly attempts: Array<{ response: AIRouterResponse; ownerId: string | null; companyId: string | null }> = [];
   private readonly failures = new Map<string, { count: number; openedUntil: number }>();
   private readonly counters: AIRouterMetrics = {
     total: 0,
@@ -123,6 +125,10 @@ export class AIRouterService {
 
   setAgentEconomyAccounting(accounting: AgentInternalEconomyAccounting) {
     this.agentEconomy = accounting;
+  }
+
+  setCompanyDataPolicyResolver(resolve: NonNullable<AIRouterService["companyDataPolicy"]>) {
+    this.companyDataPolicy = resolve;
   }
 
   assess(request: AIRouterRequest) {
@@ -201,8 +207,11 @@ export class AIRouterService {
     return { ...this.counters };
   }
 
-  activity() {
-    return this.attempts.slice(-100).reverse();
+  activity(ownerId?: string) {
+    const scope = companyScope.current(ownerId);
+    if (!scope) return [];
+    return this.attempts.filter(item => item.ownerId === scope.ownerId && item.companyId === scope.companyId)
+      .slice(-100).reverse().map(item => item.response);
   }
 
   private async run(
@@ -242,7 +251,7 @@ export class AIRouterService {
         },
       );
     }
-    const companyScopedRequest =
+    let companyScopedRequest =
       activeCompanyId && parsedRequest.economicContext
         ? AIRouterRequestSchema.parse({
             ...parsedRequest,
@@ -252,6 +261,20 @@ export class AIRouterService {
             },
           })
         : parsedRequest;
+    const economic = companyScopedRequest.economicContext;
+    if (economic?.companyId && this.companyDataPolicy) {
+      // Resolve policy on the server for every call, including retries/new objectives.
+      // A department omitting dataPolicy must never bypass company restrictions.
+      const caller = companyScopedRequest.dataPolicy;
+      const sensitivity = caller?.sensitivity === "PUBLIC" ? "INTERNAL" : caller?.sensitivity ?? "INTERNAL";
+      const policy = AIDataRoutingPolicySchema.parse(await this.companyDataPolicy(economic.ownerId, economic.companyId, sensitivity));
+      const routing = policy.routing === "LOCAL_ONLY" || caller?.routing === "LOCAL_ONLY" ? "LOCAL_ONLY"
+        : policy.routing === "APPROVED_CLOUD" || caller?.routing === "APPROVED_CLOUD" ? "APPROVED_CLOUD" : "ANY_APPROVED";
+      const approvedCloudProviderIds = policy.routing === "APPROVED_CLOUD" && caller?.routing === "APPROVED_CLOUD"
+        ? policy.approvedCloudProviderIds.filter(id => caller.approvedCloudProviderIds.includes(id))
+        : policy.routing === "APPROVED_CLOUD" ? policy.approvedCloudProviderIds : caller?.approvedCloudProviderIds ?? [];
+      companyScopedRequest = AIRouterRequestSchema.parse({ ...companyScopedRequest, dataPolicy: { sensitivity, routing, approvedCloudProviderIds } });
+    }
     const request =
       companyScopedRequest.dataPolicy?.routing === "LOCAL_ONLY" ||
       companyScopedRequest.dataPolicy?.sensitivity === "RESTRICTED"
@@ -1233,7 +1256,9 @@ export class AIRouterService {
   private finish(response: AIRouterResponse) {
     const parsed = AIRouterResponseSchema.parse(response);
     this.activeRequests.finish(parsed.requestId);
-    this.attempts.push(parsed);
+    const scope = companyScope.current();
+    this.attempts.push({ response: parsed, ownerId: scope?.ownerId ?? null, companyId: scope?.companyId ?? null });
+    if (this.attempts.length > 1_000) this.attempts.splice(0, this.attempts.length - 1_000);
     return parsed;
   }
 }

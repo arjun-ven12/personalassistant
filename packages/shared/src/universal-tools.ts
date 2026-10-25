@@ -89,6 +89,13 @@ export const UniversalToolResultSchema = z.object({
   completedAt: z.iso.datetime(),
 }).strict();
 
+export const UniversalToolInspectionSchema = z.object({
+  tool: UniversalToolSchema,
+  review: UniversalToolReviewSchema.nullable(),
+  providerStatus: UniversalToolProviderSchema.shape.status,
+  providerHealth: UniversalToolProviderSchema.shape.health,
+}).strict();
+
 export type UniversalToolProvider = z.infer<typeof UniversalToolProviderSchema>;
 export type UniversalTool = z.infer<typeof UniversalToolSchema>;
 export type UniversalToolRequest = z.infer<typeof UniversalToolRequestSchema>;

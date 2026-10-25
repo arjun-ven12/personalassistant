@@ -23,6 +23,17 @@ const campaign = () => MarketingCampaignSchema.parse({
 const context: MarketingAdvanceContext = { ownerId, companyId, requestId: "coordinator", ipAddress: "100.64.0.1", sessionId: "60000000-0000-4000-8000-000000000006", networkState: "PRIVATE_NETWORK", emergencyStopActive: false };
 
 describe("MarketingCampaignCoordinator", () => {
+  it("rechecks owner authority and emergency stop between model/tool stages", async () => {
+    const store = new InMemoryMarketingStore();
+    await store.createCampaign(campaign());
+    let reads = 0;
+    const advance = vi.fn(() => Promise.resolve({ status: "DRAFT_READY" as const, campaignId, deliverableId, artifactId: deliverableId }));
+    const coordinator = new MarketingCampaignCoordinator({ service: { advance, refreshSpecialist: vi.fn(), refreshLandingPage: vi.fn() }, store,
+      trustedContext: () => Promise.resolve({ ...context, emergencyStopActive: ++reads >= 3 }) });
+    await expect(coordinator.run({ ownerId, companyId, campaignId })).resolves.toMatchObject({ status: "CONTEXT_UNAVAILABLE", steps: 1 });
+    expect(advance).toHaveBeenCalledOnce();
+  });
+
   it("fails closed without a server-created trusted context", async () => {
     const store = new InMemoryMarketingStore();
     await store.createCampaign(campaign());

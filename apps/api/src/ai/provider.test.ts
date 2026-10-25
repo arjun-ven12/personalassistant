@@ -375,6 +375,22 @@ describe("AI provider contract", () => {
     expect(response.metadata).toMatchObject({ webSearchCallCount: 1, sourceUrls: ["https://example.test/source"] });
   });
 
+  it("preserves late retrieved citations within the bounded research evidence without admitting invented URLs", async () => {
+    const retrieved = Array.from({ length: 80 }, (_, i) => `https://example.test/source-${i}`);
+    const observations = [{ source: retrieved[79]! }, { source: "https://invented.test/not-retrieved" }];
+    const provider = new OpenAIProvider("test-key", "gpt-5.6-luna", "https://example.test/v1", async () => new Response(JSON.stringify({
+      id: "research-late-citations", status: "completed", output: [
+        { type: "web_search_call", status: "completed", action: { sources: retrieved.map(url => ({ url })) } },
+        { type: "message", content: [{ type: "output_text", text: JSON.stringify({ observations }) }] },
+      ],
+    }), { status: 200 }));
+    const result = await provider.generateStructured({ purpose: "REASONING", input: [{ role: "user", content: [{ type: "text", text: "research" }] }],
+      outputMode: "STRUCTURED", timeoutMs: 1000, schemaName: "research_result", schema: z.object({ observations: z.array(z.object({ source: z.string() })) }), metadata: { externalResearch: true } });
+    expect(result.metadata?.sourceUrls).toHaveLength(60);
+    expect(result.metadata?.sourceUrls).toContain(retrieved[79]);
+    expect(result.metadata?.sourceUrls).not.toContain("https://invented.test/not-retrieved");
+  });
+
   it("normalizes provider failures", async () => {
     const provider = new OpenAIProvider(
       "test-key",

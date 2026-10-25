@@ -6,6 +6,8 @@ import { digestProposedAction } from "../governance/digest.js";
 import type { PolicyEngine } from "../governance/policy-engine.js";
 import type { RegistryService } from "../governance/registry-service.js";
 import type { TrustedPolicyInput } from "../governance/types.js";
+import { artifactDigest } from "./service.js";
+import type { UnitOfWork } from "../persistence/unit-of-work.js";
 import type { MarketingStore } from "./store.js";
 
 export type MarketingReviewContext = Pick<TrustedPolicyInput,
@@ -16,11 +18,23 @@ const hasSensitiveClaim = (artifact: MarketingArtifact) => {
   const content = artifact.type === "BRAND_STRATEGY" && typeof artifact.content === "object" && artifact.content !== null && !Array.isArray(artifact.content)
     ? Object.fromEntries(Object.entries(artifact.content).filter(([key]) => key !== "prohibitedClaims"))
     : artifact.content;
-  return /\b(financial|medical|legal|guaranteed|guarantee|regulated|investment|cure|diagnos|profit|return on investment)\b/i.test(JSON.stringify(content));
+  const sensitive = /\b(financial|medical|legal|guaranteed|guarantee|regulated|investment|cure|diagnos|profit|return on investment)\b/i;
+  const strings = (value: unknown): string[] => typeof value === "string" ? [value]
+    : Array.isArray(value) ? value.flatMap(strings)
+    : value && typeof value === "object" ? Object.values(value).flatMap(strings) : [];
+  return strings(content).some(value => value.split(/(?<=[.!?])\s+/).some(sentence => {
+    if (!sensitive.test(sentence)) return false;
+    // Finite complete advisory phrases only, never a generic negation heuristic.
+    // Any appended claim, condition, quote or unrecognized wording still denies.
+    const prohibition = /^(?:Avoid imagery that implies (?:surveillance, )?(?:magical autonomy, )?(?:or )?guaranteed privacy|(?:Do not|Never) (?:claim|promise|imply) (?:guaranteed privacy|guaranteed security|guaranteed investment returns))[.!]?$/i;
+    return !prohibition.test(sentence.trim());
+  }));
 };
 
 /** Exact artifact approval uses the existing policy and approval records. */
 export class MarketingArtifactReviewService {
+  #transaction?: UnitOfWork;
+  setTransaction(transaction: UnitOfWork) { this.#transaction = transaction; }
   constructor(
     readonly store: MarketingStore,
     readonly registry: Pick<RegistryService, "getTool">,
@@ -38,7 +52,7 @@ export class MarketingArtifactReviewService {
     const deliverable = campaign?.deliverables.find((item) => item.id === artifact?.deliverableId);
     if (!campaign || campaign.status === "CANCELLED" || !artifact || !deliverable ||
         deliverable.artifactRef !== `marketing-artifact:${artifact.id}` ||
-        deliverable.version !== artifact.version || deliverable.contentDigest !== artifact.contentDigest)
+        deliverable.version !== artifact.version || deliverable.contentDigest !== artifact.contentDigest || artifactDigest(artifact) !== artifact.contentDigest)
       throw new Error("Current artifact version was not found in company campaign scope.");
     return { campaign, artifact };
   }
@@ -56,10 +70,16 @@ export class MarketingArtifactReviewService {
     if (tool.name !== "marketing.review_artifact" || !tool.enabled || tool.riskLevel !== "medium" ||
         tool.approvalRequirement !== "explicit" || tool.targetType !== "none")
       throw new Error("Registered artifact review policy is unavailable or inconsistent.");
-    return this.policy.evaluate({ ...context, recentAuthentication: false, action: this.action(campaign, artifact), tool });
+    return this.policy.evaluate({ ...context, reviewedArtifactSession: true,
+      recentAuthentication: false, action: this.action(campaign, artifact), tool });
   }
 
   async request(context: MarketingReviewContext, campaignId: string, artifactId: string) {
+    const work = () => this.requestAtomic(context, campaignId, artifactId);
+    return this.#transaction ? this.#transaction(`portfolio:${context.ownerId}`, work) : work();
+  }
+
+  private async requestAtomic(context: MarketingReviewContext, campaignId: string, artifactId: string) {
     const { campaign, artifact } = await this.current(context, campaignId, artifactId);
     if (!["DRAFT", "IN_REVIEW"].includes(artifact.status)) throw new Error("Artifact cannot enter review from its current status.");
     if (hasSensitiveClaim(artifact))
@@ -83,6 +103,11 @@ export class MarketingArtifactReviewService {
   }
 
   async finalize(context: MarketingReviewContext, campaignId: string, artifactId: string) {
+    const work = () => this.finalizeAtomic(context, campaignId, artifactId);
+    return this.#transaction ? this.#transaction(`portfolio:${context.ownerId}`, work) : work();
+  }
+
+  private async finalizeAtomic(context: MarketingReviewContext, campaignId: string, artifactId: string) {
     const { campaign, artifact } = await this.current(context, campaignId, artifactId);
     if (hasSensitiveClaim(artifact))
       throw new Error("Sensitive claims require a separately registered high-risk recent-authentication review path.");

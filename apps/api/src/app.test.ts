@@ -131,6 +131,32 @@ describe("Phase 2.1 API", () => {
     await app.close();
   });
 
+  it("document routes require authentication even without configured storage", async () => {
+    const response = await app.inject({ method: "GET", url: "/api/documents" });
+    expect(response.statusCode).toBe(401);
+  });
+
+  it("document mutations reject missing CSRF and untrusted origins", async () => {
+    const payload = { idempotencyKey: crypto.randomUUID(), sourceType: "IMPORT", pageCount: 1 };
+    const withoutCsrf = await app.inject({
+      method: "POST", url: "/api/documents", headers: { cookie, origin }, payload,
+    });
+    expect(withoutCsrf.statusCode).toBe(403);
+    const wrongOrigin = await app.inject({
+      method: "POST", url: "/api/documents",
+      headers: { ...mutationHeaders(), origin: "https://untrusted.example.test" }, payload,
+    });
+    expect(wrongOrigin.statusCode).toBe(403);
+  });
+
+  it("document vault fails closed instead of falling back to in-memory storage", async () => {
+    const response = await app.inject({
+      method: "GET", url: "/api/documents", headers: { cookie, origin },
+    });
+    expect(response.statusCode).toBe(503);
+    expect(z.object({ error: z.object({ code: z.string() }) }).parse(response.json()).error.code).toBe("DOCUMENTS_UNAVAILABLE");
+  });
+
   it("keeps health public and protects system status", async () => {
     const health = await app.inject({ method: "GET", url: "/health" });
     expect(health.statusCode).toBe(200);
@@ -578,6 +604,20 @@ describe("Phase 2.1 API", () => {
     });
     expect(success.statusCode).toBe(200);
     expect(cookieFrom(success)).toContain("alexa_session=");
+  });
+
+  it("returns a bounded 429 instead of a 500 after repeated failed logins", async () => {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const response = await app.inject({ method: "POST", url: "/api/auth/login", headers: { origin },
+        payload: { email: "owner@example.com", password: "wrong" } });
+      expect(response.statusCode).toBe(401);
+    }
+    const blocked = await app.inject({ method: "POST", url: "/api/auth/login", headers: { origin },
+      payload: { email: "owner@example.com", password } });
+    expect(blocked.statusCode).toBe(429);
+    expect(blocked.json()).toMatchObject({ error: { code: "RATE_LIMITED", message: "Too many requests. Try again later." } });
+    expect(blocked.headers["retry-after"]).toBeDefined();
+    expect(blocked.headers["set-cookie"]).toBeUndefined();
   });
 
   it("enforces password strength and single-owner bootstrap", async () => {

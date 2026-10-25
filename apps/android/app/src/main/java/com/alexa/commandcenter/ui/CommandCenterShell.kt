@@ -55,6 +55,8 @@ private val CcMuted = AlexaMutedContent
 @Composable
 fun CommandCenterShell(
   state: AlexaUiState,
+  documentActions: com.alexa.commandcenter.documents.DocumentActions,
+  businessActions: com.alexa.commandcenter.business.BusinessActions = com.alexa.commandcenter.business.BusinessActions(),
   engineeringActions: EngineeringCallbacks = EngineeringCallbacks(),
   environment: AlexaEnvironmentConfig,
   onRefresh: () -> Unit,
@@ -233,6 +235,8 @@ fun CommandCenterShell(
         if (manageCompanies && companies != null) {
           CompanyManagementDialog(companies, { manageCompanies = false }, onCompanySelected, onCompanyCreated, onCompanyAction)
         }
+        if (destination == "Athena" && secondaryDestination == null) TextButton(onClick = { secondaryDestination = "Business" }) { Text("Business / Campaigns") }
+        if (destination == "Athena" && secondaryDestination == null) TextButton(onClick = { secondaryDestination = "Documents" }) { Text("Scan / Documents") }
         Box(Modifier.weight(1f)) { when (destination) {
           "Home" -> if (state.portfolioMode) PortfolioHome(state, onCompanySelected, onPortfolioSearch) else ExecutiveHome(state, onRefresh, onObjectiveAction, onApprovalDecision)
           "Engineering" -> EngineeringScreen(state, engineeringActions.copy(approvals = { destination = "Approvals" }))
@@ -240,6 +244,8 @@ fun CommandCenterShell(
           "Workforce" -> WorkforceScreen(state.commandCenter?.workforce, state.agentDetails, onAgentSelected)
           "Approvals" -> ApprovalsScreen(state, selectedApprovalId, { selectedApprovalId = it; if (it.isNotBlank()) onApprovalSelected(it) }, onApprovalDecisionWithReason)
           else -> when (secondaryDestination) {
+            "Business" -> key(state.companies?.currentCompany?.id) { com.alexa.commandcenter.business.BusinessScreen(businessActions, onBack = { secondaryDestination = null }, onApprovals = { destination = "Approvals"; secondaryDestination = null }) }
+            "Documents" -> key(state.companies?.currentCompany?.id) { com.alexa.commandcenter.documents.DocumentsScreen(documentActions, onBack = { secondaryDestination = null }, onExplain = { text -> secondaryDestination = null; onSubmitMessage(text) }) }
             "Activity" -> ActivityScreen(state, onBack = { secondaryDestination = null })
             "Workflows" -> WorkflowsScreen(state, onWorkflowSelected, onBack = { secondaryDestination = null })
             "Economy" -> EconomyScreen(state, onBack = { secondaryDestination = null })
@@ -770,7 +776,7 @@ private fun AlexaCoreMap(workforce: WorkforceGraph?, connection: ConnectionState
 @Composable private fun AlexaPlaceholder(state: AlexaUiState, environment: AlexaEnvironmentConfig, onLock: () -> Unit, onForgetDevice: () -> Unit, onOpen: (String) -> Unit) = LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
   item { Header("Athena", "Executive operations and device controls.") }
   item { ConnectionStateBanner(state.connection, state.lastUpdatedAt) }
-  items(listOf("Activity" to "Meaningful organization events", "Workflows" to "Operational execution", "Economy" to "Credits, spending, and efficiency", "Experiments" to "Evidence-backed learning", "System" to "Cloud, data, AI, and device health")) { (title, subtitle) ->
+  items(listOf("Documents" to "Private scans, OCR and memory suggestions", "Activity" to "Meaningful organization events", "Workflows" to "Operational execution", "Economy" to "Credits, spending, and efficiency", "Experiments" to "Evidence-backed learning", "System" to "Cloud, data, AI, and device health")) { (title, subtitle) ->
     Surface(Modifier.fillMaxWidth().clickable { onOpen(title) }, shape = RoundedCornerShape(8.dp), color = CcSurface, border = BorderStroke(1.dp, CcBorder)) { Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) { Column(Modifier.weight(1f)) { Text(title, fontWeight = FontWeight.SemiBold); Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.LightGray) }; Icon(Icons.Outlined.ChevronRight, "Open $title") } }
   }
   item { Surface(shape = RoundedCornerShape(8.dp), color = CcSurface, border = BorderStroke(1.dp, CcBorder)) { Column(Modifier.padding(14.dp)) { Detail("Connection", state.connection.name); Detail("Backend", environment.apiBaseUrl); Detail("Device trust", state.device?.trustStatus?.name ?: "Unregistered") } } }

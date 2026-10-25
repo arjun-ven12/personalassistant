@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -14,8 +14,8 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-import type { MarketingArtifact, MarketingDeliverable } from "@alexa-control/shared";
-import type { ApiClient } from "./api.js";
+import { CreateMarketingCampaignRequestSchema, type MarketingArtifact, type MarketingDeliverable } from "@alexa-control/shared";
+import { ApiClientError, type ApiClient } from "./api.js";
 
 const formatDate = (value: string | null) =>
   value
@@ -42,6 +42,7 @@ const artifactCategory = (artifact: MarketingArtifact): Exclude<ArtifactCategory
   switch (artifact.type) {
     case "RESEARCH": return "research";
     case "BRAND_STRATEGY":
+    case "GROWTH_STRATEGY":
     case "POSITIONING":
     case "MESSAGING": return "brand";
     case "AD_CONCEPT":
@@ -85,6 +86,23 @@ const StructuredValue = ({ value, depth = 0 }: { value: unknown; depth?: number 
 };
 
 export const MarketingCampaignsPage = ({ apiClient }: { apiClient: ApiClient }) => {
+  const researchTool = useQuery({ queryKey: ["marketing-research-tool"], queryFn: apiClient.getMarketingResearchTool, retry: false, refetchInterval: 15_000 });
+  const researchMissing = researchTool.error instanceof ApiClientError && researchTool.error.status === 404;
+  const researchSetup = useMutation({
+    mutationFn: async (action: "register" | "review" | "activate") => {
+      if (action === "register") return apiClient.registerMarketingResearchTool();
+      if (!researchTool.data) throw Error("Research tool state unavailable.");
+      if (action === "review") return apiClient.reviewMarketingResearchTool(researchTool.data.tool.schemaDigest);
+      return apiClient.activateMarketingResearchTool();
+    },
+    onSuccess: async () => { await researchTool.refetch(); },
+  });
+  const [title, setTitle] = useState("");
+  const [product, setProduct] = useState("");
+  const [audience, setAudience] = useState("");
+  const [objectiveType, setObjectiveType] = useState("MARKET_RESEARCH");
+  const [draftKey, setDraftKey] = useState(() => crypto.randomUUID());
+  const [draftError, setDraftError] = useState<string | null>(null);
   const campaigns = useQuery({
     queryKey: ["marketing-campaigns"],
     queryFn: apiClient.getMarketingCampaigns,
@@ -95,6 +113,28 @@ export const MarketingCampaignsPage = ({ apiClient }: { apiClient: ApiClient }) 
   const [selectedId, setSelectedId] = useState<string | null>(
     () => new URLSearchParams(window.location.search).get("campaign"),
   );
+  const createDraft = useMutation({
+    mutationFn: async () => apiClient.createMarketingCampaign(CreateMarketingCampaignRequestSchema.parse({
+      idempotencyKey: draftKey, title, productOrCompany: product, objectiveType, targetAudience: audience || null,
+      channels: ["WEB"], constraints: ["Draft-only business audit. No publishing, advertising spend or customer messages."],
+      modelBudgetCredits: 20, toolBudgetMinor: 0, adBudgetMinor: 0,
+    })),
+    onSuccess: async result => { setSelectedId(result.id); setDraftError(null); await campaigns.refetch(); },
+    onError: () => setDraftError("Draft could not be saved. Retry preserves the same request identity."),
+  });
+  const control = useMutation({
+    mutationFn: async (input: { id: string; action: "start" | "pause" }) => input.action === "start"
+      ? apiClient.startMarketingCampaign(input.id) : apiClient.pauseMarketingCampaign(input.id),
+    onSuccess: async () => { await campaigns.refetch(); await detail.refetch(); },
+  });
+  const recovery = useMutation({
+    mutationFn: (input: { campaignId: string; deliverableId: string }) => apiClient.recoverMarketingDeliverable(input.campaignId, input.deliverableId),
+    onSuccess: async () => { await campaigns.refetch(); await detail.refetch(); },
+  });
+  const brandMemory = useMutation({
+    mutationFn: (input: { campaignId: string; digest: string }) => apiClient.promoteMarketingBrand(input.campaignId, input.digest),
+  });
+  const reviseDraft = () => { setDraftKey(crypto.randomUUID()); setDraftError(null); createDraft.reset(); };
   const [artifactFilter, setArtifactFilter] = useState<ArtifactCategory>("all");
   const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null);
   const selectedCampaign = useMemo(
@@ -108,6 +148,13 @@ export const MarketingCampaignsPage = ({ apiClient }: { apiClient: ApiClient }) 
     refetchInterval: 15_000,
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: "always",
+  });
+
+  const telemetry = useQuery({
+    queryKey: ["marketing-telemetry", selectedCampaign?.id],
+    queryFn: () => apiClient.getMarketingTelemetry(selectedCampaign!.id),
+    enabled: Boolean(selectedCampaign),
+    refetchInterval: 15_000,
   });
 
   useEffect(() => {
@@ -145,6 +192,34 @@ export const MarketingCampaignsPage = ({ apiClient }: { apiClient: ApiClient }) 
         </button>
       </header>
 
+      <section className="marketing-section" aria-label="Research provider setup">
+        <h2>Research provider</h2>
+        <p>Research sends this company’s campaign brief through approved AIRouter models and web search. Existing company privacy, spending, approval and emergency-stop policies apply.</p>
+        {researchMissing ? <p>Research adapter is not registered in this company.</p> : researchTool.data ? <>
+          <p>{researchTool.data.tool.id} · version {researchTool.data.tool.version} · {researchTool.data.tool.riskLevel} · {researchTool.data.tool.approvalRequirement}</p>
+          <p>Provider {researchTool.data.providerStatus} / {researchTool.data.providerHealth} · review {researchTool.data.review?.status ?? "NOT REVIEWED"} · {researchTool.data.tool.enabled ? "ENABLED" : "DISABLED"}</p>
+          <p>Exact schema SHA-256: <code>{researchTool.data.tool.schemaDigest}</code></p>
+        </> : <p>Research provider state is unavailable. Setup is disabled until verified.</p>}
+        <button type="button" disabled={!researchMissing || researchSetup.isPending} onClick={() => researchSetup.mutate("register")}>Register reviewed research adapter</button>
+        <button type="button" disabled={!researchTool.data || researchSetup.isPending || researchTool.isError || researchTool.data.tool.enabled} onClick={() => researchSetup.mutate("review")}>Review exact research schema</button>
+        <button type="button" disabled={!researchTool.data || researchSetup.isPending || researchTool.isError || researchTool.data.review?.status !== "REVIEWED" || researchTool.data.tool.enabled} onClick={() => researchSetup.mutate("activate")}>Activate reviewed research capability</button>
+        {researchSetup.isError ? <p role="alert">Research setup failed. Refresh and verify its current review state before retrying.</p> : null}
+      </section>
+
+      <form className="marketing-section" aria-label="Create campaign draft" onSubmit={event => { event.preventDefault(); createDraft.mutate(); }}>
+        <h2>Create campaign draft</h2>
+        <label>Title <input maxLength={160} required value={title} disabled={createDraft.isPending} onChange={event => { setTitle(event.target.value); reviseDraft(); }} /></label>
+        <label>Product or business <input maxLength={160} required value={product} disabled={createDraft.isPending} onChange={event => { setProduct(event.target.value); reviseDraft(); }} /></label>
+        <label>Audience <input maxLength={1000} value={audience} disabled={createDraft.isPending} onChange={event => { setAudience(event.target.value); reviseDraft(); }} /></label>
+        <label>Objective <select value={objectiveType} disabled={createDraft.isPending} onChange={event => { setObjectiveType(event.target.value); reviseDraft(); }}>
+          <option value="MARKET_RESEARCH">Market research</option><option value="BRAND_PACKAGE">Brand direction</option>
+          <option value="LAUNCH_CAMPAIGN">Launch campaign</option><option value="SOCIAL_CAMPAIGN">Social campaign draft</option><option value="BUSINESS_IMPROVEMENT">Business improvement</option>
+        </select></label>
+        <p>Save a draft with 20 internal Workforce credits. Model spending remains subject to existing company policies. Publishing and advertising spend are disabled.</p>
+        <button type="submit" disabled={createDraft.isPending || createDraft.isSuccess || !title.trim() || !product.trim()}>{createDraft.isPending ? "Saving…" : "Save campaign draft"}</button>
+        {draftError ? <p role="alert">{draftError}</p> : null}
+      </form>
+
       {campaigns.isError ? (
         <p className="marketing-notice error"><AlertTriangle size={15} /> Campaigns could not be loaded. No campaign state is shown.</p>
       ) : null}
@@ -166,7 +241,7 @@ export const MarketingCampaignsPage = ({ apiClient }: { apiClient: ApiClient }) 
             </button>
           ))}
           {!campaigns.isLoading && !campaigns.data?.campaigns.length ? (
-            <div className="marketing-empty"><strong>No campaign drafts</strong><p>Create a governed campaign draft through the Marketing API to inspect it here.</p></div>
+            <div className="marketing-empty"><strong>No campaign drafts</strong><p>Save a campaign draft above to review its plan.</p></div>
           ) : null}
         </aside>
 
@@ -185,6 +260,12 @@ export const MarketingCampaignsPage = ({ apiClient }: { apiClient: ApiClient }) 
               </header>
 
               {detail.isError ? <p className="marketing-notice error"><AlertTriangle size={15} /> Campaign detail could not be verified. Summary data may be stale.</p> : null}
+              <div>
+                <button type="button" disabled={control.isPending || !detail.data || detail.isError || ["CANCELLED", "PACKAGE_READY", "ACTIVE"].includes(campaign.status)} onClick={() => control.mutate({ id: campaign.id, action: "start" })}>Start / resume draft work</button>
+                <button type="button" disabled={control.isPending || !detail.data || detail.isError || campaign.status !== "ACTIVE"} onClick={() => control.mutate({ id: campaign.id, action: "pause" })}>Pause campaign</button>
+                {control.isError ? <p role="alert">Campaign action failed. Refresh to verify its stored state before retrying.</p> : null}
+              </div>
+              {recovery.isError ? <p role="alert">Recovery denied. Refresh and review the stored blocker before retrying.</p> : null}
               {unavailable.length ? <p className="marketing-notice warning"><AlertTriangle size={15} /> {unavailable.length} creative deliverable{unavailable.length === 1 ? " is" : "s are"} unavailable; no asset generation is claimed.</p> : null}
 
               <section className="marketing-summary" aria-label="Campaign summary">
@@ -202,6 +283,12 @@ export const MarketingCampaignsPage = ({ apiClient }: { apiClient: ApiClient }) 
                       <div><strong>{displayStatus(item.type)}</strong><small>{displayStatus(item.role)} · v{item.version}</small></div>
                       <span className={`marketing-status status-${item.status.toLowerCase()}`}>{displayStatus(item.status)}</span>
                       <small>{item.approvalState === "NOT_REQUIRED" ? "No approval required" : `Approval ${displayStatus(item.approvalState)}`}</small>
+                      {["READY", "RUNNING", "BLOCKED", "APPROVAL_READY"].includes(item.status) && item.blockerCode ? <small role="status">Blocked: {item.blockerCode}</small> : null}
+                      {item.status === "BLOCKED" && item.approvalState !== "REJECTED" && !item.engineeringObjectiveId &&
+                        !["LANDING_PAGE", "IMAGE_ASSET", "VIDEO_ASSET", "LAUNCH_PACKAGE"].includes(item.type) &&
+                        (item.type !== "RESEARCH" || item.version < 3) ?
+                        <button type="button" disabled={recovery.isPending || control.isPending || detail.isError || !detail.data}
+                          onClick={() => recovery.mutate({ campaignId: campaign.id, deliverableId: item.id })}>Recover {displayStatus(item.type)} draft</button> : null}
                     </article>
                   ))}
                 </div>
@@ -231,6 +318,10 @@ export const MarketingCampaignsPage = ({ apiClient }: { apiClient: ApiClient }) 
                         <StructuredValue value={selectedArtifact.content} />
                         <footer>
                           <code>Digest {selectedArtifact.contentDigest.slice(0, 16)}…</code>
+                          {selectedArtifact.type === "BRAND_STRATEGY" && selectedArtifact.status === "APPROVED" ?
+                            <button type="button" disabled={brandMemory.isPending} onClick={() => brandMemory.mutate({ campaignId: campaign.id, digest: selectedArtifact.contentDigest })}>Save approved brand to memory</button> : null}
+                          {brandMemory.isSuccess && brandMemory.variables?.campaignId === campaign.id && brandMemory.variables.digest === selectedArtifact.contentDigest ? <span>Approved brand memory saved.</span> : null}
+                          {brandMemory.isError && brandMemory.variables?.campaignId === campaign.id && brandMemory.variables.digest === selectedArtifact.contentDigest ? <span role="alert">Brand memory was not saved. Refresh and verify the approved source before retrying.</span> : null}
                           {selectedArtifact.externalRef ? <span>External reference: <code>{selectedArtifact.externalRef}</code></span> : null}
                         </footer>
                       </article>
@@ -254,8 +345,12 @@ export const MarketingCampaignsPage = ({ apiClient }: { apiClient: ApiClient }) 
                 <section className="marketing-section">
                   <header><h3><CircleDollarSign size={15} /> Cost and budget</h3></header>
                   <dl className="marketing-costs">
-                    <div><dt>Tool cost</dt><dd>Not aggregated</dd></div>
-                    <div><dt>Unknown tool costs</dt><dd>Not aggregated</dd></div>
+                    <div><dt>Known model cost (USD)</dt><dd>{telemetry.data ? `$${telemetry.data.modelKnownUsd}` : "Unavailable"}</dd></div>
+                    <div><dt>Model calls</dt><dd>{telemetry.data?.modelCalls ?? "Unavailable"}</dd></div>
+                    <div><dt>Recorded tokens (input / output)</dt><dd>{telemetry.data ? `${telemetry.data.inputTokens} / ${telemetry.data.outputTokens}` : "Unavailable"}</dd></div>
+                    <div><dt>Known tool cost</dt><dd>{telemetry.data ? Object.entries(telemetry.data.toolCostMinorByCurrency).map(([currency, minor]) => `${currency} ${(minor / 100).toFixed(2)}`).join(", ") || "None recorded" : "Unavailable"}</dd></div>
+                    <div><dt>Unknown model / tool costs</dt><dd>{telemetry.data ? `${telemetry.data.unknownModelCostCount} / ${telemetry.data.unknownToolCostCount}` : "Unavailable"}</dd></div>
+                    <div><dt>Cost attribution</dt><dd>{telemetry.data ? telemetry.data.completeCostAttribution ? "Complete" : "Incomplete — unreported costs remain UNKNOWN" : "Unavailable"}</dd></div>
                     <div><dt>Tool budget</dt><dd>{formatMoney(campaign.toolBudgetMinor)}</dd></div>
                     <div><dt>Ad budget</dt><dd>{formatMoney(campaign.adBudgetMinor)}</dd></div>
                     <div><dt>Model budget</dt><dd>{campaign.modelBudgetCredits} credits</dd></div>

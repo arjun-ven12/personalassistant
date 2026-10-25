@@ -23,6 +23,8 @@ import java.util.Date
 @Composable
 fun AlexaApp(
   state: AlexaUiState,
+  documentActions: com.alexa.commandcenter.documents.DocumentActions,
+  businessActions: com.alexa.commandcenter.business.BusinessActions = com.alexa.commandcenter.business.BusinessActions(),
   engineeringActions: EngineeringCallbacks = EngineeringCallbacks(),
   environment: AlexaEnvironmentConfig,
   onLogin: (String, String) -> Unit,
@@ -73,6 +75,8 @@ fun AlexaApp(
         AlexaScreenState.Shell -> CommandCenterShell(
           state = state,
           engineeringActions = engineeringActions,
+          documentActions = documentActions,
+          businessActions = businessActions,
           environment = environment,
           onRefresh = onRefresh,
           onCompanySelected = onCompanySelected,

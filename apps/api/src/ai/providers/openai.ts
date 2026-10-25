@@ -20,7 +20,7 @@ import {
 import type { AIProviderExecutionOptions } from "../provider.js";
 
 type OpenAIResponse = Record<string, unknown>;
-const webSearchEvidence = (response: OpenAIResponse) => {
+const webSearchEvidence = (response: OpenAIResponse, validatedOutput: unknown) => {
   const output = Array.isArray(response.output) ? response.output : [];
   let webSearchCallCount = 0;
   const sourceUrls = new Set<string>();
@@ -45,7 +45,16 @@ const webSearchEvidence = (response: OpenAIResponse) => {
       if (Array.isArray(annotations)) for (const annotation of annotations) if (annotation && typeof annotation === "object" && (annotation as Record<string, unknown>).type === "url_citation") collect((annotation as Record<string, unknown>).url);
     }
   }
-  return { webSearchCallCount: Math.min(20, webSearchCallCount), sourceUrls: [...sourceUrls].slice(0, 60) };
+  // Keep cited retrieved sources before incidental search hits. Model text can
+  // prioritize evidence but can never introduce a URL absent from provider receipts.
+  const cited = new Set<string>();
+  if (validatedOutput && typeof validatedOutput === "object" && "observations" in validatedOutput && Array.isArray(validatedOutput.observations)) {
+    for (const observation of validatedOutput.observations as unknown[]) {
+      if (observation && typeof observation === "object" && "source" in observation &&
+          typeof observation.source === "string" && sourceUrls.has(observation.source)) cited.add(observation.source);
+    }
+  }
+  return { webSearchCallCount: Math.min(20, webSearchCallCount), sourceUrls: [...cited, ...[...sourceUrls].filter(url => !cited.has(url))].slice(0, 60) };
 };
 const supportsTemperature = (modelId: string) => !/^gpt-5(?:[.-]|$)/i.test(modelId);
 const boundedProviderMessage = (value: unknown) =>
@@ -278,7 +287,7 @@ export class OpenAIProvider implements AIProvider {
         ...(this.usage(response) ? { usage: this.usage(response) } : {}),
         ...(typeof response.id === "string" ? { providerRequestId: response.id } : {}),
         latencyMs: Math.round(performance.now() - started),
-        ...(parsed.metadata?.externalResearch === true ? { metadata: webSearchEvidence(response) } : {}),
+        ...(parsed.metadata?.externalResearch === true ? { metadata: webSearchEvidence(response, value) } : {}),
       }),
       structuredOutput: value,
     };

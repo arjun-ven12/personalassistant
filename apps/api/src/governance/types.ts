@@ -25,6 +25,11 @@ export interface TrustedPolicyInput {
   deviceId?: string;
   deviceTrusted: boolean;
   signedEnvelopeVerified: boolean;
+  /** Internal Gateway assertion after exact server-reviewed READ binding/session checks.
+   * Never populated from request bodies or network/identity headers. */
+  reviewedExternalReadSession?: boolean;
+  /** Internal exact artifact-review service assertion; no execution authority. */
+  reviewedArtifactSession?: boolean;
   networkVerification: NetworkVerificationState;
   recentAuthentication: false;
   ipAddress: string;

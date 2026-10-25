@@ -1,0 +1,367 @@
+{
+  "status": "APPROVED_BRAND_MEMORY_SAVED_PACKAGE_READY",
+  "recordedAt": "2026-10-24",
+  "scope": {
+    "product": "Athena personal assistant",
+    "hostedCompany": "Default Company",
+    "publishingAllowed": false,
+    "adSpendAllowed": false
+  },
+  "source": {
+    "gitHead": "dc43276f4ba83b57f32d00cb765248824c7fb78a",
+    "uncommitted": true,
+    "sha256": {
+      "apps/api/src/app.ts": "4d33055ad41578a1bba9d50635f1c27064a0e60eb80ee036e40b04fc0819f5c2",
+      "apps/api/src/identity/security.ts": "64b4cbcf10c5f554cf179b531ac6ba498f2c826cc86ab30d874adcbf111d83d6",
+      "apps/api/src/marketing/budget.ts": "73d7e154e9b718b1784bea8cf02f4119e42a6a83ac9b3445b4b3c30289658a9c",
+      "apps/api/src/marketing/route.test.ts": "40e08c08fc341c327cd78bab037e112951f70e24d321f0359d84d2c5983653fe",
+      "apps/api/src/marketing/service.test.ts": "89d1ca8e0052b6c93555ef37685bb44d6fec173a47d354cb7e14af96be4f377a",
+      "apps/api/src/marketing/service.ts": "beae3af08af554109574973b05fce5373263d0094ddff15b4ff8695de09bf521",
+      "apps/api/src/objectives/marketing-projection.ts": "6a7b05cf8371611632477c95926acfebd27c9e838b0c46d65fca75b1aae9e2bc",
+      "apps/api/src/routes/universal-tools.ts": "df56898855af233a133f75a3ec6916f0671377ccded2d2705b46715605a0c64a",
+      "apps/api/src/universal-tools/finite-route.test.ts": "3575000b36393862fe5338d018a70853c30743b237aab7c11456adb825366166",
+      "apps/api/src/workforce-runtime/marketing-result.ts": "0c8f7c9f2cc5ec72f58462321b4fc0131c60360247bef33057729becf8421c00",
+      "apps/web/src/LocalAIPage.tsx": "2e68f12eb825703f8ecc1ed883d8d2ec051910851139b6b82f82720f977b4544",
+      "apps/web/src/MarketingCampaignsPage.tsx": "d792ac0a15d4affea3ba37140145989be66e9d3314950a47d3f34e6c718160b8",
+      "apps/web/src/api.test.ts": "fec053737aa7dac738274e1102af8f1ad6467bfd814b375388c88db423ed5499",
+      "apps/web/src/api.ts": "68474ccc033e85fe7635751edc4d597d1180ccf270d0106099931babef2eeed0",
+      "packages/shared/src/marketing.ts": "664c3598fad466c363e5da49229ca874bbfc451a1fde6df77c93842d2f842152",
+      "packages/shared/src/universal-tools.ts": "fa47275ccef68aa2c4632d662a003467cabfb1b4325e9957ef0c2aea85d527de",
+      "apps/api/src/governance/types.ts": "4d6502c96da235c92d4b876a1b9aeabcc119c695aceb9a96209ee34a5e0f52ce",
+      "apps/api/src/governance/policy-engine.ts": "0f370f0795ccd1b01f654e360df00aac9df3c4cc3feaa05ffc0ba8666a695b44",
+      "apps/api/src/universal-tools/governance-authority.ts": "c8f601133038b7a2e62d972dec66fcd5dc7cddadd92a48924bd243a150dd44b2",
+      "apps/api/src/universal-tools/governance-authority.test.ts": "719489d7583acd2a05eaa10e8ba1860dce0d4876fb90e8b3b26d68443210c416"
+    }
+  },
+  "gates": {
+    "fullTests": {
+      "passedFiles": 256,
+      "passedTests": 1510,
+      "skippedFiles": 4,
+      "skippedTests": 4,
+      "elapsedSeconds": 355.58,
+      "exitCode": 0,
+      "log": "/tmp/athena-cloud-read-full-test.log",
+      "testTarget": "isolated loopback athena_regression_test"
+    },
+    "lint": {
+      "exitCode": 0,
+      "errors": 0,
+      "existingWarnings": 1
+    },
+    "typecheck": {
+      "exitCode": 0
+    },
+    "build": {
+      "exitCode": 0
+    },
+    "diffCheck": "PASS",
+    "android": "NOT_RUN_NO_ANDROID_CHANGES_THIS_CONTINUATION",
+    "generatedTrackedOutputsPreserved": 16
+  },
+  "local": {
+    "database": "athena_business_local_20261024",
+    "previousDatabaseRetained": "athena_business_local",
+    "migrationsApplied": 118,
+    "ownerRegisteredByHuman": true,
+    "campaignId": "cbc9c9a1-a9a3-466f-bfd7-8b33ae6ae68a",
+    "companyId": "5138ae65-4b79-40a5-8d3e-8e53e047d8bc",
+    "objectiveId": "b5733ced-88ef-430a-8c21-9abe12d11384",
+    "campaignCreatedAt": "2026-10-24T03:35:56.976Z",
+    "campaignStatus": "DRAFT",
+    "deliverables": 2,
+    "artifacts": 0,
+    "canonicalObjectiveUi": "AWAITING_CONFIRMATION",
+    "startAttempt": "DENIED_CAMPAIGN_AUTHORITY_UNAVAILABLE",
+    "emergencyStopPreserved": true,
+    "researchToolRecords": 0,
+    "screenshot": "docs/evidence/PHASE_28_LOCAL_CAMPAIGN_20261024.jpg"
+  },
+  "productionPreflight": {
+    "migrationState": "current",
+    "appliedLedgerEntries": 119,
+    "pendingMigrations": [],
+    "actualEnvironmentSecuritySchema": "PASS_CLOUD_POSTGRES_PROFILE"
+  },
+  "deployments": {
+    "api": {
+      "id": "0fb54d8e-cc3c-42d2-917a-11202f2f12fe",
+      "status": "SUCCESS"
+    },
+    "frontend": {
+      "id": "a00d2f56-0745-4923-9b84-01920f230cdf",
+      "status": "SUCCESS"
+    }
+  },
+  "businessAcceptance": {
+    "A": "LIVE_PIPELINE_PACKAGE_READY_DRAFT_CONTENT_REVIEW_OUTSTANDING",
+    "B": "LIVE_ATTEMPT_BLOCKED_MISSING_PROVIDER_JSON_SCHEMA_REPAIR_VALIDATING",
+    "C": "NOT_RUN",
+    "D": "NOT_RUN_CLOUD_WORKER_IMAGE_AND_PREVIEW_OPEN",
+    "E": "NOT_RUN",
+    "F": "NOT_RUN",
+    "G": "NOT_RUN_REAL_ANALYTICS_SOURCE_REQUIRED"
+  },
+  "economics": {
+    "auditRunModelTokens": 37071,
+    "auditRunModelCostUsd": "0.06627600",
+    "cloudWorkerCost": "NOT_RUN",
+    "historicalUiSpendNotAttributedToAudit": true,
+    "scopeNote": "Research scenario A only. Brand scenario costs and unknown failed-call billing are separate.",
+    "searchFees": "UNKNOWN"
+  },
+  "verdict": "BUSINESS_OPERATIONS_NOT_READY \u2014 IMPLEMENTATION DEFECTS REMAIN",
+  "hostedIntake": {
+    "campaignId": "3358ea01-29d9-47de-8cff-5ff61f949977",
+    "companyId": "c2ac447f-0747-4b78-80f1-2cc4fff8d82f",
+    "objectiveId": "1dabab48-eb1b-44ed-96ef-e3401bfbd532",
+    "createdAt": "2026-10-24T03:45:00.578Z",
+    "status": "PAUSED",
+    "version": 3,
+    "deliverables": 2,
+    "artifacts": 0,
+    "researchToolRecords": 0,
+    "startAcceptedButCoordinationStalled": true,
+    "automaticContextNetworkMismatch": "CONFIRMED_SOURCE_DEFECT_REPAIRING",
+    "manuallyPausedThroughAuthenticatedUi": true
+  },
+  "hostedSmoke": {
+    "root": 200,
+    "runtimeConfig": 200,
+    "health": 200,
+    "unauthenticatedSession": 401,
+    "unauthenticatedCampaigns": 401,
+    "sameOriginApi": true,
+    "runtimeConfigNoStore": true,
+    "bundle": "/assets/index-NElpMJc0.js",
+    "campaignControlsInBundle": true
+  },
+  "additionalLocalRepairsPendingRelease": [],
+  "firstRelease": {
+    "deployments": {
+      "api": {
+        "id": "c1d17816-6cef-47a5-8485-58c998b9dfa9",
+        "status": "SUCCESS"
+      },
+      "frontend": {
+        "id": "a59b523d-bb38-40f5-9800-5c8d8444229d",
+        "status": "SUCCESS"
+      }
+    },
+    "source": {
+      "gitHead": "dc43276f4ba83b57f32d00cb765248824c7fb78a",
+      "uncommitted": true,
+      "separateSourceDigestSnapshot": "NOT_RETAINED_CURRENT_SOURCE_HASHES_DESCRIBE_SECOND_RELEASE_ONLY"
+    },
+    "gates": {
+      "fullTests": {
+        "passedFiles": 256,
+        "passedTests": 1500,
+        "skippedFiles": 4,
+        "skippedTests": 4,
+        "elapsedSeconds": 622.85,
+        "exitCode": 0,
+        "log": "/tmp/athena-business-20261024-full-test.log"
+      },
+      "typecheck": "PASS",
+      "lint": "PASS_ZERO_ERRORS_ONE_EXISTING_WARNING",
+      "build": "PASS",
+      "diffCheck": "PASS"
+    }
+  },
+  "secondRelease": {
+    "deployments": {
+      "api": {
+        "id": "908844a6-71d0-4f2b-a77c-258f69be60a6",
+        "status": "SUCCESS"
+      },
+      "frontend": {
+        "id": "15a1da1b-1008-4295-a0cb-b629bdf4219f",
+        "status": "SUCCESS"
+      }
+    },
+    "gates": {
+      "fullTests": {
+        "passedFiles": 256,
+        "passedTests": 1502,
+        "skippedFiles": 4,
+        "skippedTests": 4,
+        "elapsedSeconds": 396.15,
+        "exitCode": 0,
+        "testTarget": "isolated loopback athena_regression_test database",
+        "log": "/tmp/athena-business-20261024-cloud-full-test.log"
+      },
+      "build": {
+        "exitCode": 0,
+        "log": "/tmp/athena-business-20261024-cloud-build.log"
+      },
+      "typecheckFinal": {
+        "exitCode": 0,
+        "log": "/tmp/athena-business-20261024-cloud-typecheck.log"
+      },
+      "lintFinal": {
+        "exitCode": 0,
+        "errors": 0,
+        "existingWarnings": 1,
+        "log": "/tmp/athena-business-20261024-cloud-lint.log"
+      },
+      "android": "NOT_RUN_NO_ANDROID_SOURCE_CHANGED_THIS_CONTINUATION",
+      "generatedTrackedOutputsPreserved": 16
+    },
+    "source": {
+      "gitHead": "dc43276f4ba83b57f32d00cb765248824c7fb78a",
+      "uncommitted": true,
+      "sha256": {
+        "apps/api/src/app.ts": "4d33055ad41578a1bba9d50635f1c27064a0e60eb80ee036e40b04fc0819f5c2",
+        "apps/api/src/identity/security.ts": "64b4cbcf10c5f554cf179b531ac6ba498f2c826cc86ab30d874adcbf111d83d6",
+        "apps/api/src/marketing/budget.ts": "73d7e154e9b718b1784bea8cf02f4119e42a6a83ac9b3445b4b3c30289658a9c",
+        "apps/api/src/marketing/route.test.ts": "40e08c08fc341c327cd78bab037e112951f70e24d321f0359d84d2c5983653fe",
+        "apps/api/src/marketing/service.test.ts": "89d1ca8e0052b6c93555ef37685bb44d6fec173a47d354cb7e14af96be4f377a",
+        "apps/api/src/marketing/service.ts": "beae3af08af554109574973b05fce5373263d0094ddff15b4ff8695de09bf521",
+        "apps/api/src/objectives/marketing-projection.ts": "6a7b05cf8371611632477c95926acfebd27c9e838b0c46d65fca75b1aae9e2bc",
+        "apps/api/src/routes/universal-tools.ts": "df56898855af233a133f75a3ec6916f0671377ccded2d2705b46715605a0c64a",
+        "apps/api/src/universal-tools/finite-route.test.ts": "3575000b36393862fe5338d018a70853c30743b237aab7c11456adb825366166",
+        "apps/api/src/workforce-runtime/marketing-result.ts": "0c8f7c9f2cc5ec72f58462321b4fc0131c60360247bef33057729becf8421c00",
+        "apps/web/src/LocalAIPage.tsx": "2e68f12eb825703f8ecc1ed883d8d2ec051910851139b6b82f82720f977b4544",
+        "apps/web/src/MarketingCampaignsPage.tsx": "e7e36cf493ef124d7ec13e3d00cd350515f268d58ec7d20355a17c81c663da75",
+        "apps/web/src/api.test.ts": "d1ebb61639f15e8f80a576c42abf5acb09905ca9342b6b643131968bd0c08899",
+        "apps/web/src/api.ts": "b834b6eb722287b3c841cea394ea854a20cc5f59a8c7582a36feb8b9c0a8a5f7",
+        "packages/shared/src/marketing.ts": "664c3598fad466c363e5da49229ca874bbfc451a1fde6df77c93842d2f842152",
+        "packages/shared/src/universal-tools.ts": "fa47275ccef68aa2c4632d662a003467cabfb1b4325e9957ef0c2aea85d527de"
+      }
+    }
+  },
+  "researchActivation": {
+    "ownerApproved": true,
+    "companyId": "c2ac447f-0747-4b78-80f1-2cc4fff8d82f",
+    "toolId": "athena.business-research:research_market",
+    "version": "1",
+    "schemaSha256": "02c35661a266a30216794295a6bb38c1740da3e382f6118bbed88c67c0a3d75d",
+    "status": "ENABLED"
+  },
+  "researchAttempt": {
+    "clientClickAt": "2026-10-24T04:07:52.797Z",
+    "persistedBlockedAt": "2026-10-24T04:07:53.225Z",
+    "campaignVersion": 6,
+    "invocationId": "05b2f120-77fe-47e7-a2f7-f652404aa4d1",
+    "auditFailure": "EXECUTION_AUTHORITY_DENIED",
+    "policyReason": "NETWORK_NOT_VERIFIED",
+    "verifiedNetworkState": "UNKNOWN",
+    "receiptRows": 0,
+    "matchingModelUsageRows": 0,
+    "artifactCount": 0,
+    "blindRetryPerformed": false
+  },
+  "remainingEnvironmentAction": "None for brand memory/package completion",
+  "thirdReleaseHostedSmoke": {
+    "root": 200,
+    "runtimeConfig": 200,
+    "sameOriginApi": true,
+    "runtimeConfigNoStore": true,
+    "health": 200,
+    "unauthenticatedSession": 401,
+    "unauthenticatedCampaigns": 401,
+    "bundle": "/assets/index-BH9i9UQl.js",
+    "recoveryControlInBundle": true,
+    "blockerDisplayInBundle": true
+  },
+  "liveResearchEvidence": "docs/evidence/PHASE_28_LIVE_RESEARCH_20261024.json",
+  "newRepairValidation": "PASS_1513_TESTS_BUILD_TYPECHECK_LINT_DIFF",
+  "brandFailureEvidence": "docs/evidence/PHASE_28_LIVE_BRAND_20261024.json",
+  "brandRepairRelease": {
+    "status": "DEPLOYED_SUCCESS",
+    "sourceSha256": {
+      "apps/api/src/marketing/service.ts": "90067053f86ac371ce5f7badba3a3a251f34c7b0c8add6f76250e1f94bc36c03",
+      "apps/api/src/marketing/service.test.ts": "9602bc660082bf0a0cfcdd476b4d928ddffb47d28f8f75472ad59c9d37302e52",
+      "apps/api/src/marketing/telemetry.ts": "5e553e27ed4e2c04d07e68f2af8eb296021cb6aaae97c2f27ae14df18a860107",
+      "apps/api/src/marketing/telemetry.test.ts": "255237f8aeaf486d515ea35219012d69bd9ed23754b654a0c9f9911a27851410",
+      "apps/api/src/ai/router/service.ts": "936d885e22dfc72cb6e6f56ed091cdf21bcb933d0824a88f9e88b02628269601",
+      "apps/api/src/ai/router/service.test.ts": "f686c2ef1dad372f4f8915757d9f5dfe55720b794525df717d2f1a64d75cf2e2",
+      "apps/api/src/routes/ai.ts": "589dea669a54d6721d58b2682da6e462cbbd372db8a975f15f1a1f42fe0d5bbc",
+      "apps/web/src/MarketingCampaignsPage.tsx": "56d21471d71c9e707d59656c8f5976cb6c13d5dcb0c69c74f95e8a8fe07d4975"
+    },
+    "fullTests": {
+      "passedFiles": 256,
+      "passedTests": 1513,
+      "skippedFiles": 4,
+      "skippedTests": 4,
+      "durationSeconds": 211.59,
+      "log": "/tmp/athena-brand-final-test.log"
+    },
+    "typecheck": "PASS",
+    "lint": "PASS_ONE_EXISTING_WARNING",
+    "build": "PASS",
+    "diffCheck": "PASS",
+    "generatedOutputsRestored": 16,
+    "deployments": {
+      "api": {
+        "id": "1947f461-a538-439c-9ceb-4f6d9d48f573",
+        "status": "SUCCESS"
+      },
+      "frontend": {
+        "id": "3c15e9d1-82b7-40c4-b936-61027ead037c",
+        "status": "SUCCESS"
+      }
+    },
+    "publicSmoke": {
+      "/health": 200,
+      "/api/auth/session": 401,
+      "/api/marketing-campaigns": 401,
+      "/api/ai/router/events": 401
+    }
+  },
+  "reviewRepairRelease": {
+    "status": "SUCCESS",
+    "sourceSha256": {
+      "apps/api/src/marketing/review.ts": "176c6ed414195302786930ebff84e18b69449511eb7147273245c54f1dd235b6",
+      "apps/api/src/marketing/review.test.ts": "7d831f64c6c4e25afa46b73574b3834cbf1b8cbcadb1122d1f4bd008554f9e01",
+      "apps/api/src/governance/types.ts": "c57e73ec420b20740e77122f122c8d328b556c182a1ac932eb34074ea85ebc03",
+      "apps/api/src/governance/policy-engine.ts": "9eea959b34a6798637f99b1bd208cf81218f4c52f5b4900c7fa86217d877535a"
+    },
+    "passedFiles": 256,
+    "passedTests": 1516,
+    "skippedFiles": 4,
+    "skippedTests": 4,
+    "durationSeconds": 222.03,
+    "testLog": "/tmp/athena-review-release-test.log",
+    "typecheck": "PASS",
+    "lint": "PASS_ONE_EXISTING_WARNING",
+    "finiteFinalRefinementLint": "PASS",
+    "build": "PASS",
+    "diffCheck": "PASS",
+    "generatedOutputsRestored": 16,
+    "apiDeploymentId": "cb6e3b78-8a9d-4e00-81f7-e6ffceea9a3f"
+  },
+  "memoryRepairRelease": {
+    "status": "SUCCESS",
+    "apiDeploymentId": "ad86e5f1-f405-405e-a841-bdd69b8b164d",
+    "passedTests": 1516,
+    "passedFiles": 256,
+    "skippedTests": 4,
+    "skippedFiles": 4,
+    "durationSeconds": 226.74,
+    "typecheck": "PASS",
+    "lint": "PASS_ONE_EXISTING_WARNING",
+    "build": "PASS",
+    "diffCheck": "PASS",
+    "sourceSha256": {
+      "apps/api/src/marketing/brand-context.ts": "67d113298275f1c1eef4baca55ade7e5fefc4cd3ad12c850973b40850f5c4202",
+      "apps/api/src/marketing/brand-lifecycle.test.ts": "824c31caff1a392efed2e052fb794d297e657683c9198f89ed0443c366076326",
+      "apps/api/src/marketing/service.ts": "bac4019135797015b8fc659ac613564801c1dae32754874e3543f5e52e7ac65d",
+      "apps/web/src/MarketingCampaignsPage.tsx": "9c77826e2eb9655f6b38b9628b1ba06a7b954d49d2a8cb6d328ffd9febf6ee60",
+      "apps/web/src/api.ts": "cc35e22610663c76f65936ca938266881f87bc69491ab1297d759c337165acad",
+      "apps/web/src/api.test.ts": "88d53e1d1d8c688cac03be8f09cb9f47bbf5069734ba99fe1810475c193a3f8d"
+    },
+    "webDeploymentId": "0f54b10f-34c6-4368-92f1-0e4ca78e33d0",
+    "hostedSmoke": {
+      "/health": 200,
+      "/api/auth/session": 401,
+      "/api/marketing-campaigns": 401,
+      "approvedBrandMemoryActionInBundle": true,
+      "bundle": "/assets/index-DjKOdCm4.js"
+    },
+    "liveMemoryCount": 0,
+    "liveRecovery": "NOT_RUN_BROWSER_DISABLED"
+  },
+  "brandLiveCompletionEvidence": "docs/evidence/PHASE_28_LIVE_BRAND_20261024.json"
+}

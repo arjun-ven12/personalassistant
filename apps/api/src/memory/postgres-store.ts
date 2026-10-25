@@ -70,14 +70,14 @@ export class PostgresMemoryStore implements MemoryStore {
   async listMemories(ownerId: string, limit: number) {
     const companyId = companyScope.companyId(ownerId);
     const result = await this.pool.query<{ record: unknown }>(
-      companyId ? "SELECT record FROM memories WHERE owner_id=$1 AND company_id=$2 ORDER BY updated_at DESC LIMIT $3" : "SELECT record FROM memories WHERE owner_id=$1 AND company_id=(SELECT default_company_id FROM owners WHERE id=$1) ORDER BY updated_at DESC LIMIT $2",
+      companyId ? "SELECT record FROM memories WHERE NOT (record->'tags' ? 'document-excluded') AND owner_id=$1 AND company_id=$2 ORDER BY updated_at DESC LIMIT $3" : "SELECT record FROM memories WHERE NOT (record->'tags' ? 'document-excluded') AND owner_id=$1 AND company_id=(SELECT default_company_id FROM owners WHERE id=$1) ORDER BY updated_at DESC LIMIT $2",
       companyId ? [ownerId, companyId, limit] : [ownerId, limit],
     );
     return result.rows.map((row) => MemoryRecordSchema.parse(row.record));
   }
 
   async searchMemories(ownerId: string, query: MemorySearchQuery) {
-    const clauses = ["owner_id=$1"];
+    const clauses = ["owner_id=$1", "NOT (record->'tags' ? 'document-excluded')"];
     const values: unknown[] = [ownerId];
     const companyId = companyScope.companyId(ownerId);
     if (companyId) { values.push(companyId); clauses.push(`company_id=$${values.length}`); }
@@ -135,7 +135,7 @@ export class PostgresMemoryStore implements MemoryStore {
 
   async listKnowledgeNodes(ownerId: string, limit: number) {
     const result = await this.pool.query<{ record: unknown }>(
-      "SELECT record FROM knowledge_nodes WHERE owner_id=$1 AND company_id=COALESCE($3::uuid,(SELECT default_company_id FROM owners WHERE id=$1)) ORDER BY updated_at DESC LIMIT $2",
+      "SELECT record FROM knowledge_nodes n WHERE owner_id=$1 AND company_id=COALESCE($3::uuid,(SELECT default_company_id FROM owners WHERE id=$1)) AND NOT EXISTS (SELECT 1 FROM memories m WHERE m.owner_id=n.owner_id AND m.company_id=n.company_id AND m.id::text=n.ref_id AND m.record->'tags' ? 'document-excluded') ORDER BY updated_at DESC LIMIT $2",
       [ownerId, limit, companyScope.companyId(ownerId) ?? null],
     );
     return result.rows.map((row) => KnowledgeNodeSchema.parse(row.record));

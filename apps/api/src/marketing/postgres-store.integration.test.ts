@@ -1,8 +1,11 @@
 import { MarketingArtifactSchema, MarketingCampaignSchema } from "@alexa-control/shared";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { PostgresDatabase } from "../persistence/database.js";
-import { createIsolatedTestDatabase, safeTestDatabaseUrl } from "../persistence/test-database.js";
+import { createIsolatedTestDatabase, provisionTestDefaultCompany, safeTestDatabaseUrl } from "../persistence/test-database.js";
+import { ObjectiveEngineService } from "../objectives/service.js";
+import { PostgresExecutiveStore } from "../executive/postgres-store.js";
+import { companyScope } from "../companies/scope.js";
 import { PostgresMarketingStore } from "./postgres-store.js";
 import { decomposeMarketingObjective, MarketingService } from "./service.js";
 
@@ -48,6 +51,73 @@ describe.skipIf(!connectionString)("marketing PostgreSQL scope and restart", () 
     await expect(failing.create(context, { ...request, idempotencyKey: "atomic-rollback-key" })).rejects.toThrow("Audit unavailable");
     expect(await store.findByKey(ownerId, companyId, "atomic-rollback-key")).toBeNull();
     expect((await database.pool.query("SELECT count(*)::int AS count FROM marketing_test_objectives")).rows[0]).toEqual({ count: 1 });
+  });
+
+  it("rolls back artifact and campaign updates when the draft audit fails", async () => {
+    const context = { ownerId, companyId, requestId: "draft-atomic", ipAddress: "internal" };
+    const objectives = { create: () => Promise.resolve({ objective: { id: crypto.randomUUID(), organizationId: companyId } }) };
+    const service = new MarketingService(store, objectives as never, () => undefined);
+    service.setTransaction(database.transaction);
+    const campaign = await service.create(context, { idempotencyKey: "atomic-draft-key", title: "Campaign", productOrCompany: "Product", objectiveType: "SOCIAL_CAMPAIGN" });
+    const deliverable = campaign.deliverables.find(item => item.type === "MESSAGING")!;
+    const failing = new MarketingService(store, objectives as never, () => { throw Error("Audit unavailable"); });
+    failing.setTransaction(database.transaction);
+    await expect(failing.saveDraft(context, campaign.id, deliverable.id, { title: "Draft", variants: [{ channel: "WEB", headline: "Hello", body: "Reviewable draft", cta: null }] })).rejects.toThrow("Audit unavailable");
+    expect(await store.listArtifacts(ownerId, companyId, campaign.id)).toEqual([]);
+    expect((await store.findCampaign(ownerId, companyId, campaign.id))?.version).toBe(campaign.version);
+  });
+
+  it("creates one inert initiative objective only from an approved strategy, with durable retry identity", async () => {
+    await companyScope.run({ ownerId, companyId, role: "OWNER", requestId: "initiative-test" }, async () => {
+      let creates = 0;
+      const objectives = { create: () => { creates++; return Promise.resolve({ objective: { id: crypto.randomUUID(), organizationId: companyId } }); } };
+      const service = new MarketingService(store, objectives as never, () => undefined);
+      service.setTransaction(database.transaction);
+      const context = { ownerId, companyId, requestId: "initiative-test", ipAddress: "internal" };
+      const campaign = await service.create(context, { idempotencyKey: "initiative-draft-test", title: "Improve", productOrCompany: "Product", objectiveType: "BUSINESS_IMPROVEMENT" });
+      const research = campaign.deliverables.find(item => item.type === "RESEARCH")!;
+      const source = await service.saveDraft(context, campaign.id, research.id, { observations: [], summary: "Insufficient market evidence; review needed." });
+      const strategy = campaign.deliverables.find(item => item.type === "GROWTH_STRATEGY")!;
+      const artifact = await service.saveDraft(context, campaign.id, strategy.id, { diagnosis: ["Evidence gap"], uncertainties: ["Market unknown"], initiatives: [{ title: "Research market", outcome: "Collect reviewed sources", rationale: "Fill evidence gap", priority: "NORMAL", expectedImpactHypothesis: "Reduce uncertainty; no growth promise", estimatedCostUsd: null, confidence: 0.3, evidenceRefs: [`marketing-artifact:${source.id}`], requiresOwnerApproval: true }], executionEnabled: false });
+      await expect(service.draftInitiative(context, campaign.id, artifact.id, 0)).rejects.toThrow("APPROVED_STRATEGY_REQUIRED");
+      const approvalId = crypto.randomUUID();
+      await store.updateArtifactStatus(ownerId, companyId, campaign.id, artifact.id, "DRAFT", "IN_REVIEW", approvalId);
+      await store.updateArtifactStatus(ownerId, companyId, campaign.id, artifact.id, "IN_REVIEW", "APPROVED", approvalId);
+      const current = (await store.findCampaign(ownerId, companyId, campaign.id))!;
+      await store.updateCampaign({ ...current, version: current.version + 1, deliverables: current.deliverables.map(item => item.id === strategy.id ? { ...item, approvalState: "APPROVED" } : item) }, current.version);
+      const results = await Promise.all([service.draftInitiative(context, campaign.id, artifact.id, 0), service.draftInitiative(context, campaign.id, artifact.id, 0)]);
+      expect(results[0]).toEqual(results[1]);
+      expect(creates).toBe(2);
+      expect((await store.findCampaign(ownerId, companyId, campaign.id))?.initiativeObjectives).toEqual([results[0]]);
+    });
+  });
+
+  it("reconstructs one canonical campaign objective and its actual department plan without generic dispatch", async () => {
+    const scopedOwner = crypto.randomUUID();
+    await database.pool.query("INSERT INTO owners(id,email,password_hash,record,created_at,updated_at) VALUES($1,$2,'test-only',$3,NOW(),NOW())", [scopedOwner, `${scopedOwner}@example.test`, { id: scopedOwner }]);
+    const scopedCompany = await provisionTestDefaultCompany(database.pool, scopedOwner);
+    await companyScope.run({ ownerId: scopedOwner, companyId: scopedCompany, role: "OWNER", requestId: "canonical-campaign" }, async () => {
+      const runtime = { dashboard: vi.fn(() => Promise.resolve({ tasks: [] })), createTask: vi.fn(), dispatch: vi.fn() };
+      const executiveStore = new PostgresExecutiveStore(database.pool);
+      const engine = new ObjectiveEngineService(executiveStore, runtime as never, () => undefined);
+      engine.setTransaction(database.transaction);
+      engine.setMarketingCampaignReader((owner, company, campaign) => store.findCampaign(owner, company, campaign));
+      const service = new MarketingService(store, engine, () => undefined);
+      service.setTransaction(database.transaction);
+      const context = { ownerId: scopedOwner, companyId: scopedCompany, requestId: "canonical-campaign", ipAddress: "internal" };
+      const campaign = await service.create(context, { idempotencyKey: "canonical-campaign-test", title: "Research market", productOrCompany: "Product", objectiveType: "MARKET_RESEARCH" });
+      await service.pause(context, campaign.id);
+      const restarted = new ObjectiveEngineService(new PostgresExecutiveStore(database.pool), runtime as never, () => undefined);
+      restarted.setMarketingCampaignReader((owner, company, id) => new PostgresMarketingStore(database.pool).findCampaign(owner, company, id));
+      const dashboard = await restarted.dashboard(scopedOwner);
+      expect(dashboard.objectives.find(item => item.id === campaign.objectiveId)).toMatchObject({ status: "PAUSED", executionSource: { campaignId: campaign.id } });
+      expect(dashboard.projects.filter(item => item.objectiveExecutionId === campaign.objectiveId && item.status !== "CANCELLED").map(item => item.id).sort()).toEqual(campaign.deliverables.map(item => item.id).sort());
+      await expect(restarted.activate({ ...context, objectiveId: campaign.objectiveId, idempotencyKey: "no-second-dispatch" })).rejects.toMatchObject({ code: "CAMPAIGN_CONTROL_REQUIRED" });
+      expect(runtime.createTask).not.toHaveBeenCalled();
+      const eventCount = (await executiveStore.listObjectiveEvents(scopedOwner)).length;
+      await restarted.dashboard(scopedOwner);
+      expect((await executiveStore.listObjectiveEvents(scopedOwner)).length).toBe(eventCount);
+    });
   });
 
   it("persists a scoped campaign and versioned artifact across store reconstruction", async () => {

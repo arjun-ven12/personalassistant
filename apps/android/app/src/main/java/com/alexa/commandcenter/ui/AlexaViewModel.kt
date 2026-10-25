@@ -86,6 +86,9 @@ class AlexaViewModel(
   private val lockController: AppLockController = AppLockController(),
   private val foregroundSync: ForegroundSyncController = ForegroundSyncController(),
 ) : ViewModel() {
+  val businessActions = repository.businessActions
+  val documentActions = com.alexa.commandcenter.documents.DocumentActions(repository)
+
   private val mutableState = MutableStateFlow(AlexaUiState())
   val state = mutableState.asStateFlow()
   private val biometricRequests = MutableSharedFlow<BiometricRequest>()

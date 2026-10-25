@@ -93,3 +93,5 @@ export * from "./cloud-workspaces.js";
 export * from "./ec2-runtime.js";
 export * from "./engineering-dataset.js";
 export * from "./athena-distillation.js";
+
+export * from "./documents.js";

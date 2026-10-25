@@ -12,6 +12,7 @@ import { AIRuntimeService } from "../runtime-service.js";
 import { AIRouterService } from "./service.js";
 import { AIEconomicsService } from "../economics/service.js";
 import type { AIProvider } from "../provider.js";
+import { companyScope } from "../../companies/scope.js";
 
 const descriptor = (providerId: string, modelId: string, locality: "LOCAL" | "REMOTE"): AIModelDescriptor => ({
   providerId, modelId, displayName: modelId, enabled: true,
@@ -85,11 +86,46 @@ const request = (overrides: Record<string, unknown> = {}) => ({
 });
 
 describe("AIRouterService", () => {
+  it("applies server company privacy even when a department omits its data policy", async () => {
+    const { router } = await makeRouter();
+    const ownerId = crypto.randomUUID();
+    const companyId = crypto.randomUUID();
+    const resolve = vi.fn(() => Promise.resolve({ sensitivity: "INTERNAL", routing: "LOCAL_ONLY", approvedCloudProviderIds: [] }));
+    router.setCompanyDataPolicyResolver(resolve);
+    const result = await router.execute({ ...request(), locality: "ALLOW_REMOTE", economicContext: { ownerId, companyId, purpose: "INTERPRETATION", autonomyMode: "INTERACTIVE", priority: "IMPORTANT" } });
+    expect(resolve).toHaveBeenCalledWith(ownerId, companyId, "INTERNAL");
+    expect(result.providerId).toBe("ollama");
+    expect(result.attempts.every(attempt => attempt.locality === "LOCAL")).toBe(true);
+  });
+
+  it("does not loosen caller privacy and denies unknown server policy before inference", async () => {
+    const { router } = await makeRouter();
+    const economicContext = { ownerId: crypto.randomUUID(), companyId: crypto.randomUUID(), purpose: "INTERPRETATION" as const, autonomyMode: "INTERACTIVE" as const, priority: "IMPORTANT" as const };
+    router.setCompanyDataPolicyResolver(() => Promise.resolve({ sensitivity: "INTERNAL", routing: "ANY_APPROVED", approvedCloudProviderIds: [] }));
+    const result = await router.execute({ ...request(), economicContext, dataPolicy: { sensitivity: "INTERNAL", routing: "LOCAL_ONLY", approvedCloudProviderIds: [] } });
+    expect(result.providerId).toBe("ollama");
+    router.setCompanyDataPolicyResolver(() => Promise.reject(Error("COMPANY_POLICY_UNAVAILABLE")));
+    await expect(router.execute({ ...request(), economicContext })).rejects.toThrow("COMPANY_POLICY_UNAVAILABLE");
+  });
+
   it("bypasses AI for an already deterministic result", async () => {
     const { router } = await makeRouter();
     const result = await router.execute({ ...request(), deterministicResolved: true });
     expect(result.outcome).toBe("NO_AI");
     expect(result.attempts).toHaveLength(0);
+  });
+  it("isolates router activity by trusted owner/company scope and hides unscoped responses", async () => {
+    const { router } = await makeRouter();
+    const ownerId = crypto.randomUUID(), companyId = crypto.randomUUID(), otherCompany = crypto.randomUUID(), otherOwner = crypto.randomUUID();
+    const scoped = (owner: string, company: string, work: () => unknown) =>
+      companyScope.run({ ownerId: owner, companyId: company, role: "OWNER", requestId: "activity-test" }, work);
+    await router.execute({ ...request(), deterministicResolved: true });
+    const result = await scoped(ownerId, companyId, () => router.execute({ ...request(), deterministicResolved: true }));
+    expect(router.activity(ownerId)).toEqual([]);
+    expect(scoped(ownerId, companyId, () => router.activity(ownerId))).toEqual([result]);
+    expect(scoped(ownerId, otherCompany, () => router.activity(ownerId))).toEqual([]);
+    expect(scoped(otherOwner, companyId, () => router.activity(otherOwner))).toEqual([]);
+    expect(() => scoped(otherOwner, companyId, () => router.activity(ownerId))).toThrow("different owner");
   });
 
   it("prefers local models and never sends LOCAL_ONLY requests to cloud", async () => {

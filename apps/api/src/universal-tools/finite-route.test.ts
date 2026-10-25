@@ -1,4 +1,4 @@
-import { CompanyCredentialReferenceSchema, CompanyIntegrationBindingSchema, CompanyListResponseSchema, CsrfTokenResponseSchema, IntegrationPermissionSchema } from "@alexa-control/shared";
+import { CompanyCredentialReferenceSchema, CompanyIntegrationBindingSchema, CompanyListResponseSchema, CsrfTokenResponseSchema, IntegrationPermissionSchema, UniversalToolInspectionSchema } from "@alexa-control/shared";
 import type { FastifyInstance } from "fastify";
 import { afterEach, describe, expect, it } from "vitest";
 import { z } from "zod";
@@ -39,6 +39,19 @@ describe("finite reviewed production adapters", () => {
     expect(discovered.statusCode).toBe(200);
     const tool = z.array(z.object({ id: z.string(), schemaDigest: z.string(), enabled: z.boolean() })).parse(discovered.json())[0]!;
     expect(tool).toMatchObject({ id: "athena.native:provider_health", enabled: false });
+    const inspectionUrl = `/api/universal-tools/tools/${tool.id}`;
+    expect((await app.inject({ method: "GET", url: inspectionUrl })).statusCode).toBe(401);
+    const inspected = await app.inject({ method: "GET", url: inspectionUrl, headers });
+    expect(inspected.statusCode).toBe(200);
+    expect(inspected.json()).toMatchObject({ tool: { id: tool.id, enabled: false, companyId }, review: null, providerStatus: "REVIEW_REQUIRED" });
+    expect((await app.inject({ method: "GET", url: inspectionUrl, headers: { ...headers, "x-company-id": crypto.randomUUID() } })).statusCode).not.toBe(200);
+    const inspection = UniversalToolInspectionSchema.parse(inspected.json());
+    const originalProvider = (await store.findProvider(inspection.tool.ownerId, inspection.tool.providerId))!;
+    await store.saveProvider({ ...originalProvider, companyId: crypto.randomUUID() });
+    const mismatch = await app.inject({ method: "GET", url: inspectionUrl, headers });
+    expect(mismatch.statusCode).toBe(404);
+    expect(mismatch.body).not.toContain(tool.schemaDigest);
+    await store.saveProvider(originalProvider);
     const focus = z.array(z.object({ id: z.string(), schemaDigest: z.string(), enabled: z.boolean() })).parse(discovered.json()).find((item) => item.id === "athena.native:focus_vscode");
     expect(focus).toMatchObject({ enabled: false });
     expect((await app.inject({ method: "POST", url: `/api/universal-tools/tools/${tool.id}/review`, headers,

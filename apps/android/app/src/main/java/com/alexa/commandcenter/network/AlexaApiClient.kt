@@ -32,6 +32,30 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 interface AlexaApiService {
+  @POST("api/marketing-campaigns/{id}/initiatives/draft") suspend fun businessInitiative(@Path("id") id: String, @Header("X-CSRF-Token") csrf: String, @Body body: Map<String,@JvmSuppressWildcards Any>): Response<JsonObject>
+  @POST("api/marketing-campaigns/{id}/analytics/read-metric") suspend fun businessAnalytics(@Path("id") id: String, @Header("X-CSRF-Token") csrf: String, @Body body: Map<String,String>): Response<BusinessArtifact>
+  @GET("api/marketing-campaigns") suspend fun businessCampaigns(): Response<BusinessCampaigns>
+  @GET("api/marketing-campaigns/{id}") suspend fun businessCampaign(@Path("id") id: String): Response<BusinessView>
+  @GET("api/marketing-campaigns/{id}/telemetry") suspend fun businessTelemetry(@Path("id") id: String): Response<BusinessTelemetry>
+  @POST("api/marketing-campaigns") suspend fun createBusiness(@Header("X-CSRF-Token") csrf: String, @Body body: BusinessCreate): Response<BusinessCampaign>
+  @POST("api/marketing-campaigns/{id}/{action}") suspend fun businessControl(@Path("id") id: String, @Path("action") action: String, @Header("X-CSRF-Token") csrf: String, @Body body: Map<String,String> = emptyMap()): Response<JsonObject>
+  @POST("api/marketing-campaigns/{id}/artifacts/{artifact}/review/{action}") suspend fun businessReview(@Path("id") id: String, @Path("artifact") artifact: String, @Path("action") action: String, @Header("X-CSRF-Token") csrf: String, @Body body: Map<String,String> = emptyMap()): Response<JsonObject>
+  @POST("api/marketing-campaigns/{id}/deliverables/{deliverable}/recover") suspend fun businessRecover(@Path("id") id: String, @Path("deliverable") deliverable: String, @Header("X-CSRF-Token") csrf: String, @Body body: Map<String,String> = emptyMap()): Response<JsonObject>
+  @POST("api/documents/provider-review") suspend fun reviewDocumentProvider(@Header("X-CSRF-Token") csrf: String, @Body body: Map<String,String>): Response<Map<String,String>>
+  @GET("api/documents") suspend fun documents(@Query("q") q: String): Response<DocumentList>
+  @GET("api/documents/{id}") suspend fun document(@Path("id") id: String): Response<AthenaDocument>
+  @GET("api/documents/{id}/memories") suspend fun documentMemories(@Path("id") id: String): Response<DocumentMemories>
+  @GET("api/documents/settings") suspend fun documentSettings(): Response<DocumentSettings>
+  @PATCH("api/documents/settings") suspend fun saveDocumentSettings(@Header("X-CSRF-Token") csrf: String, @Body body: DocumentSettings): Response<DocumentSettings>
+  @POST("api/documents") suspend fun createDocument(@Header("X-CSRF-Token") csrf: String, @Body body: DocumentCreate): Response<AthenaDocument>
+  @POST("api/documents/{id}/upload-grants") suspend fun documentGrants(@Path("id") id: String, @Header("X-CSRF-Token") csrf: String, @Body body: Map<String,String> = emptyMap()): Response<List<DocumentGrant>>
+  @retrofit2.http.PUT("api/documents/{id}/pages/{page}") suspend fun uploadDocument(@Path("id") id: String, @Path("page") page: Int, @Header("X-CSRF-Token") csrf: String, @Body body: DocumentUpload): Response<AthenaDocument>
+  @POST("api/documents/{id}/{action}") suspend fun documentAction(@Path("id") id: String, @Path("action") action: String, @Header("X-CSRF-Token") csrf: String, @Body body: Map<String,Boolean> = emptyMap()): Response<AthenaDocument>
+  @PATCH("api/documents/{id}") suspend fun editDocument(@Path("id") id: String, @Header("X-CSRF-Token") csrf: String, @Body body: Map<String,@JvmSuppressWildcards Any>): Response<AthenaDocument>
+  @HTTP(method="DELETE", path="api/documents/{id}", hasBody=true) suspend fun archiveDocument(@Path("id") id: String, @Header("X-CSRF-Token") csrf: String, @Body body: Map<String,String> = emptyMap()): Response<AthenaDocument>
+  @GET("api/documents/{id}/pages/{page}/{kind}") suspend fun documentImage(@Path("id") id: String, @Path("page") page: Int, @Path("kind") kind: String): Response<ResponseBody>
+  @GET("api/documents/{id}/export") suspend fun documentExport(@Path("id") id: String): Response<ResponseBody>
+
   @GET("api/engineering-objectives/{id}/inputs") suspend fun engineeringInputs(@Path("id") id: String): Response<EngineeringProjectInputs>
   @POST("api/engineering-objectives/{id}/inputs") suspend fun engineeringUpload(@Path("id") id: String, @Header("X-CSRF-Token") csrf: String, @Body request: EngineeringProjectInputUpload): Response<EngineeringProjectInput>
   @GET("api/company-data") suspend fun engineeringConnections(): Response<EngineeringCompanyConnections>
@@ -123,6 +147,30 @@ class AlexaApiClient private constructor(
   suspend fun engineeringReject(csrf: String, id: String, request: EngineeringRejectRequest) = call { service.engineeringReject(id, csrf, request) }
   suspend fun login(email: String, password: String) = call { service.login(LoginRequest(email, password)) }
   suspend fun session() = call { service.session() }
+
+  suspend fun businessInitiative(id: String, csrf: String, artifact: String, index: Int) = call { service.businessInitiative(id, csrf, mapOf("artifactId" to artifact, "index" to index)) }
+  suspend fun businessAnalytics(id: String, csrf: String, metric: String, start: String, end: String) = call { service.businessAnalytics(id, csrf, mapOf("metricId" to metric, "windowStart" to start, "windowEnd" to end)) }
+  suspend fun businessCampaigns() = call { service.businessCampaigns() }
+  suspend fun businessCampaign(id: String) = call { service.businessCampaign(id) }
+  suspend fun businessTelemetry(id: String) = call { service.businessTelemetry(id) }
+  suspend fun createBusiness(csrf: String, body: BusinessCreate) = call { service.createBusiness(csrf, body) }
+  suspend fun businessControl(id: String, action: String, csrf: String) = call { service.businessControl(id, action, csrf) }
+  suspend fun businessReview(id: String, artifact: String, action: String, csrf: String) = call { service.businessReview(id, artifact, action, csrf) }
+  suspend fun businessRecover(id: String, deliverable: String, csrf: String) = call { service.businessRecover(id, deliverable, csrf) }
+  suspend fun reviewDocumentProvider(csrf: String) = call { service.reviewDocumentProvider(csrf, mapOf("confirm" to "REVIEW_LOCAL_DOCUMENT_CAPABILITIES")) }
+  suspend fun documents(q: String) = call { service.documents(q) }
+  suspend fun document(id: String) = call { service.document(id) }
+  suspend fun documentMemories(id: String) = call { service.documentMemories(id) }
+  suspend fun documentSettings() = call { service.documentSettings() }
+  suspend fun saveDocumentSettings(csrf: String, body: DocumentSettings) = call { service.saveDocumentSettings(csrf, body) }
+  suspend fun createDocument(csrf: String, body: DocumentCreate) = call { service.createDocument(csrf, body) }
+  suspend fun documentGrants(id: String, csrf: String) = call { service.documentGrants(id, csrf) }
+  suspend fun uploadDocument(id: String, page: Int, csrf: String, body: DocumentUpload) = call { service.uploadDocument(id, page, csrf, body) }
+  suspend fun documentAction(id: String, action: String, csrf: String, body: Map<String,Boolean>) = call { service.documentAction(id, action, csrf, body) }
+  suspend fun editDocument(id: String, csrf: String, body: Map<String,Any>) = call { service.editDocument(id, csrf, body) }
+  suspend fun archiveDocument(id: String, csrf: String) = call { service.archiveDocument(id, csrf) }
+  suspend fun documentImage(id: String, page: Int, kind: String) = call { service.documentImage(id, page, kind) }.mapCatching { it.use { response -> check((response.contentLength()) in 0..6291456); response.bytes() } }
+  suspend fun documentExport(id: String) = call { service.documentExport(id) }.mapCatching { it.use { response -> check(response.contentLength() in 0..1048576); response.bytes() } }
   suspend fun csrf() = call { service.csrf() }
   suspend fun companies() = call { service.companies() }.onSuccess { activeCompanyId.set(it.currentCompany.id) }
   suspend fun portfolio() = call { service.portfolio() }

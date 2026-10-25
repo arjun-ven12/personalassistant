@@ -7,7 +7,7 @@ export interface ReviewedToolHandler {
   readonly descriptor: Descriptor;
   readonly writeRecovery?: "PROVIDER_IDEMPOTENT_RECONCILABLE";
   /** Must delegate to an existing governed execution service. */
-  invoke(input: { context: TrustedToolContext; ownerId: string; companyId: string | null; arguments: unknown; invocationId: string; idempotencyKey: string | null }): Promise<{ structuredOutput: unknown; boundedTextOutput?: string | null; externalOperationId?: string | null }>;
+  invoke(input: { context: TrustedToolContext; ownerId: string; companyId: string | null; arguments: unknown; invocationId: string; idempotencyKey: string | null }): Promise<{ structuredOutput: unknown; boundedTextOutput?: string | null; externalOperationId?: string | null; retryCount?: number }>;
   reconcile?(input: { ownerId: string; companyId: string | null; invocationId: string; requestDigest: string }): Promise<{ status: "SUCCEEDED" | "FAILED" | "UNKNOWN"; structuredOutput?: unknown; externalOperationId: string | null }>;
 }
 

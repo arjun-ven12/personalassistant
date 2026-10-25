@@ -14,7 +14,7 @@ export type MarketingCoordinatorOutcome =
   | { status: "PACKAGE_READY"; campaignId: string; steps: number };
 
 export interface MarketingCampaignCoordinatorDependencies {
-  service: Pick<MarketingService, "advance" | "refreshSpecialist" | "refreshLandingPage">;
+  service: Pick<MarketingService, "advance" | "refreshSpecialist" | "refreshLandingPage"> & Partial<Pick<MarketingService, "blockCampaign">>;
   store: Pick<MarketingStore, "findCampaign" | "updateCampaign">;
   /** Produces verified server-owned authority; callers cannot provide it. */
   trustedContext: (scope: Scope) => Promise<MarketingAdvanceContext | null>;
@@ -54,6 +54,13 @@ export class MarketingCampaignCoordinator {
 
   constructor(readonly dependencies: MarketingCampaignCoordinatorDependencies) {
     this.#queueMicrotask = dependencies.queueMicrotask ?? queueMicrotask;
+  }
+
+  /** HTTP requests persist context first, then request the existing event loop. */
+  requestProgress(scope: Scope): void {
+    this.#scopes.set(keyFor(scope), scope);
+    if (this.#running.has(keyFor(scope))) this.#pending.add(keyFor(scope));
+    else this.#enqueue(scope);
   }
 
   run(scope: Scope): Promise<MarketingCoordinatorOutcome> {
@@ -127,18 +134,23 @@ export class MarketingCampaignCoordinator {
 
   async #runScoped(scope: Scope, context: MarketingAdvanceContext): Promise<MarketingCoordinatorOutcome> {
     for (let steps = 0; steps < 40; steps += 1) {
+      const fresh = await this.dependencies.trustedContext(scope).catch(() => null);
+      if (!fresh || fresh.ownerId !== scope.ownerId || fresh.companyId !== scope.companyId || fresh.emergencyStopActive)
+        return { status: "CONTEXT_UNAVAILABLE", campaignId: scope.campaignId, steps };
+      context = fresh;
       const campaign = await this.dependencies.store.findCampaign(scope.ownerId, scope.companyId, scope.campaignId);
       if (!campaign || campaign.status === "CANCELLED")
         return { status: "CANCELLED", campaignId: scope.campaignId, steps };
       if (campaign.status === "PACKAGE_READY")
         return { status: "PACKAGE_READY", campaignId: scope.campaignId, steps };
+      if (campaign.status === "PAUSED") return { status: "IN_PROGRESS", campaignId: scope.campaignId, steps };
       if (campaign.status === "BLOCKED")
         return { status: "BLOCKED", campaignId: scope.campaignId, steps };
       if (needsApproval(campaign)) {
         try {
           await this.dependencies.onApprovalRequired?.(context, campaign);
         } catch {
-          await this.#blockIfCurrent(scope);
+          await this.#blockIfCurrent(scope, context);
           return { status: "BLOCKED", campaignId: scope.campaignId, steps };
         }
         return { status: "APPROVAL_REQUIRED", campaignId: scope.campaignId, steps };
@@ -152,21 +164,23 @@ export class MarketingCampaignCoordinator {
       let result: AdvanceResult;
       try {
         result = await this.dependencies.service.advance(context, scope.campaignId);
-      } catch {
-        await this.#blockIfCurrent(scope);
+      } catch (error) {
+        await this.#blockIfCurrent(scope, context, error instanceof Error ? error.message : undefined);
         return { status: "BLOCKED", campaignId: scope.campaignId, steps: steps + 1 };
       }
       if (result.status === "PACKAGE_READY")
         return { status: "PACKAGE_READY", campaignId: scope.campaignId, steps: steps + 1 };
+      if (result.status === "BLOCKED") await this.#blockIfCurrent(scope, context);
       if (terminal(result) || !meaningful(result))
         return { status: result.status === "BLOCKED" ? "BLOCKED" : "IN_PROGRESS", campaignId: scope.campaignId, steps: steps + 1 };
     }
     return { status: "STEP_LIMIT", campaignId: scope.campaignId, steps: 40 };
   }
 
-  async #blockIfCurrent(scope: Scope) {
+  async #blockIfCurrent(scope: Scope, context: MarketingAdvanceContext, code?: string) {
+    if (this.dependencies.service.blockCampaign) return this.dependencies.service.blockCampaign(context, scope.campaignId, code);
     const campaign = await this.dependencies.store.findCampaign(scope.ownerId, scope.companyId, scope.campaignId);
-    if (!campaign || ["CANCELLED", "PACKAGE_READY", "BLOCKED"].includes(campaign.status)) return;
+    if (!campaign || ["CANCELLED", "PACKAGE_READY", "BLOCKED", "PAUSED"].includes(campaign.status)) return;
     await this.dependencies.store.updateCampaign({
       ...campaign,
       status: "BLOCKED",

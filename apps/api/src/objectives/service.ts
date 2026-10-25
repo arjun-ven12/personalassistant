@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 
 import {
   CreateObjectiveRequestSchema,
+  MarketingCampaignSchema,
+  type MarketingCampaign,
   ExecutiveGoalSchema,
   ExecutiveKpiSchema,
   ExecutivePlanSchema,
@@ -29,6 +31,7 @@ import { ExecutionError } from "../execution/errors.js";
 import type { ExecutiveStore } from "../executive/store.js";
 import type { GovernanceAuditWriter } from "../governance/approval-service.js";
 import type { WorkforceRuntimeService } from "../workforce-runtime/service.js";
+import { projectMarketingObjective } from "./marketing-projection.js";
 import type { UnitOfWork } from "../persistence/unit-of-work.js";
 
 const TERMINAL = new Set(["COMPLETED", "FAILED", "CANCELLED", "EXPIRED"]);
@@ -48,6 +51,8 @@ type ObjectiveNotificationSink={dispatch(input:{ownerId:string;eventId:string;ca
 
 export class ObjectiveEngineService {
   #notificationSink?: ObjectiveNotificationSink;
+  #marketingReader?: (ownerId: string, companyId: string, campaignId: string) => Promise<MarketingCampaign | null>;
+  setMarketingCampaignReader(reader: (ownerId: string, companyId: string, campaignId: string) => Promise<MarketingCampaign | null>) { this.#marketingReader = reader; }
   #transaction?: UnitOfWork;
   setTransaction(transaction: UnitOfWork) { this.#transaction = transaction; }
   constructor(
@@ -60,6 +65,29 @@ export class ObjectiveEngineService {
   ) {}
 
   setNotificationSink(sink: ObjectiveNotificationSink) { this.#notificationSink=sink; }
+
+  async bindMarketingCampaign(raw: MarketingCampaign) {
+    const campaign = MarketingCampaignSchema.parse(raw);
+    const objective = await this.requireObjective(campaign.ownerId, campaign.objectiveId);
+    if (objective.organizationId !== campaign.companyId || (objective.executionSource && objective.executionSource.campaignId !== campaign.id)) throw Error("MARKETING_OBJECTIVE_BINDING_DENIED");
+    if (!objective.executionSource && objective.status !== "AWAITING_CONFIRMATION") throw Error("MARKETING_OBJECTIVE_ALREADY_ACTIVATED");
+    const projects = (await this.store.listObjectiveProjects(campaign.ownerId)).filter(item => item.objectiveExecutionId === objective.id);
+    if (projects.some(item => item.workforceTaskId || item.workflowId)) throw Error("MARKETING_OBJECTIVE_ALREADY_DISPATCHED");
+    const at = this.now().toISOString();
+    for (const project of projects) if (!campaign.deliverables.some(item => item.id === project.id))
+      await this.store.saveObjectiveProject({ ...project, status: "CANCELLED", updatedAt: at });
+    const bound = ObjectiveExecutionSchema.parse({ ...objective, executionSource: { kind: "MARKETING_CAMPAIGN", campaignId: campaign.id } });
+    const projection = projectMarketingObjective(bound, campaign, projects, [], at);
+    await this.store.saveObjectiveExecution(projection.objective);
+    for (const project of projection.projects) await this.store.saveObjectiveProject(project);
+    for (const plan of (await this.store.listPlans(campaign.ownerId)).filter(item => item.goalId === objective.executiveGoalId && item.status === "ACTIVE"))
+      await this.store.savePlan(ExecutivePlanSchema.parse({ ...plan, milestones: projection.projects.map(item => item.title), effortMinutes: 0, assumptions: ["Campaign deliverables execute only through existing Marketing, Workforce, Tool Gateway and Engineering governance."], updatedAt: at }));
+    await this.event(campaign.ownerId, objective.id, "PLAN_CREATED", "Canonical campaign deliverables replace the generic objective execution plan; campaign governance remains the sole dispatcher.", `marketing-bind:${campaign.id}`, { campaignId: campaign.id });
+  }
+
+  private campaignControls(objective: ObjectiveExecution) {
+    if (objective.executionSource) throw new ExecutionError(409, "CAMPAIGN_CONTROL_REQUIRED", "Use Business / Campaigns to control this objective and its existing department work.");
+  }
 
   async dashboard(ownerId: string) {
     await this.refresh(ownerId);
@@ -148,6 +176,7 @@ export class ObjectiveEngineService {
 
   async activate(input:{ownerId:string;objectiveId:string;idempotencyKey:string;requestId:string;ipAddress:string}) {
     let objective = await this.requireObjective(input.ownerId,input.objectiveId);
+    this.campaignControls(objective);
     if (objective.activationKey === input.idempotencyKey) return this.dashboard(input.ownerId);
     if (!['AWAITING_CONFIRMATION','PAUSED','BLOCKED'].includes(objective.status)) throw new ExecutionError(409,"OBJECTIVE_NOT_ACTIVATABLE","Only confirmed, paused, or blocked objectives can be activated.");
     const projects=(await this.store.listObjectiveProjects(input.ownerId)).filter((item)=>item.objectiveExecutionId===objective.id).sort((a,b)=>a.sequence-b.sequence);
@@ -214,6 +243,7 @@ export class ObjectiveEngineService {
 
   async transition(input:{ownerId:string;objectiveId:string;action:"pause"|"cancel"|"replan";idempotencyKey:string;requestId:string;ipAddress:string}) {
     const current=await this.requireObjective(input.ownerId,input.objectiveId);
+    this.campaignControls(current);
     const duplicate=(await this.store.listObjectiveEvents(input.ownerId)).find((item)=>item.objectiveExecutionId===current.id&&item.idempotencyKey===input.idempotencyKey);
     if(duplicate) return this.dashboard(input.ownerId);
     const at=this.now().toISOString();
@@ -246,6 +276,7 @@ export class ObjectiveEngineService {
 
   async modify(input:{ownerId:string;objectiveId:string;body:unknown;requestId:string;ipAddress:string}) {
     const body=ModifyObjectiveRequestSchema.parse(input.body); const current=await this.requireObjective(input.ownerId,input.objectiveId);
+    this.campaignControls(current);
     const prior=(await this.store.listObjectiveEvents(input.ownerId)).find((item)=>item.objectiveExecutionId===current.id&&item.idempotencyKey===body.idempotencyKey);
     if(prior) return {status:"APPLIED" as const,appliedFields:[],rejectedFields:[],reasons:["The idempotent modification was already applied."],dashboard:await this.dashboard(input.ownerId)};
     const goal=(await this.store.listGoals(input.ownerId)).find((item)=>item.id===current.executiveGoalId);
@@ -302,6 +333,7 @@ export class ObjectiveEngineService {
   async handleWorkforceTaskChanged(task:WorkforceRuntimeTask) {
     const project=(await this.store.listObjectiveProjects(task.ownerId)).find((item)=>item.workforceTaskId===task.id||item.id===task.inputs.projectId);
     if(!project) return;
+    if ((await this.requireObjective(task.ownerId, project.objectiveExecutionId)).executionSource) { await this.refreshObjective(task.ownerId, project.objectiveExecutionId); return; }
     if(task.status==="FAILED"&&task.failureCode==="OBJECTIVE_VERIFICATION_FAILED"&&task.requiredSkills.includes("review")) {
       if(await this.scheduleEvidenceGap(task.ownerId,project.objectiveExecutionId,`review-gap:${task.id}`,"internal")) return;
     }
@@ -333,7 +365,7 @@ export class ObjectiveEngineService {
 
   private async refresh(ownerId:string) {
     const objectives=await this.store.listObjectiveExecutions(ownerId);
-    for(const objective of objectives.filter((item)=>["ACTIVE","AT_RISK","BLOCKED"].includes(item.status))) await this.refreshObjective(ownerId,objective.id);
+    for(const objective of objectives.filter((item)=>item.executionSource || ["ACTIVE","AT_RISK","BLOCKED"].includes(item.status))) await this.refreshObjective(ownerId,objective.id);
   }
 
   private async scheduleNextProject(ownerId:string,objectiveId:string,completedTaskId:string) {
@@ -528,6 +560,26 @@ export class ObjectiveEngineService {
 
   private async refreshObjective(ownerId:string,objectiveId:string,forcedTrigger?:ObjectiveReplanTrigger) {
       const [objective,allProjects,runtime,metrics,links,observations,goals]=await Promise.all([this.requireObjective(ownerId,objectiveId),this.store.listObjectiveProjects(ownerId),this.workforce.dashboard(ownerId),this.store.listKpis(ownerId),this.store.listObjectiveCapabilityLinks(ownerId),this.store.listObjectiveMetricObservations(ownerId),this.store.listGoals(ownerId)]);
+      if (objective.executionSource) {
+        if (!objective.organizationId || !this.#marketingReader) throw Error("MARKETING_OBJECTIVE_READER_UNAVAILABLE");
+        const campaign = await this.#marketingReader(ownerId, objective.organizationId, objective.executionSource.campaignId);
+        if (!campaign) throw Error("MARKETING_OBJECTIVE_SOURCE_UNAVAILABLE");
+        const projection = projectMarketingObjective(objective, campaign, allProjects.filter(item => item.objectiveExecutionId === objective.id), runtime.tasks, this.now().toISOString());
+        if (JSON.stringify(objective) !== JSON.stringify(projection.objective)) {
+          await this.store.saveObjectiveExecution({ ...projection.objective, updatedAt: this.now().toISOString() });
+          await this.event(ownerId, objective.id, projection.objective.status === "COMPLETED" ? "COMPLETED" : "PROGRESS_UPDATED", "Campaign state projected from canonical department artifacts and governed execution records.", null, { campaignId: campaign.id, status: projection.objective.status });
+        }
+        for (const project of projection.projects) if (JSON.stringify(allProjects.find(item => item.id === project.id)) !== JSON.stringify(project)) await this.store.saveObjectiveProject({ ...project, updatedAt: this.now().toISOString() });
+        for (const goal of goals.filter(item => item.id === objective.executiveGoalId)) {
+          const status = projection.objective.status === "AWAITING_CONFIRMATION" ? "DRAFT" : projection.objective.status === "BLOCKED" ? "AT_RISK" : projection.objective.status;
+          if (goal.status !== status) await this.store.saveGoal(ExecutiveGoalSchema.parse({ ...goal, status, completedAt: projection.objective.completedAt, updatedAt: this.now().toISOString() }));
+        }
+        for (const metric of metrics.filter(item => item.goalId === objective.executiveGoalId && item.unit === "package")) {
+          const value = campaign.status === "PACKAGE_READY" ? 1 : 0;
+          if (metric.currentValue !== value) await this.store.saveKpi(ExecutiveKpiSchema.parse({ ...metric, currentValue: value, source: "CALCULATED", updatedAt: this.now().toISOString() }));
+        }
+        return;
+      }
       if(!["ACTIVE","AT_RISK","BLOCKED"].includes(objective.status)) return;
       const owned=allProjects.filter((item)=>item.objectiveExecutionId===objective.id); if(!owned.length) return;
       const tasks=new Map(runtime.tasks.map((item)=>[item.id,item])); const at=this.now().toISOString();

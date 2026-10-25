@@ -43,6 +43,10 @@ export function createGovernanceToolAuthority(input: {
     const evaluation = await input.policyEngine.evaluate({
       ownerId: context.ownerId, sessionId: session.sessionId, ...(session.deviceId ? { deviceId: session.deviceId } : {}),
       deviceTrusted: session.deviceTrusted, signedEnvelopeVerified: session.signedEnvelopeVerified,
+      reviewedExternalReadSession: typeof binding !== "string" && binding?.reviewedForExecution === true &&
+        toolName === "universal.external_read" && tool.operationClass === "READ" &&
+        tool.riskLevel === "read_only" && tool.approvalRequirement === "session" &&
+        session.sessionId === context.sessionId && Boolean(context.companyId),
       networkVerification: session.networkVerification, recentAuthentication: false,
       ipAddress: session.ipAddress, requestId: context.requestId, action, tool: registered,
       emergencyStopActive: security.emergencyStopActive,

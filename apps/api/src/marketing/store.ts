@@ -79,6 +79,10 @@ export class InMemoryMarketingStore implements MarketingStore {
     return Promise.resolve(structuredClone(updated));
   }
   listArtifacts(ownerId: string, companyId: string, campaignId: string) {
-    return Promise.resolve([...this.#artifacts.values()].filter((item) => item.ownerId === ownerId && item.companyId === companyId && item.campaignId === campaignId).map((item) => structuredClone(item)));
+    const campaign = this.#campaigns.get(this.key(ownerId, companyId, campaignId));
+    const current = new Set(campaign?.deliverables.flatMap(item => item.artifactRef ? [item.artifactRef] : []) ?? []);
+    return Promise.resolve([...this.#artifacts.values()].filter((item) => item.ownerId === ownerId && item.companyId === companyId && item.campaignId === campaignId)
+      .sort((a, b) => Number(current.has(`marketing-artifact:${b.id}`)) - Number(current.has(`marketing-artifact:${a.id}`)) || b.createdAt.localeCompare(a.createdAt) || b.version - a.version || b.id.localeCompare(a.id))
+      .slice(0, 200).map((item) => structuredClone(item)));
   }
 }

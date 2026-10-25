@@ -1,3 +1,20 @@
+## 2026-10-19 Phase 28.X mobile documents
+
+Implementation and acceptance detail: [PHASE_28X_DOCUMENT_SCANNING_REPORT.md](PHASE_28X_DOCUMENT_SCANNING_REPORT.md).
+Android Scan/Documents, private PostgreSQL metadata + asset adapter, local English
+OCR, governed provider registration, conservative cleanup, owner-controlled memory,
+search and canonical-document chat references are implemented. Deletion archives
+and excludes derived memories under existing retention rules. Migration 0117 is
+new and has only run in isolated tests; production deployment/activation has not
+been performed. Production requires durable private asset volume + backup/restore
+verification, then a rebuilt Android installation and live scenarios A–E.
+No live phone capture, handwriting-quality or deployed OCR acceptance is claimed.
+Validation: full serial suite 1,478 passed / 4 explicitly live-provider skips;
+Android 27 unit tests passed; app and instrumented test APKs compile; lint,
+typecheck, build, dependency audit and diff checks pass (existing web lint/bundle
+warnings remain). Final exclusion-order fix also passed the 10 focused PostgreSQL
+checks and API typecheck/build. Phase 28.4/28.5 live-acceptance verdicts are unchanged.
+
 ## 2026-10-12 Railway backend migration-lineage recovery
 
 Read-only production metadata confirms116ledger rows:115canonical entries
@@ -1050,3 +1067,537 @@ fixingtypedtestreads. Fullworkspace typecheck/build pass; finalAPItypecheck
 andbuildpassafterCLImetadataadditionandstrictrowguards. No privileged
 workstationoperationorproductionmutationperformed. Sixpre-existingMac
 generatedoutputsrestoredtoinitiallycleanHEADbytesafterbuild.
+
+
+## 2026-10-19 — Business audit, local-first owner direction
+
+Active brief: full business operations audit/repair/live verification. Latest
+owner steering: **fix localhost first, then hosted deployment/verification**.
+Do not treat existing Phase 28.4/28.5 conditional acceptance as closed.
+
+New implementation is uncommitted alongside the earlier Documents/Scans work;
+preserve both. See `docs/PHASE_28_BUSINESS_OPERATIONS_AUDIT.md` for the working
+verdict and remaining audit scope. Local/hosted operational sequence is in
+`docs/runbooks/PHASE_28_BUSINESS_LOCAL_TO_HOSTED.md`.
+
+This checkpoint repairs real research provenance/Gateway execution, current
+artifact hashes/approval/version dependencies, brand product scoping, strategy
+and iteration planning, calendar/measurement contracts, canonical marketing
+objective projection, pause/async progression/recovery, Android Business controls
+and known-vs-unknown telemetry. Company privacy is now resolved at the canonical
+AIRouter boundary even when callers omit dataPolicy. Strategy initiative drafts
+supply the Objective Engine's required metric/review date and remain inert.
+
+Local environment: web localhost:5173, API 127.0.0.1:3001, isolated local database
+on 55433; all 118 migrations current. Actual local API/web health HTTP 200;
+unauthenticated marketing API HTTP 401. Normal local `.env` references production
+Neon, so explicit local DATABASE_URL overrides are mandatory.
+
+Tests now use a **separate disk-backed** local PostgreSQL/pgvector database on
+55434 (`athena_regression_test`, container `athena-business-test-pgvector`).
+The initial tmpfs test database grew under repeated migrations, causing an OOM
+kill/recovery and interrupted runs; do not report those runs as clean. New test
+container has bounded WAL and 768 MiB/2 CPU; hosted worker limits unchanged.
+
+Completed gates at this checkpoint: 14 focused files / 84 tests; follow-up
+router/service/routes 3 files / 41 tests; full typecheck passes. Final serial
+suite, build, Android and diff gates still being completed; inspect final logs.
+
+Owner said hosted login is complete. Local browser automation reports disabled
+in Codex Work settings; local owner sign-in/UI verification has been requested.
+Do not claim browser/device/provider live acceptance from API fixtures.
+
+Production deploy blocker remains `LEGACY_REPAIR_OPERATOR_REVIEW_REQUIRED`.
+The 115-entry owner-approved history manifest matched source in the earlier
+read-only check. Before any history mutation, confirm retained Neon recovery
+branch `athena-before-lineage-reconciliation` / `br-green-star-azqy7jsy` still
+exists with auto-deletion disabled (owner requested help). If expired, create a
+replacement retained data-and-schema branch and bind the reviewed recovery
+manifest correctly. No production history/schema mutation or deployment has
+been performed by this local-first checkpoint.
+
+Exact continuation: finish local gates and authenticated local review; repair
+remaining genuine audit findings; confirm retained recovery; run reviewed lineage
+reconciliation and pending migrations/security checks; deploy exact validated
+source to existing Railway API/web; run actual available business scenarios and
+record costs/timings. Do not label implementation gaps as external blockers.
+
+### Local clean serial gate — 2026-10-19
+
+`TEST_DATABASE_URL` explicitly targeted the isolated disk-backed local regression
+database. `pnpm test --no-file-parallelism` completed with exit 0: **256 files /
+1,496 tests passed; 4 opt-in live files/tests skipped (260 files / 1,500 tests
+collected), 271.23 seconds**. This is the clean complete run; prior interrupted
+RAM-backed attempts are not acceptance evidence. Workspace lint and final full
+typecheck pass. Workspace build and Android final validation are still running.
+
+The local app now uses the separate persistent `athena_business_local` database
+on port 55434. It was empty (no owners) before switching; all 118 migrations are
+current. Both original temporary database containers are stopped and retained;
+the active disk-backed volume is `athena-business-regression-pgdata`. Production
+Neon was not used for any local schema changes.
+
+### Completed automated local checkpoint; hosted rollout still blocked
+
+Final gates: full serial **256 files / 1,496 tests passed; 4 opt-in live files/tests
+skipped**, lint PASS, typecheck PASS, workspace build PASS (large web bundle
+warnings), Android **29 tests across 14 files, zero failures/errors/skips**,
+assembleDebug PASS, Android UI-test Kotlin compilation PASS, git diff --check
+PASS. No Android physical/emulator UI execution or browser acceptance claimed.
+Production config invariant profiles also pass. Six generated Mac outputs were
+restored from digest-verified pre-build backups; fresh outputs are archived
+locally rather than mixed into the source changes.
+
+After local automated gates, a read-only check of the actual Railway production
+environment validated cloud/PostgreSQL configuration, enabled log redaction and
+disabled privileged execution. Production migration status remains unknown with
+116 applied entries, three pending migrations (0115–0117),
+UNEXPECTED_APPLIED_VERSION and REVIEWED_HISTORY_REQUIRED. The approved manifest
+still contains 115 canonical entries with **zero current-source hash mismatches**;
+it references `br-green-star-azqy7jsy`, whose retention remains unconfirmed.
+No production history/schema mutation or deployment was performed.
+
+The owner has been given exact Neon branch/expiration steps and asked to return
+only the retained branch ID. Local browser sign-in/automation access is also
+pending. The local app remains available at localhost:5173, backed by the
+persistent local `athena_business_local` database on port 55434. Existing
+production secrets were never printed or moved into the local database.
+
+Machine-readable evidence with changed source digests:
+`docs/evidence/PHASE_28_BUSINESS_LOCAL_VALIDATION_20261019.json`.
+This checkpoint is **not** the final business-readiness verdict. The full A–G
+live audit, campaign aggregate budget semantics and provider availability review
+remain open; do not misclassify those unfinished audits as completed features.
+
+
+## 2026-10-19 — Retained recovery confirmed; migration fix executed
+
+Owner confirmed `br-green-star-azqy7jsy` auto-deletion OFF and explicitly
+requested approved migration reconciliation/deployment, plus a localhost login
+repair. Owner attestation is recorded; no recovery restore drill is claimed.
+
+- Approved manifest: 115 canonical SQL hashes still match; no replacement or
+  broad lineage bypass. Fixed history reconciliation committed. Its exit 1 was
+  expected `outdated` status with 0115–0117 pending and no lineage issues.
+- Fixed migration deploy succeeded: **current, 119 applied ledger entries,
+  zero pending migrations, zero issues**. That includes the retained annotated
+  historical diagnostic row; canonical migration count remains 118.
+- Reviewed 0115–0117 are additive tables/indexes/identity constraints. No canonical
+  data rows or migration history were deleted. Pre-deploy migration checks stay.
+- Local database had zero owners: hosted credentials cannot authenticate locally.
+  Owner must use Create the initial owner for the separate local database.
+- Fixed a real rate-limit error: the Fastify error builder returned a nested
+  response object without top-level statusCode/message, so error normalization
+  converted rate exhaustion into generic 500. It now returns ApiSecurityError
+  429/RATE_LIMITED. Authentication limits and recent-auth/CSRF controls unchanged.
+- New regression verifies first five bad logins 401, sixth request 429 with
+  Retry-After and no session cookie. API test file: **26 tests pass**.
+
+Latest full rerun is **not clean**: host disk dropped to roughly 115 MiB free,
+Docker's local database exited with I/O errors, and dependent PostgreSQL cases
+failed during setup. Do not report this run as acceptance. Docker volume/local
+source preserved; no cleanup/prune/factory reset performed. Free space later
+fluctuated by several GiB as the host recovered. Automatic Docker restart has not
+confirmed Engine running; owner asked to inspect Docker Desktop. The local API
+cannot authenticate against an unavailable database.
+
+Continue validation with the already configured isolated Neon TEST_DATABASE_URL
+(distinct test endpoint; never production DATABASE_URL). Full suite, lint,
+typecheck and final build pending for the new rate-limit patch. Existing clean
+1496-test run predates this small patch. Do not claim a new clean result yet.
+No new Railway application deployment has been started at this checkpoint.
+
+### Local database/API recovered without data removal
+
+Docker required a force-stop/restart of its unresponsive desktop processes after
+ENOSPC; no factory reset, prune, image removal or volume deletion was performed.
+Restarted the existing `athena-business-test-pgvector` container and verified
+PostgreSQL accepting connections. The local owner and default-company linkage
+both survived (one owner, one non-null default-company reference; no private
+owner fields read or printed). API had independently exited because its logger
+could not write to the full disk. It was restarted in a detached development
+session with its log at ignored `.local/athena-local-api.log`. Local API and web
+again return HTTP 200; actual owner password login still requires owner/browser
+verification and is not claimed from these health checks.
+
+The ignored local API `.env` now defaults explicitly to
+`athena_business_local` on 127.0.0.1:55434, PostgreSQL/development mode and the
+same tested loopback/origin settings. This prevents normal local starts from
+accidentally targeting production Neon. Existing test endpoint remains separate.
+The previous environment is backed up privately (0600) under ignored
+`apps/api/.local/env-before-local-database-20261019`; do not print or commit it.
+No provider secret values or production application rows were copied into the
+local database. Railway production environment was not changed by this step.
+
+Fresh workspace typecheck completed serially with exit 0. Full test suite is
+running on the existing separate Neon test endpoint; all cases reached so far
+pass, including real PostgreSQL budget/restart/lineage protections. This is
+persistence testing with fixture model providers, not live model acceptance.
+Final lint/build, application deployment and hosted verification remain pending.
+
+
+### Fresh release gates passed; API deployment started
+
+Fresh complete serial suite on the existing isolated Neon test endpoint passed
+with exit 0: **256 files / 1,497 tests passed, 4 opt-in live files/tests skipped
+(260 files / 1,501 collected), 959.24 seconds**. This supersedes the failed local
+Docker-outage attempt. Skipped live providers remain unverified. New login
+regression file passed all 26 tests. Workspace typecheck (serial), lint (zero
+errors, one existing Fast Refresh warning), full workspace build (existing
+runtime-config/large-chunk notices only) and git diff --check pass. Six generated
+Mac outputs restored from digest-verified baseline; fresh outputs retained under
+ignored `.local/business-build-output-20261019-deploy`.
+
+API source uploaded to the existing Railway production service. Deployment ID:
+`5a8d047e-7c09-472e-b611-46274344fcee`. Its build was observed progressing through
+successful bundle build and production package deployment. Application deployment
+health/pre-deploy result and frontend rollout are still pending at this entry.
+No production migration guard or service security configuration was bypassed.
+
+Machine-readable release evidence:
+`docs/evidence/PHASE_28_DEPLOYMENT_20261019.json` (in progress until both services
+are verified). Source includes existing uncommitted Documents/business repairs;
+CLI upload is not a Git commit or GitHub push. Business A–G live acceptance,
+physical Android acceptance and cloud-worker/preview acceptance remain open.
+
+
+## 2026-10-19 — Migration recovery and API/web deployment COMPLETE
+
+This receipt supersedes earlier pending-deployment notes for the login/recovery
+subtask; it does not close the broader business-readiness audit.
+
+- Production reconciliation and migrations: **current**, 119 ledger entries,
+  zero pending migrations, zero issues. Unknown historical SQL remains explicitly
+  unverified; the annotated diagnostic record was preserved.
+- Existing Railway API deployment **SUCCESS**:
+  `5a8d047e-7c09-472e-b611-46274344fcee`.
+  Fresh deployment metadata confirms `node dist/database.js deploy` retained.
+  Direct API health 200/ok; unauthenticated campaign access 401. Post-deploy
+  database status rechecked current with no issues.
+- Existing Railway frontend deployment **SUCCESS**:
+  `efbda7f6-dc45-487f-b759-87119762f939`.
+  Hosted root 200; runtime-config 200 with same-origin API and no-store;
+  frontend-proxied health 200/ok; session/campaign requests without cookies 401.
+  New `/assets/index-KEvqnF5M.js` returns 200 and contains new launch/iteration
+  contracts. These are actual hosted smoke checks, not owner-login acceptance.
+- Fresh release validation: **1,497 tests / 256 files pass; 4 opt-in live
+  tests/files skipped**, serial workspace typecheck PASS, lint zero errors/one
+  existing Fast Refresh warning, full workspace build PASS (existing warnings),
+  diff check PASS. No Android code changed in the final login patch; previous
+  29 Android unit tests/APK/UI-test compilation remain the recorded mobile gate.
+- Local owner/default-company records survived the disk/Docker outage. Local
+  API/web restored, rate-limit error now 429 rather than generic 500, and ignored
+  local API environment defaults to the isolated local database. Owner must use
+  the local account locally; no password or token was requested/read.
+- No worker marked READY, no preview enabled, no live cloud baseline, teacher
+  example/dataset acceptance, publishing or ads performed by this deployment.
+- Source remains uncommitted. CLI upload is an actual deployment, not a GitHub
+  push; commit reviewed source before continuing from another checkout/device.
+
+Final release evidence and source digests:
+`docs/evidence/PHASE_28_DEPLOYMENT_20261019.json`.
+Exact next business-audit task: authenticated owner verification on the hosted
+release, intended company/product confirmation, remaining budget/provider audits
+and available real A–G dry runs. Keep the overall business verdict IN PROGRESS /
+NOT_READY while those implementation audits and live acceptance remain open.
+
+## 2026-10-24 — Business operations audit continuation
+
+Scope confirmed by owner: Athena personal assistant, Default Company, draft-only
+research/brand/launch. Hosted authenticated UI and health observed. GitHub and
+Railway company integration references show READY; no analytics source listed.
+
+Local repairs: canonical per-deliverable Workforce budget enforced on specialist
+dispatch (zero allocation denied); generated strategy outcome specificity aligned
+with Objective Engine, historical short drafts preserved with explicit
+clarification; browser campaign intake/start/pause through existing shared-schema,
+CSRF and company-scoped API. No new executor or accounting store.
+
+Latest focused regression checkpoint: 42 tests / 2 files pass (overlapping with
+earlier 36-test service/coordinator checkpoint). Fresh serial typecheck PASS;
+full lint/test/build release gates in progress. No Android changes this turn.
+
+Local API/web restarted on preserved isolated PostgreSQL; both health checks
+return 200. Owner login rejects the supplied credentials. Exactly one intact
+local Argon2 account/company binding exists (created October 19); no password
+read/reset, session forged or auth bypass. Await owner choice: retry existing
+local password or use a new local database while retaining old data.
+
+Railway CLI now returns Unauthorized. Standard browser login opened for owner;
+private OAuth output is ignored/local and must not be printed. Hosted browser
+session remains authenticated, but cannot substitute for deployment CLI auth.
+No new deployment, live business completion, paid-provider result, cloud baseline
+or preview acceptance claimed. See working audit for implementation gaps still
+under audit; verdict stays BUSINESS_OPERATIONS_NOT_READY.
+
+Owner subsequently chose the fresh local database. Current local target is
+`athena_business_local_20261024` (118 migrations applied); old database retained.
+Normal registration screen opened; credential entry/submission stays with owner.
+Read-only hosted AI confirms configured Luna roles and an enabled USD 15 OpenAI
+provider policy; no new inference was performed. Fixed UNKNOWN global-budget
+display locally; historical provider spend is not audit-run cost evidence.
+
+## 2026-10-24 continuation: reviewed cloud READ policy repair
+
+Owner approved and activated Default Company finite research capability
+`athena.business-research:research_market` v1, exact schema
+`02c35661a266a30216794295a6bb38c1740da3e382f6118bbed88c67c0a3d75d`.
+The real attempt on campaign `3358ea01-29d9-47de-8cff-5ff61f949977`
+was denied before receipt reservation/model invocation. Scoped audit/policy
+inspection identified `NETWORK_NOT_VERIFIED` for actual UNKNOWN state.
+The campaign is BLOCKED v6; no research artifact or live model success exists.
+
+Implemented a narrowly scoped, internal Gateway assertion for server-reviewed,
+company/session-bound, read-only external tools in cloud deployment only. Kept
+native/signature/private-network requirements, UNAVAILABLE denial, emergency
+stop, exact review/binding and short-lived grant checks. Added explicit existing
+research recovery route to web controls and displayed persisted blocker codes.
+
+Validation: full serial suite 256 files / 1,510 tests PASS, four live files/tests
+SKIPPED; 355.58s. Typecheck, lint (one pre-existing warning), build, diff check
+PASS. Production config security schema PASS, migration status current with no
+pending migrations. Sixteen tracked generated Mac outputs preserved/restored.
+No Android changes in this continuation.
+
+Follow-up deployments requested: API `0fb54d8e-cc3c-42d2-917a-11202f2f12fe`,
+web `a00d2f56-0745-4923-9b84-01920f230cdf`.
+Browser access was disabled in Codex Work settings during this continuation.
+Enable it before recovering/resuming the same campaign through the authenticated
+owner session. Do not replace browser authentication with Railway/DB authority.
+After successful release use “Recover research draft”, then “Start / resume”.
+The preceding failed attempt has zero receipt rows/zero matching model usage;
+do not generalize this recovery to unknown/indeterminate provider outcomes.
+
+Full business acceptance, aggregate campaign budget semantics, cloud Engineering,
+creative provider and real analytics acceptance remain open. Phase 28.4/28.5
+conditional verdicts remain unchanged. See business audit and dated JSON evidence.
+
+Release confirmation: both follow-up API/web deployments above are SUCCESS.
+Browser restoration is the immediate live-research prerequisite. The repair is
+released; research has not been rerun and no live success/cost is claimed.
+
+## 2026-10-24: first genuine research baseline and next live defect
+
+Browser restored and owner reauthenticated. Scenario A campaign
+`3358ea01-29d9-47de-8cff-5ff61f949977` reached PACKAGE_READY v12 via its original
+canonical objective. One explicit recovery preserved the prior denied attempt.
+Successful invocation `c68762d8-0bbe-438d-a874-1d1f821d4c2c` has completed
+SUCCEEDED receipt, audit and artifact provenance. Exactly one research artifact
+(v2) and one package saved. 18 observations, 58 retrieved URLs. OpenAI GPT-5.6
+Luna: 37,071 reported tokens, USD 0.06627600 settled model cost; search fees
+UNKNOWN. Successful Gateway 36.225s, resume click to package 36.539s; excludes
+setup/earlier denied time. Draft factual/brand claim review is not accepted.
+Full evidence: `docs/evidence/PHASE_28_LIVE_RESEARCH_20261024.json`.
+
+Scenario B: campaign `2ca1e39e-c8f5-4554-b65c-ed30ef57ca67`, objective
+`c9180b3c-c456-4ac0-a21a-b04fc312a497`. Research succeeded; brand deliverable
+`b97bacc3-601e-49f0-b6d7-d2b7e7688073` BLOCKED. Router diagnostic proves
+OUTPUT_VALIDATION_FAILED / invalid_type on the initial and existing repair call.
+Direct Marketing generation omitted the provider JSON schema. Exact existing
+schema is now supplied via AIRouter; strict validation remains unchanged.
+Web exposes existing guarded recovery for eligible non-Engineering/creative
+blocked drafts. Failed calls with estimated usage remain UNKNOWN in campaign
+cost projection. Router activity now captures and filters trusted owner/company
+scope; absent scope returns no events and the API requires company context.
+
+Final source validation is running in `/tmp/athena-brand-final-{typecheck,lint,test,build}.log`.
+Do not deploy until gates pass. Then release existing API/web, reload hosted UI,
+select the existing brand campaign, recover brand draft explicitly, then resume.
+Do not repeat successful research or create a replacement campaign. Verify new
+model usage/artifact/provenance and owner draft review; never approve publication.
+
+### Brand live retry succeeded; review fix awaiting final release
+
+Schema release API `1947f461-a538-439c-9ceb-4f6d9d48f573`, web
+`3c15e9d1-82b7-40c4-b936-61027ead037c` both SUCCESS. Brand draft
+`93a318cb-1265-4e82-9fbd-7b370e2a5a8c` saved with digest
+`b5159a32c8ca44240d6422058b5a492c15d4629d301e93a5621e460be370cb20`.
+Successful retry request `ff0881a6-ce92-42e6-95ca-3fb01bb83569`, 7,749 tokens,
+USD 0.02170800. Retry click to artifact 18.358s; not full objective duration.
+Research reused; no duplicate model research or brand artifacts.
+
+Review is blocked by a false positive on an explicit advisory prohibition and
+cloud artifact-review transport semantics. The staged repair uses a finite set
+of complete prohibition phrases; arbitrary negative/mixed/conditional statements
+still deny. It adds a service-owned exact-artifact-review assertion for cloud
+policy only, preserving explicit approval and non-execution, private deployment,
+emergency-stop, sensitive-claim, device and publishing boundaries. Focused review/
+governance/Gateway tests PASS (41 tests). Final source frozen before the clean
+`/tmp/athena-review-release-test.log` serial run. Build follows it. Do not deploy
+unless both pass. No source changes during this clean run.
+
+After API release (web already includes recovery): resume the existing brand
+campaign WITHOUT recovering/regenerating the already saved brand. Coordinator
+should request exact owner review. Verify pending approval ID and digest, then
+ask owner to review the concrete draft. Do not approve it on the owner's behalf
+without explicit authorization. Public feature/privacy/pricing assertions remain
+unverified hypotheses; approving a brand draft is not publishing authorization.
+
+### Current checkpoint: approved brand memory recovery release
+
+Owner approved the exact brand in chat; normal authenticated Approvals UI saved
+`0c50387b-d6c0-4402-b52e-7c78931f240a` APPROVED. Artifact APPROVED and deliverable
+COMPLETED. Promotion then failed at the 4,000-character snapshot check; normalized
+JSON size 5,788. Repair uses shared 8,000-character brand snapshot/aggregate context
+bound within existing 10,000-character memory storage and 12,000-character request
+limits. No truncation. Added finite guarded “Save approved brand to memory” UI
+for the existing `/brand-memory` route. Exact approval/digest checks unchanged.
+
+Memory repair final gates: 256 files / 1,516 tests PASS; four live files/tests
+SKIPPED; 226.74s. Typecheck/lint/build/diff PASS, one pre-existing lint warning.
+Sixteen generated tracked files restored; fresh build retained privately.
+API deployment `ad86e5f1-f405-405e-a841-bdd69b8b164d` SUCCESS.
+Frontend deployment requested this continuation. Browser access again reported
+disabled, so no production memory mutation or package success is claimed yet.
+
+Once browser access works: reload Marketing, select existing brand campaign,
+select APPROVED brand artifact, click “Save approved brand to memory”, verify one
+scoped memory with exact artifact/digest evidence, then Start/resume package.
+Do not request approval again, regenerate brand, or repeat completed research.
+
+Memory recovery frontend `0f54b10f-34c6-4368-92f1-0e4ca78e33d0` SUCCESS.
+Read-only checkpoint: campaign BLOCKED v14, zero brand memory records. Original
+approval request has since expired; the exact artifact was already finalized as
+APPROVED before expiry, and owner approval is recorded in this chat. Recovery uses
+that approved artifact without creating a new decision or broadening authority.
+Live memory save/package verification still requires browser access restoration.
+
+## Hosted brand memory and package completion — October 24, 2026
+
+Browser access restored. The authenticated Default Company Marketing action saved
+the exact owner-approved brand digest without another approval or generation.
+Read-only PostgreSQL verification confirms exactly one semantic memory
+`ec011647-c7ba-4f58-b0e0-607a866116bf`, 5,707 characters, company/campaign/digest
+tags and source artifact/version digest provenance, observed 09:00:32.053Z.
+
+Resuming the same campaign produced PACKAGE_READY v17, 100% in the UI. Package
+`29e79ec4-33f5-4aff-80de-1c344d44c35b` persisted 09:00:36.921Z, 0.216 seconds
+after the resume click. Research and approved brand were reused; ledger remains
+exactly the prior three requests, with no new model calls or research invocation.
+Known settled model cost remains USD 0.07570300; failed-call billing and search
+fees remain UNKNOWN. This successful recovery interval excludes prior repairs.
+
+Package is a reviewable draft, with public actions still pending approval. The
+package deliverable retains historical COORDINATION_REVIEW_REQUIRED metadata
+despite DRAFT_READY; campaign/UI correctly report PACKAGE_READY. No publishing,
+preview or full business-operations acceptance is claimed. No runtime source
+changed this recovery; deployed source retains the previous clean 1,516-test,
+typecheck/lint/build validation. Full audit and cloud acceptance remain conditional.
+
+Evidence: `docs/evidence/PHASE_28_LIVE_BRAND_20261024.json` and
+`docs/evidence/PHASE_28_BRAND_PACKAGE_COMPLETE_20261024.jpg`.
+
+## Launch audit continuation and evidence/cost repair — October 24, 2026
+
+Real launch campaign `ba9c9527-ff94-4bc4-9397-c56499d8286b`, objective
+`996a6378-87f2-449f-8130-0c618e08de37`, created through authenticated Marketing UI.
+Twelve canonical deliverables planned. First research model output exceeded its
+output token limit; the Gateway preserved an INDETERMINATE receipt and no draft.
+The next attempt succeeded at AIRouter (20 observations, 46,473 tokens, known
+USD 0.07622700) but failed handler citation grounding: eight cited URLs were
+absent from the retained first-60 source evidence. No fabricated artifact saved.
+Failed first-call billing and unreported search fees remain UNKNOWN.
+
+The provider evidence collector now prioritizes cited URLs only when exact URLs
+exist in actual provider retrieval metadata, then fills the same 60-URL bound.
+Model-only citations remain excluded. Research asks for 8–12 concise observations
+and a <=200-word summary within the unchanged output budget. No schema, trust,
+approval, tool activation or external-read authority broadened.
+
+Also repaired completed-draft blocker cleanup, and wired the existing canonical
+telemetry projection into the Marketing cost panel using one shared strict Zod
+contract. Unknown costs stay explicit; known recorded costs are not called totals.
+No new ledger, pricing estimate or USD-to-internal-credit conversion introduced.
+Authenticated localhost cost panel verified against the preserved local draft.
+No local tool activated or E-stop disabled.
+
+Final validation: 67 focused tests; full clean serial suite 256 files / 1,518 tests
+PASS, 4 opt-in live files/tests SKIPPED, 237.50 seconds. Lint PASS with existing
+Fast Refresh warning; typecheck/build/diff check PASS. Earlier full run interrupted
+when the citation defect was found, not counted as passing. Build outputs preserved
+privately, 16 generated files restored by pre-build SHA-256. No Android source
+changed this continuation; Android gates not rerun.
+
+API deployment `6b7ad540-4c8e-43c9-b7f5-234d754279ce` SUCCESS.
+Web deployment `9643b884-c6e4-4085-86d2-cd022c99ae69` SUCCESS. Production config
+parse PASS: cloud/PostgreSQL, redaction enabled, privileged execution disabled.
+Pre-deploy migration validation retained. Public health 200; unauthenticated
+session/campaign routes 401. Same research deliverable explicitly recovered to
+v3 using ordinary owner controls; final bounded retry running, no reset/bypass.
+
+Default Company Gateway metadata confirms only the reviewed research provider
+and READ capability enabled. No company image/video capability is registered.
+Other integration records marked installed do not prove credential readiness or
+live execution. Growth-strategy scenario draft created, execution pending.
+Full business verdict remains NOT_READY; cloud/preview/analytics/creative live
+requirements remain unmet, and aggregate campaign budget semantics still need audit.
+
+### Bounded citation synthesis recovery — release validating
+
+Final launch v3 attempt also failed grounding: one unsupported citation, although
+the provider model completed (36,849 tokens, USD 0.05819700). Launch is BLOCKED
+v12 with zero artifacts; all three research attempts retained and retry cap
+preserved. Total known launch model cost USD 0.13442400; failed first billing and
+search fees UNKNOWN. The growth-strategy campaign
+`6f9ab9f2-4613-4d4f-9d19-36a555fb53c0`, objective
+`f1f629e7-e5a4-47bd-8596-f922fdfecd07`, similarly rejected one unsupported citation:
+37,181 tokens, USD 0.05737700, no artifact. Neither rejection is live completion.
+
+A single bounded repair is now implemented through existing AIRouter: server
+retains only observations with exact provider retrieval evidence, excludes the
+unsupported observations and original summary from repair context, and asks for
+only a new summary. The repair cannot mutate observation fields or add sources.
+Original and repair model request IDs are bound to the existing company audit;
+both are charged through the same canonical task ledger; Gateway retryCount=1.
+No new search/tool call, generic execution, authority, source, ledger, schema
+activation or campaign retry grant exists. Revalidate company/campaign/version,
+active status and live emergency stop; missing audit/security dependency denies.
+A failure or audit write failure yields no accepted result.
+
+Focused final regression: four files / 27 tests PASS, including paused/stale scope,
+emergency stop, failed repair, extra observation rejection, audit failure and
+canonical attribution. Full final typecheck/lint PASS (one existing warning);
+clean serial suite running. The earlier 1,518-test release remains valid for its
+source, not evidence for the new bounded-repair source. No second release yet.
+
+Completed-draft blockerCode clears on persistence; UI also hides historical codes
+when a deliverable is no longer BLOCKED, covering pre-existing completed records
+without direct production data edits.
+
+Current company credential references: GitHub READY (1), Railway READY (1).
+No GA4/creative/AWS company reference in actual hosted records. Environment secret
+presence is not credential-reference readiness. Keep AWS image/runtime acceptance
+and HTTPS preview deferred; no new registration or runtime permission activated.
+
+### Final grounded-recovery/context release checkpoint
+
+Measured retained research: 5,491 characters (growth) / 5,912 (launch), plus the
+5,707-character approved brand and a summary/metadata, demonstrating downstream
+12,000-character context pressure. Existing direct and Workforce generation now
+share a deterministic projection over canonical dependencies/source campaigns.
+Only whole lower-confidence research observations can be omitted, with explicit
+contextOmittedObservationCount; source artifact/version and full approved brand,
+prohibited claims, retained observations and summary remain intact. Canonical
+stored reports are never changed. Keep at least one source observation; deny
+if the unchanged 12,000-character bound cannot be met. Models are told not to
+infer omitted evidence. No new storage/context architecture or raised bound.
+
+Final clean suite: **257 files / 1,528 tests PASS**, four opt-in live files/tests
+SKIPPED, 221.65s. Full typecheck and final web typecheck PASS; full lint plus
+focused final UI lint PASS (one existing warning); workspace build and diff check
+PASS. Context/service focused set: 48 tests. Grounding/route/Gateway set: 27 tests.
+Prior 1,524-test run predates context projection; it is superseded for release.
+Sixteen generated outputs restored by verified pre-build hashes after archiving
+fresh outputs privately. No Android changes in this continuation.
+
+The existing finite SOCIAL_CAMPAIGN request is exposed as a Social campaign draft
+option; it reuses canonical intake/approval/ledger and cannot publish. It allows
+copy/calendar verification separately from the exhausted launch research retry.
+Historical blocker labels are hidden for completed draft records; READY/RUNNING
+review blockers remain visible. No production data backfill or deletion.
+
+Railway accepted both uploads despite CLI network errors. Reconciliation found
+API `01aa9391-2aab-4c9c-98e0-e178bc73e2a8` FAILED with no associated build; only
+then retried. New API `3d4efce2-3bc9-4b86-8cba-660e63cd0637` BUILDING; web
+`d228ae8a-9ba3-47d8-948d-40e494afb016` SUCCESS. Do not run recovery until the
+new API succeeds. Prior successful API still serves. No duplicate web deployment.

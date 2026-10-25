@@ -137,6 +137,26 @@ describe("universal tool gateway", () => {
     invoke.mockResolvedValueOnce({ structuredOutput: { success: true } } as never);
     expect((await gateway.invoke(context, request())).status).toBe("INDETERMINATE");
   });
+  it("does not recover secrets, revoked providers, or results revoked during reconciliation", async () => {
+    const f = await fixture("WRITE", true);
+    const id = crypto.randomUUID();
+    await f.store.reserve({ invocationId: id, ownerId, companyId, toolId: f.tool.id, requestDigest: "b".repeat(64), status: "RESERVED", result: null });
+    await f.store.claim(ownerId, id);
+    f.reconcile.mockResolvedValueOnce({ status: "SUCCEEDED", structuredOutput: { answer: 'password = "synthetic-recovery-canary"' }, externalOperationId: id });
+    expect((await f.gateway.reconcileReceipt(context, id)).status).not.toBe("COMPLETED");
+    expect(JSON.stringify(f.audit.mock.calls)).not.toContain("synthetic-recovery-canary");
+    await f.store.saveProvider({ ...provider, status: "REVOKED" });
+    await f.gateway.reconcileReceipt(context, id);
+    expect(f.reconcile).toHaveBeenCalledTimes(1);
+    await f.store.saveProvider({ ...provider, status: "ENABLED" });
+    f.reconcile.mockImplementationOnce(async () => {
+      await f.store.saveProvider({ ...provider, status: "REVOKED" });
+      return { status: "SUCCEEDED", structuredOutput: { answer: "late result" }, externalOperationId: id };
+    });
+    expect((await f.gateway.reconcileReceipt(context, id)).status).not.toBe("COMPLETED");
+    await expect(f.gateway.reconcileReceipt({ ...context, emergencyStopActive: true }, id)).rejects.toThrow("authority");
+    expect(f.invoke).not.toHaveBeenCalled();
+  });
   it("does not expose credential-shaped provider output to clients or model context", async () => {
     const { gateway, invoke, audit } = await fixture();
     invoke.mockResolvedValueOnce({ structuredOutput: { answer: 'password = "synthetic-provider-canary"' } });

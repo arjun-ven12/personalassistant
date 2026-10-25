@@ -3,8 +3,40 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApiClient } from "./api.js";
 
 describe("web API client", () => {
+  it("keeps campaign controls finite and submits start through authenticated CSRF transport", async () => {
+    const campaignId = "40000000-0000-4000-8000-000000000004";
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ token: "x".repeat(43), expiresAt: new Date(Date.now() + 60_000).toISOString() })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: "QUEUED", campaignId })));
+    vi.stubGlobal("fetch", fetchMock);
+    const client = createApiClient("http://localhost:3001");
+    expect(() => client.createMarketingCampaign({ idempotencyKey: "audit-test", title: "Audit", productOrCompany: "Athena", objectiveType: "ARBITRARY_EXECUTION" })).toThrow();
+    expect(() => client.startMarketingCampaign("../../other-company")).toThrow();
+    expect(() => client.recoverMarketingDeliverable(campaignId, "../../other-company")).toThrow();
+    expect(() => client.promoteMarketingBrand(campaignId, "unreviewed-digest")).toThrow();
+    expect(fetchMock).not.toHaveBeenCalled();
+    await expect(client.startMarketingCampaign(campaignId)).resolves.toEqual({ status: "QUEUED", campaignId });
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(`http://localhost:3001/api/marketing-campaigns/${campaignId}/start`);
+    const sent = fetchMock.mock.calls[1]?.[1] as RequestInit;
+    expect(sent).toMatchObject({ method: "POST", credentials: "include" });
+    expect(new Headers(sent.headers).get("x-csrf-token")).toBe("x".repeat(43));
+  });
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it("validates telemetry and rejects malformed or unknown accounting rather than displaying zero", async () => {
+    const campaignId = "40000000-0000-4000-8000-000000000004";
+    const projection = { campaignId, objectiveId: campaignId, knownUsd: "0.07570300", modelKnownUsd: "0.07570300", engineeringKnownUsd: "0.00000000", toolCostMinorByCurrency: {}, modelCalls: 3, inputTokens: 30753, outputTokens: 4495, linkedCreativeInvocations: 1, knownToolCalls: 1, unknownToolCostCount: 1, unknownModelCostCount: 1, unknownEngineeringCostCount: 0, completeCostAttribution: false, analyticsReceiptsAttributable: false, engineeringChildCreatedAt: null, engineeringBenchmark: null };
+    const fetchMock = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify(projection)))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ...projection, modelKnownUsd: "UNKNOWN" })));
+    vi.stubGlobal("fetch", fetchMock);
+    const client = createApiClient("http://localhost:3001");
+    expect(() => client.getMarketingTelemetry("../other-company")).toThrow();
+    expect(fetchMock).not.toHaveBeenCalled();
+    await expect(client.getMarketingTelemetry(campaignId)).resolves.toMatchObject({ completeCostAttribution: false, unknownModelCostCount: 1 });
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(`http://localhost:3001/api/marketing-campaigns/${campaignId}/telemetry`);
+    await expect(client.getMarketingTelemetry(campaignId)).rejects.toThrow();
   });
 
   it("validates a health response", async () => {

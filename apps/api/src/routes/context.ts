@@ -148,10 +148,15 @@ import type { MarketingArtifactReviewService } from "../marketing/review.js";
 import type { MarketingCampaignCoordinator } from "../marketing/coordinator.js";
 
 export interface ApiRouteContext {
+  documentChat?: (ownerId: string, text: string) => Promise<string | null>;
   marketing: MarketingService;
   marketingReview: MarketingArtifactReviewService;
   marketingCoordinator: MarketingCampaignCoordinator;
-  universalTools?: { gateway: UniversalToolGateway; lifecycle: UniversalToolLifecycle; store: UniversalToolStore };
+  universalTools?: {
+    gateway: UniversalToolGateway;
+    lifecycle: UniversalToolLifecycle;
+    store: UniversalToolStore;
+  };
   deploymentMode: "private" | "cloud";
   identity: IdentityService;
   security: SecurityMiddleware;

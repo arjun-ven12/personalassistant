@@ -117,6 +117,8 @@ class MainActivity : FragmentActivity() {
     setContent {
       AlexaApp(
         state = model.state.collectAsState().value,
+        documentActions = model.documentActions,
+        businessActions = model.businessActions,
         engineeringActions = EngineeringCallbacks(
           refresh = { model.refreshEngineering() }, open = { model.loadEngineeringBuild(it) },
           close = model::closeEngineeringBuild,

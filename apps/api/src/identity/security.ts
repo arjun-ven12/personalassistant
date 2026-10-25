@@ -208,10 +208,7 @@ export class SecurityMiddleware {
 
   readonly verifyTransportNetwork: preHandlerHookHandler = async (request) => {
     const result = await this.inspectNetworkState(request);
-    if (
-      this.options.privateNetworkRequired !== false &&
-      result.state !== "PRIVATE_NETWORK"
-    ) {
+    if (!this.permitsTransportNetwork(result.state)) {
       this.auditDenial(request, `Network verification returned ${result.state}.`);
       throw new ApiSecurityError(
         403,
@@ -220,6 +217,11 @@ export class SecurityMiddleware {
       );
     }
   };
+
+  /** Server-owned transport policy; this never upgrades the verified state. */
+  permitsTransportNetwork(state: NetworkVerificationResult["state"]): boolean {
+    return this.options.privateNetworkRequired === false || state === "PRIVATE_NETWORK";
+  }
 
   readonly inspectNetwork: preHandlerHookHandler = async (request) => {
     await this.inspectNetworkState(request);

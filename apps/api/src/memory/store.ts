@@ -103,7 +103,7 @@ export class InMemoryMemoryStore implements MemoryStore {
 
   listMemories(ownerId: string, limit: number) {
     return descending(
-      scopedValues(this.#memories, ownerId),
+      scopedValues(this.#memories, ownerId).filter(memory => !memory.tags.includes("document-excluded")),
       "updatedAt",
       limit,
     );
@@ -111,7 +111,7 @@ export class InMemoryMemoryStore implements MemoryStore {
 
   searchMemories(ownerId: string, query: MemorySearchQuery) {
     const needle = query.q.toLowerCase();
-    const scored = scopedValues(this.#memories, ownerId)
+    const scored = scopedValues(this.#memories, ownerId).filter(memory => !memory.tags.includes("document-excluded"))
       .filter((memory) => !query.type || memory.memoryType === query.type)
       .filter(
         (memory) => !query.repositoryId || memory.repositoryId === query.repositoryId,
@@ -134,7 +134,7 @@ export class InMemoryMemoryStore implements MemoryStore {
 
   listKnowledgeNodes(ownerId: string, limit: number) {
     return descending(
-      scopedValues(this.#nodes, ownerId),
+      scopedValues(this.#nodes, ownerId).filter((node) => !node.refId || !this.#memories.get(scopedKey(ownerId, node.refId))?.tags.includes("document-excluded")),
       "updatedAt",
       limit,
     );

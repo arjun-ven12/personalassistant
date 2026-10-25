@@ -1,0 +1,339 @@
+{
+  "status": "LIVE_RESEARCH_PACKAGE_READY",
+  "companyId": "c2ac447f-0747-4b78-80f1-2cc4fff8d82f",
+  "campaign": {
+    "id": "3358ea01-29d9-47de-8cff-5ff61f949977",
+    "objective_id": "1dabab48-eb1b-44ed-96ef-e3401bfbd532",
+    "status": "PACKAGE_READY",
+    "version": 12,
+    "updated_at": "2026-10-24T07:57:22.832Z"
+  },
+  "clientResumeClickAt": "2026-10-24T07:56:46.293Z",
+  "artifacts": [
+    {
+      "id": "782572ce-2fa8-4c0a-a45b-b140f323a0f0",
+      "deliverable_id": "5ea8b67c-9100-44e5-8d4b-82dac53207e1",
+      "version": 2,
+      "status": "DRAFT",
+      "content_digest": "c508b6007d3915a3b412b8549c91e0ece012c276c102bdb83bc11f8c961504a7",
+      "created_at": "2026-10-24T07:57:22.757Z",
+      "type": "RESEARCH",
+      "provenance": {
+        "kind": "TOOL_GATEWAY",
+        "taskId": "5ea8b67c-9100-44e5-8d4b-82dac53207e1",
+        "agentId": null,
+        "modelId": "gpt-5.6-luna",
+        "sources": [
+          {
+            "url": "https://claude.com/pricing",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://chatgpt.com/pricing/",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://learn.chatgpt.com/docs/pricing",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://support.claude.com/en/articles/11049762-choose-a-claude-plan",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://gemini.google/subscriptions/?currencyCode=USD",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://workspace.google.com/enterprise/",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://www.pingidentity.com/en-us/docs/assets/4423-2026-consumer-survey-ai-trust",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://www.gartner.com/en/newsroom/press-releases/2026-05-27-gartner-survey-finds-consumers-want-ai-shopping-help-but-not-ai-purchase-decisions?trk=public_post_comment-text",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://www.pewresearch.org/internet/2026/06/17/americans-and-ai-2026-chatbots-smart-devices-and-views-on-impact/?department=customer+success",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://theacsi.com/wp-content/uploads/2026/04/AI-Survey-Report_ACSI_2026.pdf",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://arxiv.org/abs/2607.15134",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://www.adyen.com/press-and-media/retail-report-2026-us",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://ohmyai.ai/tools",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://hai.stanford.edu/assets/files/ai_index_report_2026.pdf",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://www.perforce.com/system/files/2025-10/report-pdx-2025-state-of-data-compliance-security-report-mini-report_1.pdf",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://arxiv.org/abs/2610.05823",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://www.parksassociates.com/storage/medias/559ffb2e5982f0125ffbed19a5ad178ded628cad161e583200aa08a79c260458.pdf",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://ppp.worldbank.org/sites/default/files/2026-01/Digital%20Progress%20and%20Trends%20Report%202025%2C%20Strengthening%20AI%20Foundations.pdf",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://arxiv.org/abs/2604.17270",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://arxiv.org/abs/2504.06552",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://www.techradar.com/best/best-ai-tools",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://www.tomsguide.com/ai/best-chatgpt-alternatives",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://www.reddit.com/r/SaaS/comments/1xdpvp2/i_checked_what_chatgpt_claude_and_google_tell/",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://www.reddit.com/r/ChatGPT/comments/1xcg91g/lets_compare_our_paid_ai_subscriptions/",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://www.reddit.com/r/AI_Application/comments/1wtkek1/i_priced_out_subscribing_to_8_ai_tools_separately/",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://www.itpro.com/software/microsoft-365-e7-ai-enterprise-bundle",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://www.axios.com/newsletters/axios-ai-plus-f20ebce0-d64e-11ef-a5af-c53918672a6d",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://proton.me/support/lumo-privacy",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://proton.me/support/lumo",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://proton.me/lumo/privacy-policy",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://duckduckgo.com/duckduckgo-help-pages/duckai/ai-chat-privacy",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://proton.me/lumo/security",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://proton.me/lumo/ai",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://brave.com/premium/",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://duckduckgo.com/duckduckgo-help-pages/privacy-pro/duck-ai/what-is-duckai-why-is-it-included-in-the-subscription",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://proton.me/lumo?trk=public_profile__reactions-text",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://proton.me/support/proton-add-ons",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://registry.ollama.com/privacy",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://registry.ollama.com/pricing",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://proton.me/files/The_security_supersolution_every_business_can_afford.pdf",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://duckduckgo.com/duckduckgo-help-pages/static-assets/pdfs/Securitum_DuckDuckGo_VPN-No-Log-Policy-Audit_20260320.pdf",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://genai.owasp.org/llmrisk/llm062025-excessive-agency/?lang=us",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://genai.owasp.org/glossaries/prompt-injection/",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://genai.owasp.org/glossary/generative/",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://genai.owasp.org/glossary/ai-red-teaming/",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://genai.owasp.org/glossary/ai-threat-modeling/",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://genai.owasp.org/glossary/generative-ai-security/",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html?trk=article-ssr-frontend-pulse_x-social-details_comments-action_comment-text",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://genai.owasp.org/glossary/prompt-leakage/",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://www.nist.gov/publications/summary-analysis-responses-request-information-regarding-security-considerations-ai",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://cornucopia.owasp.org/cards/AAI7",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://community.owasp.org/attacks/Lies_in_the_Loop",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://www.nccoe.nist.gov/sites/default/files/2026-01/Cyber%20AI%20Profile%20Workshop%20Slides%20-%20January%202026_1.pdf",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://aivss.owasp.org/assets/publications/AIVSS%20Scoring%20System%20For%20OWASP%20Agentic%20AI%20Core%20Security%20Risks%20v0.8.pdf",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://www.nist.gov/system/files/documents/2025/09/30/CAISI_Evaluation_of_DeepSeek_AI_Models.pdf",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://csrc.nist.gov/csrc/media/Presentations/2025/adversarial-machine-learning/images-media/WedPM1.1-ApostolVassilev_presentation.pdf",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          },
+          {
+            "url": "https://airc.nist.gov/docs/NIST.AI.600-1.GenAI-Profile.ipd.pdf",
+            "retrievedAt": "2026-10-24T07:57:22.727Z"
+          }
+        ],
+        "providerId": "openai",
+        "modelRequestId": "df6ae8a3-3cff-40c4-b6b3-95c638f0746a",
+        "toolInvocationId": "c68762d8-0bbe-438d-a874-1d1f821d4c2c"
+      },
+      "observations": 18
+    },
+    {
+      "id": "a4af9ce7-35c9-42be-ba6e-60cdd1b00176",
+      "deliverable_id": "f1539713-3537-40a6-8889-af587fc85ccf",
+      "version": 1,
+      "status": "DRAFT",
+      "content_digest": "1e29795eba6ae96453a8492c91aa11d596ae50d1e25848b71e0d7d25353fe126",
+      "created_at": "2026-10-24T07:57:22.814Z",
+      "type": "LAUNCH_PACKAGE",
+      "provenance": {
+        "kind": "OWNER_DRAFT",
+        "taskId": null,
+        "agentId": null,
+        "modelId": null,
+        "sources": [],
+        "providerId": null,
+        "modelRequestId": null,
+        "toolInvocationId": null
+      },
+      "observations": 0
+    }
+  ],
+  "receipt": {
+    "invocation_id": "c68762d8-0bbe-438d-a874-1d1f821d4c2c",
+    "status": "COMPLETED",
+    "result_status": "SUCCEEDED",
+    "failure_code": null,
+    "external_operation_id": "df6ae8a3-3cff-40c4-b6b3-95c638f0746a",
+    "started_at": "2026-10-24T07:56:46.504Z",
+    "completed_at": "2026-10-24T07:57:22.729Z"
+  },
+  "modelLedger": {
+    "request_id": "df6ae8a3-3cff-40c4-b6b3-95c638f0746a",
+    "provider_key": "openai",
+    "model_key": "gpt-5.6-luna",
+    "status": "SETTLED",
+    "input_tokens": 33826,
+    "output_tokens": 3245,
+    "total_tokens": 37071,
+    "usage_source": "PROVIDER_REPORTED",
+    "estimated_cost_usd": "0.04000800",
+    "actual_cost_usd": "0.06627600",
+    "started_at": "2026-10-24T07:56:48.041Z",
+    "completed_at": "2026-10-24T07:57:22.684Z"
+  },
+  "toolSearchFees": "UNKNOWN",
+  "providerRetryCount": 0,
+  "explicitRecoveryCount": 1,
+  "previousDeniedAttempts": 1,
+  "successfulGatewaySeconds": 36.225,
+  "resumeClickToPackageReadySeconds": 36.539,
+  "modelLedgerElapsedSeconds": 34.643,
+  "sourceCount": 58,
+  "observations": 18,
+  "artifactCount": 2,
+  "researchArtifactCount": 1,
+  "auditSuccess": true,
+  "ownerContentApproval": "NOT_REQUESTED_DRAFT_ONLY",
+  "claimVerification": "Provider-retrieved source provenance verified; individual claims are draft synthesis, not independently fact-checked",
+  "humanInterventions": [
+    "Tool activation approval",
+    "Owner sign-in after session expired"
+  ],
+  "operatorActions": [
+    "Explicitly recovered previously denied draft",
+    "Resumed same campaign via authenticated UI"
+  ],
+  "screenshot": "docs/evidence/PHASE_28_RESEARCH_COMPLETE_20261024.jpg",
+  "modelRequestCount": 1,
+  "successfulGatewayInvocationCount": 1,
+  "previousDeniedGatewayInvocationCount": 1,
+  "providerReportedWebSearchCalls": 3,
+  "agentSessionsUsed": 0,
+  "executionPath": "Canonical Marketing coordinator -> finite Universal Tool Gateway -> AIRouter; no Workforce agent dispatch for this routine research scenario"
+}

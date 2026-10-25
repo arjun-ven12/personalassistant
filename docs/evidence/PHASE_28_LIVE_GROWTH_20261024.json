@@ -1,0 +1,106 @@
+{
+  "campaign": [
+    {
+      "id": "6f9ab9f2-4613-4d4f-9d19-36a555fb53c0",
+      "objective_id": "f1f629e7-e5a4-47bd-8596-f922fdfecd07",
+      "status": "BLOCKED",
+      "version": 4,
+      "updated_at": "2026-10-24T09:24:23.629Z"
+    }
+  ],
+  "deliverables": [
+    {
+      "id": "d92e87b5-b109-4e30-a5dc-829a33c87f29",
+      "type": "RESEARCH",
+      "status": "BLOCKED",
+      "blocker_code": "RESEARCH_FAILED_REVIEW_RETRY",
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": [
+        "007e4230-0a2d-4bdd-a93f-d984ee302dd3"
+      ]
+    },
+    {
+      "id": "5fa5f648-c244-4068-958c-947bcdc4a2af",
+      "type": "GROWTH_STRATEGY",
+      "status": "PLANNED",
+      "blocker_code": null,
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": []
+    },
+    {
+      "id": "08c17f82-861f-46a4-8ecb-b36e2a89856c",
+      "type": "LAUNCH_PACKAGE",
+      "status": "PLANNED",
+      "blocker_code": null,
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": []
+    }
+  ],
+  "receipts": [
+    {
+      "invocation_id": "007e4230-0a2d-4bdd-a93f-d984ee302dd3",
+      "status": "INDETERMINATE",
+      "result_status": "INDETERMINATE",
+      "failure_code": "PROVIDER_OUTCOME_UNKNOWN",
+      "external_operation_id": null,
+      "started_at": "2026-10-24T09:23:48.719Z",
+      "completed_at": "2026-10-24T09:24:23.611Z"
+    }
+  ],
+  "ledger": [
+    {
+      "request_id": "d9729be6-acad-4c4e-b7b2-c0be19732402",
+      "provider_key": "openai",
+      "model_key": "gpt-5.6-luna",
+      "status": "SETTLED",
+      "input_tokens": 34937,
+      "output_tokens": 2244,
+      "total_tokens": 37181,
+      "usage_source": "PROVIDER_REPORTED",
+      "estimated_cost_usd": "0.04104700",
+      "actual_cost_usd": "0.05737700",
+      "started_at": "2026-10-24T09:23:50.094Z",
+      "completed_at": "2026-10-24T09:24:23.580Z"
+    }
+  ],
+  "artifacts": [],
+  "credentialReferenceReadiness": [
+    {
+      "provider": "github",
+      "status": "READY",
+      "reference_count": "1"
+    },
+    {
+      "provider": "railway",
+      "status": "READY",
+      "reference_count": "1"
+    }
+  ],
+  "status": "BLOCKED_RESEARCH_GROUNDING_REPAIR_VALIDATING",
+  "scenario": "F \u2014 growth strategy",
+  "draftOnly": true,
+  "failure": "One model citation absent from actual provider source evidence; no artifact accepted",
+  "knownModelCostUsd": "0.05737700",
+  "searchFees": "UNKNOWN",
+  "groundingAndContextRelease": {
+    "apiDeploymentId": "3d4efce2-3bc9-4b86-8cba-660e63cd0637",
+    "apiStatus": "BUILDING",
+    "failedUploadDeploymentId": "01aa9391-2aab-4c9c-98e0-e178bc73e2a8",
+    "failedUploadReconciled": "FAILED / no associated build; retry submitted only after reconciliation",
+    "webDeploymentId": "d228ae8a-9ba3-47d8-948d-40e494afb016",
+    "webStatus": "SUCCESS",
+    "typecheck": "PASS (full + final web)",
+    "lint": "PASS (full + final focused web; one existing warning)",
+    "fullPassedFiles": 257,
+    "fullPassedTests": 1528,
+    "skippedLiveFiles": 4,
+    "skippedLiveTests": 4,
+    "fullSeconds": 221.65,
+    "build": "PASS",
+    "diffCheck": "PASS",
+    "android": "NOT_RUN \u2014 unchanged",
+    "contextFocusedTests": 48,
+    "groundingFocusedTests": 27,
+    "limitations": "Fixtures/local checks are not provider acceptance. New API release not yet live verified."
+  }
+}

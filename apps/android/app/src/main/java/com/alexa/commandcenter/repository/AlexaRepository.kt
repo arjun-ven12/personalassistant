@@ -27,6 +27,74 @@ class AlexaRepository(
   private var crossDeviceRegistered = false
   private var activeCompanyId: String? = null
   private val companyGate = Mutex()
+
+  val businessActions = com.alexa.commandcenter.business.BusinessActions(
+    company = { activeCompanyId },
+    projects = {
+      val company = activeCompanyId
+      api.engineeringProjects().mapCatching { result -> check(company != null && activeCompanyId == company && result.projects.size <= 100 && result.projects.all { it.companyId == company && EngineeringSafety.validId(it.repositoryId) }); result.projects.filter { it.repositoryStatus == "ACTIVE" } }
+    },
+    list = {
+      val company = activeCompanyId
+      api.businessCampaigns().mapCatching { response -> check(company != null && activeCompanyId == company && response.campaigns.size <= 100 && response.campaigns.all { BusinessSafety.valid(it, company) }); response.campaigns }
+    },
+    get = { id ->
+      val company = activeCompanyId
+      check(EngineeringSafety.validId(id))
+      api.businessCampaign(id).mapCatching { check(company != null && activeCompanyId == company && it.campaign.id == id && BusinessSafety.valid(it, company)); it }
+    },
+    create = { body ->
+      val company = activeCompanyId
+      engineeringMutation { csrf -> api.createBusiness(csrf, body) }.mapCatching { check(company != null && activeCompanyId == company && BusinessSafety.valid(it, company)); it }
+    },
+    control = { id, action ->
+      check(EngineeringSafety.validId(id) && action in setOf("start", "pause", "cancel"))
+      engineeringMutation { csrf -> api.businessControl(id, action, csrf) }.map { Unit }
+    },
+    telemetry = { id ->
+      check(EngineeringSafety.validId(id))
+      val company = activeCompanyId
+      api.businessTelemetry(id).mapCatching { check(company != null && activeCompanyId == company && it.campaignId == id && it.modelCalls >= 0); it }
+    },
+    review = { id, artifact, action ->
+      check(EngineeringSafety.validId(id) && EngineeringSafety.validId(artifact) && action in setOf("request", "finalize"))
+      engineeringMutation { csrf -> api.businessReview(id, artifact, action, csrf) }.map { Unit }
+    },
+    analytics = { id, metric, start, end ->
+      check(EngineeringSafety.validId(id) && metric in setOf("activeUsers", "sessions", "screenPageViews", "engagedSessions"))
+      val company = activeCompanyId
+      engineeringMutation { csrf -> api.businessAnalytics(id, csrf, metric, start, end) }.mapCatching { check(company != null && activeCompanyId == company && it.companyId == company && it.campaignId == id); Unit }
+    },
+    initiative = { id, artifact, index ->
+      check(EngineeringSafety.validId(id) && EngineeringSafety.validId(artifact) && index in 0..5)
+      engineeringMutation { csrf -> api.businessInitiative(id, csrf, artifact, index) }.map { Unit }
+    },
+    recover = { id, deliverable ->
+      check(EngineeringSafety.validId(id) && EngineeringSafety.validId(deliverable))
+      engineeringMutation { csrf -> api.businessRecover(id, deliverable, csrf) }.map { Unit }
+    },
+  )
+
+  suspend fun reviewDocumentProvider() = engineeringMutation { csrf -> api.reviewDocumentProvider(csrf) }
+  fun documentCompany(): String? = activeCompanyId
+  suspend fun documents(q: String): Result<List<AthenaDocument>> {
+    val company = activeCompanyId ?: return Result.failure(IllegalStateException("Select a company"))
+    return api.documents(q.take(200)).mapCatching { response -> check(activeCompanyId == company && response.documents.size <= 100 && response.documents.all { DocumentSafety.valid(it, company) }); response.documents }
+  }
+  suspend fun document(id: String): Result<AthenaDocument> = api.document(id).mapCatching { check(DocumentSafety.valid(it, activeCompanyId ?: "")); it }
+  suspend fun createDocument(body: DocumentCreate) = engineeringMutation { csrf -> api.createDocument(csrf, body) }
+  suspend fun documentGrants(id: String) = engineeringMutation { csrf -> api.documentGrants(id, csrf) }
+  suspend fun uploadDocument(id: String, page: Int, body: DocumentUpload) = engineeringMutation { csrf -> api.uploadDocument(id, page, csrf, body) }
+  suspend fun documentAction(id: String, action: String, never: Boolean = false): Result<AthenaDocument> {
+    if (action !in setOf("process", "reprocess", "memory", "exclude-memory", "archive")) return Result.failure(IllegalArgumentException("Unknown document action"))
+    return engineeringMutation { csrf -> if (action == "archive") api.archiveDocument(id, csrf) else api.documentAction(id, action, csrf, if (action == "exclude-memory") mapOf("never" to never) else emptyMap()) }
+  }
+  suspend fun editDocument(id: String, title: String, tags: List<String>, collection: String) = engineeringMutation { csrf -> api.editDocument(id, csrf, mapOf("title" to title.take(160), "tags" to tags.take(12), "collection" to collection)) }
+  suspend fun documentMemories(id: String) = api.documentMemories(id).mapCatching { check(it.documentId == id && it.memories.size <= 15 && it.memories.all { memory -> EngineeringSafety.validId(memory.id) && memory.page in 1..5 }); it }
+  suspend fun documentSettings() = api.documentSettings()
+  suspend fun saveDocumentSettings(settings: DocumentSettings) = engineeringMutation { csrf -> api.saveDocumentSettings(csrf, settings) }
+  suspend fun documentImage(id: String, page: Int, kind: String) = api.documentImage(id, page, kind)
+  suspend fun documentExport(id: String) = api.documentExport(id)
   suspend fun engineeringInputs(id: String): Result<List<EngineeringProjectInput>> = api.engineeringInputs(id).mapCatching { response ->
     check(response.inputs.size <= 12 && response.inputs.all { it.objectiveId == id && EngineeringSafety.validId(it.id) && it.provenance == "OWNER_UPLOADED_UNTRUSTED" && it.byteLength in 1..262144 && it.sha256.matches(Regex("[a-f0-9]{64}")) })
     response.inputs

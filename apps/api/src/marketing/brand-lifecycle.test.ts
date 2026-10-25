@@ -19,9 +19,9 @@ const context: MarketingReviewContext = {
   networkVerification: "PRIVATE_NETWORK", emergencyStopActive: false,
 };
 const brand = {
-  positioning: "A reviewable assistant", targetAudience: "Teams", brandPromise: "Controlled work",
+  positioning: "A reviewable assistant " + "Reviewable assistance. ".repeat(65), targetAudience: "Teams " + "Technical operators. ".repeat(65), brandPromise: "Controlled work",
   messagingPillars: ["Clear authority"], valuePropositions: ["Auditable changes"],
-  toneOfVoice: "Measured", visualDirection: "Calm controls", campaignThemes: [], contentThemes: [],
+  toneOfVoice: "Measured", visualDirection: "Clear permission states. ".repeat(65), campaignThemes: [], contentThemes: [],
   competitorObservations: [], prohibitedClaims: ["Unverified promises"],
 };
 
@@ -42,7 +42,7 @@ describe("governed marketing brand lifecycle", () => {
         return Promise.resolve({ memory: entry });
       }) };
       const objectiveCreate = vi.fn(() => Promise.resolve({ objective: { id: crypto.randomUUID(), organizationId: companyId } }));
-      const executeStructured = vi.fn((..._args: [unknown]) => { void _args; return Promise.resolve({ outcome: "SUCCESS", structuredOutput: {
+      const executeStructured = vi.fn((..._args: [unknown]) => { void _args; return Promise.resolve({ outcome: "SUCCESS", requestId: "80000000-0000-4000-8000-000000000008", providerId: "fixture", modelId: "fixture", structuredOutput: {
         title: "Social draft", variants: [{ channel: "LINKEDIN", headline: "Reviewable work", body: "Measured copy", cta: null }],
       } }); });
       const service = new MarketingService(marketingStore, { create: objectiveCreate } as never, audit,
@@ -62,6 +62,9 @@ describe("governed marketing brand lifecycle", () => {
       expect((await review.finalize(context, first.id, initial.id)).status).toBe("APPROVED");
       const memoryId = await service.promoteBrand(context, first.id, initial.contentDigest);
       expect(records).toHaveLength(1);
+      expect(records[0]!.content.length).toBeGreaterThan(4_000);
+      expect(records[0]!.content.length).toBeLessThanOrEqual(8_000);
+      expect(records[0]!.content).toContain(brand.visualDirection.trim());
       expect(await service.promoteBrand(context, first.id, initial.contentDigest)).toBe(memoryId);
       expect(memory.recordMemory).toHaveBeenCalledTimes(1);
 
@@ -85,5 +88,13 @@ describe("governed marketing brand lifecycle", () => {
       expect((await review.finalize(context, first.id, changed.id)).status).toBe("REJECTED");
       await expect(service.promoteBrand(context, first.id, changed.contentDigest)).rejects.toThrow("Existing governance has not approved");
       await expect(service.promoteBrand({ ...context, companyId: crypto.randomUUID() }, first.id, initial.contentDigest)).rejects.toThrow();
+      const oversized = await service.saveDraft(context, first.id, brandNode.id, { ...brand,
+        prohibitedClaims: Array.from({ length: 8 }, () => "Do not publish unsupported assertions. ".repeat(40)) });
+      const oversizedReview = await review.request(context, first.id, oversized.id);
+      await approvals.approve(ownerId, oversizedReview.approvalRequestId, context.sessionId,
+        { ipAddress: context.ipAddress, requestId: context.requestId });
+      await review.finalize(context, first.id, oversized.id);
+      await expect(service.promoteBrand(context, first.id, oversized.contentDigest)).rejects.toThrow("BRAND_MEMORY_CONTEXT_TOO_LARGE");
+      expect(memory.recordMemory).toHaveBeenCalledTimes(1);
     }));
 });

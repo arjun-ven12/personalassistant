@@ -1,6 +1,8 @@
 # Athena production migration lineage recovery
 
-Status: **REVIEW REQUIRED — NO PRODUCTION MUTATION PERFORMED**.
+Status: **OWNER-APPROVED RECONCILIATION APPLIED — PRODUCTION MIGRATIONS CURRENT (2026-10-19)**.
+
+Historical review evidence below is preserved; the execution receipt at the end supersedes the earlier pre-mutation status.
 
 ## Evidence
 
@@ -133,3 +135,24 @@ fixingtypedtestreads. Fullworkspace typecheck/build pass; finalAPItypecheck
 andbuildpassafterCLImetadataadditionandstrictrowguards. No privileged
 workstationoperationorproductionmutationperformed. Sixpre-existingMac
 generatedoutputsrestoredtoinitiallycleanHEADbytesafterbuild.
+
+
+## Execution receipt — 2026-10-19
+
+Owner explicitly confirmed `br-green-star-azqy7jsy` exists and auto-deletion is
+OFF, then authorized migration reconciliation and deployment. Retention is an
+owner/operator attestation; no restored recovery drill or independent Neon API
+verification is claimed.
+
+Rechecked the approved manifest: 115 canonical migration entries, zero current
+source SHA-256 mismatches, exact recovery branch binding retained. The fixed
+`record-reviewed-history` command committed successfully. Its final status was
+`outdated` / exit 1 solely because 0115–0117 remained pending; issues were empty.
+No diagnostic row was deleted and no original SQL bytes/hash were invented.
+
+Reviewed pending 0115–0117: additive tables/indexes and finite identity constraints,
+no application row deletion or destructive rewrite. The fixed `deploy` command
+then succeeded: **state current, 119 applied ledger entries (118 canonical plus
+the annotated historical diagnostic row), no pending migrations, no issues**.
+New application deployment and hosted verification are separate gates; do not
+infer deployment success from this migration result.

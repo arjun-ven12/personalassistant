@@ -18,6 +18,29 @@ const review: UniversalToolReview = { ownerId, companyId, providerId: provider.i
 const audit = () => Promise.resolve();
 
 describe("governance bridge", () => {
+  it.each([
+    { privateNetwork: false, network: "UNKNOWN", sessionMatches: true, reviewed: true, expected: true },
+    { privateNetwork: false, network: "PUBLIC_NETWORK", sessionMatches: true, reviewed: true, expected: true },
+    { privateNetwork: true, network: "UNKNOWN", sessionMatches: true, reviewed: true, expected: false },
+    { privateNetwork: false, network: "UNAVAILABLE", sessionMatches: true, reviewed: true, expected: false },
+    { privateNetwork: false, network: "UNKNOWN", sessionMatches: false, reviewed: true, expected: false },
+    { privateNetwork: false, network: "UNKNOWN", sessionMatches: true, reviewed: false, expected: false },
+  ] as const)("bounds reviewed cloud READ session authority: %j", async scenario => {
+    const store = new InMemoryGovernanceStore(BUILT_IN_TOOLS, false);
+    const policyEngine = new PolicyEngine(store, new RiskEngine(), new ApprovalService(store, audit), audit, scenario.privateNetwork);
+    const sessionId = crypto.randomUUID();
+    const authority = createGovernanceToolAuthority({ store, policyEngine,
+      bindings: new Map([[tool.id, scenario.reviewed ? { governanceToolName: "universal.external_read", reviewedForExecution: true as const } : "universal.external_read"]]),
+      trustedSession: () => Promise.resolve({ sessionId, ipAddress: "127.0.0.1", networkVerification: scenario.network, deviceTrusted: false, signedEnvelopeVerified: false }),
+      credentialReady: () => Promise.resolve(true), reviewedHandlerReady: () => Promise.resolve(true) });
+    const result = await authority({ context: { ...context, sessionId: scenario.sessionMatches ? sessionId : crypto.randomUUID() },
+      provider, tool: { ...tool, approvalRequirement: "session" },
+      review: { ...review, governanceToolName: "universal.external_read", approvalRequirement: "session" },
+      invocationId: crypto.randomUUID(), requestDigest: "b".repeat(64), approvalId: null });
+    if (scenario.expected) expect(result).toMatchObject({ kind: "REVIEWED_EXECUTION_GRANT" });
+    else expect(result).toBe("DENY");
+    expect(store.listPolicyEvaluations(ownerId, 10)[0]?.executionAllowed).toBe(false);
+  });
   it("issues a short-lived exact grant only for a server-reviewed binding", async () => {
     const store = new InMemoryGovernanceStore(BUILT_IN_TOOLS, false);
     const approvals = new ApprovalService(store, audit);
@@ -44,6 +67,18 @@ describe("governance bridge", () => {
     const bound = createGovernanceToolAuthority({ store, policyEngine, bindings: new Map([[tool.id, "security.view"]]), trustedSession });
     expect(await bound({ context, provider, tool, review, invocationId: crypto.randomUUID(), requestDigest: "b".repeat(64), approvalId: null })).toBe("DENY");
     expect(store.listPolicyEvaluations(ownerId, 10)[0]?.executionAllowed).toBe(false);
+  });
+  it.each(["universal.external_write", "security.view"])("does not extend cloud browser authority to %s", async governanceToolName => {
+    const store = new InMemoryGovernanceStore(BUILT_IN_TOOLS, false);
+    const policyEngine = new PolicyEngine(store, new RiskEngine(), new ApprovalService(store, audit), audit, false);
+    const sessionId = crypto.randomUUID();
+    const authority = createGovernanceToolAuthority({ store, policyEngine,
+      bindings: new Map([[tool.id, { governanceToolName, reviewedForExecution: true as const }]]),
+      trustedSession: () => Promise.resolve({ sessionId, ipAddress: "127.0.0.1", networkVerification: "UNKNOWN", deviceTrusted: false, signedEnvelopeVerified: false }),
+      credentialReady: () => Promise.resolve(true), reviewedHandlerReady: () => Promise.resolve(true) });
+    expect(await authority({ context: { ...context, sessionId }, provider, tool,
+      review: { ...review, governanceToolName }, invocationId: crypto.randomUUID(), requestDigest: "b".repeat(64), approvalId: null })).toBe("DENY");
+    expect(store.listPolicyEvaluations(ownerId, 10)[0]?.reasonCode).toBe("NETWORK_NOT_VERIFIED");
   });
   it("denies weaker governance binding and cross-company scope", async () => {
     const store = new InMemoryGovernanceStore(BUILT_IN_TOOLS, false);

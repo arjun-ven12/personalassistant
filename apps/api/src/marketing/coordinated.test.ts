@@ -18,6 +18,8 @@ import { WorkforceRuntimeService } from "../workforce-runtime/service.js";
 import { InMemoryWorkforceRuntimeStore } from "../workforce-runtime/store.js";
 import { UniversalToolGateway, type ToolAdapter } from "../universal-tools/gateway.js";
 import { InMemoryUniversalToolStore } from "../universal-tools/store.js";
+import { createMarketingResearchTool } from "./research-tool.js";
+import { ReviewedDelegatingAdapter } from "../universal-tools/reviewed-adapter.js";
 import { MarketingCampaignCoordinator } from "./coordinator.js";
 import { MarketingArtifactReviewService } from "./review.js";
 import { MarketingService } from "./service.js";
@@ -33,13 +35,15 @@ const context = { ownerId, companyId, requestId: "coordinated-marketing", ipAddr
   sessionId, networkState: "PRIVATE_NETWORK" as const, emergencyStopActive: false };
 const reviewContext = { ...context, deviceTrusted: false, signedEnvelopeVerified: false,
   networkVerification: "PRIVATE_NETWORK" as const };
-const brand = { positioning: "A governed assistant.", targetAudience: "Teams", brandPromise: "Bounded operation",
+const brand = { direction: { idealCustomerProfile: "Small teams seeking explicit controls", personality: "Calm and clear", nameOptions: ["Athena", "Guided Work"], taglineOptions: ["Work with clear controls", "Review every action"], palette: [{ hex: "#172033", role: "Background", rationale: "Calm contrast" }, { hex: "#E9F0FF", role: "Text", rationale: "Readable foreground" }], typography: { headings: "System sans", body: "System sans", rationale: "Readable without external font dependencies" }, creativeRationale: "A restrained direction fits reviewed assistance", trademarkAndLicensingReviewRequired: true }, positioning: "A governed assistant.", targetAudience: "Teams", brandPromise: "Bounded operation",
   messagingPillars: ["Reviewability"], valuePropositions: ["Clear controls"], toneOfVoice: "Plain",
   visualDirection: "Calm", campaignThemes: [], contentThemes: [], competitorObservations: [], prohibitedClaims: [] };
 const copy = { title: "Launch message", variants: [{ channel: "WEB", headline: "Controlled assistance",
   body: "A bounded draft for review.", cta: "Request access" }] };
 const concepts = { concepts: [{ angle: "Governance", copy: "Reviewable actions", audienceHypothesis: "Teams seek control",
   offer: "Request access", targetMetric: "active users", stopCondition: "No lift" }] };
+const measurement = { objective: "Measure signups", baselineStatus: "NOT_MEASURED", metrics: [{ name: "Signups", targetHypothesis: "Establish a baseline before choosing a target", sourceSetup: "Review company analytics connection", samplingPlan: "Record launch traffic over one week", stopCondition: "Pause if tracking is invalid", reportingCadenceDays: 7 }], caveats: ["No performance data measured"], ownerReviewRequired: true };
+const calendar = { title: "Launch calendar", timezone: "UTC", entries: [{ dayOffset: 0, channel: "LINKEDIN", purpose: "Announce the draft launch", headline: "Controlled assistance", body: "Review the launch proposal", cta: "Request access", requiresApproval: true }], publishingEnabled: false };
 const specialists = ["native_market_researcher", "native_brand_strategist", "native_copywriter",
   "native_social_media", "native_advertising", "native_growth_analyst"];
 const creativeApprovalId = "60000000-0000-4000-8000-000000000006";
@@ -59,7 +63,7 @@ const agent = (id: string) => ({ schemaVersion: "1" as const, id, ownerId, role:
     license: null, importedAt: at } });
 
 describe("coordinated marketing sandbox", () => {
-  it("progresses real company Workforce tasks through reviewed brand, creative, Engineering, analytics and a review-only package", async () => {
+  it("progresses real company Workforce tasks through reviewed brand, creative, Engineering, measurement planning and a review-only package", async () => {
     await companyScope.run({ ownerId, companyId, role: "OWNER", requestId: context.requestId }, async () => {
       const store = new InMemoryMarketingStore();
       const agents = new InMemoryAgentStore();
@@ -85,7 +89,7 @@ describe("coordinated marketing sandbox", () => {
       const model = vi.fn((request: { context: Array<{ content: { marketingBinding?: { marketingDeliverableType: string } } }> }) => {
         const type = request.context[0]?.content.marketingBinding?.marketingDeliverableType;
         const marketingContent = type === "RESEARCH" ? { observations: [], summary: "No verified external sources." }
-          : type === "BRAND_STRATEGY" ? brand : type === "AD_CONCEPT" ? concepts : copy;
+          : type === "BRAND_STRATEGY" ? brand : type === "AD_CONCEPT" ? concepts : type === "MEASUREMENT_PLAN" ? measurement : type === "CAMPAIGN_CALENDAR" ? calendar : copy;
         return Promise.resolve({ outcome: "SUCCESS", structuredOutput: { summary: `Bounded ${type} result`, confidence: 0.9,
           evidence: [], leads: [], verification: null, marketingContent }, requestId: crypto.randomUUID(),
           providerId: "sandbox-model", modelId: "bounded", usage: { totalTokens: 400 } });
@@ -96,7 +100,7 @@ describe("coordinated marketing sandbox", () => {
       const runtime = new WorkforceRuntimeService(runtimeStore, agents, workforce, economy, agentOs,
         { executeDelegation: vi.fn() } as unknown as ExternalHarvestService, aiRouter,
         { createRequest: vi.fn() } as unknown as CapabilityStudioService, undefined, audit, () => new Date(at));
-      const delivery = { id: crypto.randomUUID(), objectiveId: crypto.randomUUID(), firstPreviewAt: at,
+      const delivery = { id: crypto.randomUUID(), objectiveId: crypto.randomUUID(), firstPreviewAt: at, status: "DONE", candidateId: crypto.randomUUID(), validatedAt: at, validation: { lint: "PASS", typecheck: "PASS", tests: "PASS", build: "PASS", review: "PASS" },
         preview: { state: "RUNNING", healthStatus: "PASS", url: "https://preview.example.test", previewId: "preview-1" } };
       const engineering = { create: vi.fn(() => Promise.resolve({ delivery })) };
       const engineeringStore = { findByIdempotencyKey: vi.fn(() => Promise.resolve(delivery)) };
@@ -113,6 +117,16 @@ describe("coordinated marketing sandbox", () => {
         invoke: providerInvoke,
         reconcile: () => Promise.resolve({ status: "UNKNOWN", externalOperationId: null }),
       };
+      const research = createMarketingResearchTool(store, { executeStructured: vi.fn(() => Promise.resolve({
+        outcome: "SUCCESS", requestId: crypto.randomUUID(), providerId: "fixture-search", modelId: "fixture-search",
+        structuredOutput: { observations: [{ source: "https://example.com/research", observation: "Fixture observation", relevance: "Fixture relevance", confidence: 0.8, observedAt: at }], summary: "Fixture research only." },
+        providerMetadata: { webSearchCallCount: 1, sourceUrls: ["https://example.com/research"] },
+      })) } as never, () => new Date(at));
+      const researchAdapter = new ReviewedDelegatingAdapter("API", [research.handler]);
+      const combinedAdapter: ToolAdapter = { ...adapter,
+        discover: (provider) => provider.id === research.handler.providerId ? researchAdapter.discover(provider) : adapter.discover(provider),
+        invoke: (input) => input.provider.id === research.handler.providerId ? researchAdapter.invoke(input) : adapter.invoke(input),
+      };
       const toolStore = new InMemoryUniversalToolStore();
       const gateway = new UniversalToolGateway(toolStore, (input) => Promise.resolve(
         input.tool.operationClass === "WRITE" && input.approvalId !== creativeApprovalId ? "APPROVAL_REQUIRED" : {
@@ -120,7 +134,7 @@ describe("coordinated marketing sandbox", () => {
           invocationId: input.invocationId, toolId: input.tool.id, providerId: input.provider.id,
           schemaDigest: input.tool.schemaDigest, providerVersion: input.provider.version,
           credentialReferenceId: null, requestDigest: input.requestDigest, approvalId: input.approvalId,
-          expiresAt: new Date(new Date(at).getTime() + 5_000).toISOString() }), () => Promise.resolve(), [adapter], () => new Date(at));
+          expiresAt: new Date(new Date(at).getTime() + 5_000).toISOString() }), () => Promise.resolve(), [combinedAdapter], () => new Date(at));
       const provider = { id: "sandbox.marketing", ownerId, companyId, sourceType: "API" as const, displayName: "Sandbox marketing", endpoint: null, credentialReferenceId: null, status: "REVIEW_REQUIRED" as const, health: "HEALTHY" as const, version: "1", updatedAt: at };
       await gateway.registerReviewedProvider({ ...context, agentId: null }, provider);
       const discovered = await gateway.discover({ ...context, agentId: null }, provider.id);
@@ -130,6 +144,14 @@ describe("coordinated marketing sandbox", () => {
         schemaDigest: tool.schemaDigest, providerVersion: provider.version, riskLevel: tool.riskLevel,
         approvalRequirement: tool.approvalRequirement, credentialReferenceId: null, governanceToolName: "universal.external_write",
         status: "ENABLED", reviewedAt: at, updatedAt: at });
+      const researchProvider = { ...provider, id: research.handler.providerId };
+      await gateway.registerReviewedProvider({ ...context, agentId: null }, researchProvider);
+      const researchTools = await gateway.discover({ ...context, agentId: null }, researchProvider.id);
+      await toolStore.saveProvider({ ...researchProvider, status: "ENABLED" });
+      await toolStore.saveTools(ownerId, researchProvider.id, researchTools.map(tool => ({ ...tool, enabled: true })));
+      for (const tool of researchTools) await toolStore.saveReview({ ownerId, companyId, providerId: researchProvider.id, toolId: tool.id,
+        schemaDigest: tool.schemaDigest, providerVersion: "1", riskLevel: tool.riskLevel, approvalRequirement: tool.approvalRequirement,
+        credentialReferenceId: null, governanceToolName: "universal.external_read", status: "ENABLED", reviewedAt: at, updatedAt: at });
       const tools = {
         select: async (trusted: typeof context, category: string, limit: number) => {
           categories.push(category);
@@ -201,12 +223,7 @@ describe("coordinated marketing sandbox", () => {
         await review.finalize(reviewContext, campaign.id, artifact.id);
         await coordinator.run(scope);
       }
-      await vi.waitFor(async () => expect((await current())?.deliverables.find((item) => item.type === "ANALYTICS_REPORT")?.status)
-        .toBe("READY"), { timeout: 5_000 });
-      await coordinator.run(scope);
-      await marketing.readAnalyticsMetric({ ...context, agentId: null, networkVerification: context.networkState },
-        campaign.id, { metricId: "active_users", windowStart: "2026-09-01T00:00:00.000Z", windowEnd: at });
-      for (let attempt = 0; attempt < 8 && (await current())?.status !== "PACKAGE_READY"; attempt += 1) {
+      for (let attempt = 0; attempt < 20 && (await current())?.status !== "PACKAGE_READY"; attempt += 1) {
         const latest = (await current())!;
         const pending = latest.deliverables.find((item) => item.approvalState === "REQUIRED" && item.artifactRef?.startsWith("marketing-artifact:"));
         if (pending) {
@@ -222,8 +239,8 @@ describe("coordinated marketing sandbox", () => {
         await coordinator.run(scope);
       }
       await vi.waitFor(async () => expect((await current())?.status).toBe("PACKAGE_READY"), { timeout: 5_000 });
-      expect(new Set(categories)).toEqual(new Set(["image.generate", "analytics.query_metric"]));
-      expect(providerInvoke).toHaveBeenCalledTimes(2);
+      expect(new Set(categories)).toEqual(new Set(["web.research", "image.generate", "video.generate"]));
+      expect(providerInvoke).toHaveBeenCalledOnce();
       expect(engineering.create).toHaveBeenCalledOnce();
       expect(model.mock.calls.length).toBeGreaterThanOrEqual(4);
       expect(new Set(runtimeStore.listTasks(ownerId, 100).map((task) => task.assignedAgentId)).size).toBeGreaterThanOrEqual(4);

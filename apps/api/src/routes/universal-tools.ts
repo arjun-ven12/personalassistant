@@ -1,4 +1,4 @@
-import { UniversalToolRequestSchema, UniversalToolResultSchema } from "@alexa-control/shared";
+import { UniversalToolRequestSchema, UniversalToolResultSchema, UniversalToolInspectionSchema } from "@alexa-control/shared";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 
@@ -40,6 +40,18 @@ export const registerUniversalToolRoutes = (app: FastifyInstance, context: ApiRo
   });
   app.post("/api/universal-tools/providers", { preHandler: mutations }, async (request) => runtime().lifecycle.registerRemote(await trusted(request), request.body));
   app.post("/api/universal-tools/finite-providers", { preHandler: mutations }, async (request) => runtime().lifecycle.registerFinite(await trusted(request), request.body));
+  app.get("/api/universal-tools/tools/:toolId", { preHandler: [context.security.requireAuthentication, context.security.inspectNetwork] }, async request => {
+    const scope = await trusted(request);
+    const tool = await runtime().store.findTool(scope.ownerId, ToolParameters.parse(request.params).toolId);
+    const provider = tool ? await runtime().store.findProvider(scope.ownerId, tool.providerId) : null;
+    if (!scope.companyId || !tool || tool.ownerId !== scope.ownerId || tool.companyId !== scope.companyId ||
+        !provider || provider.ownerId !== scope.ownerId || provider.companyId !== scope.companyId)
+      throw Object.assign(Error("Reviewed tool not found in this company."), { statusCode: 404 });
+    const review = await runtime().store.findReview(scope.ownerId, tool.id);
+    if (review && (review.ownerId !== scope.ownerId || review.companyId !== scope.companyId || review.providerId !== provider.id || review.toolId !== tool.id))
+      throw Object.assign(Error("Reviewed tool not found in this company."), { statusCode: 404 });
+    return UniversalToolInspectionSchema.parse({ tool, review, providerStatus: provider.status, providerHealth: provider.health });
+  });
   app.post("/api/universal-tools/providers/:providerId/discover", { preHandler: mutations }, async (request) => runtime().lifecycle.discover(await trusted(request), ProviderParameters.parse(request.params).providerId));
   app.post("/api/universal-tools/tools/:toolId/review", { preHandler: mutations }, async (request) => runtime().lifecycle.review(await trusted(request), ToolParameters.parse(request.params).toolId, ReviewBody.parse(request.body).schemaDigest));
   app.post("/api/universal-tools/tools/:toolId/activate", { preHandler: mutations }, async (request) => runtime().lifecycle.activate(await trusted(request), ToolParameters.parse(request.params).toolId));

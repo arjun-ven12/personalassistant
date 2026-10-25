@@ -171,6 +171,13 @@ export const registerVoiceRoutes = (app: FastifyInstance, context: ApiRouteConte
             },
             requestId: envelope.commandId,
             ipAddress: request.ip,
+            responseOverride:
+              payload.transcript.isFinal && payload.transcript.confidence >= 0.55
+                ? ((await context.documentChat?.(
+                    device.ownerId,
+                    payload.transcript.transcript,
+                  )) ?? null)
+                : null,
             governanceSessionId: device.id,
             networkState: network.state,
           }),
@@ -302,10 +309,18 @@ export const registerVoiceRoutes = (app: FastifyInstance, context: ApiRouteConte
           ipAddress: request.ip,
           governanceSessionId: identity.session.id,
           networkState: context.security.getNetworkState(request),
-          responseOverride: body.isFinal && body.confidence >= 0.55
-            ? (await context.portfolio.handleConversation(identity.user.id, body.transcript))
-              ?? await context.companies.handleConversation(identity, body.transcript, { requestId: request.id, ipAddress: request.ip })
-            : null,
+          responseOverride:
+            body.isFinal && body.confidence >= 0.55
+              ? ((await context.documentChat?.(identity.user.id, body.transcript)) ??
+                (await context.portfolio.handleConversation(
+                  identity.user.id,
+                  body.transcript,
+                )) ??
+                (await context.companies.handleConversation(identity, body.transcript, {
+                  requestId: request.id,
+                  ipAddress: request.ip,
+                })))
+              : null,
         }),
       );
     },

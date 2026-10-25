@@ -133,9 +133,28 @@ export class PolicyEngine {
       !this.privateNetworkRequired &&
       input.deviceTrusted &&
       input.signedEnvelopeVerified;
+    // Cloud browser READ tools use authenticated, scoped Gateway authority. This
+    // does not attest a private network or authorize native/device execution.
+    const reviewedCloudRead =
+      !this.privateNetworkRequired &&
+      input.reviewedExternalReadSession === true &&
+      Boolean(input.sessionId) &&
+      tool.name === "universal.external_read" &&
+      input.action.toolName === tool.name &&
+      tool.riskLevel === "read_only" && risk.riskLevel === "read_only" &&
+      tool.approvalRequirement === "session" && risk.approvalRequirement === "session" &&
+      !tool.requiresTrustedDevice && tool.targetType === "none" &&
+      input.networkVerification !== "UNAVAILABLE";
+    const reviewedCloudArtifact = !this.privateNetworkRequired &&
+      input.reviewedArtifactSession === true && Boolean(input.sessionId) &&
+      tool.name === "marketing.review_artifact" && input.action.toolName === tool.name &&
+      tool.riskLevel === "medium" && risk.riskLevel === "medium" &&
+      tool.approvalRequirement === "explicit" && risk.approvalRequirement === "explicit" &&
+      !tool.requiresTrustedDevice && tool.targetType === "none" &&
+      input.networkVerification !== "UNAVAILABLE";
     if (
       input.networkVerification !== "PRIVATE_NETWORK" &&
-      !trustedSignedCloudTransport
+      !trustedSignedCloudTransport && !reviewedCloudRead && !reviewedCloudArtifact
     ) {
       return this.record(input, {
         decision: "deny",
@@ -148,6 +167,12 @@ export class PolicyEngine {
         riskLevel: risk.riskLevel,
         approvalRequirement: risk.approvalRequirement,
       });
+    }
+    if (reviewedCloudRead && input.networkVerification !== "PRIVATE_NETWORK") {
+      risk.matchedRules.push("network.cloud.reviewed_external_read.session");
+    }
+    if (reviewedCloudArtifact && input.networkVerification !== "PRIVATE_NETWORK") {
+      risk.matchedRules.push("network.cloud.exact_artifact_review.session");
     }
 
     if (

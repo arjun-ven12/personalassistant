@@ -178,20 +178,37 @@ export class UniversalToolGateway {
   }
 
   async reconcileReceipt(context: TrustedToolContext, invocationId: string) {
-    if (!context.companyId) throw new Error("Company scope required.");
+    if (!context.companyId || context.emergencyStopActive) throw new Error("Receipt recovery authority unavailable.");
     const receipt = await this.store.findReceipt(context.ownerId, context.companyId, invocationId);
     if (!receipt) throw Object.assign(new Error("Invocation receipt not found."), { statusCode: 404 });
     if (receipt.status === "COMPLETED") return receipt;
     const tool = await this.store.findTool(context.ownerId, receipt.toolId);
     const provider = tool ? await this.store.findProvider(context.ownerId, tool.providerId) : null;
+    const review = tool ? await this.store.findReview(context.ownerId, tool.id) : null;
     const adapter = provider ? this.#adapters.get(provider.sourceType) : null;
     if (!tool || !provider || tool.companyId !== context.companyId || provider.companyId !== context.companyId || tool.operationClass === "READ" || adapter?.writeRecovery !== "PROVIDER_IDEMPOTENT_RECONCILABLE" || !adapter.reconcile) return receipt;
+    if (!tool.enabled || provider.status !== "ENABLED" || provider.health !== "HEALTHY" ||
+        review?.status !== "ENABLED" || review.companyId !== context.companyId ||
+        review.providerId !== provider.id || review.schemaDigest !== tool.schemaDigest ||
+        review.providerVersion !== provider.version || review.credentialReferenceId !== provider.credentialReferenceId)
+      return receipt;
     let recovered: Awaited<ReturnType<NonNullable<ToolAdapter["reconcile"]>>>;
     try {
       recovered = await adapter.reconcile({ provider, tool, invocationId, requestDigest: receipt.requestDigest });
-      if (recovered.status === "SUCCEEDED") validateValue(normalizeSchema(tool.outputSchema), recovered.structuredOutput);
+      if (recovered.status === "SUCCEEDED") {
+        validateValue(normalizeSchema(tool.outputSchema), recovered.structuredOutput);
+        if (containsDatasetSecret(recovered.structuredOutput)) return receipt;
+      }
     } catch { return receipt; }
     if (recovered.status === "UNKNOWN") return receipt;
+    const [latestTool, latestProvider, latestReview] = await Promise.all([
+      this.store.findTool(context.ownerId, tool.id), this.store.findProvider(context.ownerId, provider.id),
+      this.store.findReview(context.ownerId, tool.id),
+    ]);
+    if (!latestTool?.enabled || latestTool.schemaDigest !== tool.schemaDigest || latestProvider?.status !== "ENABLED" ||
+        latestProvider.version !== provider.version || latestProvider.health !== "HEALTHY" || latestReview?.status !== "ENABLED" ||
+        latestReview.schemaDigest !== review.schemaDigest || latestReview.credentialReferenceId !== review.credentialReferenceId)
+      return receipt;
     const at = this.now();
     const startedAt = receipt.result?.startedAt ?? at.toISOString();
     const result = UniversalToolResultSchema.parse({ invocationId, toolId: tool.id, providerId: provider.id,
@@ -200,6 +217,8 @@ export class UniversalToolGateway {
       failureCode: recovered.status === "FAILED" ? "PROVIDER_RECONCILED_FAILURE" : null, retryable: false,
       costMinor: null, costCurrency: null, retryCount: receipt.result?.retryCount ?? 0,
       ownerAcceptance: null, latencyMs: Math.max(0, at.getTime() - Date.parse(startedAt)),
+      toolVersion: tool.version, toolSchemaDigest: tool.schemaDigest,
+      capabilityCategory: tool.capabilityCategory, environment: provider.sourceType,
       startedAt, completedAt: at.toISOString() });
     await this.audit({ context, toolId: tool.id, providerId: provider.id, requestDigest: receipt.requestDigest,
       status: result.status, failureCode: result.failureCode, latencyMs: result.latencyMs,

@@ -50,12 +50,13 @@ export const registerMarketingRoutes = (app: FastifyInstance, context: ApiRouteC
     const trusted = scoped(request);
     const { campaignId } = CampaignParamsSchema.parse(request.params);
     const identity = context.security.getIdentity(request);
-    const campaign = await context.marketing.store.findCampaign(trusted.ownerId, trusted.companyId, campaignId);
-    if (!campaign || campaign.status === "CANCELLED") throw Object.assign(new Error("Active campaign not found."), { statusCode: 404 });
-    if (!await context.marketing.store.updateCampaign(MarketingCampaignSchema.parse({ ...campaign, version: campaign.version + 1,
-      automationContext: { sessionId: identity.session.id, startedAt: new Date().toISOString() } }), campaign.version)) throw new Error("Campaign changed before start.");
-    await context.governanceAudit({ ...trusted, eventType: "OBJECTIVE_STATE_CHANGED", outcome: "SUCCESS", reason: "Bounded marketing coordination started under the authenticated owner session.", metadata: { campaignId, objectiveId: campaign.objectiveId } });
-    return context.marketingCoordinator.run({ ...trusted, campaignId });
+    await context.marketing.start({ ...trusted, sessionId: identity.session.id, emergencyStopActive: await context.emergencyStopActive() }, campaignId);
+    context.marketingCoordinator.requestProgress({ ...trusted, campaignId });
+    return z.object({ status: z.literal("QUEUED"), campaignId: z.string().uuid() }).strict().parse({ status: "QUEUED", campaignId });
+  });
+  app.post("/api/marketing-campaigns/:campaignId/pause", { preHandler: mutations }, async request => {
+    const { campaignId } = CampaignParamsSchema.parse(request.params);
+    return context.marketing.pause(scoped(request), campaignId);
   });
   const reviewParams = CampaignParamsSchema.extend({ artifactId: z.string().uuid() });
   for (const operation of ["request", "finalize"] as const) {
@@ -69,11 +70,16 @@ export const registerMarketingRoutes = (app: FastifyInstance, context: ApiRouteC
       if (operation === "finalize") {
         const artifact = (await context.marketing.store.listArtifacts(trusted.ownerId, trusted.companyId, params.campaignId)).find((item) => item.id === params.artifactId);
         if (artifact?.type === "BRAND_STRATEGY" && artifact.status === "APPROVED") await context.marketing.promoteBrand(trusted, params.campaignId, artifact.contentDigest);
-        await context.marketingCoordinator.run({ ...trusted, campaignId: params.campaignId });
+        context.marketingCoordinator.requestProgress({ ...trusted, campaignId: params.campaignId });
       }
       return result;
     });
   }
+  app.post("/api/marketing-campaigns/:campaignId/initiatives/draft", { preHandler: mutations }, async request => {
+    const { campaignId } = CampaignParamsSchema.parse(request.params);
+    const { artifactId, index } = z.object({ artifactId: z.string().uuid(), index: z.number().int().min(0).max(5) }).strict().parse(request.body);
+    return context.marketing.draftInitiative(scoped(request), campaignId, artifactId, index);
+  });
   app.post("/api/marketing-campaigns/:campaignId/brand-memory", { preHandler: mutations }, async (request) => {
     const { campaignId } = CampaignParamsSchema.parse(request.params);
     const { contentDigest } = z.object({ contentDigest: z.string().regex(/^[a-f0-9]{64}$/) }).strict().parse(request.body);
@@ -103,7 +109,7 @@ export const registerMarketingRoutes = (app: FastifyInstance, context: ApiRouteC
     const receipts = context.universalTools ? await context.universalTools.store.listReceipts(company.ownerId, company.companyId, 500) : [];
     const modelLedger = await context.aiEconomics.listLedger(company.ownerId, 100_000);
     const engineeringDelivery = await context.marketing.engineeringStore?.findByIdempotencyKey(company.ownerId, company.companyId, `marketing-landing-${campaignId}`) ?? null;
-    return { campaign, projection: buildMarketingTelemetry(campaign, { receipts, modelLedger, engineeringDelivery }) };
+    return { campaign, projection: buildMarketingTelemetry(campaign, { receipts, modelLedger, engineeringDelivery, artifacts: await context.marketing.store.listArtifacts(company.ownerId, company.companyId, campaignId) }) };
   };
   app.get("/api/marketing-campaigns/:campaignId/telemetry", async (request) => {
     const { campaignId } = CampaignParamsSchema.parse(request.params);
@@ -142,6 +148,14 @@ export const registerMarketingRoutes = (app: FastifyInstance, context: ApiRouteC
   });
   app.post("/api/marketing-campaigns/:campaignId/deliverables/:deliverableId/generate", { preHandler: mutations }, async (request) => {
     const params = DeliverableParamsSchema.parse(request.params);
+    const trusted = scoped(request);
+    const campaign = await context.marketing.store.findCampaign(trusted.ownerId, trusted.companyId, params.campaignId);
+    if (campaign?.deliverables.find(item => item.id === params.deliverableId)?.type === "RESEARCH") {
+      const identity = context.security.getIdentity(request);
+      return MarketingArtifactSchema.parse(await context.marketing.research({ ...trusted, agentId: null,
+        sessionId: identity.session.id, networkVerification: context.security.getNetworkState(request),
+        emergencyStopActive: await context.emergencyStopActive() }, params.campaignId, params.deliverableId));
+    }
     return MarketingArtifactSchema.parse(await context.marketing.generateDraft(scoped(request), params.campaignId, params.deliverableId));
   });
   app.post("/api/marketing-campaigns/:campaignId/deliverables/:deliverableId/recover", { preHandler: mutations }, async (request) => {
@@ -195,7 +209,9 @@ export const registerMarketingRoutes = (app: FastifyInstance, context: ApiRouteC
       requestId: request.id, ipAddress: request.ip, sessionId: identity.session.id,
       emergencyStopActive: await context.emergencyStopActive(),
       networkVerification: context.security.getNetworkState(request) };
-    return MarketingArtifactSchema.parse(await context.marketing.readAnalyticsMetric(trusted, campaignId, MarketingAnalyticsMetricRequestSchema.parse(request.body)));
+    const artifact = MarketingArtifactSchema.parse(await context.marketing.readAnalyticsMetric(trusted, campaignId, MarketingAnalyticsMetricRequestSchema.parse(request.body)));
+    context.marketingCoordinator.requestProgress({ ...trusted, campaignId });
+    return artifact;
   });
   app.post("/api/marketing-campaigns/:campaignId/advance", { preHandler: mutations }, async (request) => {
     const company = context.companyContext.get(request);

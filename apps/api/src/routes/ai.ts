@@ -374,7 +374,7 @@ export const registerAIRoutes = (app: FastifyInstance, context: ApiRouteContext)
   );
   app.get(
     "/api/ai/router/events",
-    { preHandler: [context.security.requireAuthentication] },
-    () => context.aiRouter.activity(),
+    { preHandler: [context.security.requireAuthentication, context.companyContext.requireCompany] },
+    request => context.aiRouter.activity(context.security.getIdentity(request).user.id),
   );
 };

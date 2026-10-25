@@ -1,0 +1,519 @@
+{
+  "campaign": [
+    {
+      "id": "ba9c9527-ff94-4bc4-9397-c56499d8286b",
+      "objective_id": "996a6378-87f2-449f-8130-0c618e08de37",
+      "status": "BLOCKED",
+      "version": 8,
+      "updated_at": "2026-10-24T09:07:37.592Z"
+    }
+  ],
+  "deliverables": [
+    {
+      "id": "ff1a641a-3172-4965-b9ba-51da4d7aaff1",
+      "type": "RESEARCH",
+      "status": "BLOCKED",
+      "blocker_code": "RESEARCH_FAILED_REVIEW_RETRY",
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": [
+        "3e91aeff-acf4-4d1e-ad8b-fcbc68fc0b59",
+        "25a8fd05-1bdd-483b-a3cf-30118cd88fd6"
+      ]
+    },
+    {
+      "id": "9cc93555-c8fa-4245-806c-9435f6c69ba7",
+      "type": "BRAND_STRATEGY",
+      "status": "PLANNED",
+      "blocker_code": null,
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": []
+    },
+    {
+      "id": "d89518bf-789d-4209-87f6-f04f2fad39b1",
+      "type": "MESSAGING",
+      "status": "PLANNED",
+      "blocker_code": null,
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": []
+    },
+    {
+      "id": "76d5cce6-6a12-4b3f-9c25-837db69f829f",
+      "type": "IMAGE_ASSET",
+      "status": "PLANNED",
+      "blocker_code": null,
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": []
+    },
+    {
+      "id": "3c0490a4-04a2-4527-b46e-b8aa2e1c25f3",
+      "type": "VIDEO_ASSET",
+      "status": "PLANNED",
+      "blocker_code": null,
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": []
+    },
+    {
+      "id": "468f3551-1177-42b9-8fb5-11f8f49e05f1",
+      "type": "LANDING_PAGE_BRIEF",
+      "status": "PLANNED",
+      "blocker_code": null,
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": []
+    },
+    {
+      "id": "28a5028f-2881-4266-90b4-65d25de702aa",
+      "type": "SOCIAL_POST",
+      "status": "PLANNED",
+      "blocker_code": null,
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": []
+    },
+    {
+      "id": "22097dc2-89ad-4828-a698-8c98b68ced8f",
+      "type": "AD_CONCEPT",
+      "status": "PLANNED",
+      "blocker_code": null,
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": []
+    },
+    {
+      "id": "7185e26d-e7fd-4401-9560-af216867f30d",
+      "type": "AD_COPY",
+      "status": "PLANNED",
+      "blocker_code": null,
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": []
+    },
+    {
+      "id": "30722fef-2847-48d8-93bb-83d6ec95f6d1",
+      "type": "CAMPAIGN_CALENDAR",
+      "status": "PLANNED",
+      "blocker_code": null,
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": []
+    },
+    {
+      "id": "bd26aca2-22b3-43c8-b9fc-5efa4fadada9",
+      "type": "MEASUREMENT_PLAN",
+      "status": "PLANNED",
+      "blocker_code": null,
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": []
+    },
+    {
+      "id": "35f10fec-92bf-4046-a740-7c53b94e721c",
+      "type": "LAUNCH_PACKAGE",
+      "status": "PLANNED",
+      "blocker_code": null,
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": []
+    }
+  ],
+  "receipts": [
+    {
+      "invocation_id": "25a8fd05-1bdd-483b-a3cf-30118cd88fd6",
+      "status": "INDETERMINATE",
+      "result_status": "INDETERMINATE",
+      "failure_code": "PROVIDER_OUTCOME_UNKNOWN",
+      "external_operation_id": null,
+      "started_at": "2026-10-24T09:06:44.864Z",
+      "completed_at": "2026-10-24T09:07:37.577Z"
+    },
+    {
+      "invocation_id": "3e91aeff-acf4-4d1e-ad8b-fcbc68fc0b59",
+      "status": "INDETERMINATE",
+      "result_status": "INDETERMINATE",
+      "failure_code": "PROVIDER_OUTCOME_UNKNOWN",
+      "external_operation_id": null,
+      "started_at": "2026-10-24T09:03:30.993Z",
+      "completed_at": "2026-10-24T09:05:00.326Z"
+    }
+  ],
+  "ledger": [
+    {
+      "request_id": "57fa69ae-09bc-4c9c-8c4f-c005f30a6951",
+      "provider_key": "openai",
+      "model_key": "gpt-5.6-luna",
+      "status": "SETTLED",
+      "input_tokens": 43167,
+      "output_tokens": 3306,
+      "total_tokens": 46473,
+      "usage_source": "PROVIDER_REPORTED",
+      "estimated_cost_usd": "0.04100200",
+      "actual_cost_usd": "0.07622700",
+      "started_at": "2026-10-24T09:06:47.371Z",
+      "completed_at": "2026-10-24T09:07:37.543Z"
+    },
+    {
+      "request_id": "bc6c5d37-4dff-473f-992e-d5bdf6a94773",
+      "provider_key": "openai",
+      "model_key": "gpt-5.6-luna",
+      "status": "FAILED",
+      "input_tokens": null,
+      "output_tokens": null,
+      "total_tokens": null,
+      "usage_source": "ESTIMATED",
+      "estimated_cost_usd": "0.04100200",
+      "actual_cost_usd": "0.00000000",
+      "started_at": "2026-10-24T09:03:32.528Z",
+      "completed_at": "2026-10-24T09:05:00.304Z"
+    }
+  ],
+  "artifacts": [],
+  "status": "BLOCKED_AT_RESEARCH_RETRY_LIMIT_NEW_GROUNDING_REPAIR_VALIDATING",
+  "scenario": "C \u2014 launch campaign",
+  "companyId": "c2ac447f-0747-4b78-80f1-2cc4fff8d82f",
+  "firstAttemptClientAt": "2026-10-24T09:03:30Z",
+  "firstAttemptDiagnostic": {
+    "requestId": "bc6c5d37-4dff-473f-992e-d5bdf6a94773",
+    "outcome": "ROUTING_FAILED",
+    "errorCode": "OUTPUT_VALIDATION_FAILED",
+    "reason": "Configured output token limit reached; incomplete provider response. No operations executed.",
+    "latencyMs": 89263
+  },
+  "retryDiagnostic": {
+    "requestId": "57fa69ae-09bc-4c9c-8c4f-c005f30a6951",
+    "outcome": "SUCCESS_AT_ROUTER_ONLY",
+    "latencyMs": 52656,
+    "observationCount": 20,
+    "retainedProviderSourceCount": 60,
+    "citationsAbsentFromRetainedEvidence": 8,
+    "qualification": "Handler correctly rejected missing receipt evidence. URL-cap truncation can remove late retrieved citations; repair only prioritizes exact provider-retrieved cited URLs, never model-only URLs."
+  },
+  "security": "No publishing, spending on ads, customer communication, or fabricated artifacts. Unknown failed billing preserved.",
+  "release": {
+    "apiDeploymentId": "6b7ad540-4c8e-43c9-b7f5-234d754279ce",
+    "apiStatus": "SUCCESS",
+    "webDeploymentId": "9643b884-c6e4-4085-86d2-cd022c99ae69",
+    "webStatus": "SUCCESS",
+    "lint": "PASS \u2014 one existing Fast Refresh warning",
+    "typecheck": "PASS",
+    "focusedTests": 67,
+    "fullTestsPassed": 1518,
+    "fullFilesPassed": 256,
+    "liveFilesSkipped": 4,
+    "liveTestsSkipped": 4,
+    "fullTestSeconds": 237.5,
+    "build": "PASS \u2014 existing runtime-config/chunk warnings",
+    "diffCheck": "PASS",
+    "android": "NOT_RUN \u2014 unchanged",
+    "localUi": "PASS \u2014 authenticated local cost panel verified; empty draft zero ledger is not live provider acceptance",
+    "productionConfig": "PASS \u2014 cloud/Postgres/redaction true/privileged execution false",
+    "publicSmoke": {
+      "health": 200,
+      "unauthenticatedSession": 401,
+      "unauthenticatedCampaigns": 401
+    }
+  },
+  "capabilityReadiness": {
+    "providerReadiness": [
+      {
+        "id": "athena.business-research",
+        "status": "ENABLED",
+        "health": "HEALTHY",
+        "source_type": "API"
+      }
+    ],
+    "registeredCapabilities": [
+      {
+        "id": "athena.business-research:research_market",
+        "provider_id": "athena.business-research",
+        "enabled": true,
+        "category": "web.research",
+        "operation_class": "READ"
+      }
+    ],
+    "integrationReadiness": [
+      {
+        "provider": "accounting",
+        "status": "installed"
+      },
+      {
+        "provider": "ads",
+        "status": "installed"
+      },
+      {
+        "provider": "analytics",
+        "status": "installed"
+      },
+      {
+        "provider": "commerce",
+        "status": "installed"
+      },
+      {
+        "provider": "crm",
+        "status": "installed"
+      },
+      {
+        "provider": "documents",
+        "status": "installed"
+      },
+      {
+        "provider": "github",
+        "status": "installed"
+      },
+      {
+        "provider": "github_actions",
+        "status": "installed"
+      },
+      {
+        "provider": "gmail",
+        "status": "installed"
+      },
+      {
+        "provider": "jira",
+        "status": "installed"
+      },
+      {
+        "provider": "notion",
+        "status": "installed"
+      },
+      {
+        "provider": "payments",
+        "status": "installed"
+      },
+      {
+        "provider": "projects",
+        "status": "installed"
+      },
+      {
+        "provider": "slack",
+        "status": "installed"
+      },
+      {
+        "provider": "support",
+        "status": "installed"
+      },
+      {
+        "provider": "vercel",
+        "status": "installed"
+      },
+      {
+        "provider": "vscode",
+        "status": "installed"
+      }
+    ]
+  },
+  "finalPreRepairAttempt": {
+    "campaign": [
+      {
+        "id": "ba9c9527-ff94-4bc4-9397-c56499d8286b",
+        "objective_id": "996a6378-87f2-449f-8130-0c618e08de37",
+        "status": "BLOCKED",
+        "version": 12,
+        "updated_at": "2026-10-24T09:21:12.459Z"
+      }
+    ],
+    "deliverables": [
+      {
+        "id": "ff1a641a-3172-4965-b9ba-51da4d7aaff1",
+        "type": "RESEARCH",
+        "status": "BLOCKED",
+        "blocker_code": "RESEARCH_FAILED_REVIEW_RETRY",
+        "approval_state": "NOT_REQUIRED",
+        "invocation_ids": [
+          "3e91aeff-acf4-4d1e-ad8b-fcbc68fc0b59",
+          "25a8fd05-1bdd-483b-a3cf-30118cd88fd6",
+          "81f54bda-ef12-43d3-a234-e18603b168ac"
+        ]
+      },
+      {
+        "id": "9cc93555-c8fa-4245-806c-9435f6c69ba7",
+        "type": "BRAND_STRATEGY",
+        "status": "PLANNED",
+        "blocker_code": null,
+        "approval_state": "NOT_REQUIRED",
+        "invocation_ids": []
+      },
+      {
+        "id": "d89518bf-789d-4209-87f6-f04f2fad39b1",
+        "type": "MESSAGING",
+        "status": "PLANNED",
+        "blocker_code": null,
+        "approval_state": "NOT_REQUIRED",
+        "invocation_ids": []
+      },
+      {
+        "id": "76d5cce6-6a12-4b3f-9c25-837db69f829f",
+        "type": "IMAGE_ASSET",
+        "status": "PLANNED",
+        "blocker_code": null,
+        "approval_state": "NOT_REQUIRED",
+        "invocation_ids": []
+      },
+      {
+        "id": "3c0490a4-04a2-4527-b46e-b8aa2e1c25f3",
+        "type": "VIDEO_ASSET",
+        "status": "PLANNED",
+        "blocker_code": null,
+        "approval_state": "NOT_REQUIRED",
+        "invocation_ids": []
+      },
+      {
+        "id": "468f3551-1177-42b9-8fb5-11f8f49e05f1",
+        "type": "LANDING_PAGE_BRIEF",
+        "status": "PLANNED",
+        "blocker_code": null,
+        "approval_state": "NOT_REQUIRED",
+        "invocation_ids": []
+      },
+      {
+        "id": "28a5028f-2881-4266-90b4-65d25de702aa",
+        "type": "SOCIAL_POST",
+        "status": "PLANNED",
+        "blocker_code": null,
+        "approval_state": "NOT_REQUIRED",
+        "invocation_ids": []
+      },
+      {
+        "id": "22097dc2-89ad-4828-a698-8c98b68ced8f",
+        "type": "AD_CONCEPT",
+        "status": "PLANNED",
+        "blocker_code": null,
+        "approval_state": "NOT_REQUIRED",
+        "invocation_ids": []
+      },
+      {
+        "id": "7185e26d-e7fd-4401-9560-af216867f30d",
+        "type": "AD_COPY",
+        "status": "PLANNED",
+        "blocker_code": null,
+        "approval_state": "NOT_REQUIRED",
+        "invocation_ids": []
+      },
+      {
+        "id": "30722fef-2847-48d8-93bb-83d6ec95f6d1",
+        "type": "CAMPAIGN_CALENDAR",
+        "status": "PLANNED",
+        "blocker_code": null,
+        "approval_state": "NOT_REQUIRED",
+        "invocation_ids": []
+      },
+      {
+        "id": "bd26aca2-22b3-43c8-b9fc-5efa4fadada9",
+        "type": "MEASUREMENT_PLAN",
+        "status": "PLANNED",
+        "blocker_code": null,
+        "approval_state": "NOT_REQUIRED",
+        "invocation_ids": []
+      },
+      {
+        "id": "35f10fec-92bf-4046-a740-7c53b94e721c",
+        "type": "LAUNCH_PACKAGE",
+        "status": "PLANNED",
+        "blocker_code": null,
+        "approval_state": "NOT_REQUIRED",
+        "invocation_ids": []
+      }
+    ],
+    "receipts": [
+      {
+        "invocation_id": "81f54bda-ef12-43d3-a234-e18603b168ac",
+        "status": "INDETERMINATE",
+        "result_status": "INDETERMINATE",
+        "failure_code": "PROVIDER_OUTCOME_UNKNOWN",
+        "external_operation_id": null,
+        "started_at": "2026-10-24T09:20:34.906Z",
+        "completed_at": "2026-10-24T09:21:12.441Z"
+      },
+      {
+        "invocation_id": "25a8fd05-1bdd-483b-a3cf-30118cd88fd6",
+        "status": "INDETERMINATE",
+        "result_status": "INDETERMINATE",
+        "failure_code": "PROVIDER_OUTCOME_UNKNOWN",
+        "external_operation_id": null,
+        "started_at": "2026-10-24T09:06:44.864Z",
+        "completed_at": "2026-10-24T09:07:37.577Z"
+      },
+      {
+        "invocation_id": "3e91aeff-acf4-4d1e-ad8b-fcbc68fc0b59",
+        "status": "INDETERMINATE",
+        "result_status": "INDETERMINATE",
+        "failure_code": "PROVIDER_OUTCOME_UNKNOWN",
+        "external_operation_id": null,
+        "started_at": "2026-10-24T09:03:30.993Z",
+        "completed_at": "2026-10-24T09:05:00.326Z"
+      }
+    ],
+    "ledger": [
+      {
+        "request_id": "038d346c-8d36-4659-bf99-ee39a5a437af",
+        "provider_key": "openai",
+        "model_key": "gpt-5.6-luna",
+        "status": "SETTLED",
+        "input_tokens": 34477,
+        "output_tokens": 2372,
+        "total_tokens": 36849,
+        "usage_source": "PROVIDER_REPORTED",
+        "estimated_cost_usd": "0.04104700",
+        "actual_cost_usd": "0.05819700",
+        "started_at": "2026-10-24T09:20:36.561Z",
+        "completed_at": "2026-10-24T09:21:12.405Z"
+      },
+      {
+        "request_id": "57fa69ae-09bc-4c9c-8c4f-c005f30a6951",
+        "provider_key": "openai",
+        "model_key": "gpt-5.6-luna",
+        "status": "SETTLED",
+        "input_tokens": 43167,
+        "output_tokens": 3306,
+        "total_tokens": 46473,
+        "usage_source": "PROVIDER_REPORTED",
+        "estimated_cost_usd": "0.04100200",
+        "actual_cost_usd": "0.07622700",
+        "started_at": "2026-10-24T09:06:47.371Z",
+        "completed_at": "2026-10-24T09:07:37.543Z"
+      },
+      {
+        "request_id": "bc6c5d37-4dff-473f-992e-d5bdf6a94773",
+        "provider_key": "openai",
+        "model_key": "gpt-5.6-luna",
+        "status": "FAILED",
+        "input_tokens": null,
+        "output_tokens": null,
+        "total_tokens": null,
+        "usage_source": "ESTIMATED",
+        "estimated_cost_usd": "0.04100200",
+        "actual_cost_usd": "0.00000000",
+        "started_at": "2026-10-24T09:03:32.528Z",
+        "completed_at": "2026-10-24T09:05:00.304Z"
+      }
+    ],
+    "artifacts": []
+  },
+  "retryLimitPreserved": true,
+  "knownModelCostUsd": "0.13442400",
+  "failedBillingUsd": "UNKNOWN",
+  "searchFees": "UNKNOWN",
+  "groundingRepair": {
+    "status": "LOCAL_TESTS_PASS_FULL_RELEASE_VALIDATING",
+    "maxSummaryCallsPerInvocation": 1,
+    "newWebSearchInRepair": false,
+    "candidateObservations": "Only exact previously retrieved source evidence; unsupported observations excluded",
+    "repairModelOutput": "Summary only; cannot mutate observations",
+    "provenance": "Original and repair model request IDs bound in existing company audit; same canonical task ledger",
+    "emergencyStop": "Live checks before and after repair; missing check/audit authority denies",
+    "campaignRetries": "Unchanged maximum; no reset or mutation replay"
+  },
+  "groundingAndContextRelease": {
+    "apiDeploymentId": "3d4efce2-3bc9-4b86-8cba-660e63cd0637",
+    "apiStatus": "BUILDING",
+    "failedUploadDeploymentId": "01aa9391-2aab-4c9c-98e0-e178bc73e2a8",
+    "failedUploadReconciled": "FAILED / no associated build; retry submitted only after reconciliation",
+    "webDeploymentId": "d228ae8a-9ba3-47d8-948d-40e494afb016",
+    "webStatus": "SUCCESS",
+    "typecheck": "PASS (full + final web)",
+    "lint": "PASS (full + final focused web; one existing warning)",
+    "fullPassedFiles": 257,
+    "fullPassedTests": 1528,
+    "skippedLiveFiles": 4,
+    "skippedLiveTests": 4,
+    "fullSeconds": 221.65,
+    "build": "PASS",
+    "diffCheck": "PASS",
+    "android": "NOT_RUN \u2014 unchanged",
+    "contextFocusedTests": 48,
+    "groundingFocusedTests": 27,
+    "limitations": "Fixtures/local checks are not provider acceptance. New API release not yet live verified."
+  }
+}

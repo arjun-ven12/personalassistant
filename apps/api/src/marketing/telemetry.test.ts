@@ -33,6 +33,15 @@ const fixture = () => {
 };
 
 describe("marketing durable telemetry projection", () => {
+  it("keeps failed provider calls with estimated usage and a zero placeholder cost unknown", () => {
+    const { campaign } = fixture();
+    const entry = AIUsageLedgerEntrySchema.parse({ id: crypto.randomUUID(), ownerId, requestId: crypto.randomUUID(),
+      providerId: "openai", modelId: "bounded", taskId: campaign.deliverables[0]!.id,
+      purpose: "REASONING", locality: "CLOUD", usage: { source: "ESTIMATED" },
+      actualCostUsd: "0.00000000", status: "FAILED", startedAt: at, completedAt: later });
+    expect(buildMarketingTelemetry(campaign, { receipts: [], modelLedger: [entry], engineeringDelivery: null }))
+      .toMatchObject({ modelCalls: 1, modelKnownUsd: "0.00000000", unknownModelCostCount: 1, completeCostAttribution: false });
+  });
   it("sums only exact linked receipts and task ledger entries, preserving unknown costs", () => {
     const { campaign, invocationId } = fixture();
     const taskId = campaign.deliverables.find((item) => item.type === "BRAND_STRATEGY")!.id;

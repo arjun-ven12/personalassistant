@@ -40,6 +40,7 @@ export const ObjectiveWorkflowScoreSchema = z.object({
 }).strict();
 
 export const ObjectiveExecutionSchema = z.object({
+  executionSource: z.object({ kind: z.literal("MARKETING_CAMPAIGN"), campaignId: z.string().uuid() }).strict().optional(),
   id: z.string().uuid(),
   ownerId: z.string().uuid(),
   executiveGoalId: z.string().uuid(),

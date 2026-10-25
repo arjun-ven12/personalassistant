@@ -315,14 +315,14 @@ export const LocalAIPage = ({
             </small>
           ) : null}
           <p>
-            Cloud spend: ${economics.data?.monthToDateSpendUsd ?? "0"} / $
-            {economics.data?.budgetLimitUsd ?? "—"} · remaining $
-            {economics.data?.remainingUsd ?? "0"}
+            Cloud spend: ${economics.data?.monthToDateSpendUsd ?? "UNKNOWN"} / global budget $
+            {economics.data?.budgetLimitUsd ?? "UNKNOWN"} · remaining $
+            {economics.data?.budgetLimitUsd == null ? "UNKNOWN" : economics.data.remainingUsd}
           </p>
           <small>
-            Projected month-end ${economics.data?.projectedMonthEndUsd ?? "0"} ·{" "}
+            Projected month-end ${economics.data?.projectedMonthEndUsd ?? "UNKNOWN"} ·{" "}
             7-day-rate projection $
-            {economics.data?.projectedMonthlyFromSevenDayUsd ?? "0"} ·{" "}
+            {economics.data?.projectedMonthlyFromSevenDayUsd ?? "UNKNOWN"} ·{" "}
             {economics.data?.health ?? "loading"} · local{" "}
             {economics.data?.localRequests ?? 0} · cloud{" "}
             {economics.data?.cloudRequests ?? 0}
