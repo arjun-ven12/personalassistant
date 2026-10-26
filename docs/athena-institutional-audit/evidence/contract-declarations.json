@@ -1,0 +1,2192 @@
+[
+  {
+    "path": "packages/shared/src/adapter-sdk.ts",
+    "symbol": "AdapterSdkOperationSchema",
+    "line": 11,
+    "kind": "enum",
+    "values": [
+      "initialize",
+      "shutdown",
+      "health_check",
+      "search",
+      "open",
+      "create",
+      "update",
+      "delete",
+      "list",
+      "navigate",
+      "resolve_relationships",
+      "emit_events",
+      "synchronize",
+      "validate_permissions"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/advisor.ts",
+    "symbol": "EngineeringGoalStatusSchema",
+    "line": 5,
+    "kind": "enum",
+    "values": ["proposed", "planned", "active", "blocked", "completed", "cancelled"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/advisor.ts",
+    "symbol": "EngineeringRiskCategorySchema",
+    "line": 29,
+    "kind": "enum",
+    "values": [
+      "security",
+      "performance",
+      "maintainability",
+      "scalability",
+      "availability",
+      "compliance",
+      "testing",
+      "deployment",
+      "technical_debt",
+      "business_impact"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/advisor.ts",
+    "symbol": "ReleaseReadinessStatusSchema",
+    "line": 42,
+    "kind": "enum",
+    "values": ["ready", "needs_work", "blocked"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/agent-catalog.ts",
+    "symbol": "AgentDefinitionStatusSchema",
+    "line": 7,
+    "kind": "enum",
+    "values": ["ACTIVE", "RETIRED"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/agent-catalog.ts",
+    "symbol": "CompanyAgentAssignmentStatusSchema",
+    "line": 60,
+    "kind": "enum",
+    "values": ["DORMANT", "ACTIVE", "PAUSED", "REVOKED"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/agent-catalog.ts",
+    "symbol": "CatalogCompanyStatusSchema",
+    "line": 95,
+    "kind": "enum",
+    "values": [
+      "ASSIGNED",
+      "AVAILABLE",
+      "UNAVAILABLE",
+      "CAPABILITY_GAP",
+      "POLICY_RESTRICTED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/agent-cognition.ts",
+    "symbol": "MemoryValidationStatusSchema",
+    "line": 27,
+    "kind": "enum",
+    "values": ["unverified", "agent_validated", "reviewed", "superseded"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/agent-economy.ts",
+    "symbol": "AgentEconomyStatusSchema",
+    "line": 6,
+    "kind": "enum",
+    "values": ["ECONOMY_DISABLED", "DORMANT", "ACTIVE", "SUSPENDED"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/agent-evolution.ts",
+    "symbol": "EvolutionProposalStatusSchema",
+    "line": 28,
+    "kind": "enum",
+    "values": ["proposed", "approved", "rejected", "superseded", "archived"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/agent-os.ts",
+    "symbol": "AgentOsStatusSchema",
+    "line": 3,
+    "kind": "enum",
+    "values": [
+      "registered",
+      "idle",
+      "preparing",
+      "running",
+      "waiting",
+      "collaborating",
+      "reviewing",
+      "completed",
+      "failed",
+      "archived"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/agent-society.ts",
+    "symbol": "OrganizationalRoleTypeSchema",
+    "line": 5,
+    "kind": "enum",
+    "values": [
+      "chief_planner",
+      "engineering_manager",
+      "technical_lead",
+      "backend_engineer",
+      "frontend_engineer",
+      "security_engineer",
+      "qa_engineer",
+      "devops_engineer",
+      "documentation_engineer",
+      "performance_engineer",
+      "architecture_reviewer",
+      "release_manager",
+      "dynamic_specialist",
+      "observer",
+      "reviewer",
+      "mentor",
+      "facilitator"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/agents.ts",
+    "symbol": "AgentRoleSchema",
+    "line": 3,
+    "kind": "enum",
+    "values": [
+      "engineering_manager",
+      "planning",
+      "coding",
+      "review",
+      "security",
+      "testing",
+      "documentation",
+      "release"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/agents.ts",
+    "symbol": "AgentStatusSchema",
+    "line": 14,
+    "kind": "enum",
+    "values": ["available", "busy", "paused", "disabled", "unhealthy"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/agents.ts",
+    "symbol": "AgentTaskStatusSchema",
+    "line": 22,
+    "kind": "enum",
+    "values": [
+      "queued",
+      "assigned",
+      "in_progress",
+      "waiting_consensus",
+      "blocked",
+      "completed",
+      "cancelled",
+      "failed"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/agents.ts",
+    "symbol": "ConsensusStatusSchema",
+    "line": 56,
+    "kind": "enum",
+    "values": ["open", "passed", "failed", "owner_override_required"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/agents.ts",
+    "symbol": "AgentLifecycleStatusSchema",
+    "line": 242,
+    "kind": "enum",
+    "values": [
+      "created",
+      "initialising",
+      "dormant",
+      "active",
+      "collaborating",
+      "completed",
+      "retired",
+      "archived"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/ai-benchmark.ts",
+    "symbol": "AIBenchmarkStatusSchema",
+    "line": 32,
+    "kind": "enum",
+    "values": ["PASS", "FAIL", "NEEDS_REVIEW", "SKIPPED"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/ai-context.ts",
+    "symbol": "CognitiveSourceStatusSchema",
+    "line": 92,
+    "kind": "enum",
+    "values": ["SUCCESS", "DEGRADED", "FAILED"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/ai-context.ts",
+    "symbol": "CognitiveProviderTrustSchema",
+    "line": 94,
+    "kind": "enum",
+    "values": ["TRUSTED_LOCAL", "APPROVED_CLOUD", "UNTRUSTED"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/ai-economics.ts",
+    "symbol": "AIEconomicActionSchema",
+    "line": 41,
+    "kind": "enum",
+    "values": [
+      "NORMAL",
+      "PREFER_LOCAL",
+      "DOWNGRADE",
+      "REQUIRE_APPROVAL",
+      "DENY",
+      "QUEUE"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/ai-economics.ts",
+    "symbol": "AIUsageStatusSchema",
+    "line": 54,
+    "kind": "enum",
+    "values": ["ESTIMATED", "SETTLED", "ADJUSTED", "FAILED", "CANCELLED"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/ai-economics.ts",
+    "symbol": "AIBudgetReservationStatusSchema",
+    "line": 61,
+    "kind": "enum",
+    "values": ["ACTIVE", "SETTLED", "RELEASED", "EXPIRED"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/ai-router.ts",
+    "symbol": "AIRiskLevelSchema",
+    "line": 12,
+    "kind": "enum",
+    "values": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/ai-router.ts",
+    "symbol": "AIRouterAttemptStatusSchema",
+    "line": 34,
+    "kind": "enum",
+    "values": [
+      "SUCCESS",
+      "FAILED",
+      "REJECTED_LOW_CONFIDENCE",
+      "REJECTED_INVALID_OUTPUT",
+      "SKIPPED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/ai.ts",
+    "symbol": "AIProviderTypeSchema",
+    "line": 3,
+    "kind": "enum",
+    "values": ["LOCAL", "CLOUD", "HYBRID", "ENTERPRISE"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/ai.ts",
+    "symbol": "AIModelRoleSchema",
+    "line": 25,
+    "kind": "enum",
+    "values": [
+      "FAST_INTERPRETER",
+      "GENERAL_REASONER",
+      "CODER",
+      "DEEP_REASONER",
+      "WRITER",
+      "VISION",
+      "EMBEDDING"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/ai.ts",
+    "symbol": "AIProviderErrorCodeSchema",
+    "line": 201,
+    "kind": "enum",
+    "values": [
+      "PROVIDER_UNAVAILABLE",
+      "PROVIDER_UNCONFIGURED",
+      "AUTHENTICATION_FAILED",
+      "MODEL_NOT_FOUND",
+      "MODEL_UNAVAILABLE",
+      "RATE_LIMITED",
+      "INVALID_REQUEST",
+      "CAPABILITY_NOT_SUPPORTED",
+      "CONTEXT_LIMIT_EXCEEDED",
+      "OUTPUT_VALIDATION_FAILED",
+      "TIMEOUT",
+      "CANCELLED",
+      "NETWORK_ERROR",
+      "PROVIDER_ERROR",
+      "MODEL_ROLE_UNCONFIGURED",
+      "UNKNOWN"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/api.ts",
+    "symbol": "ServiceStatusSchema",
+    "line": 3,
+    "kind": "enum",
+    "values": [
+      "online",
+      "offline",
+      "degraded",
+      "not_configured",
+      "not_connected",
+      "not_started",
+      "unavailable",
+      "disabled"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/application-interactions.ts",
+    "symbol": "GovernedInteractionStatusSchema",
+    "line": 24,
+    "kind": "enum",
+    "values": [
+      "SUCCESS",
+      "UNSUPPORTED",
+      "PERMISSION_DENIED",
+      "POLICY_DENIED",
+      "APP_NOT_RUNNING",
+      "TARGET_NOT_FOUND",
+      "TARGET_AMBIGUOUS",
+      "TARGET_STALE",
+      "PROVIDER_UNHEALTHY",
+      "SECURE_TARGET_BLOCKED",
+      "APPROVAL_REQUIRED",
+      "FAILED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/applications.ts",
+    "symbol": "AdapterPermissionSchema",
+    "line": 244,
+    "kind": "enum",
+    "values": [
+      "read_semantic_structure",
+      "navigate",
+      "interact",
+      "edit_text",
+      "open_files",
+      "create_documents",
+      "delete_content",
+      "execute_commands",
+      "clipboard_access"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/applications.ts",
+    "symbol": "AdapterCapabilitySchema",
+    "line": 256,
+    "kind": "enum",
+    "values": [
+      "navigation",
+      "editing",
+      "searching",
+      "saving",
+      "printing",
+      "opening_files",
+      "closing_windows",
+      "creating_documents",
+      "terminal_input",
+      "sidebar_navigation",
+      "selection",
+      "semantic_registry",
+      "state_inspection",
+      "event_subscription"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/approvals.ts",
+    "symbol": "ApprovalStatusSchema",
+    "line": 6,
+    "kind": "enum",
+    "values": ["PENDING", "APPROVED", "REJECTED", "EXPIRED", "CANCELLED", "CONSUMED"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/auth.ts",
+    "symbol": "AccountStatusSchema",
+    "line": 3,
+    "kind": "enum",
+    "values": ["ACTIVE", "LOCKED", "PENDING", "DISABLED"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/business-operations.ts",
+    "symbol": "BusinessProviderSchema",
+    "line": 3,
+    "kind": "enum",
+    "values": [
+      "gmail",
+      "crm",
+      "support",
+      "documents",
+      "projects",
+      "analytics",
+      "github",
+      "accounting",
+      "payments",
+      "ads",
+      "commerce"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/business-operations.ts",
+    "symbol": "CommercialCapabilitySchema",
+    "line": 19,
+    "kind": "enum",
+    "values": [
+      "accounting.list_accounts",
+      "accounting.read_account",
+      "accounting.search_transactions",
+      "accounting.read_transaction",
+      "accounting.list_invoices",
+      "accounting.read_invoice",
+      "accounting.list_bills",
+      "accounting.read_bill",
+      "accounting.read_pnl",
+      "accounting.read_balance_sheet",
+      "accounting.read_cashflow",
+      "accounting.read_ar_aging",
+      "accounting.read_ap_aging",
+      "accounting.create_draft_invoice",
+      "accounting.update_draft_invoice",
+      "accounting.add_transaction_note",
+      "accounting.create_draft_expense",
+      "accounting.mark_for_review",
+      "payments.search",
+      "payments.read",
+      "payments.list_payouts",
+      "payments.read_subscription",
+      "payments.read_dispute",
+      "payments.prepare_charge",
+      "payments.prepare_refund",
+      "payments.prepare_subscription_change",
+      "payments.execute_charge",
+      "payments.execute_refund",
+      "payments.cancel_subscription",
+      "ads.list_campaigns",
+      "ads.read_campaign",
+      "ads.read_performance",
+      "ads.read_spend",
+      "ads.read_conversions",
+      "ads.read_creative",
+      "ads.read_audience_summary",
+      "ads.create_draft_campaign",
+      "ads.update_draft_campaign",
+      "ads.pause_campaign",
+      "ads.resume_campaign",
+      "ads.adjust_budget",
+      "ads.create_draft_creative",
+      "analytics.query_metric",
+      "analytics.query_timeseries",
+      "analytics.query_funnel",
+      "analytics.query_conversions",
+      "analytics.query_channel_performance",
+      "analytics.query_cohort",
+      "analytics.query_event",
+      "commerce.list_products",
+      "commerce.read_product",
+      "commerce.read_inventory",
+      "commerce.search_customers",
+      "commerce.list_orders",
+      "commerce.read_order",
+      "commerce.read_fulfillment",
+      "commerce.read_returns",
+      "commerce.update_product",
+      "commerce.update_inventory",
+      "commerce.create_draft_discount",
+      "commerce.update_order_note",
+      "commerce.prepare_refund",
+      "commerce.cancel_order"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/business-operations.ts",
+    "symbol": "BusinessCapabilitySchema",
+    "line": 26,
+    "kind": "enum",
+    "values": [
+      "email.search",
+      "email.read_thread",
+      "email.list_attachments",
+      "email.create_draft",
+      "email.send_draft",
+      "email.reply",
+      "email.forward",
+      "crm.search_leads",
+      "crm.search_contacts",
+      "crm.search_companies",
+      "crm.read_lead",
+      "crm.read_pipeline",
+      "crm.read_activity",
+      "crm.create_lead",
+      "crm.update_stage",
+      "crm.add_note",
+      "crm.create_follow_up",
+      "support.list_tickets",
+      "support.search_tickets",
+      "support.read_ticket",
+      "support.create_draft",
+      "support.reply",
+      "support.change_status",
+      "support.assign",
+      "support.add_note",
+      "support.escalate",
+      "documents.find",
+      "documents.read",
+      "documents.create",
+      "documents.update",
+      "documents.attach_reference",
+      "projects.list",
+      "projects.search",
+      "projects.read_task",
+      "projects.create_task",
+      "projects.update_task",
+      "projects.assign_task",
+      "projects.change_status",
+      "projects.comment",
+      "projects.set_due_date",
+      "projects.set_priority",
+      "analytics.read_metric",
+      "github.read_issue",
+      "github.create_issue",
+      "github.read_pull_request"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/business-operations.ts",
+    "symbol": "BusinessExecutionStatusSchema",
+    "line": 35,
+    "kind": "enum",
+    "values": [
+      "WAITING_APPROVAL",
+      "QUEUED",
+      "EXECUTING",
+      "VERIFIED",
+      "DENIED",
+      "FAILED",
+      "EXTERNAL_RESULT_UNCERTAIN",
+      "REVIEW_REQUIRED",
+      "CANCELLED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/capabilities.ts",
+    "symbol": "CapabilitySchema",
+    "line": 3,
+    "kind": "enum",
+    "values": [
+      "app.open",
+      "app.focus",
+      "app.inspect_window",
+      "app.capture_window",
+      "app.automate",
+      "workspace.read",
+      "repository.index",
+      "repository.initialize_project",
+      "repository.inspect",
+      "repository.search",
+      "repository.file_read",
+      "repository.file_create",
+      "repository.file_patch",
+      "repository.file_delete",
+      "repository.git_status",
+      "repository.git_diff",
+      "repository.integration_diff",
+      "repository.git_log",
+      "repository.worktree_create",
+      "repository.worktree_inspect",
+      "repository.worktree_remove",
+      "repository.command_run",
+      "repository.validate",
+      "repository.prepare_commit",
+      "repository.integrate_commit",
+      "repository.resolve_additive_docs_conflict",
+      "repository.merge_candidate",
+      "repository.install_dependencies",
+      "repository.add_dependency",
+      "repository.remove_dependency",
+      "repository.dev_server_start",
+      "repository.dev_server_status",
+      "repository.dev_server_stop",
+      "repository.dev_server_restart",
+      "workspace.validate",
+      "workspace.write",
+      "workspace.create_file",
+      "workspace.modify_file",
+      "workspace.move_file",
+      "workspace.delete_file",
+      "terminal.run_registered_script",
+      "terminal.run_registered_command",
+      "shell.execute_arbitrary",
+      "filesystem.read_arbitrary",
+      "filesystem.delete_permanently",
+      "system.run_sudo",
+      "credentials.read",
+      "keychain.read",
+      "banking.perform_action",
+      "authentication_code.read",
+      "security.disable_controls",
+      "git.status",
+      "git.diff",
+      "git.create_branch",
+      "git.commit",
+      "git.push",
+      "codex.start_readonly",
+      "codex.start_write",
+      "browser.navigate",
+      "browser.read_page",
+      "browser.capture",
+      "browser.interact",
+      "screen.capture",
+      "gesture.detect",
+      "gesture.cursor",
+      "gesture.assistant_control",
+      "email.read",
+      "email.draft",
+      "email.send",
+      "calendar.read",
+      "calendar.create",
+      "calendar.modify",
+      "figma.read",
+      "figma.write",
+      "security.view",
+      "security.modify",
+      "device.register",
+      "device.revoke"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/capabilities.ts",
+    "symbol": "ApplicationCapabilitySchema",
+    "line": 87,
+    "kind": "enum",
+    "values": [
+      "app.open",
+      "app.focus",
+      "app.inspect_window",
+      "app.capture_window",
+      "app.automate"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/capability-studio.ts",
+    "symbol": "CapabilityCandidateStatusSchema",
+    "line": 9,
+    "kind": "enum",
+    "values": [
+      "DRAFT",
+      "RECORDED",
+      "VALIDATING",
+      "REVIEW_REQUIRED",
+      "APPROVED",
+      "ACTIVE",
+      "FAILED",
+      "DEPRECATED",
+      "REVOKED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/capability-studio.ts",
+    "symbol": "CapabilityCandidateSourceSchema",
+    "line": 21,
+    "kind": "enum",
+    "values": ["RECORDING", "DESCRIPTION", "AGENT_REQUEST"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/companies.ts",
+    "symbol": "CompanyStatusSchema",
+    "line": 3,
+    "kind": "enum",
+    "values": [
+      "DRAFT",
+      "PROVISIONING",
+      "ACTIVE",
+      "PAUSED",
+      "SUSPENDED",
+      "ARCHIVED",
+      "FAILED_PROVISIONING"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/companies.ts",
+    "symbol": "CompanyRiskToleranceSchema",
+    "line": 6,
+    "kind": "enum",
+    "values": ["LOW", "BALANCED", "HIGH"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/companies.ts",
+    "symbol": "CompanyLifecycleActionSchema",
+    "line": 96,
+    "kind": "enum",
+    "values": [
+      "pause",
+      "resume",
+      "suspend",
+      "archive",
+      "restore",
+      "retry-provisioning"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/company-data.ts",
+    "symbol": "CompanyDataStatusSchema",
+    "line": 31,
+    "kind": "enum",
+    "values": ["DRAFT", "ACTIVE", "PAUSED", "DEGRADED", "FAILED", "ARCHIVED"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/company-data.ts",
+    "symbol": "EffectiveCapabilityStateSchema",
+    "line": 393,
+    "kind": "enum",
+    "values": [
+      "AVAILABLE",
+      "APPROVAL_REQUIRED",
+      "INTEGRATION_MISSING",
+      "CREDENTIAL_EXPIRED",
+      "POLICY_DENIED",
+      "DEVICE_OFFLINE",
+      "BUDGET_BLOCKED",
+      "COMPANY_PAUSED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/company-management.ts",
+    "symbol": "ManagementKpiStatusSchema",
+    "line": 14,
+    "kind": "enum",
+    "values": ["ON_TRACK", "WATCH", "AT_RISK", "CRITICAL", "UNKNOWN"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/company-management.ts",
+    "symbol": "ObjectiveRisk25_7Schema",
+    "line": 15,
+    "kind": "enum",
+    "values": ["LOW", "MEDIUM", "HIGH", "CRITICAL", "UNKNOWN"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/core-adapters.ts",
+    "symbol": "CoreAdapterStatusSchema",
+    "line": 25,
+    "kind": "enum",
+    "values": ["installed", "enabled", "active", "degraded", "disabled", "unavailable"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/cross-application-workflows.ts",
+    "symbol": "CrossApplicationWorkflowStatusSchema",
+    "line": 14,
+    "kind": "enum",
+    "values": [
+      "draft",
+      "composed",
+      "ready",
+      "running",
+      "waiting_approval",
+      "paused",
+      "recovering",
+      "completed",
+      "failed",
+      "cancelled"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/cross-application-workflows.ts",
+    "symbol": "CrossApplicationWorkflowNodeStatusSchema",
+    "line": 27,
+    "kind": "enum",
+    "values": [
+      "pending",
+      "ready",
+      "running",
+      "waiting_approval",
+      "completed",
+      "failed",
+      "skipped",
+      "cancelled"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/cross-device.ts",
+    "symbol": "CrossDeviceCapabilitySchema",
+    "line": 7,
+    "kind": "enum",
+    "values": [
+      "NAVIGATE_TO_ROUTE",
+      "OPEN_OBJECTIVE",
+      "OPEN_AGENT",
+      "OPEN_WORKFLOW",
+      "OPEN_APPROVAL",
+      "OPEN_CONVERSATION",
+      "FOCUS_SEARCH",
+      "REFRESH_VIEW",
+      "SHOW_SCREEN",
+      "OPEN_APPLICATION",
+      "FOCUS_APPLICATION",
+      "OPEN_URL"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/cross-device.ts",
+    "symbol": "CrossDeviceCommandStatusSchema",
+    "line": 61,
+    "kind": "enum",
+    "values": [
+      "CREATED",
+      "RESOLVING_TARGET",
+      "WAITING_APPROVAL",
+      "AUTHORIZED",
+      "DISPATCHED",
+      "ACKNOWLEDGED",
+      "EXECUTING",
+      "SUCCEEDED",
+      "FAILED",
+      "REJECTED",
+      "EXPIRED",
+      "CANCELLED",
+      "TARGET_OFFLINE"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/deep-indexers.ts",
+    "symbol": "SemanticIndexerStatusSchema",
+    "line": 25,
+    "kind": "enum",
+    "values": ["registered", "healthy", "degraded", "disabled", "unavailable"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/deep-indexers.ts",
+    "symbol": "SemanticIndexSessionStatusSchema",
+    "line": 40,
+    "kind": "enum",
+    "values": ["queued", "running", "completed", "failed", "paused"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/desktop-skills.ts",
+    "symbol": "DesktopSkillStatusSchema",
+    "line": 9,
+    "kind": "enum",
+    "values": ["draft", "approved", "healthy", "degraded", "disabled", "archived"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/desktop-skills.ts",
+    "symbol": "DesktopWorkflowStatusSchema",
+    "line": 18,
+    "kind": "enum",
+    "values": [
+      "pending",
+      "running",
+      "paused",
+      "awaiting_approval",
+      "completed",
+      "failed",
+      "cancelled",
+      "recovered"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/desktop-skills.ts",
+    "symbol": "DesktopWorkflowStepStatusSchema",
+    "line": 29,
+    "kind": "enum",
+    "values": [
+      "pending",
+      "ready",
+      "running",
+      "verified",
+      "awaiting_approval",
+      "skipped",
+      "failed",
+      "cancelled"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/desktop-skills.ts",
+    "symbol": "DesktopWorkflowRecoveryActionSchema",
+    "line": 59,
+    "kind": "enum",
+    "values": [
+      "retry",
+      "rollback",
+      "resume",
+      "skip_with_approval",
+      "abort",
+      "alternative_skill"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/desktop.ts",
+    "symbol": "DesktopCapabilityCategorySchema",
+    "line": 5,
+    "kind": "enum",
+    "values": [
+      "application_management",
+      "window_management",
+      "clipboard",
+      "keyboard",
+      "mouse",
+      "filesystem",
+      "browser",
+      "email",
+      "calendar",
+      "notifications",
+      "media",
+      "camera",
+      "microphone",
+      "ocr",
+      "vision",
+      "networking",
+      "desktop",
+      "system_information",
+      "developer_tools",
+      "automation",
+      "printing",
+      "accessibility"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/desktop.ts",
+    "symbol": "DesktopCapabilityStatusSchema",
+    "line": 30,
+    "kind": "enum",
+    "values": ["available", "disabled", "unavailable", "experimental"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/desktop.ts",
+    "symbol": "DesktopProviderStatusSchema",
+    "line": 37,
+    "kind": "enum",
+    "values": ["healthy", "degraded", "unavailable", "disabled"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/desktop.ts",
+    "symbol": "DesktopActionStatusSchema",
+    "line": 44,
+    "kind": "enum",
+    "values": [
+      "requested",
+      "waiting_approval",
+      "running",
+      "completed",
+      "failed",
+      "denied",
+      "cancelled"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/desktop.ts",
+    "symbol": "DesktopObjectStatusSchema",
+    "line": 212,
+    "kind": "enum",
+    "values": ["registered", "available", "unavailable", "disabled"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/desktop.ts",
+    "symbol": "SemanticDesktopRoleSchema",
+    "line": 373,
+    "kind": "enum",
+    "values": [
+      "application",
+      "window",
+      "dialog",
+      "button",
+      "menu",
+      "menu_item",
+      "toolbar",
+      "sidebar_item",
+      "tab",
+      "tab_group",
+      "list",
+      "table",
+      "tree",
+      "card",
+      "form",
+      "input_field",
+      "password_field",
+      "search_field",
+      "dropdown",
+      "checkbox",
+      "radio_button",
+      "slider",
+      "switch",
+      "progress_indicator",
+      "status_bar",
+      "notification",
+      "popover",
+      "context_menu",
+      "canvas_region",
+      "scrollable_container",
+      "terminal_panel",
+      "editor",
+      "split_view",
+      "panel",
+      "group",
+      "unknown"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/desktop.ts",
+    "symbol": "SemanticDesktopActionSchema",
+    "line": 412,
+    "kind": "enum",
+    "values": [
+      "inspect",
+      "focus",
+      "select",
+      "click",
+      "double_click",
+      "activate",
+      "expand",
+      "collapse",
+      "open",
+      "close",
+      "scroll",
+      "scroll_into_view",
+      "reveal",
+      "highlight",
+      "hover",
+      "set_value",
+      "choose",
+      "deselect",
+      "toggle",
+      "submit",
+      "cancel",
+      "accept",
+      "reject"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/desktop.ts",
+    "symbol": "DesktopNavigationActionSchema",
+    "line": 626,
+    "kind": "enum",
+    "values": [
+      "navigate_to_object",
+      "focus_object",
+      "preview_object",
+      "next_sibling",
+      "previous_sibling",
+      "parent",
+      "first_child",
+      "last_child",
+      "back",
+      "forward"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/desktop.ts",
+    "symbol": "DesktopNavigationStatusSchema",
+    "line": 639,
+    "kind": "enum",
+    "values": ["completed", "failed", "previewed"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/desktop.ts",
+    "symbol": "SemanticInteractionActionSchema",
+    "line": 768,
+    "kind": "enum",
+    "values": [
+      "click",
+      "double_click",
+      "focus",
+      "activate",
+      "expand",
+      "collapse",
+      "open",
+      "close",
+      "submit",
+      "cancel",
+      "accept",
+      "reject",
+      "select",
+      "deselect",
+      "toggle",
+      "choose",
+      "hover",
+      "scroll_into_view",
+      "reveal",
+      "highlight",
+      "set_value",
+      "clear",
+      "replace",
+      "append",
+      "reset",
+      "review",
+      "preview"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/desktop.ts",
+    "symbol": "SemanticInteractionStatusSchema",
+    "line": 808,
+    "kind": "enum",
+    "values": [
+      "previewed",
+      "completed",
+      "waiting_approval",
+      "failed",
+      "denied",
+      "needs_clarification"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/devices.ts",
+    "symbol": "DeviceTrustStatusSchema",
+    "line": 12,
+    "kind": "enum",
+    "values": ["UNREGISTERED", "PENDING", "TRUSTED", "REVOKED", "EXPIRED"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/durable-execution.ts",
+    "symbol": "CrossCompanyServiceStatusSchema",
+    "line": 28,
+    "kind": "enum",
+    "values": [
+      "REQUESTED",
+      "NEEDS_APPROVAL",
+      "ACCEPTED",
+      "RUNNING",
+      "WAITING",
+      "REVIEW",
+      "COMPLETED",
+      "REJECTED",
+      "FAILED",
+      "CANCELLED",
+      "BUDGET_BLOCKED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/durable-execution.ts",
+    "symbol": "DurableExecutionStatusSchema",
+    "line": 47,
+    "kind": "enum",
+    "values": [
+      "QUEUED",
+      "RUNNING",
+      "WAITING_FOR_APPROVAL",
+      "WAITING_EXTERNAL",
+      "PAUSED",
+      "REVIEW",
+      "COMPLETED",
+      "FAILED",
+      "CANCELLED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/engineering-delivery.ts",
+    "symbol": "EngineeringDeliveryStatusSchema",
+    "line": 22,
+    "kind": "enum",
+    "values": [
+      "RECEIVED",
+      "INITIALIZING",
+      "PLANNING",
+      "IMPLEMENTING",
+      "INTEGRATING",
+      "REVIEWING",
+      "PREVIEWING",
+      "DONE",
+      "DONE_WITH_WARNINGS",
+      "PAUSED",
+      "BLOCKED",
+      "FAILED",
+      "OWNER_INPUT_REQUIRED",
+      "CANCELLED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/engineering-delivery.ts",
+    "symbol": "EngineeringFeatureStatusSchema",
+    "line": 38,
+    "kind": "enum",
+    "values": [
+      "QUEUED",
+      "PLANNING",
+      "IMPLEMENTING",
+      "VALIDATING",
+      "REVIEWING",
+      "DONE",
+      "BLOCKED",
+      "FAILED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/engineering-integration.ts",
+    "symbol": "EngineeringIntegrationStatusSchema",
+    "line": 8,
+    "kind": "enum",
+    "values": [
+      "PLANNING",
+      "INTEGRATING",
+      "CONFLICTED",
+      "REPAIRING",
+      "VALIDATING",
+      "REVIEWING",
+      "READY",
+      "FAILED",
+      "BLOCKED",
+      "CANCELLED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/engineering-orchestration.ts",
+    "symbol": "EngineeringAgentRoleSchema",
+    "line": 19,
+    "kind": "enum",
+    "values": [
+      "ENGINEERING_MANAGER",
+      "BACKEND_ENGINEER",
+      "FRONTEND_ENGINEER",
+      "DATABASE_ENGINEER",
+      "MOBILE_ENGINEER",
+      "TEST_QA_ENGINEER",
+      "SECURITY_REVIEWER",
+      "GENERALIST_ENGINEER",
+      "MAC_NATIVE_ENGINEER",
+      "DEVOPS_INFRASTRUCTURE_ENGINEER"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/engineering-orchestration.ts",
+    "symbol": "EngineeringObjectiveStatusSchema",
+    "line": 32,
+    "kind": "enum",
+    "values": [
+      "PLANNING",
+      "READY",
+      "RUNNING",
+      "PAUSED",
+      "BLOCKED",
+      "NEEDS_CLARIFICATION",
+      "COMPLETED",
+      "FAILED",
+      "CANCELLED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/engineering-orchestration.ts",
+    "symbol": "EngineeringTaskStatusSchema",
+    "line": 44,
+    "kind": "enum",
+    "values": [
+      "PLANNED",
+      "READY",
+      "ACTIVE",
+      "BLOCKED",
+      "REVIEWING",
+      "COMPLETE",
+      "FAILED",
+      "CANCELLED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/engineering-orchestration.ts",
+    "symbol": "EngineeringRiskLevelSchema",
+    "line": 77,
+    "kind": "enum",
+    "values": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/engineering-project-session.ts",
+    "symbol": "EngineeringProjectSessionRequestStatusSchema",
+    "line": 21,
+    "kind": "enum",
+    "values": ["QUEUED", "READY", "STARTED", "COMPLETED", "CANCELLED", "BLOCKED"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/engineering-runtime.ts",
+    "symbol": "EngineeringRepositoryStatusSchema",
+    "line": 5,
+    "kind": "enum",
+    "values": ["INITIALIZING", "ACTIVE", "DISABLED", "ARCHIVED"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/engineering-runtime.ts",
+    "symbol": "EngineeringCapabilitySchema",
+    "line": 24,
+    "kind": "enum",
+    "values": [
+      "repository.initialize_project",
+      "repository.inspect",
+      "repository.search",
+      "repository.file_read",
+      "repository.file_create",
+      "repository.file_patch",
+      "repository.file_delete",
+      "repository.git_status",
+      "repository.git_diff",
+      "repository.integration_diff",
+      "repository.git_log",
+      "repository.worktree_create",
+      "repository.worktree_inspect",
+      "repository.worktree_remove",
+      "repository.run_command",
+      "repository.validate",
+      "repository.install_dependencies",
+      "repository.add_dependency",
+      "repository.remove_dependency",
+      "repository.dev_server_start",
+      "repository.dev_server_status",
+      "repository.dev_server_stop",
+      "repository.dev_server_restart",
+      "repository.prepare_commit",
+      "repository.integrate_commit",
+      "repository.resolve_additive_docs_conflict",
+      "repository.merge_candidate",
+      "repository.revert_commit"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/engineering-runtime.ts",
+    "symbol": "EngineeringValidationStepStatusSchema",
+    "line": 477,
+    "kind": "enum",
+    "values": ["PASS", "FAIL", "SKIPPED", "NOT_CONFIGURED", "ERROR"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/execution.ts",
+    "symbol": "ExecutionRequestStatusSchema",
+    "line": 32,
+    "kind": "enum",
+    "values": [
+      "PENDING",
+      "CLAIMED",
+      "RUNNING",
+      "SUCCEEDED",
+      "FAILED",
+      "TIMED_OUT",
+      "CANCELLED",
+      "EXPIRED",
+      "REJECTED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/execution.ts",
+    "symbol": "ExecutionTerminalStatusSchema",
+    "line": 295,
+    "kind": "enum",
+    "values": ["SUCCEEDED", "FAILED", "TIMED_OUT", "CANCELLED"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/executive.ts",
+    "symbol": "ExecutiveGoalStatusSchema",
+    "line": 3,
+    "kind": "enum",
+    "values": ["DRAFT", "ACTIVE", "PAUSED", "AT_RISK", "COMPLETED", "CANCELLED"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/executive.ts",
+    "symbol": "ExecutiveRiskStatusSchema",
+    "line": 49,
+    "kind": "enum",
+    "values": [
+      "OPEN",
+      "MONITORING",
+      "MITIGATED",
+      "MATERIALIZED",
+      "RESOLVED",
+      "DISMISSED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/executive.ts",
+    "symbol": "ExecutiveDecisionStatusSchema",
+    "line": 57,
+    "kind": "enum",
+    "values": ["PROPOSED", "ACCEPTED", "REJECTED", "SUPERSEDED", "IMPLEMENTED"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/experiments.ts",
+    "symbol": "ExperimentStatusSchema",
+    "line": 6,
+    "kind": "enum",
+    "values": [
+      "DRAFT",
+      "VALIDATING",
+      "READY",
+      "RUNNING",
+      "PAUSED",
+      "COMPLETED",
+      "STOPPED",
+      "FAILED",
+      "CANCELLED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/gestures.ts",
+    "symbol": "CameraPermissionStateSchema",
+    "line": 145,
+    "kind": "enum",
+    "values": ["not_requested", "granted", "denied", "restricted", "unknown"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/infrastructure.ts",
+    "symbol": "InfrastructureComponentStatusSchema",
+    "line": 3,
+    "kind": "enum",
+    "values": ["ready", "degraded", "unavailable", "disabled", "not_configured"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/infrastructure.ts",
+    "symbol": "WorkerJobStatusSchema",
+    "line": 11,
+    "kind": "enum",
+    "values": ["queued", "running", "succeeded", "failed", "cancelled", "retrying"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/integrations.ts",
+    "symbol": "IntegrationProviderSchema",
+    "line": 3,
+    "kind": "enum",
+    "values": [
+      "github",
+      "jira",
+      "slack",
+      "notion",
+      "vscode",
+      "github_actions",
+      "vercel",
+      "gmail",
+      "crm",
+      "support",
+      "documents",
+      "projects",
+      "analytics",
+      "accounting",
+      "payments",
+      "ads",
+      "commerce"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/integrations.ts",
+    "symbol": "IntegrationStatusSchema",
+    "line": 41,
+    "kind": "enum",
+    "values": [
+      "available",
+      "installed",
+      "auth_required",
+      "ready",
+      "disabled",
+      "unhealthy"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/integrations.ts",
+    "symbol": "IntegrationCapabilityRiskSchema",
+    "line": 59,
+    "kind": "enum",
+    "values": ["low", "medium", "high"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/integrations.ts",
+    "symbol": "IntegrationOperationStatusSchema",
+    "line": 61,
+    "kind": "enum",
+    "values": [
+      "REQUESTED",
+      "WAITING_APPROVAL",
+      "APPROVED",
+      "DENIED",
+      "COMPLETED",
+      "FAILED",
+      "CANCELLED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/integrations.ts",
+    "symbol": "IntegrationPermissionStateSchema",
+    "line": 71,
+    "kind": "enum",
+    "values": ["granted", "revoked", "denied"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/intent-recording.ts",
+    "symbol": "IntentRecordingStatusSchema",
+    "line": 5,
+    "kind": "enum",
+    "values": [
+      "countdown",
+      "recording",
+      "stopped",
+      "analysing",
+      "review_required",
+      "saved",
+      "cancelled",
+      "failed",
+      "archived"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/intent-recording.ts",
+    "symbol": "CommandReviewStatusSchema",
+    "line": 66,
+    "kind": "enum",
+    "values": ["draft", "review_required", "approved", "saved", "rejected", "archived"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/intent-recording.ts",
+    "symbol": "DemonstrationSemanticActionSchema",
+    "line": 264,
+    "kind": "enum",
+    "values": [
+      "open_application",
+      "focus_window",
+      "select_panel",
+      "select_button",
+      "fill_field",
+      "choose_dropdown",
+      "toggle_checkbox",
+      "choose_radio",
+      "open_menu",
+      "confirm_dialog",
+      "submit_form",
+      "planner_action",
+      "capability_invocation",
+      "command_execution",
+      "gesture_invocation",
+      "voice_invocation",
+      "wait_for_condition"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/intent.ts",
+    "symbol": "CommandStatusSchema",
+    "line": 39,
+    "kind": "enum",
+    "values": [
+      "parsed",
+      "needs_clarification",
+      "planned",
+      "waiting_approval",
+      "ready",
+      "running",
+      "completed",
+      "failed",
+      "cancelled",
+      "archived"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/intent.ts",
+    "symbol": "ExecutionStepStatusSchema",
+    "line": 52,
+    "kind": "enum",
+    "values": [
+      "pending",
+      "waiting_approval",
+      "ready",
+      "running",
+      "completed",
+      "failed",
+      "skipped",
+      "cancelled"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/learning-engine.ts",
+    "symbol": "LearningCandidateStatusSchema",
+    "line": 52,
+    "kind": "enum",
+    "values": [
+      "OBSERVING",
+      "CANDIDATE",
+      "SUGGESTED",
+      "APPROVED",
+      "ACTIVE",
+      "REJECTED",
+      "EXPIRED",
+      "SUPERSEDED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/learning-engine.ts",
+    "symbol": "LearnedPreferenceStatusSchema",
+    "line": 63,
+    "kind": "enum",
+    "values": ["ACTIVE", "LOCKED", "SUPERSEDED", "REVOKED", "EXPIRED"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/local-ai.ts",
+    "symbol": "LocalModelRoleSchema",
+    "line": 3,
+    "kind": "enum",
+    "values": [
+      "NATURAL_LANGUAGE_INTERPRETER",
+      "GENERAL_LOCAL_REASONER",
+      "CONVERSATION",
+      "STRUCTURED_EXTRACTION",
+      "SUMMARIZATION",
+      "WRITING_ASSISTANT",
+      "CODING_ASSISTANT",
+      "VISION"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/memory-studio.ts",
+    "symbol": "CognitiveItemStatusSchema",
+    "line": 44,
+    "kind": "enum",
+    "values": [
+      "active",
+      "candidate",
+      "suggested",
+      "approved",
+      "locked",
+      "archived",
+      "superseded",
+      "rejected",
+      "expired",
+      "open",
+      "resolved",
+      "accepted",
+      "dismissed",
+      "observing",
+      "unknown"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/memory.ts",
+    "symbol": "EngineeringDecisionStatusSchema",
+    "line": 50,
+    "kind": "enum",
+    "values": ["active", "superseded", "rejected"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/memory.ts",
+    "symbol": "MemorySuggestionStatusSchema",
+    "line": 65,
+    "kind": "enum",
+    "values": ["open", "accepted", "dismissed", "superseded"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/native-providers.ts",
+    "symbol": "NativeProviderCapabilitySchema",
+    "line": 5,
+    "kind": "enum",
+    "values": [
+      "launch",
+      "focus",
+      "open_repository",
+      "open_workspace",
+      "focus_explorer",
+      "focus_search",
+      "focus_terminal",
+      "open_file",
+      "save_file",
+      "switch_tab",
+      "show_problems",
+      "show_extensions",
+      "close_tab",
+      "open_folder",
+      "reveal_file",
+      "focus_downloads",
+      "focus_desktop",
+      "search",
+      "new_folder",
+      "focus_sidebar",
+      "open_url",
+      "new_tab",
+      "reload",
+      "find",
+      "bookmark",
+      "open_profile",
+      "run_approved_command",
+      "interrupt_command",
+      "clear_terminal",
+      "focus_session",
+      "focus_semantic_control",
+      "insert_text",
+      "replace_selection",
+      "activate_semantic_control",
+      "submit_composer",
+      "open_selected_resource"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/native-providers.ts",
+    "symbol": "NativeProviderStatusSchema",
+    "line": 82,
+    "kind": "enum",
+    "values": [
+      "registered",
+      "validating",
+      "healthy",
+      "degraded",
+      "disabled",
+      "unavailable"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/native-providers.ts",
+    "symbol": "NativeProviderBridgeStatusSchema",
+    "line": 296,
+    "kind": "enum",
+    "values": ["not_required", "available_reviewed", "required_not_available"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/native-providers.ts",
+    "symbol": "NativeProviderExecutionStatusSchema",
+    "line": 302,
+    "kind": "enum",
+    "values": ["verified", "failed", "unsupported", "denied"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/objectives.ts",
+    "symbol": "ObjectiveExecutionStatusSchema",
+    "line": 25,
+    "kind": "enum",
+    "values": [
+      "DRAFT",
+      "PLANNING",
+      "AWAITING_CONFIRMATION",
+      "ACTIVE",
+      "PAUSED",
+      "AT_RISK",
+      "BLOCKED",
+      "COMPLETED",
+      "FAILED",
+      "CANCELLED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/patches.ts",
+    "symbol": "PatchStatusSchema",
+    "line": 53,
+    "kind": "enum",
+    "values": [
+      "DRAFT",
+      "PENDING_APPROVAL",
+      "APPROVED",
+      "REJECTED",
+      "CANCELLED",
+      "EXECUTION_REQUESTED",
+      "APPLIED",
+      "FAILED",
+      "ROLLED_BACK"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/personal-knowledge-graph.ts",
+    "symbol": "KnowledgeStatusSchema",
+    "line": 136,
+    "kind": "enum",
+    "values": ["active", "candidate", "archived", "superseded"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/personal-knowledge-graph.ts",
+    "symbol": "KnowledgeConflictStatusSchema",
+    "line": 143,
+    "kind": "enum",
+    "values": ["open", "resolved", "dismissed"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/portfolio-observability.ts",
+    "symbol": "GovernorProposalStatusSchema",
+    "line": 430,
+    "kind": "enum",
+    "values": [
+      "CREATED",
+      "DELIVERED",
+      "UNDER_REVIEW",
+      "ACCEPTED",
+      "REJECTED",
+      "COUNTERPROPOSED",
+      "ESCALATED_TO_OWNER",
+      "EXPIRED",
+      "CANCELLED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/repositories.ts",
+    "symbol": "RepositoryIndexStatusSchema",
+    "line": 5,
+    "kind": "enum",
+    "values": [
+      "UNINDEXED",
+      "INDEXING",
+      "INDEXED",
+      "STALE",
+      "FAILED",
+      "REINDEX_REQUIRED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/repositories.ts",
+    "symbol": "RepositoryIndexJobStatusSchema",
+    "line": 14,
+    "kind": "enum",
+    "values": ["QUEUED", "RUNNING", "SUCCEEDED", "FAILED", "CANCELLED"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/semantic-retrieval.ts",
+    "symbol": "SemanticAliasStatusSchema",
+    "line": 45,
+    "kind": "enum",
+    "values": ["active", "suggested", "deprecated", "rejected"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/semantic-retrieval.ts",
+    "symbol": "SemanticEmbeddingStatusSchema",
+    "line": 51,
+    "kind": "enum",
+    "values": ["pending", "current", "stale", "failed"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/skill-evolution.ts",
+    "symbol": "SkillEvolutionStatusSchema",
+    "line": 17,
+    "kind": "enum",
+    "values": [
+      "CANDIDATE",
+      "DRAFT",
+      "TESTING",
+      "VALIDATED",
+      "PENDING_APPROVAL",
+      "ACTIVE",
+      "DEPRECATED",
+      "DISABLED",
+      "FAILED",
+      "SUPERSEDED",
+      "QUARANTINED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/skill-evolution.ts",
+    "symbol": "SkillCandidateStatusSchema",
+    "line": 39,
+    "kind": "enum",
+    "values": [
+      "OBSERVATION",
+      "CANDIDATE",
+      "SPECIFIED",
+      "DISMISSED",
+      "SUPPRESSED",
+      "MERGED",
+      "PROMOTED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/skill-evolution.ts",
+    "symbol": "SkillEvolutionRiskClassSchema",
+    "line": 59,
+    "kind": "enum",
+    "values": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/spatial-ui.ts",
+    "symbol": "SpatialInteractionCapabilitySchema",
+    "line": 35,
+    "kind": "enum",
+    "values": [
+      "hover",
+      "focus",
+      "blur",
+      "highlight",
+      "inspect",
+      "select",
+      "activate",
+      "drag_start",
+      "drag_move",
+      "drag_end",
+      "drop",
+      "cancel",
+      "dwell_activate"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/tasks.ts",
+    "symbol": "TaskStatusSchema",
+    "line": 24,
+    "kind": "enum",
+    "values": [
+      "draft",
+      "scheduled",
+      "waiting_approval",
+      "ready",
+      "running",
+      "paused",
+      "completed",
+      "failed",
+      "cancelled",
+      "blocked",
+      "archived"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/tools.ts",
+    "symbol": "RiskLevelSchema",
+    "line": 5,
+    "kind": "enum",
+    "values": ["read_only", "low", "medium", "high", "prohibited"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/validation.ts",
+    "symbol": "ValidationRunStatusSchema",
+    "line": 41,
+    "kind": "enum",
+    "values": [
+      "PLANNED",
+      "EXECUTION_REQUESTED",
+      "RUNNING",
+      "PASSED",
+      "PASSED_WITH_WARNINGS",
+      "FAILED",
+      "CANCELLED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/validation.ts",
+    "symbol": "ValidationStepStatusSchema",
+    "line": 51,
+    "kind": "enum",
+    "values": ["PENDING", "RUNNING", "PASSED", "FAILED", "TIMED_OUT", "CANCELLED"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/voice.ts",
+    "symbol": "VoiceSessionStatusSchema",
+    "line": 32,
+    "kind": "enum",
+    "values": [
+      "initializing",
+      "listening",
+      "recording",
+      "paused",
+      "stopped",
+      "failed",
+      "completed"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/voice.ts",
+    "symbol": "MicrophonePermissionStateSchema",
+    "line": 52,
+    "kind": "enum",
+    "values": [
+      "not_requested",
+      "prompt",
+      "granted",
+      "denied",
+      "unavailable",
+      "unknown"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/voice.ts",
+    "symbol": "VoiceProviderSchema",
+    "line": 61,
+    "kind": "enum",
+    "values": [
+      "browser_speech_recognition",
+      "browser_speech_synthesis",
+      "configured_provider",
+      "disabled",
+      "unknown"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/workflows.ts",
+    "symbol": "WorkflowStatusSchema",
+    "line": 6,
+    "kind": "enum",
+    "values": [
+      "PLANNED",
+      "ANALYSING",
+      "READY",
+      "WAITING_APPROVAL",
+      "APPROVED",
+      "GENERATING_PATCH",
+      "EXECUTING",
+      "VALIDATING",
+      "FAILED",
+      "BLOCKED",
+      "CANCELLED",
+      "COMPLETED",
+      "ROLLED_BACK"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/workflows.ts",
+    "symbol": "WorkflowTaskStatusSchema",
+    "line": 22,
+    "kind": "enum",
+    "values": [
+      "PENDING",
+      "READY",
+      "WAITING_APPROVAL",
+      "IN_PROGRESS",
+      "BLOCKED",
+      "FAILED",
+      "COMPLETED",
+      "CANCELLED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/workflows.ts",
+    "symbol": "WorkflowRiskLevelSchema",
+    "line": 40,
+    "kind": "enum",
+    "values": ["low", "medium", "high", "unknown"],
+    "authority": "DECLARATION_ONLY"
+  },
+  {
+    "path": "packages/shared/src/workforce-runtime.ts",
+    "symbol": "WorkforceTaskStatusSchema",
+    "line": 5,
+    "kind": "enum",
+    "values": [
+      "CREATED",
+      "QUEUED",
+      "MATCHING",
+      "ASSIGNED",
+      "RESERVED",
+      "RUNNING",
+      "WAITING",
+      "REVIEW_REQUIRED",
+      "RECOVERY_REVIEW_REQUIRED",
+      "COMPLETED",
+      "FAILED",
+      "CANCELLED",
+      "EXPIRED"
+    ],
+    "authority": "DECLARATION_ONLY"
+  }
+]

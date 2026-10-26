@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "1.0",
+  "status": "PROPOSED_INSTITUTIONAL_MODEL",
+  "authority": "NONE",
+  "sectors": [
+    {
+      "id": "athena-core",
+      "name": "Athena Core / Agent OS",
+      "mandateSource": "08_ORGANIZATIONAL_DIVISIONS.md",
+      "humanLead": null,
+      "companyDepartmentBindings": [],
+      "societyBindings": [],
+      "reviewStatus": "DRAFT"
+    },
+    {
+      "id": "product-engineering",
+      "name": "Product and Engineering",
+      "mandateSource": "08_ORGANIZATIONAL_DIVISIONS.md",
+      "humanLead": null,
+      "companyDepartmentBindings": [],
+      "societyBindings": [],
+      "reviewStatus": "DRAFT"
+    },
+    {
+      "id": "machine-intelligence",
+      "name": "Machine Intelligence Lab",
+      "mandateSource": "08_ORGANIZATIONAL_DIVISIONS.md",
+      "humanLead": null,
+      "companyDepartmentBindings": [],
+      "societyBindings": [],
+      "reviewStatus": "DRAFT"
+    },
+    {
+      "id": "quantum-research",
+      "name": "Quantum Systems Research",
+      "mandateSource": "08_ORGANIZATIONAL_DIVISIONS.md",
+      "humanLead": null,
+      "companyDepartmentBindings": [],
+      "societyBindings": [],
+      "reviewStatus": "DRAFT"
+    },
+    {
+      "id": "brand-creative",
+      "name": "Brand and Creative",
+      "mandateSource": "08_ORGANIZATIONAL_DIVISIONS.md",
+      "humanLead": null,
+      "companyDepartmentBindings": [],
+      "societyBindings": [],
+      "reviewStatus": "DRAFT"
+    },
+    {
+      "id": "marketing-growth",
+      "name": "Marketing and Growth",
+      "mandateSource": "08_ORGANIZATIONAL_DIVISIONS.md",
+      "humanLead": null,
+      "companyDepartmentBindings": [],
+      "societyBindings": [],
+      "reviewStatus": "DRAFT"
+    },
+    {
+      "id": "community-partnerships",
+      "name": "Community and Partnerships",
+      "mandateSource": "08_ORGANIZATIONAL_DIVISIONS.md",
+      "humanLead": null,
+      "companyDepartmentBindings": [],
+      "societyBindings": [],
+      "reviewStatus": "DRAFT"
+    },
+    {
+      "id": "client-solutions",
+      "name": "Client Solutions",
+      "mandateSource": "08_ORGANIZATIONAL_DIVISIONS.md",
+      "humanLead": null,
+      "companyDepartmentBindings": [],
+      "societyBindings": [],
+      "reviewStatus": "DRAFT"
+    },
+    {
+      "id": "organizational-governance",
+      "name": "Organizational Governance",
+      "mandateSource": "08_ORGANIZATIONAL_DIVISIONS.md",
+      "humanLead": null,
+      "companyDepartmentBindings": [],
+      "societyBindings": [],
+      "reviewStatus": "DRAFT"
+    },
+    {
+      "id": "security-infrastructure",
+      "name": "Security and Infrastructure",
+      "mandateSource": "08_ORGANIZATIONAL_DIVISIONS.md",
+      "humanLead": null,
+      "companyDepartmentBindings": [],
+      "societyBindings": [],
+      "reviewStatus": "DRAFT"
+    }
+  ]
+}

@@ -1,0 +1,3073 @@
+{
+  "schemaVersion": "1.0",
+  "catalogs": [
+    {
+      "path": "apps/api/src/governance/defaults.ts",
+      "symbol": "BUILT_IN_TOOLS",
+      "line": 46,
+      "authority": "STATIC_DECLARATION_ONLY; helpers and references are not evaluated; prompt/content fields omitted",
+      "value": [
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.initialize_project",
+            "medium",
+            "session",
+            ["repository.initialize_project"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "engineering.merge_candidate",
+            "high",
+            "recent_authentication",
+            ["repository.merge_candidate"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "ai.economic_override",
+            "high",
+            "recent_authentication",
+            []
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "portfolio.allocate_credits",
+            "high",
+            "recent_authentication",
+            []
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "portfolio.fund_owner_reserve",
+            "high",
+            "recent_authentication",
+            []
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": ["security.view", "read_only", "none", ["security.view"]]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": ["audit.list", "read_only", "none", ["security.view"]]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": ["devices.list", "read_only", "none", ["security.view"]]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "applications.list",
+            "read_only",
+            "none",
+            ["security.view"]
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "workspaces.list",
+            "read_only",
+            "none",
+            ["security.view"]
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": ["tools.list", "read_only", "none", ["security.view"]]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "policy.evaluate",
+            "read_only",
+            "none",
+            ["security.view"]
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "approvals.list",
+            "read_only",
+            "none",
+            ["security.view"]
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "git.status",
+            "read_only",
+            "session",
+            ["git.status"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "git.diff",
+            "read_only",
+            "session",
+            ["git.diff"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "git.current_branch",
+            "read_only",
+            "session",
+            ["git.status"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "workspace.inspect_metadata",
+            "read_only",
+            "session",
+            ["workspace.read"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "workspace.read_file",
+            "read_only",
+            "session",
+            ["workspace.read"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.scan_metadata",
+            "read_only",
+            "session",
+            ["workspace.read", "repository.index"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.inspect",
+            "read_only",
+            "session",
+            ["repository.inspect"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.search",
+            "read_only",
+            "session",
+            ["repository.search"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.file_read",
+            "read_only",
+            "session",
+            ["repository.file_read"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.file_create",
+            "medium",
+            "session",
+            ["repository.file_create"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.file_patch",
+            "medium",
+            "session",
+            ["repository.file_patch"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.file_delete",
+            "medium",
+            "explicit",
+            ["repository.file_delete"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.git_status",
+            "read_only",
+            "session",
+            ["repository.git_status"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.git_diff",
+            "read_only",
+            "session",
+            ["repository.git_diff"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.integration_diff",
+            "read_only",
+            "session",
+            ["repository.integration_diff"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.worktree_inspect",
+            "read_only",
+            "session",
+            ["repository.worktree_inspect"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.prepare_commit",
+            "low",
+            "session",
+            ["repository.prepare_commit"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.integrate_commit",
+            "low",
+            "session",
+            ["repository.integrate_commit"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.resolve_additive_docs_conflict",
+            "low",
+            "session",
+            ["repository.resolve_additive_docs_conflict"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.git_log",
+            "read_only",
+            "session",
+            ["repository.git_log"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.worktree_create",
+            "medium",
+            "session",
+            ["repository.worktree_create"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.worktree_remove",
+            "medium",
+            "explicit",
+            ["repository.worktree_remove"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.run_command",
+            "medium",
+            "session",
+            ["repository.command_run"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.validate",
+            "medium",
+            "session",
+            ["repository.validate"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.install_dependencies",
+            "medium",
+            "session",
+            ["repository.install_dependencies"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.add_dependency",
+            "medium",
+            "explicit",
+            ["repository.add_dependency"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.remove_dependency",
+            "medium",
+            "explicit",
+            ["repository.remove_dependency"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.dev_server_start",
+            "low",
+            "session",
+            ["repository.dev_server_start"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.dev_server_status",
+            "read_only",
+            "session",
+            ["repository.dev_server_status"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.dev_server_stop",
+            "low",
+            "session",
+            ["repository.dev_server_stop"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "repository.dev_server_restart",
+            "low",
+            "session",
+            ["repository.dev_server_restart"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "workspace.apply_patch",
+            "medium",
+            "explicit",
+            ["workspace.write", "workspace.modify_file"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "workspace.validate_profile",
+            "medium",
+            "explicit",
+            ["workspace.read", "workspace.validate"],
+            "workspace",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "app.open",
+            "low",
+            "session",
+            ["app.open"],
+            "application",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "app.focus",
+            "low",
+            "session",
+            ["app.focus"],
+            "application",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "browser.navigate",
+            "low",
+            "session",
+            ["browser.navigate"],
+            "application",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "browser.read_page",
+            "read_only",
+            "session",
+            ["browser.read_page"],
+            "application",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "browser.interact",
+            "medium",
+            "explicit",
+            ["browser.interact"],
+            "application",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "governance.update_registry",
+            "medium",
+            "explicit",
+            ["security.modify"]
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "workspace.create_file",
+            "medium",
+            "explicit",
+            ["workspace.create_file"],
+            "workspace",
+            false,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "workspace.modify_file",
+            "medium",
+            "explicit",
+            ["workspace.modify_file"],
+            "workspace",
+            false,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "project.run_registered_script",
+            "medium",
+            "explicit",
+            ["terminal.run_registered_script"],
+            "workspace",
+            false,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "codex.start_write",
+            "medium",
+            "explicit",
+            ["codex.start_write"],
+            "workspace",
+            false,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "git.commit",
+            "high",
+            "recent_authentication",
+            ["git.commit"],
+            "workspace",
+            false,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "git.push",
+            "high",
+            "recent_authentication",
+            ["git.push"],
+            "workspace",
+            false,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "email.send",
+            "high",
+            "recent_authentication",
+            ["email.send"],
+            "none",
+            false,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "browser.submit_form",
+            "high",
+            "recent_authentication",
+            ["browser.interact"],
+            "application",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "application.submit_ai_composer",
+            "medium",
+            "explicit",
+            ["browser.interact"],
+            "application",
+            true,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "deployment.start",
+            "high",
+            "recent_authentication",
+            ["terminal.run_registered_command"],
+            "workspace",
+            false,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "security.modify",
+            "high",
+            "recent_authentication",
+            ["security.modify"]
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "device.revoke",
+            "high",
+            "recent_authentication",
+            ["device.revoke"]
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "shell.execute_arbitrary",
+            "prohibited",
+            "prohibited",
+            ["shell.execute_arbitrary"],
+            "none",
+            false,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "filesystem.read_arbitrary",
+            "prohibited",
+            "prohibited",
+            ["filesystem.read_arbitrary"],
+            "none",
+            false,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "filesystem.delete_permanently",
+            "prohibited",
+            "prohibited",
+            ["filesystem.delete_permanently"],
+            "none",
+            false,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "system.run_sudo",
+            "prohibited",
+            "prohibited",
+            ["system.run_sudo"],
+            "none",
+            false,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "credentials.read",
+            "prohibited",
+            "prohibited",
+            ["credentials.read"],
+            "none",
+            false,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "keychain.read",
+            "prohibited",
+            "prohibited",
+            ["keychain.read"],
+            "none",
+            false,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "banking.perform_action",
+            "prohibited",
+            "prohibited",
+            ["banking.perform_action"],
+            "none",
+            false,
+            true
+          ]
+        },
+        {
+          "declaredHelper": "defineTool",
+          "argumentsMetadata": [
+            "security.disable_controls",
+            "prohibited",
+            "prohibited",
+            ["security.disable_controls"],
+            "none",
+            false,
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "path": "apps/api/src/agents/factory.ts",
+      "symbol": "templateSeeds",
+      "line": 49,
+      "authority": "STATIC_DECLARATION_ONLY; helpers and references are not evaluated; prompt/content fields omitted",
+      "value": [
+        {
+          "id": "software_architect",
+          "role": "Software Architect",
+          "displayName": "Software Architect",
+          "description": "Reviews system boundaries, dependencies, data flow, and long-term architecture tradeoffs.",
+          "capabilities": [
+            "architecture",
+            "system_design",
+            "dependency_analysis",
+            "review"
+          ],
+          "tools": ["repository_intelligence", "semantic_code_intelligence"],
+          "allowedActions": ["reason", "plan", "review", "recommend"],
+          "preferredModels": ["governed-default"],
+          "memorySources": [
+            "repository_memory",
+            "engineering_decisions",
+            "knowledge_graph"
+          ],
+          "evaluationCriteria": [
+            "Boundary preservation",
+            "Tradeoff clarity",
+            "Evidence quality"
+          ],
+          "version": "1.0.0"
+        },
+        {
+          "id": "qa_engineer",
+          "role": "QA Engineer",
+          "displayName": "QA Engineer",
+          "description": "Designs focused tests, regression coverage, failure cases, and release verification.",
+          "capabilities": [
+            "testing",
+            "quality_assurance",
+            "regression",
+            "verification"
+          ],
+          "tools": ["validation_history", "repository_intelligence"],
+          "allowedActions": ["reason", "plan", "review", "recommend"],
+          "preferredModels": ["governed-default"],
+          "memorySources": [
+            "repository_memory",
+            "workflow_history",
+            "engineering_decisions"
+          ],
+          "evaluationCriteria": [
+            "Regression coverage",
+            "Failure-path coverage",
+            "Reproducibility"
+          ],
+          "version": "1.0.0"
+        },
+        {
+          "id": "research_engineer",
+          "role": "Research Engineer",
+          "displayName": "Research Engineer",
+          "description": "Gathers bounded evidence, compares sources, and returns concise technical findings.",
+          "capabilities": [
+            "research",
+            "evidence_synthesis",
+            "documentation",
+            "analysis"
+          ],
+          "tools": ["repository_intelligence", "approved_integrations"],
+          "allowedActions": ["reason", "plan", "review", "recommend"],
+          "preferredModels": ["governed-default"],
+          "memorySources": ["documentation", "repository_memory", "knowledge_graph"],
+          "evaluationCriteria": [
+            "Source quality",
+            "Citation completeness",
+            "Prompt-injection resistance"
+          ],
+          "version": "1.0.0"
+        },
+        {
+          "id": "backend_engineer",
+          "role": "Backend Engineer",
+          "displayName": "Backend Engineer",
+          "description": "Designs server-side APIs, services, authentication, and data flows.",
+          "capabilities": [
+            "backend",
+            "node_js",
+            "rest_api",
+            "authentication",
+            "database"
+          ],
+          "tools": ["repository_intelligence", "semantic_code_intelligence"],
+          "allowedActions": ["reason", "plan", "review", "recommend"],
+          "preferredModels": ["governed-default"],
+          "memorySources": [
+            "repository_memory",
+            "engineering_decisions",
+            "knowledge_graph"
+          ],
+          "evaluationCriteria": ["Evidence quality", "Security boundary preservation"],
+          "version": "1.0.0"
+        },
+        {
+          "id": "frontend_engineer",
+          "role": "Frontend Engineer",
+          "displayName": "Frontend Engineer",
+          "description": "Plans React UI, state, accessibility, and API-client changes.",
+          "capabilities": [
+            "frontend",
+            "react",
+            "ui_state",
+            "accessibility",
+            "api_client"
+          ],
+          "tools": ["repository_intelligence", "semantic_code_intelligence"],
+          "allowedActions": ["reason", "plan", "review", "recommend"],
+          "preferredModels": ["governed-default"],
+          "memorySources": ["repository_memory", "user_preferences"],
+          "evaluationCriteria": [
+            "Usability",
+            "Accessibility",
+            "API boundary correctness"
+          ],
+          "version": "1.0.0"
+        },
+        {
+          "id": "database_engineer",
+          "role": "Database Engineer",
+          "displayName": "Database Engineer",
+          "description": "Plans schemas, migrations, indexes, and persistence boundaries.",
+          "capabilities": [
+            "database",
+            "postgresql",
+            "migration",
+            "prisma",
+            "data_modeling"
+          ],
+          "tools": ["repository_intelligence", "database_discovery"],
+          "allowedActions": ["reason", "plan", "review", "recommend"],
+          "preferredModels": ["governed-default"],
+          "memorySources": ["engineering_decisions", "repository_memory"],
+          "evaluationCriteria": [
+            "Migration safety",
+            "Rollback clarity",
+            "Owner scoping"
+          ],
+          "version": "1.0.0"
+        },
+        {
+          "id": "devops_engineer",
+          "role": "DevOps Engineer",
+          "displayName": "DevOps Engineer",
+          "description": "Plans CI, deployment, infrastructure, observability, and rollback.",
+          "capabilities": [
+            "devops",
+            "ci_cd",
+            "deployment",
+            "observability",
+            "infrastructure"
+          ],
+          "tools": ["validation_history", "integration_health"],
+          "allowedActions": ["reason", "plan", "review", "recommend"],
+          "preferredModels": ["governed-default"],
+          "memorySources": ["workflow_history", "release_assessments"],
+          "evaluationCriteria": ["Operational safety", "Rollback plan", "Auditability"],
+          "version": "1.0.0"
+        },
+        {
+          "id": "performance_engineer",
+          "role": "Performance Engineer",
+          "displayName": "Performance Engineer",
+          "description": "Investigates latency, caching, large modules, and scalability risks.",
+          "capabilities": [
+            "performance",
+            "caching",
+            "redis",
+            "profiling",
+            "scalability"
+          ],
+          "tools": ["repository_insights", "infrastructure_metrics"],
+          "allowedActions": ["reason", "plan", "review", "recommend"],
+          "preferredModels": ["governed-default"],
+          "memorySources": ["repository_memory", "infrastructure_metrics"],
+          "evaluationCriteria": ["Bottleneck evidence", "Measurement strategy"],
+          "version": "1.0.0"
+        },
+        {
+          "id": "security_engineer",
+          "role": "Security Engineer",
+          "displayName": "Security Engineer",
+          "description": "Reviews threats, secrets, authentication, and policy boundaries.",
+          "capabilities": [
+            "security",
+            "threat_modeling",
+            "secrets",
+            "authentication",
+            "policy"
+          ],
+          "tools": ["policy_engine", "audit_log", "repository_intelligence"],
+          "allowedActions": ["reason", "plan", "review", "recommend"],
+          "preferredModels": ["governed-default"],
+          "memorySources": ["security_docs", "engineering_decisions"],
+          "evaluationCriteria": [
+            "Fail-closed behavior",
+            "Secret handling",
+            "Approval boundaries"
+          ],
+          "version": "1.0.0"
+        }
+      ]
+    },
+    {
+      "path": "apps/api/src/agents/factory.ts",
+      "symbol": "staticCapabilityDescriptions",
+      "line": 208,
+      "authority": "STATIC_DECLARATION_ONLY; helpers and references are not evaluated; prompt/content fields omitted",
+      "value": {
+        "planning": "Task planning, decomposition, sequencing, and dependency analysis.",
+        "backend": "Server-side services, APIs, and data flow reasoning.",
+        "frontend": "React, UI, state, accessibility, and browser boundary reasoning.",
+        "testing": "Test strategy, regression analysis, and validation profile selection.",
+        "security": "Threat modeling, authentication, secrets, and policy analysis.",
+        "database": "Schema, migration, persistence, indexing, and rollback planning.",
+        "migration": "Versioned migration planning and compatibility checks.",
+        "devops": "CI/CD, deployment, observability, and operational readiness.",
+        "performance": "Latency, caching, profiling, and scalability reasoning.",
+        "documentation": "Architecture, API, release, and operations documentation.",
+        "redis": "Redis caching, queueing, locking, and infrastructure coordination.",
+        "graphql": "GraphQL schema, resolver, and migration planning.",
+        "accessibility": "Accessible user interface and keyboard/screen-reader analysis.",
+        "observability": "Metrics, logging, tracing, and alerting design."
+      }
+    },
+    {
+      "path": "apps/api/src/cross-application-workflows/service.ts",
+      "symbol": "builtInTemplates",
+      "line": 59,
+      "authority": "STATIC_DECLARATION_ONLY; helpers and references are not evaluated; prompt/content fields omitted",
+      "value": [
+        {
+          "id": "0f7b1bd1-f10c-4d37-96e9-18f000000001",
+          "name": "Development Session",
+          "description": "Open the coding workspace, terminal, browser, and local dashboard.",
+          "category": "development_session",
+          "keywords": ["development", "coding", "code", "workspace", "dev"],
+          "steps": [
+            {
+              "label": "Open development workspace",
+              "adapterId": "vscode",
+              "capabilityId": "CodeEditing.OpenWorkspace",
+              "dependsOn": [],
+              "expectedOutputs": ["workspace"],
+              "variableOutputs": ["currentWorkspace"],
+              "estimatedDurationMs": 2000,
+              "failurePolicy": "alternative_provider"
+            },
+            {
+              "label": "Show integrated terminal",
+              "adapterId": "vscode",
+              "capabilityId": "CodeEditing.ShowTerminal",
+              "dependsOn": [0],
+              "expectedOutputs": ["terminal"],
+              "variableOutputs": ["currentTerminal"],
+              "estimatedDurationMs": 1000,
+              "failurePolicy": "abort"
+            },
+            {
+              "label": "Open localhost",
+              "adapterId": "chrome",
+              "capabilityId": "Browser.OpenLocalhost",
+              "dependsOn": [0],
+              "expectedOutputs": ["browserTab"],
+              "variableOutputs": ["currentBrowserTab"],
+              "estimatedDurationMs": 2000,
+              "failurePolicy": "alternative_provider"
+            },
+            {
+              "label": "Show workspace problems",
+              "adapterId": "vscode",
+              "capabilityId": "CodeEditing.ShowProblems",
+              "dependsOn": [0],
+              "expectedOutputs": ["diagnosticsPanel"],
+              "variableOutputs": ["currentDiagnostics"],
+              "estimatedDurationMs": 1000,
+              "failurePolicy": "skip_with_approval"
+            }
+          ]
+        },
+        {
+          "id": "0f7b1bd1-f10c-4d37-96e9-18f000000002",
+          "name": "Meeting Preparation",
+          "description": "Find the meeting, create notes, open the link, and locate documents.",
+          "category": "meeting_preparation",
+          "keywords": ["meeting", "call", "prep", "prepare"],
+          "steps": [
+            {
+              "label": "Find today's events",
+              "adapterId": "calendar",
+              "capabilityId": "Calendar.TodayEvents",
+              "dependsOn": [],
+              "expectedOutputs": ["event"],
+              "variableOutputs": ["meetingTitle"],
+              "estimatedDurationMs": 1000,
+              "failurePolicy": "abort"
+            },
+            {
+              "label": "Create meeting note",
+              "adapterId": "apple_notes",
+              "capabilityId": "NoteTaking.CreateNote",
+              "dependsOn": [0],
+              "expectedOutputs": ["document"],
+              "variableOutputs": ["meetingNote"],
+              "estimatedDurationMs": 1000,
+              "failurePolicy": "skip_with_approval"
+            },
+            {
+              "label": "Open meeting link",
+              "adapterId": "chrome",
+              "capabilityId": "Browser.OpenUrl",
+              "dependsOn": [0],
+              "expectedOutputs": ["browserTab"],
+              "variableOutputs": ["meetingTab"],
+              "estimatedDurationMs": 1500,
+              "failurePolicy": "alternative_provider"
+            },
+            {
+              "label": "Search related files",
+              "adapterId": "finder",
+              "capabilityId": "FileManagement.SearchFiles",
+              "dependsOn": [0],
+              "expectedOutputs": ["folder"],
+              "variableOutputs": ["relatedFiles"],
+              "estimatedDurationMs": 1500,
+              "failurePolicy": "skip_with_approval"
+            }
+          ]
+        },
+        {
+          "id": "0f7b1bd1-f10c-4d37-96e9-18f000000003",
+          "name": "Daily Planning",
+          "description": "Review events, reminders, and create a planning note.",
+          "category": "daily_planning",
+          "keywords": ["daily", "planning", "plan my day", "today"],
+          "steps": [
+            {
+              "label": "Read today's events",
+              "adapterId": "calendar",
+              "capabilityId": "Calendar.TodayEvents",
+              "dependsOn": [],
+              "expectedOutputs": ["events"],
+              "variableOutputs": ["todaysEvents"],
+              "estimatedDurationMs": 1000,
+              "failurePolicy": "abort"
+            },
+            {
+              "label": "Read today's reminders",
+              "adapterId": "reminders",
+              "capabilityId": "TaskManagement.TodayReminders",
+              "dependsOn": [],
+              "expectedOutputs": ["tasks"],
+              "variableOutputs": ["todaysReminders"],
+              "estimatedDurationMs": 1000,
+              "failurePolicy": "abort"
+            },
+            {
+              "label": "Create daily plan note",
+              "adapterId": "apple_notes",
+              "capabilityId": "NoteTaking.CreateNote",
+              "dependsOn": [0, 1],
+              "expectedOutputs": ["document"],
+              "variableOutputs": ["dailyPlanNote"],
+              "estimatedDurationMs": 1000,
+              "failurePolicy": "skip_with_approval"
+            }
+          ]
+        },
+        {
+          "id": "0f7b1bd1-f10c-4d37-96e9-18f000000004",
+          "name": "Research Session",
+          "description": "Open the browser, search bookmarks, and create research notes.",
+          "category": "research_session",
+          "keywords": ["research", "study", "investigate"],
+          "steps": [
+            {
+              "label": "Open research tab",
+              "adapterId": "chrome",
+              "capabilityId": "Browser.OpenUrl",
+              "dependsOn": [],
+              "expectedOutputs": ["browserTab"],
+              "variableOutputs": ["researchTab"],
+              "estimatedDurationMs": 1500,
+              "failurePolicy": "alternative_provider"
+            },
+            {
+              "label": "Search bookmarks",
+              "adapterId": "chrome",
+              "capabilityId": "Browser.SearchBookmarks",
+              "dependsOn": [0],
+              "expectedOutputs": ["bookmarks"],
+              "variableOutputs": ["relatedBookmarks"],
+              "estimatedDurationMs": 1000,
+              "failurePolicy": "skip_with_approval"
+            },
+            {
+              "label": "Create research note",
+              "adapterId": "apple_notes",
+              "capabilityId": "NoteTaking.CreateNote",
+              "dependsOn": [0],
+              "expectedOutputs": ["document"],
+              "variableOutputs": ["researchNote"],
+              "estimatedDurationMs": 1000,
+              "failurePolicy": "skip_with_approval"
+            }
+          ]
+        },
+        {
+          "id": "0f7b1bd1-f10c-4d37-96e9-18f000000005",
+          "name": "Shutdown Routine",
+          "description": "Review open work and close low-risk application state.",
+          "category": "shutdown_routine",
+          "keywords": ["shutdown", "finish work", "end day", "wrap up"],
+          "steps": [
+            {
+              "label": "Read current code context",
+              "adapterId": "vscode",
+              "capabilityId": "CodeEditing.ReadContext",
+              "dependsOn": [],
+              "expectedOutputs": ["workspace"],
+              "variableOutputs": ["currentWorkspace"],
+              "estimatedDurationMs": 1000,
+              "failurePolicy": "skip_with_approval"
+            },
+            {
+              "label": "Read active browser tab metadata",
+              "adapterId": "chrome",
+              "capabilityId": "Browser.ReadActiveTabMetadata",
+              "dependsOn": [],
+              "expectedOutputs": ["browserTab"],
+              "variableOutputs": ["currentBrowserTab"],
+              "estimatedDurationMs": 1000,
+              "failurePolicy": "skip_with_approval"
+            }
+          ]
+        },
+        {
+          "id": "0f7b1bd1-f10c-4d37-96e9-18f000000006",
+          "name": "Release Deployment",
+          "description": "Review project state and pause before any approved deployment command.",
+          "category": "release_deployment",
+          "keywords": ["release", "deploy", "deployment", "ship"],
+          "steps": [
+            {
+              "label": "Open repository",
+              "adapterId": "vscode",
+              "capabilityId": "CodeEditing.OpenRepository",
+              "dependsOn": [],
+              "expectedOutputs": ["repository"],
+              "variableOutputs": ["selectedRepository"],
+              "estimatedDurationMs": 2000,
+              "failurePolicy": "abort"
+            },
+            {
+              "label": "Read diagnostics",
+              "adapterId": "vscode",
+              "capabilityId": "CodeEditing.ReadDiagnostics",
+              "dependsOn": [0],
+              "expectedOutputs": ["diagnostics"],
+              "variableOutputs": ["releaseDiagnostics"],
+              "estimatedDurationMs": 1000,
+              "failurePolicy": "abort"
+            },
+            {
+              "label": "Execute approved release command",
+              "adapterId": "terminal",
+              "capabilityId": "Terminal.ExecuteApprovedCommand",
+              "dependsOn": [1],
+              "expectedOutputs": ["terminalSession"],
+              "variableOutputs": ["releaseCommand"],
+              "estimatedDurationMs": 5000,
+              "failurePolicy": "manual_intervention"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "apps/api/src/application-intelligence/service.ts",
+      "symbol": "domainCatalog",
+      "line": 19,
+      "authority": "STATIC_DECLARATION_ONLY; helpers and references are not evaluated; prompt/content fields omitted",
+      "value": [
+        {
+          "id": "domain.code-editing",
+          "domain": "code_editing",
+          "displayName": "Code Editing",
+          "description": "Create, open, patch, search, and save code workspace objects."
+        },
+        {
+          "id": "domain.note-taking",
+          "domain": "note_taking",
+          "displayName": "Note Taking",
+          "description": "Create, open, append, search, and archive notes or pages."
+        },
+        {
+          "id": "domain.browser",
+          "domain": "browser",
+          "displayName": "Browser",
+          "description": "Open URLs, manage tabs, search pages, reload, and bookmark pages."
+        },
+        {
+          "id": "domain.file-management",
+          "domain": "file_management",
+          "displayName": "File Management",
+          "description": "Open, reveal, search, and organize files and folders."
+        },
+        {
+          "id": "domain.terminal",
+          "domain": "terminal",
+          "displayName": "Terminal",
+          "description": "Run explicitly approved terminal workflows and inspect sessions."
+        }
+      ]
+    },
+    {
+      "path": "apps/api/src/application-intelligence/service.ts",
+      "symbol": "capabilityCatalog",
+      "line": 57,
+      "authority": "STATIC_DECLARATION_ONLY; helpers and references are not evaluated; prompt/content fields omitted",
+      "value": [
+        {
+          "capabilityId": "CodeEditing.CreateFile",
+          "domain": "code_editing",
+          "displayName": "Create File",
+          "description": "Create a file through governed workspace editing or a provider.",
+          "objectTypes": ["file"],
+          "requiredPermissions": ["create_documents", "open_files"],
+          "riskLevel": "medium"
+        },
+        {
+          "capabilityId": "CodeEditing.OpenFile",
+          "domain": "code_editing",
+          "displayName": "Open File",
+          "description": "Open an existing file in a trusted code editing provider.",
+          "objectTypes": ["file"],
+          "requiredPermissions": ["open_files"],
+          "riskLevel": "low"
+        },
+        {
+          "capabilityId": "CodeEditing.OpenWorkspace",
+          "domain": "code_editing",
+          "displayName": "Open Workspace",
+          "description": "Open a registered workspace or repository in a code editor.",
+          "objectTypes": ["workspace", "repository"],
+          "requiredPermissions": ["open_files"],
+          "riskLevel": "low"
+        },
+        {
+          "capabilityId": "CodeEditing.PatchFile",
+          "domain": "code_editing",
+          "displayName": "Patch File",
+          "description": "Apply a reviewed patch to a registered workspace file.",
+          "objectTypes": ["file"],
+          "requiredPermissions": ["edit_text"],
+          "riskLevel": "medium"
+        },
+        {
+          "capabilityId": "CodeEditing.SaveFile",
+          "domain": "code_editing",
+          "displayName": "Save File",
+          "description": "Save the current file when a reviewed provider supports it.",
+          "objectTypes": ["file"],
+          "requiredPermissions": ["interact"],
+          "riskLevel": "low"
+        },
+        {
+          "capabilityId": "CodeEditing.SearchWorkspace",
+          "domain": "code_editing",
+          "displayName": "Search Workspace",
+          "description": "Search a registered workspace through semantic code intelligence.",
+          "objectTypes": ["workspace", "repository"],
+          "requiredPermissions": ["read_semantic_structure"],
+          "riskLevel": "read_only"
+        },
+        {
+          "capabilityId": "Browser.OpenUrl",
+          "domain": "browser",
+          "displayName": "Open URL",
+          "description": "Open a reviewed HTTP(S) URL in a trusted browser provider.",
+          "objectTypes": ["browser_tab"],
+          "requiredPermissions": ["navigate"],
+          "riskLevel": "low"
+        },
+        {
+          "capabilityId": "Browser.ReloadPage",
+          "domain": "browser",
+          "displayName": "Reload Page",
+          "description": "Reload an existing browser page.",
+          "objectTypes": ["browser_tab"],
+          "requiredPermissions": ["navigate"],
+          "riskLevel": "low"
+        },
+        {
+          "capabilityId": "FileManagement.RevealFile",
+          "domain": "file_management",
+          "displayName": "Reveal File",
+          "description": "Reveal a registered file in a trusted file manager.",
+          "objectTypes": ["file"],
+          "requiredPermissions": ["open_files"],
+          "riskLevel": "low"
+        },
+        {
+          "capabilityId": "FileManagement.CreateFolder",
+          "domain": "file_management",
+          "displayName": "Create Folder",
+          "description": "Create a folder through a reviewed provider with approval as needed.",
+          "objectTypes": ["folder"],
+          "requiredPermissions": ["create_documents"],
+          "riskLevel": "medium"
+        },
+        {
+          "capabilityId": "NoteTaking.CreateNote",
+          "domain": "note_taking",
+          "displayName": "Create Note",
+          "description": "Create a note through the preferred note-taking provider.",
+          "objectTypes": ["note", "page"],
+          "requiredPermissions": ["create_documents", "edit_text"],
+          "riskLevel": "medium"
+        },
+        {
+          "capabilityId": "NoteTaking.SearchNotes",
+          "domain": "note_taking",
+          "displayName": "Search Notes",
+          "description": "Search trusted note-taking providers.",
+          "objectTypes": ["note", "page"],
+          "requiredPermissions": ["read_semantic_structure"],
+          "riskLevel": "read_only"
+        }
+      ]
+    },
+    {
+      "path": "apps/api/src/application-intelligence/service.ts",
+      "symbol": "nativeCapabilityMap",
+      "line": 168,
+      "authority": "STATIC_DECLARATION_ONLY; helpers and references are not evaluated; prompt/content fields omitted",
+      "value": {
+        "open_file": ["CodeEditing.OpenFile"],
+        "open_workspace": ["CodeEditing.OpenWorkspace"],
+        "open_repository": ["CodeEditing.OpenWorkspace"],
+        "save_file": ["CodeEditing.SaveFile"],
+        "focus_search": ["CodeEditing.SearchWorkspace"],
+        "open_url": ["Browser.OpenUrl"],
+        "reload": ["Browser.ReloadPage"],
+        "reveal_file": ["FileManagement.RevealFile"],
+        "new_folder": ["FileManagement.CreateFolder"]
+      }
+    },
+    {
+      "path": "apps/api/src/core-adapters/service.ts",
+      "symbol": "coreAdapters",
+      "line": 55,
+      "authority": "STATIC_DECLARATION_ONLY; helpers and references are not evaluated; prompt/content fields omitted",
+      "value": [
+        {
+          "id": "vscode",
+          "applicationId": "vscode",
+          "displayName": "VS Code",
+          "bundleIdentifier": "com.microsoft.VSCode",
+          "semanticDomains": ["code_editing", "terminal"],
+          "supportedObjectTypes": [
+            "workspace",
+            "repository",
+            "folder",
+            "file",
+            "class",
+            "function",
+            "method",
+            "variable"
+          ],
+          "capabilities": [
+            {
+              "declaredHelper": "cap",
+              "argumentsMetadata": [
+                {
+                  "capabilityId": "CodeEditing.OpenWorkspace",
+                  "displayName": "Open Workspace",
+                  "domain": "code_editing",
+                  "operation": "open",
+                  "objectTypes": ["workspace"],
+                  "requiredPermissions": ["open_files"],
+                  "nativeProviderCapability": "open_workspace",
+                  "officialApiRequired": false,
+                  "approvalRequired": false
+                }
+              ]
+            },
+            {
+              "declaredHelper": "cap",
+              "argumentsMetadata": [
+                {
+                  "capabilityId": "CodeEditing.OpenRepository",
+                  "displayName": "Open Repository",
+                  "domain": "code_editing",
+                  "operation": "open",
+                  "objectTypes": ["repository"],
+                  "requiredPermissions": ["open_files"],
+                  "nativeProviderCapability": "open_repository",
+                  "officialApiRequired": false,
+                  "approvalRequired": false
+                }
+              ]
+            },
+            {
+              "declaredHelper": "cap",
+              "argumentsMetadata": [
+                {
+                  "capabilityId": "CodeEditing.OpenFile",
+                  "displayName": "Open File",
+                  "domain": "code_editing",
+                  "operation": "open",
+                  "objectTypes": ["file"],
+                  "requiredPermissions": ["open_files"],
+                  "nativeProviderCapability": "open_file",
+                  "officialApiRequired": false,
+                  "approvalRequired": false
+                }
+              ]
+            },
+            {
+              "declaredHelper": "cap",
+              "argumentsMetadata": [
+                {
+                  "capabilityId": "CodeEditing.CreateFile",
+                  "displayName": "Create File",
+                  "domain": "code_editing",
+                  "operation": "create",
+                  "objectTypes": ["file"],
+                  "requiredPermissions": ["create_documents"],
+                  "nativeProviderCapability": null,
+                  "officialApiRequired": true,
+                  "approvalRequired": false
+                }
+              ]
+            },
+            {
+              "declaredHelper": "cap",
+              "argumentsMetadata": [
+                {
+                  "capabilityId": "CodeEditing.PatchFile",
+                  "displayName": "Patch File",
+                  "domain": "code_editing",
+                  "operation": "update",
+                  "objectTypes": ["file"],
+                  "requiredPermissions": ["edit_text"],
+                  "nativeProviderCapability": null,
+                  "officialApiRequired": true,
+                  "approvalRequired": true
+                }
+              ]
+            },
+            {
+              "declaredHelper": "cap",
+              "argumentsMetadata": [
+                {
+                  "capabilityId": "CodeEditing.SaveFile",
+                  "displayName": "Save File",
+                  "domain": "code_editing",
+                  "operation": "update",
+                  "objectTypes": ["file"],
+                  "requiredPermissions": ["interact"],
+                  "nativeProviderCapability": "save_file",
+                  "officialApiRequired": false,
+                  "approvalRequired": false
+                }
+              ]
+            },
+            {
+              "declaredHelper": "cap",
+              "argumentsMetadata": [
+                {
+                  "capabilityId": "CodeEditing.SearchWorkspace",
+                  "displayName": "Search Workspace",
+                  "domain": "code_editing",
+                  "operation": "search",
+                  "objectTypes": ["workspace", "file"],
+                  "requiredPermissions": ["read_semantic_structure"],
+                  "nativeProviderCapability": "focus_search",
+                  "officialApiRequired": false,
+                  "approvalRequired": false
+                }
+              ]
+            },
+            {
+              "declaredHelper": "cap",
+              "argumentsMetadata": [
+                {
+                  "capabilityId": "CodeEditing.FindSymbol",
+                  "displayName": "Find Symbol",
+                  "domain": "code_editing",
+                  "operation": "search",
+                  "objectTypes": ["class", "function", "method", "variable"],
+                  "requiredPermissions": ["read_semantic_structure"],
+                  "nativeProviderCapability": null,
+                  "officialApiRequired": true,
+                  "approvalRequired": false
+                }
+              ]
+            },
+            {
+              "declaredHelper": "cap",
+              "argumentsMetadata": [
+                {
+                  "capabilityId": "CodeEditing.RevealSymbol",
+                  "displayName": "Reveal Symbol",
+                  "domain": "code_editing",
+                  "operation": "navigate",
+                  "objectTypes": ["class", "function", "method", "variable"],
+                  "requiredPermissions": ["navigate"],
+                  "nativeProviderCapability": null,
+                  "officialApiRequired": true,
+                  "approvalRequired": false
+                }
+              ]
+            },
+            {
+              "declaredHelper": "cap",
+              "argumentsMetadata": [
+                {
+                  "capabilityId": "CodeEditing.ShowProblems",
+                  "displayName": "Show Problems",
+                  "domain": "code_editing",
+                  "operation": "navigate",
+                  "objectTypes": ["workspace"],
+                  "requiredPermissions": ["navigate"],
+                  "nativeProviderCapability": "show_problems",
+                  "officialApiRequired": false,
+                  "approvalRequired": false
+                }
+              ]
+            },
+            {
+              "declaredHelper": "cap",
+              "argumentsMetadata": [
+                {
+                  "capabilityId": "CodeEditing.ShowTerminal",
+                  "displayName": "Show Terminal",
+                  "domain": "terminal",
+                  "operation": "navigate",
+                  "objectTypes": ["workspace"],
+                  "requiredPermissions": ["navigate"],
+                  "nativeProviderCapability": "focus_terminal",
+                  "officialApiRequired": false,
+                  "approvalRequired": false
+                }
+              ]
+            },
+            {
+              "declaredHelper": "cap",
+              "argumentsMetadata": [
+                {
+                  "capabilityId": "CodeEditing.ReadDiagnostics",
+                  "displayName": "Read Diagnostics",
+                  "domain": "code_editing",
+                  "operation": "read",
+                  "objectTypes": ["workspace", "file"],
+                  "requiredPermissions": ["read_semantic_structure"],
+                  "nativeProviderCapability": null,
+                  "officialApiRequired": true,
+                  "approvalRequired": false
+                }
+              ]
+            },
+            {
+              "declaredHelper": "cap",
+              "argumentsMetadata": [
+                {
+                  "capabilityId": "CodeEditing.ReadContext",
+                  "displayName": "Read Current Context",
+                  "domain": "code_editing",
+                  "operation": "read",
+                  "objectTypes": ["workspace", "file"],
+                  "requiredPermissions": ["read_semantic_structure"],
+                  "nativeProviderCapability": null,
+                  "officialApiRequired": true,
+                  "approvalRequired": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "finder",
+          "applicationId": "finder",
+          "displayName": "Finder",
+          "bundleIdentifier": "com.apple.finder",
+          "semanticDomains": ["file_management"],
+          "supportedObjectTypes": ["workspace", "folder", "file", "document"],
+          "capabilities": [
+            {
+              "declaredHelper": "cap",
+              "argumentsMetadata": [
+                {
+                  "capabilityId": "FileManagement.OpenFolder",
+                  "displayName": "Open Folder",
+                  "domain": "file_management",
+                  "operation": "open",
+                  "objectTypes": ["folder"],
+                  "requiredPermissions": ["open_files"],
+                  "nativeProviderCapability": "open_folder",
+                  "officialApiRequired": false,
+                  "approvalRequired": false
+                }
+              ]
+            },
+            {
+              "declaredHelper": "cap",
+              "argumentsMetadata": [
+                {
+                  "capabilityId": "FileManagement.RevealFile",
+                  "displayName": "Reveal File",
+                  "domain": "file_management",
+                  "operation": "navigate",
+                  "objectTypes": ["file"],
+                  "requiredPermissions": ["open_files"],
+                  "nativeProviderCapability": "reveal_file",
+                  "officialApiRequired": false,
+                  "approvalRequired": false
+                }
+              ]
+            },
+            {
+              "declaredHelper": "cap",
+              "argumentsMetadata": [
+                {
+                  "capabilityId": "FileManagement.SearchFiles",
+                  "displayName": "Search Files",
+                  "domain": "file_management",
+                  "operation": "search",
+                  "objectTypes": ["file", "folder"],
+                  "requiredPermissions": ["read_semantic_structure"],
+                  "nativeProviderCapability": "search",
+                  "officialApiRequired": false,
+                  "approvalRequired": false
+                }
+              ]
+            },
+            {
+              "declaredHelper": "cap",
+              "argumentsMetadata": [
+                {
+                  "capabilityId": "FileManagement.CreateFolder",
+                  "displayName": "Create Folder",
+                  "domain": "file_management",
+                  "operation": "create",
+                  "objectTypes": ["folder"],
+                  "requiredPermissions": ["create_documents"],
+                  "nativeProviderCapability": "new_folder",
+                  "officialApiRequired": false,
+                  "approvalRequired": true
+                }
+              ]
+            },
+            {
+              "symbolicExpression": "SpreadElement"
+            }
+          ]
+        },
+        {
+          "id": "chrome",
+          "applicationId": "chrome",
+          "displayName": "Chrome",
+          "bundleIdentifier": "com.google.Chrome",
+          "semanticDomains": ["browser", "knowledge_base"],
+          "supportedObjectTypes": ["browser_tab", "bookmark", "document"],
+          "capabilities": []
+        },
+        {
+          "id": "safari",
+          "applicationId": "safari",
+          "displayName": "Safari",
+          "bundleIdentifier": "com.apple.Safari",
+          "semanticDomains": ["browser", "knowledge_base"],
+          "supportedObjectTypes": ["browser_tab", "bookmark", "document"],
+          "capabilities": []
+        },
+        {
+          "id": "terminal",
+          "applicationId": "terminal",
+          "displayName": "Terminal",
+          "bundleIdentifier": "com.apple.Terminal",
+          "semanticDomains": ["terminal"],
+          "supportedObjectTypes": ["workspace"],
+          "capabilities": []
+        },
+        {
+          "id": "apple_notes",
+          "applicationId": "apple_notes",
+          "displayName": "Apple Notes",
+          "bundleIdentifier": "com.apple.Notes",
+          "semanticDomains": ["note_taking", "knowledge_base"],
+          "supportedObjectTypes": ["notebook", "note", "document", "content_block"],
+          "capabilities": []
+        },
+        {
+          "id": "calendar",
+          "applicationId": "calendar",
+          "displayName": "Calendar",
+          "bundleIdentifier": "com.apple.iCal",
+          "semanticDomains": ["calendar"],
+          "supportedObjectTypes": ["calendar", "event"],
+          "capabilities": []
+        },
+        {
+          "id": "reminders",
+          "applicationId": "reminders",
+          "displayName": "Reminders",
+          "bundleIdentifier": "com.apple.reminders",
+          "semanticDomains": ["task_management"],
+          "supportedObjectTypes": ["task"],
+          "capabilities": []
+        }
+      ]
+    },
+    {
+      "path": "apps/api/src/native-providers/service.ts",
+      "symbol": "descriptors",
+      "line": 45,
+      "authority": "STATIC_DECLARATION_ONLY; helpers and references are not evaluated; prompt/content fields omitted",
+      "value": [
+        {
+          "id": "provider.vscode",
+          "applicationId": "vscode",
+          "name": "VSCodeProvider",
+          "providerType": "vscode",
+          "bundleIdentifier": "com.microsoft.VSCode",
+          "capabilities": [
+            "launch",
+            "focus",
+            "open_repository",
+            "open_workspace",
+            "focus_explorer",
+            "focus_search",
+            "focus_terminal",
+            "open_file",
+            "save_file",
+            "switch_tab",
+            "show_problems",
+            "show_extensions",
+            "close_tab",
+            "focus_semantic_control",
+            "insert_text",
+            "replace_selection"
+          ]
+        },
+        {
+          "id": "provider.finder",
+          "applicationId": "finder",
+          "name": "FinderProvider",
+          "providerType": "finder",
+          "bundleIdentifier": "com.apple.finder",
+          "capabilities": [
+            "launch",
+            "focus",
+            "open_folder",
+            "reveal_file",
+            "focus_downloads",
+            "focus_desktop",
+            "search",
+            "new_folder",
+            "focus_sidebar",
+            "open_selected_resource"
+          ]
+        },
+        {
+          "id": "provider.terminal",
+          "applicationId": "terminal",
+          "name": "TerminalProvider",
+          "providerType": "terminal",
+          "bundleIdentifier": "com.apple.Terminal",
+          "capabilities": [
+            "launch",
+            "focus",
+            "open_profile",
+            "run_approved_command",
+            "interrupt_command",
+            "clear_terminal",
+            "focus_session"
+          ]
+        },
+        {
+          "id": "provider.chrome",
+          "applicationId": "chrome",
+          "name": "ChromeProvider",
+          "providerType": "chrome",
+          "bundleIdentifier": "com.google.Chrome",
+          "capabilities": [
+            "launch",
+            "open_url",
+            "focus",
+            "new_tab",
+            "reload",
+            "switch_tab",
+            "find",
+            "bookmark",
+            "close_tab",
+            "focus_semantic_control",
+            "insert_text",
+            "activate_semantic_control",
+            "submit_composer"
+          ]
+        },
+        {
+          "id": "provider.safari",
+          "applicationId": "safari",
+          "name": "SafariProvider",
+          "providerType": "safari",
+          "bundleIdentifier": "com.apple.Safari",
+          "capabilities": [
+            "launch",
+            "open_url",
+            "focus",
+            "new_tab",
+            "reload",
+            "find",
+            "close_tab",
+            "focus_semantic_control",
+            "insert_text",
+            "activate_semantic_control",
+            "submit_composer"
+          ]
+        },
+        {
+          "id": "provider.chatgpt",
+          "applicationId": "chatgpt",
+          "name": "ChatGPTProvider",
+          "providerType": "chatgpt",
+          "bundleIdentifier": "com.openai.chat",
+          "capabilities": [
+            "launch",
+            "focus",
+            "focus_semantic_control",
+            "insert_text",
+            "activate_semantic_control",
+            "submit_composer"
+          ]
+        },
+        {
+          "id": "provider.codex",
+          "applicationId": "codex",
+          "name": "CodexProvider",
+          "providerType": "codex",
+          "bundleIdentifier": "com.openai.codex",
+          "capabilities": [
+            "launch",
+            "focus",
+            "focus_semantic_control",
+            "insert_text",
+            "submit_composer"
+          ]
+        },
+        {
+          "id": "provider.figma",
+          "applicationId": "figma",
+          "name": "FigmaProvider",
+          "providerType": "figma",
+          "bundleIdentifier": "com.figma.Desktop",
+          "capabilities": ["launch", "focus"]
+        }
+      ]
+    },
+    {
+      "path": "apps/mac-agent/electron/native-providers.ts",
+      "symbol": "descriptors",
+      "line": 60,
+      "authority": "STATIC_DECLARATION_ONLY; helpers and references are not evaluated; prompt/content fields omitted",
+      "value": [
+        {
+          "providerId": "provider.vscode",
+          "applicationId": "vscode",
+          "bundleIdentifier": "com.microsoft.VSCode",
+          "processName": "Code",
+          "implementedCapabilities": [
+            "launch",
+            "focus",
+            "focus_semantic_control",
+            "insert_text",
+            "replace_selection"
+          ],
+          "unsupportedCapabilities": [
+            "open_repository",
+            "open_workspace",
+            "focus_explorer",
+            "focus_search",
+            "focus_terminal",
+            "open_file",
+            "save_file",
+            "switch_tab",
+            "show_problems",
+            "show_extensions",
+            "close_tab"
+          ]
+        },
+        {
+          "providerId": "provider.finder",
+          "applicationId": "finder",
+          "bundleIdentifier": "com.apple.finder",
+          "processName": "Finder",
+          "implementedCapabilities": [
+            "launch",
+            "focus",
+            "focus_downloads",
+            "focus_desktop"
+          ],
+          "unsupportedCapabilities": [
+            "open_folder",
+            "reveal_file",
+            "search",
+            "new_folder",
+            "focus_sidebar",
+            "open_selected_resource"
+          ]
+        },
+        {
+          "providerId": "provider.chrome",
+          "applicationId": "chrome",
+          "bundleIdentifier": "com.google.Chrome",
+          "processName": "Google Chrome",
+          "implementedCapabilities": [
+            "launch",
+            "focus",
+            "open_url",
+            "reload",
+            "focus_semantic_control",
+            "insert_text",
+            "activate_semantic_control",
+            "submit_composer"
+          ],
+          "unsupportedCapabilities": [
+            "new_tab",
+            "switch_tab",
+            "find",
+            "bookmark",
+            "close_tab"
+          ]
+        },
+        {
+          "providerId": "provider.safari",
+          "applicationId": "safari",
+          "bundleIdentifier": "com.apple.Safari",
+          "processName": "Safari",
+          "implementedCapabilities": [
+            "launch",
+            "focus",
+            "open_url",
+            "reload",
+            "focus_semantic_control",
+            "insert_text",
+            "activate_semantic_control",
+            "submit_composer"
+          ],
+          "unsupportedCapabilities": ["new_tab", "find", "close_tab"]
+        },
+        {
+          "providerId": "provider.terminal",
+          "applicationId": "terminal",
+          "bundleIdentifier": "com.apple.Terminal",
+          "processName": "Terminal",
+          "implementedCapabilities": ["launch", "focus"],
+          "unsupportedCapabilities": [
+            "open_profile",
+            "run_approved_command",
+            "interrupt_command",
+            "clear_terminal",
+            "focus_session"
+          ]
+        },
+        {
+          "providerId": "provider.chatgpt",
+          "applicationId": "chatgpt",
+          "bundleIdentifier": "com.openai.chat",
+          "processName": "ChatGPT",
+          "implementedCapabilities": [
+            "launch",
+            "focus",
+            "focus_semantic_control",
+            "insert_text",
+            "activate_semantic_control",
+            "submit_composer"
+          ],
+          "unsupportedCapabilities": []
+        },
+        {
+          "providerId": "provider.codex",
+          "applicationId": "codex",
+          "bundleIdentifier": "com.openai.codex",
+          "processName": "ChatGPT",
+          "processVerificationArgs": ["-f", "ChatGPT\\.app"],
+          "implementedCapabilities": [
+            "launch",
+            "focus",
+            "focus_semantic_control",
+            "insert_text",
+            "submit_composer"
+          ],
+          "unsupportedCapabilities": []
+        },
+        {
+          "providerId": "provider.figma",
+          "applicationId": "figma",
+          "bundleIdentifier": "com.figma.Desktop",
+          "processName": "Figma",
+          "implementedCapabilities": ["launch", "focus"],
+          "unsupportedCapabilities": []
+        }
+      ]
+    },
+    {
+      "path": "apps/api/src/integrations/builtins.ts",
+      "symbol": "BUILT_IN_INTEGRATIONS",
+      "line": 27,
+      "authority": "STATIC_DECLARATION_ONLY; helpers and references are not evaluated; prompt/content fields omitted",
+      "value": [
+        {
+          "id": "gmail",
+          "provider": "gmail",
+          "category": "communication",
+          "displayName": "Gmail",
+          "version": "1.0.0",
+          "supportedAuth": ["oauth"],
+          "healthSummary": "Gmail business operations require an owner-connected OAuth account.",
+          "capabilities": [
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "gmail.email.read",
+                  "name": "Email retrieval",
+                  "description": "Search bounded email metadata, threads, and attachment references.",
+                  "category": "communication",
+                  "risk": "low",
+                  "approvalRequired": false,
+                  "destructive": false,
+                  "operations": [
+                    "email.search",
+                    "email.read_thread",
+                    "email.list_attachments"
+                  ]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "gmail.email.draft",
+                  "name": "Email drafts",
+                  "description": "Create a bounded draft without sending it.",
+                  "category": "communication",
+                  "risk": "medium",
+                  "approvalRequired": false,
+                  "destructive": false,
+                  "operations": ["email.create_draft"]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "gmail.email.send",
+                  "name": "Approved email send",
+                  "description": "Send, reply, or forward one reviewed message with idempotent verification.",
+                  "category": "communication",
+                  "risk": "high",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": ["email.send_draft", "email.reply", "email.forward"]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "crm",
+          "provider": "crm",
+          "category": "crm",
+          "displayName": "CRM",
+          "version": "1.0.0",
+          "supportedAuth": ["oauth", "service_account"],
+          "healthSummary": "CRM operations use finite lead read and mutation capabilities.",
+          "capabilities": [
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "crm.lead.read",
+                  "name": "CRM retrieval",
+                  "description": "Search contacts, companies, leads, pipeline, and activity through bounded reads.",
+                  "category": "crm",
+                  "risk": "low",
+                  "approvalRequired": false,
+                  "destructive": false,
+                  "operations": [
+                    "crm.search_leads",
+                    "crm.search_contacts",
+                    "crm.search_companies",
+                    "crm.read_lead",
+                    "crm.read_pipeline",
+                    "crm.read_activity"
+                  ]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "crm.lead.write",
+                  "name": "Lead updates",
+                  "description": "Create leads, update stages, append notes, or create a mapped follow-up after review.",
+                  "category": "crm",
+                  "risk": "medium",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": [
+                    "crm.create_lead",
+                    "crm.update_stage",
+                    "crm.add_note",
+                    "crm.create_follow_up"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "support",
+          "provider": "support",
+          "category": "support",
+          "displayName": "Customer Support",
+          "version": "1.0.0",
+          "supportedAuth": ["oauth", "service_account"],
+          "healthSummary": "Support tickets use reviewed reads, drafts, replies, assignment, status, notes, and escalation.",
+          "capabilities": [
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "support.ticket.read",
+                  "name": "Ticket retrieval",
+                  "description": "List, search, and read bounded support tickets.",
+                  "category": "support",
+                  "risk": "low",
+                  "approvalRequired": false,
+                  "destructive": false,
+                  "operations": [
+                    "support.list_tickets",
+                    "support.search_tickets",
+                    "support.read_ticket"
+                  ]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "support.ticket.draft",
+                  "name": "Response drafts",
+                  "description": "Create a response draft without contacting the customer.",
+                  "category": "support",
+                  "risk": "low",
+                  "approvalRequired": false,
+                  "destructive": false,
+                  "operations": ["support.create_draft"]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "support.ticket.reply",
+                  "name": "Approved support reply",
+                  "description": "Send a reviewed customer response.",
+                  "category": "support",
+                  "risk": "high",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": ["support.reply"]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "support.ticket.write",
+                  "name": "Ticket workflow updates",
+                  "description": "Change status, assignment, notes, or escalation after review.",
+                  "category": "support",
+                  "risk": "medium",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": [
+                    "support.change_status",
+                    "support.assign",
+                    "support.add_note",
+                    "support.escalate"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "documents",
+          "provider": "documents",
+          "category": "documentation",
+          "displayName": "Business Documents",
+          "version": "1.0.0",
+          "supportedAuth": ["oauth", "service_account"],
+          "healthSummary": "Documents remain external source-of-truth records and are never copied wholesale into memory.",
+          "capabilities": [
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "documents.read",
+                  "name": "Document retrieval",
+                  "description": "Find and read explicitly authorized documents.",
+                  "category": "documentation",
+                  "risk": "low",
+                  "approvalRequired": false,
+                  "destructive": false,
+                  "operations": ["documents.find", "documents.read"]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "documents.write",
+                  "name": "Document changes",
+                  "description": "Create, update, or attach a document reference after review.",
+                  "category": "documentation",
+                  "risk": "medium",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": [
+                    "documents.create",
+                    "documents.update",
+                    "documents.attach_reference"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "projects",
+          "provider": "projects",
+          "category": "project_management",
+          "displayName": "Project Management",
+          "version": "1.0.0",
+          "supportedAuth": ["oauth", "service_account"],
+          "healthSummary": "Project tasks map to stable Athena task references without duplicating external truth.",
+          "capabilities": [
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "projects.task.read",
+                  "name": "Project and task retrieval",
+                  "description": "List projects, search, and read bounded tasks.",
+                  "category": "project_management",
+                  "risk": "low",
+                  "approvalRequired": false,
+                  "destructive": false,
+                  "operations": [
+                    "projects.list",
+                    "projects.search",
+                    "projects.read_task"
+                  ]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "projects.task.write",
+                  "name": "Project task updates",
+                  "description": "Create or update a mapped external task after review.",
+                  "category": "project_management",
+                  "risk": "medium",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": [
+                    "projects.create_task",
+                    "projects.update_task",
+                    "projects.assign_task",
+                    "projects.change_status",
+                    "projects.comment",
+                    "projects.set_due_date",
+                    "projects.set_priority"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "analytics",
+          "provider": "analytics",
+          "category": "analytics",
+          "displayName": "Business Analytics",
+          "version": "1.0.0",
+          "supportedAuth": ["oauth", "service_account"],
+          "healthSummary": "Analytics exposes validated metric windows only, never arbitrary queries.",
+          "capabilities": [
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "analytics.metric.read",
+                  "name": "Metric observations",
+                  "description": "Read registered metrics, dimensions, funnels, cohorts, events, and explicit periods without arbitrary provider queries.",
+                  "category": "analytics",
+                  "risk": "low",
+                  "approvalRequired": false,
+                  "destructive": false,
+                  "operations": [
+                    "analytics.read_metric",
+                    "analytics.query_metric",
+                    "analytics.query_timeseries",
+                    "analytics.query_funnel",
+                    "analytics.query_conversions",
+                    "analytics.query_channel_performance",
+                    "analytics.query_cohort",
+                    "analytics.query_event"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "accounting",
+          "provider": "accounting",
+          "category": "accounting",
+          "displayName": "Accounting",
+          "version": "1.0.0",
+          "supportedAuth": ["oauth", "service_account"],
+          "healthSummary": "Provider-neutral accounting reads and draft-only changes; finalized books are not mutable.",
+          "capabilities": [
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "accounting.read",
+                  "name": "Accounting retrieval",
+                  "description": "Read bounded accounts, transactions, reports, invoices, bills, aging, and periods.",
+                  "category": "accounting",
+                  "risk": "low",
+                  "approvalRequired": false,
+                  "destructive": false,
+                  "operations": [
+                    "accounting.list_accounts",
+                    "accounting.read_account",
+                    "accounting.search_transactions",
+                    "accounting.read_transaction",
+                    "accounting.list_invoices",
+                    "accounting.read_invoice",
+                    "accounting.list_bills",
+                    "accounting.read_bill",
+                    "accounting.read_pnl",
+                    "accounting.read_balance_sheet",
+                    "accounting.read_cashflow",
+                    "accounting.read_ar_aging",
+                    "accounting.read_ap_aging"
+                  ]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "accounting.prepare",
+                  "name": "Accounting drafts",
+                  "description": "Create or update reviewable drafts and notes; no finalized-ledger mutation.",
+                  "category": "accounting",
+                  "risk": "medium",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": [
+                    "accounting.create_draft_invoice",
+                    "accounting.update_draft_invoice",
+                    "accounting.create_draft_expense"
+                  ]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "accounting.write",
+                  "name": "Accounting review notes",
+                  "description": "Add bounded notes or mark records for human review.",
+                  "category": "accounting",
+                  "risk": "medium",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": [
+                    "accounting.add_transaction_note",
+                    "accounting.mark_for_review"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "payments",
+          "provider": "payments",
+          "category": "payments",
+          "displayName": "Payments",
+          "version": "1.0.0",
+          "supportedAuth": ["oauth", "service_account"],
+          "healthSummary": "Money movement is separate from Athena credits and always requires recent-authenticated exact-action approval.",
+          "capabilities": [
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "payments.read",
+                  "name": "Payment retrieval",
+                  "description": "Read bounded payment, payout, subscription, and dispute state.",
+                  "category": "payments",
+                  "risk": "low",
+                  "approvalRequired": false,
+                  "destructive": false,
+                  "operations": [
+                    "payments.search",
+                    "payments.read",
+                    "payments.list_payouts",
+                    "payments.read_subscription",
+                    "payments.read_dispute"
+                  ]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "payments.prepare",
+                  "name": "Payment preparation",
+                  "description": "Prepare a bounded charge, refund, or subscription change without moving money.",
+                  "category": "payments",
+                  "risk": "medium",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": [
+                    "payments.prepare_charge",
+                    "payments.prepare_refund",
+                    "payments.prepare_subscription_change"
+                  ]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "payments.execute",
+                  "name": "Payment execution",
+                  "description": "Execute one version-bound charge/refund or cancellation after step-up approval.",
+                  "category": "payments",
+                  "risk": "high",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": [
+                    "payments.execute_charge",
+                    "payments.execute_refund",
+                    "payments.cancel_subscription"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ads",
+          "provider": "ads",
+          "category": "ads",
+          "displayName": "Advertising",
+          "version": "1.0.0",
+          "supportedAuth": ["oauth", "service_account"],
+          "healthSummary": "Ad reads, drafts, and spend-affecting mutations are finite and separately governed.",
+          "capabilities": [
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "ads.read",
+                  "name": "Campaign analytics",
+                  "description": "Read campaigns, bounded performance, spend, conversion, creative, and audience summaries.",
+                  "category": "ads",
+                  "risk": "low",
+                  "approvalRequired": false,
+                  "destructive": false,
+                  "operations": [
+                    "ads.list_campaigns",
+                    "ads.read_campaign",
+                    "ads.read_performance",
+                    "ads.read_spend",
+                    "ads.read_conversions",
+                    "ads.read_creative",
+                    "ads.read_audience_summary"
+                  ]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "ads.prepare",
+                  "name": "Campaign drafts",
+                  "description": "Create or update campaign and creative drafts without activating spend.",
+                  "category": "ads",
+                  "risk": "medium",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": [
+                    "ads.create_draft_campaign",
+                    "ads.update_draft_campaign",
+                    "ads.create_draft_creative"
+                  ]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "ads.write",
+                  "name": "Governed campaign changes",
+                  "description": "Version-bound pause/resume and budget changes with financial-impact preview.",
+                  "category": "ads",
+                  "risk": "high",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": [
+                    "ads.pause_campaign",
+                    "ads.resume_campaign",
+                    "ads.adjust_budget"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "commerce",
+          "provider": "commerce",
+          "category": "commerce",
+          "displayName": "Commerce",
+          "version": "1.0.0",
+          "supportedAuth": ["oauth", "service_account"],
+          "healthSummary": "Commerce data remains provider truth; inventory, price, discount, refund, and cancellation paths are bounded.",
+          "capabilities": [
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "commerce.read",
+                  "name": "Commerce retrieval",
+                  "description": "Read bounded products, inventory, customers, orders, fulfillment, and returns.",
+                  "category": "commerce",
+                  "risk": "low",
+                  "approvalRequired": false,
+                  "destructive": false,
+                  "operations": [
+                    "commerce.list_products",
+                    "commerce.read_product",
+                    "commerce.read_inventory",
+                    "commerce.search_customers",
+                    "commerce.list_orders",
+                    "commerce.read_order",
+                    "commerce.read_fulfillment",
+                    "commerce.read_returns"
+                  ]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "commerce.prepare",
+                  "name": "Commerce preparation",
+                  "description": "Prepare bounded discounts and refunds without moving money.",
+                  "category": "commerce",
+                  "risk": "medium",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": [
+                    "commerce.create_draft_discount",
+                    "commerce.prepare_refund"
+                  ]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "commerce.write",
+                  "name": "Governed commerce changes",
+                  "description": "Version-bound product, inventory, note, and cancellation actions.",
+                  "category": "commerce",
+                  "risk": "high",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": [
+                    "commerce.update_product",
+                    "commerce.update_inventory",
+                    "commerce.update_order_note",
+                    "commerce.cancel_order"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "github",
+          "provider": "github",
+          "category": "git_provider",
+          "displayName": "GitHub",
+          "version": "1.0.0",
+          "supportedAuth": ["oauth", "pat"],
+          "healthSummary": "GitHub connector installed; live calls require configured credentials.",
+          "capabilities": [
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "github.repository.read",
+                  "name": "Repository discovery",
+                  "description": "Discover repositories, branches, pull requests, status checks, and releases.",
+                  "category": "git_provider",
+                  "risk": "low",
+                  "approvalRequired": false,
+                  "destructive": false,
+                  "operations": [
+                    "repositories.list",
+                    "pull_requests.list",
+                    "checks.read",
+                    "github.read_issue",
+                    "github.read_pull_request"
+                  ]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "github.issue.write",
+                  "name": "Issue creation",
+                  "description": "Create a bounded issue after explicit approval.",
+                  "category": "git_provider",
+                  "risk": "medium",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": ["github.create_issue"]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "github.pull_request.write",
+                  "name": "Pull request updates",
+                  "description": "Create comments or update pull requests after explicit approval.",
+                  "category": "git_provider",
+                  "risk": "medium",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": ["pull_requests.comment", "pull_requests.review"]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "jira",
+          "provider": "jira",
+          "category": "issue_tracker",
+          "displayName": "Jira",
+          "version": "1.0.0",
+          "supportedAuth": ["oauth", "pat"],
+          "healthSummary": "Jira connector installed; issue mutations remain approval-gated.",
+          "capabilities": [
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "jira.issue.read",
+                  "name": "Issue search",
+                  "description": "Read issues, project metadata, and workflow status.",
+                  "category": "issue_tracker",
+                  "risk": "low",
+                  "approvalRequired": false,
+                  "destructive": false,
+                  "operations": ["issues.search", "issues.read"]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "jira.issue.write",
+                  "name": "Issue updates",
+                  "description": "Create or update issues only after approval.",
+                  "category": "issue_tracker",
+                  "risk": "medium",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": ["issues.create", "issues.update", "issues.transition"]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "slack",
+          "provider": "slack",
+          "category": "communication",
+          "displayName": "Slack",
+          "version": "1.0.0",
+          "supportedAuth": ["oauth"],
+          "healthSummary": "Slack connector installed; message sending remains approval-gated.",
+          "capabilities": [
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "slack.notification.send",
+                  "name": "Workflow notifications",
+                  "description": "Send workflow notifications, validation summaries, and approval prompts.",
+                  "category": "communication",
+                  "risk": "medium",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": ["messages.send", "approvals.notify"]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "notion",
+          "provider": "notion",
+          "category": "documentation",
+          "displayName": "Notion",
+          "version": "1.0.0",
+          "supportedAuth": ["oauth"],
+          "healthSummary": "Notion connector installed; document writes remain approval-gated.",
+          "capabilities": [
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "notion.page.read",
+                  "name": "Documentation search",
+                  "description": "Read approved Notion pages and databases for engineering context.",
+                  "category": "documentation",
+                  "risk": "low",
+                  "approvalRequired": false,
+                  "destructive": false,
+                  "operations": ["pages.search", "pages.read"]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "notion.page.write",
+                  "name": "Documentation drafts",
+                  "description": "Create or update documentation drafts after approval.",
+                  "category": "documentation",
+                  "risk": "medium",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": ["pages.create", "pages.update"]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "vscode",
+          "provider": "vscode",
+          "category": "ide",
+          "displayName": "VS Code",
+          "version": "1.0.0",
+          "supportedAuth": ["local_app"],
+          "healthSummary": "VS Code connector is local-status only; editing remains Phase 5 gated.",
+          "capabilities": [
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "vscode.navigation.open",
+                  "name": "IDE navigation",
+                  "description": "Navigate to files or symbols without editing code.",
+                  "category": "ide",
+                  "risk": "low",
+                  "approvalRequired": false,
+                  "destructive": false,
+                  "operations": ["files.open", "symbols.navigate", "diagnostics.show"]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "github_actions",
+          "provider": "github_actions",
+          "category": "ci_cd",
+          "displayName": "GitHub Actions",
+          "version": "1.0.0",
+          "supportedAuth": ["oauth", "pat"],
+          "healthSummary": "GitHub Actions connector installed; workflow dispatch is approval-gated.",
+          "capabilities": [
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "github_actions.workflow.read",
+                  "name": "CI status",
+                  "description": "Read workflow runs, checks, logs, and artifacts.",
+                  "category": "ci_cd",
+                  "risk": "low",
+                  "approvalRequired": false,
+                  "destructive": false,
+                  "operations": ["runs.list", "runs.logs", "artifacts.read"]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "github_actions.workflow.dispatch",
+                  "name": "Approved CI dispatch",
+                  "description": "Trigger administrator-approved CI workflows.",
+                  "category": "ci_cd",
+                  "risk": "high",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": ["workflows.dispatch"]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "vercel",
+          "provider": "vercel",
+          "category": "deployment",
+          "displayName": "Vercel",
+          "version": "1.0.0",
+          "supportedAuth": ["oauth", "pat"],
+          "healthSummary": "Vercel connector installed; deployments and rollbacks require approval.",
+          "capabilities": [
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "vercel.deployment.read",
+                  "name": "Deployment status",
+                  "description": "Read deployment history, project status, and environment health.",
+                  "category": "deployment",
+                  "risk": "low",
+                  "approvalRequired": false,
+                  "destructive": false,
+                  "operations": ["deployments.list", "deployments.read"]
+                }
+              ]
+            },
+            {
+              "declaredHelper": "capability",
+              "argumentsMetadata": [
+                {
+                  "id": "vercel.deployment.control",
+                  "name": "Approved deployment control",
+                  "description": "Promote or roll back deployments only after explicit approval.",
+                  "category": "deployment",
+                  "risk": "high",
+                  "approvalRequired": true,
+                  "destructive": false,
+                  "operations": ["deployments.promote", "deployments.rollback"]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "apps/api/src/agent-society/service.ts",
+      "symbol": "roleSeeds",
+      "line": 54,
+      "authority": "STATIC_DECLARATION_ONLY; helpers and references are not evaluated; prompt/content fields omitted",
+      "value": [
+        {
+          "role": "chief_planner",
+          "displayName": "Chief Planner",
+          "responsibilities": ["Coordinate collective planning", "Surface trade-offs"]
+        },
+        {
+          "role": "engineering_manager",
+          "displayName": "Engineering Manager",
+          "responsibilities": ["Prioritize work", "Resolve blockers", "Escalate risks"]
+        },
+        {
+          "role": "technical_lead",
+          "displayName": "Technical Lead",
+          "responsibilities": ["Guide architecture", "Coordinate reviews"]
+        },
+        {
+          "role": "security_engineer",
+          "displayName": "Security Engineer",
+          "responsibilities": ["Challenge unsafe plans", "Review approval boundaries"]
+        },
+        {
+          "role": "qa_engineer",
+          "displayName": "QA Engineer",
+          "responsibilities": ["Plan validation", "Review test coverage"]
+        },
+        {
+          "role": "mentor",
+          "displayName": "Mentor",
+          "responsibilities": ["Transfer knowledge", "Improve specialist reasoning"]
+        }
+      ]
+    }
+  ]
+}

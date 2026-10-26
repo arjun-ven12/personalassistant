@@ -1,0 +1,4160 @@
+[
+  {
+    "method": "POST",
+    "pathExpression": "/api/active-context/device",
+    "source": "apps/api/src/routes/active-context.ts",
+    "line": 17,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/active-context",
+    "source": "apps/api/src/routes/active-context.ts",
+    "line": 37,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/adapter-sdk",
+    "source": "apps/api/src/routes/adapter-sdk.ts",
+    "line": 13,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/adapter-sdk/metadata",
+    "source": "apps/api/src/routes/adapter-sdk.ts",
+    "line": 24,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/adapter-sdk/lifecycle",
+    "source": "apps/api/src/routes/adapter-sdk.ts",
+    "line": 35,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/advisor/dashboard",
+    "source": "apps/api/src/routes/advisor.ts",
+    "line": 27,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/advisor/goals",
+    "source": "apps/api/src/routes/advisor.ts",
+    "line": 38,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/advisor/goals",
+    "source": "apps/api/src/routes/advisor.ts",
+    "line": 49,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/advisor/goals/:goalId/plan",
+    "source": "apps/api/src/routes/advisor.ts",
+    "line": 72,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/advisor/recommendations",
+    "source": "apps/api/src/routes/advisor.ts",
+    "line": 95,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/advisor/risks",
+    "source": "apps/api/src/routes/advisor.ts",
+    "line": 106,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/advisor/repository-health",
+    "source": "apps/api/src/routes/advisor.ts",
+    "line": 117,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/advisor/architecture-health",
+    "source": "apps/api/src/routes/advisor.ts",
+    "line": 128,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/advisor/technical-debt",
+    "source": "apps/api/src/routes/advisor.ts",
+    "line": 139,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/advisor/roadmaps",
+    "source": "apps/api/src/routes/advisor.ts",
+    "line": 150,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/advisor/simulations",
+    "source": "apps/api/src/routes/advisor.ts",
+    "line": 161,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/advisor/release-readiness",
+    "source": "apps/api/src/routes/advisor.ts",
+    "line": 183,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/advisor/metrics",
+    "source": "apps/api/src/routes/advisor.ts",
+    "line": 194,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-cognition/dashboard",
+    "source": "apps/api/src/routes/agent-cognition.ts",
+    "line": 23,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-cognition/search",
+    "source": "apps/api/src/routes/agent-cognition.ts",
+    "line": 34,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-cognition/reflections",
+    "source": "apps/api/src/routes/agent-cognition.ts",
+    "line": 46,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-cognition/reason",
+    "source": "apps/api/src/routes/agent-cognition.ts",
+    "line": 68,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-cognition/agents/:agentId/consolidate",
+    "source": "apps/api/src/routes/agent-cognition.ts",
+    "line": 90,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-economy/dashboard",
+    "source": "apps/api/src/routes/agent-economy.ts",
+    "line": 16,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-economy/agents/:agentId/enroll",
+    "source": "apps/api/src/routes/agent-economy.ts",
+    "line": 25,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-economy/agents/:agentId/allocate",
+    "source": "apps/api/src/routes/agent-economy.ts",
+    "line": 36,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-economy/agents/:agentId/status",
+    "source": "apps/api/src/routes/agent-economy.ts",
+    "line": 48,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-evolution/dashboard",
+    "source": "apps/api/src/routes/agent-evolution.ts",
+    "line": 27,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-evolution/expertise",
+    "source": "apps/api/src/routes/agent-evolution.ts",
+    "line": 38,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-evolution/proposals",
+    "source": "apps/api/src/routes/agent-evolution.ts",
+    "line": 49,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-evolution/proposals",
+    "source": "apps/api/src/routes/agent-evolution.ts",
+    "line": 61,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-evolution/analyse",
+    "source": "apps/api/src/routes/agent-evolution.ts",
+    "line": 83,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-evolution/timeline",
+    "source": "apps/api/src/routes/agent-evolution.ts",
+    "line": 105,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-evolution/benchmarks",
+    "source": "apps/api/src/routes/agent-evolution.ts",
+    "line": 117,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-evolution/self-evaluations",
+    "source": "apps/api/src/routes/agent-evolution.ts",
+    "line": 129,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-evolution/marketplace",
+    "source": "apps/api/src/routes/agent-evolution.ts",
+    "line": 143,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-os/dashboard",
+    "source": "apps/api/src/routes/agent-os.ts",
+    "line": 32,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-os/manifests",
+    "source": "apps/api/src/routes/agent-os.ts",
+    "line": 43,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-os/packages",
+    "source": "apps/api/src/routes/agent-os.ts",
+    "line": 54,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-os/sessions",
+    "source": "apps/api/src/routes/agent-os.ts",
+    "line": 66,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-os/sessions",
+    "source": "apps/api/src/routes/agent-os.ts",
+    "line": 78,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-os/events",
+    "source": "apps/api/src/routes/agent-os.ts",
+    "line": 100,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-os/configurations",
+    "source": "apps/api/src/routes/agent-os.ts",
+    "line": 112,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-os/tools",
+    "source": "apps/api/src/routes/agent-os.ts",
+    "line": 124,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-os/permission-profiles",
+    "source": "apps/api/src/routes/agent-os.ts",
+    "line": 135,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-os/knowledge-sources",
+    "source": "apps/api/src/routes/agent-os.ts",
+    "line": 146,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-os/health",
+    "source": "apps/api/src/routes/agent-os.ts",
+    "line": 157,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-os/metrics",
+    "source": "apps/api/src/routes/agent-os.ts",
+    "line": 168,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-os/versions",
+    "source": "apps/api/src/routes/agent-os.ts",
+    "line": 179,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-os/context-packages",
+    "source": "apps/api/src/routes/agent-os.ts",
+    "line": 191,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-society/dashboard",
+    "source": "apps/api/src/routes/agent-society.ts",
+    "line": 32,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-society/teams",
+    "source": "apps/api/src/routes/agent-society.ts",
+    "line": 43,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-society/debates",
+    "source": "apps/api/src/routes/agent-society.ts",
+    "line": 65,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-society/meetings",
+    "source": "apps/api/src/routes/agent-society.ts",
+    "line": 87,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-society/teams",
+    "source": "apps/api/src/routes/agent-society.ts",
+    "line": 109,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-society/debates",
+    "source": "apps/api/src/routes/agent-society.ts",
+    "line": 123,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-society/meetings",
+    "source": "apps/api/src/routes/agent-society.ts",
+    "line": 137,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-society/reputation",
+    "source": "apps/api/src/routes/agent-society.ts",
+    "line": 151,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-society/collaboration",
+    "source": "apps/api/src/routes/agent-society.ts",
+    "line": 162,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-society/analytics",
+    "source": "apps/api/src/routes/agent-society.ts",
+    "line": 175,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-society/communications",
+    "source": "apps/api/src/routes/agent-society.ts",
+    "line": 189,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-society/delegations",
+    "source": "apps/api/src/routes/agent-society.ts",
+    "line": 206,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-society/peer-reviews",
+    "source": "apps/api/src/routes/agent-society.ts",
+    "line": 223,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-society/mentorships",
+    "source": "apps/api/src/routes/agent-society.ts",
+    "line": 240,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-workforce/catalog",
+    "source": "apps/api/src/routes/agent-workforce.ts",
+    "line": 37,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-workforce/department-templates",
+    "source": "apps/api/src/routes/agent-workforce.ts",
+    "line": 53,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-workforce/departments",
+    "source": "apps/api/src/routes/agent-workforce.ts",
+    "line": 67,
+    "dynamic": false
+  },
+  {
+    "method": "PATCH",
+    "pathExpression": "/api/agent-workforce/departments/:departmentId",
+    "source": "apps/api/src/routes/agent-workforce.ts",
+    "line": 83,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-workforce/departments/:departmentId/archive",
+    "source": "apps/api/src/routes/agent-workforce.ts",
+    "line": 101,
+    "dynamic": false
+  },
+  {
+    "method": "PATCH",
+    "pathExpression": "/api/agent-workforce/agents/:agentId/department",
+    "source": "apps/api/src/routes/agent-workforce.ts",
+    "line": 119,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-workforce/catalog/:definitionId/assign",
+    "source": "apps/api/src/routes/agent-workforce.ts",
+    "line": 139,
+    "dynamic": false
+  },
+  {
+    "method": "DELETE",
+    "pathExpression": "/api/agent-workforce/catalog/:definitionId/assignment",
+    "source": "apps/api/src/routes/agent-workforce.ts",
+    "line": 161,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-workforce/preview",
+    "source": "apps/api/src/routes/agent-workforce.ts",
+    "line": 178,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-workforce/graph",
+    "source": "apps/api/src/routes/agent-workforce.ts",
+    "line": 194,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-workforce/agents/:agentId",
+    "source": "apps/api/src/routes/agent-workforce.ts",
+    "line": 210,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-workforce/bootstrap",
+    "source": "apps/api/src/routes/agent-workforce.ts",
+    "line": 227,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-workforce/agents/:agentId/activation",
+    "source": "apps/api/src/routes/agent-workforce.ts",
+    "line": 242,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agents/dashboard",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 42,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agents",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 53,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agents/tasks",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 62,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agents/tasks",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 73,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agents/tasks/:taskId/complete",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 95,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agents/messages",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 120,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agents/messages",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 131,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agents/consensus",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 153,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agents/consensus",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 164,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agents/health",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 186,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agents/metrics",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 197,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agents/dynamic/workforce",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 208,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agents/templates",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 219,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agents/capabilities",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 230,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agents/capabilities/search",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 254,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agents/team-compositions",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 270,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agents/team-compositions",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 292,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agents/dynamic",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 303,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agents/dynamic/:agentId/retire",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 321,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agents/lifecycle",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 346,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agents/performance",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 357,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agents/promotions",
+    "source": "apps/api/src/routes/agents.ts",
+    "line": 368,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/benchmarks/suites",
+    "source": "apps/api/src/routes/ai-benchmark.ts",
+    "line": 20,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/benchmarks/runs",
+    "source": "apps/api/src/routes/ai-benchmark.ts",
+    "line": 25,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/benchmarks/runs/:id",
+    "source": "apps/api/src/routes/ai-benchmark.ts",
+    "line": 31,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/benchmarks/profiles",
+    "source": "apps/api/src/routes/ai-benchmark.ts",
+    "line": 44,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/benchmarks/regressions",
+    "source": "apps/api/src/routes/ai-benchmark.ts",
+    "line": 52,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/ai/benchmarks/runs",
+    "source": "apps/api/src/routes/ai-benchmark.ts",
+    "line": 69,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/ai/context/compose",
+    "source": "apps/api/src/routes/ai-context.ts",
+    "line": 51,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/ai/context/simulate",
+    "source": "apps/api/src/routes/ai-context.ts",
+    "line": 70,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/context/profiles",
+    "source": "apps/api/src/routes/ai-context.ts",
+    "line": 89,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/context/traces",
+    "source": "apps/api/src/routes/ai-context.ts",
+    "line": 94,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/context/traces/:id",
+    "source": "apps/api/src/routes/ai-context.ts",
+    "line": 103,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/context/health",
+    "source": "apps/api/src/routes/ai-context.ts",
+    "line": 119,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/economics/health",
+    "source": "apps/api/src/routes/ai-economics.ts",
+    "line": 37,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/ai/economics/overrides/:approvalId/grant",
+    "source": "apps/api/src/routes/ai-economics.ts",
+    "line": 43,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/economics/overview",
+    "source": "apps/api/src/routes/ai-economics.ts",
+    "line": 64,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/economics/budgets",
+    "source": "apps/api/src/routes/ai-economics.ts",
+    "line": 70,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/ai/economics/budgets",
+    "source": "apps/api/src/routes/ai-economics.ts",
+    "line": 76,
+    "dynamic": false
+  },
+  {
+    "method": "PUT",
+    "pathExpression": "/api/ai/economics/budgets/:id",
+    "source": "apps/api/src/routes/ai-economics.ts",
+    "line": 98,
+    "dynamic": false
+  },
+  {
+    "method": "DELETE",
+    "pathExpression": "/api/ai/economics/budgets/:id",
+    "source": "apps/api/src/routes/ai-economics.ts",
+    "line": 125,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/ai/economics/estimate",
+    "source": "apps/api/src/routes/ai-economics.ts",
+    "line": 136,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/economics/pricing",
+    "source": "apps/api/src/routes/ai-economics.ts",
+    "line": 148,
+    "dynamic": false
+  },
+  {
+    "method": "PUT",
+    "pathExpression": "/api/ai/economics/pricing/:id",
+    "source": "apps/api/src/routes/ai-economics.ts",
+    "line": 153,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/economics/usage",
+    "source": "apps/api/src/routes/ai-economics.ts",
+    "line": 166,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/economics/reservations",
+    "source": "apps/api/src/routes/ai-economics.ts",
+    "line": 177,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/providers",
+    "source": "apps/api/src/routes/ai.ts",
+    "line": 104,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/providers/health",
+    "source": "apps/api/src/routes/ai.ts",
+    "line": 118,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/providers/:providerId",
+    "source": "apps/api/src/routes/ai.ts",
+    "line": 123,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/providers/:providerId/health",
+    "source": "apps/api/src/routes/ai.ts",
+    "line": 137,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/models",
+    "source": "apps/api/src/routes/ai.ts",
+    "line": 150,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/models/:modelId",
+    "source": "apps/api/src/routes/ai.ts",
+    "line": 155,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/model-roles",
+    "source": "apps/api/src/routes/ai.ts",
+    "line": 169,
+    "dynamic": false
+  },
+  {
+    "method": "PUT",
+    "pathExpression": "/api/ai/model-roles/:role",
+    "source": "apps/api/src/routes/ai.ts",
+    "line": 174,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/ai/test",
+    "source": "apps/api/src/routes/ai.ts",
+    "line": 199,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/ai/test-structured",
+    "source": "apps/api/src/routes/ai.ts",
+    "line": 235,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/activity",
+    "source": "apps/api/src/routes/ai.ts",
+    "line": 286,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/ai/requests/:requestId/cancel",
+    "source": "apps/api/src/routes/ai.ts",
+    "line": 291,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/ai/router/simulate",
+    "source": "apps/api/src/routes/ai.ts",
+    "line": 302,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/ai/router/execute",
+    "source": "apps/api/src/routes/ai.ts",
+    "line": 310,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/ai/router/execute-structured",
+    "source": "apps/api/src/routes/ai.ts",
+    "line": 321,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/router/metrics",
+    "source": "apps/api/src/routes/ai.ts",
+    "line": 356,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/router/events",
+    "source": "apps/api/src/routes/ai.ts",
+    "line": 361,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/application-adapters",
+    "source": "apps/api/src/routes/application-adapters.ts",
+    "line": 22,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/application-adapters/trusted-applications",
+    "source": "apps/api/src/routes/application-adapters.ts",
+    "line": 33,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/application-adapters/permissions",
+    "source": "apps/api/src/routes/application-adapters.ts",
+    "line": 49,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/application-adapters/capabilities/refresh",
+    "source": "apps/api/src/routes/application-adapters.ts",
+    "line": 65,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/application-adapters/synchronize",
+    "source": "apps/api/src/routes/application-adapters.ts",
+    "line": 82,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/application-adapters/revoke",
+    "source": "apps/api/src/routes/application-adapters.ts",
+    "line": 99,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/applications/installations",
+    "source": "apps/api/src/routes/application-discovery.ts",
+    "line": 83,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/applications/discovery-ingest",
+    "source": "apps/api/src/routes/application-discovery.ts",
+    "line": 98,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/applications/discovery-refresh",
+    "source": "apps/api/src/routes/application-discovery.ts",
+    "line": 117,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/application-intelligence",
+    "source": "apps/api/src/routes/application-intelligence.ts",
+    "line": 13,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/application-intelligence/provider-selection",
+    "source": "apps/api/src/routes/application-intelligence.ts",
+    "line": 24,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/application-interactions",
+    "source": "apps/api/src/routes/application-interactions.ts",
+    "line": 10,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/applications",
+    "source": "apps/api/src/routes/applications.ts",
+    "line": 23,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/applications",
+    "source": "apps/api/src/routes/applications.ts",
+    "line": 34,
+    "dynamic": false
+  },
+  {
+    "method": "PATCH",
+    "pathExpression": "/api/applications/:applicationId",
+    "source": "apps/api/src/routes/applications.ts",
+    "line": 61,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/applications/:applicationId/disable",
+    "source": "apps/api/src/routes/applications.ts",
+    "line": 90,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/approvals",
+    "source": "apps/api/src/routes/approvals.ts",
+    "line": 21,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/approvals/:approvalId",
+    "source": "apps/api/src/routes/approvals.ts",
+    "line": 33,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/approvals/:approvalId/approve",
+    "source": "apps/api/src/routes/approvals.ts",
+    "line": 45,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/approvals/:approvalId/reject",
+    "source": "apps/api/src/routes/approvals.ts",
+    "line": 80,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/approvals/:approvalId/cancel",
+    "source": "apps/api/src/routes/approvals.ts",
+    "line": 106,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/audit",
+    "source": "apps/api/src/routes/audit.ts",
+    "line": 14,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/auth/register",
+    "source": "apps/api/src/routes/auth.ts",
+    "line": 42,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/auth/login",
+    "source": "apps/api/src/routes/auth.ts",
+    "line": 82,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/auth/session",
+    "source": "apps/api/src/routes/auth.ts",
+    "line": 119,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/auth/logout",
+    "source": "apps/api/src/routes/auth.ts",
+    "line": 140,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/auth/sessions",
+    "source": "apps/api/src/routes/auth.ts",
+    "line": 173,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/auth/sessions/:sessionId/revoke",
+    "source": "apps/api/src/routes/auth.ts",
+    "line": 186,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/security/sessions",
+    "source": "apps/api/src/routes/auth.ts",
+    "line": 221,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/security/sessions/:sessionId/revoke",
+    "source": "apps/api/src/routes/auth.ts",
+    "line": 234,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/security/sessions/revoke-others",
+    "source": "apps/api/src/routes/auth.ts",
+    "line": 267,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/auth/google/status",
+    "source": "apps/api/src/routes/auth.ts",
+    "line": 309,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/auth/google/start",
+    "source": "apps/api/src/routes/auth.ts",
+    "line": 317,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/business-os/summary",
+    "source": "apps/api/src/routes/business-os.ts",
+    "line": 9,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/capability-studio",
+    "source": "apps/api/src/routes/capability-studio.ts",
+    "line": 16,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/companies",
+    "source": "apps/api/src/routes/companies.ts",
+    "line": 20,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/companies",
+    "source": "apps/api/src/routes/companies.ts",
+    "line": 23,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/companies/:companyId",
+    "source": "apps/api/src/routes/companies.ts",
+    "line": 26,
+    "dynamic": false
+  },
+  {
+    "method": "PATCH",
+    "pathExpression": "/api/companies/:companyId",
+    "source": "apps/api/src/routes/companies.ts",
+    "line": 30,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/companies/select",
+    "source": "apps/api/src/routes/companies.ts",
+    "line": 34,
+    "dynamic": false
+  },
+  {
+    "method": "PATCH",
+    "pathExpression": "/api/companies/limit",
+    "source": "apps/api/src/routes/companies.ts",
+    "line": 38,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/companies/:companyId/archive",
+    "source": "apps/api/src/routes/companies.ts",
+    "line": 42,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/companies/:companyId/:action",
+    "source": "apps/api/src/routes/companies.ts",
+    "line": 46,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/company-data",
+    "source": "apps/api/src/routes/company-data.ts",
+    "line": 59,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/company-data/sources",
+    "source": "apps/api/src/routes/company-data.ts",
+    "line": 69,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/company-data/datasets",
+    "source": "apps/api/src/routes/company-data.ts",
+    "line": 77,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/company-data/pipelines",
+    "source": "apps/api/src/routes/company-data.ts",
+    "line": 85,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/company-data/pipelines/:pipelineId/run",
+    "source": "apps/api/src/routes/company-data.ts",
+    "line": 96,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/company-data/metadata",
+    "source": "apps/api/src/routes/company-data.ts",
+    "line": 107,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/company-data/lineage",
+    "source": "apps/api/src/routes/company-data.ts",
+    "line": 118,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/company-data/lineage/:id",
+    "source": "apps/api/src/routes/company-data.ts",
+    "line": 129,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/company-data/glossary",
+    "source": "apps/api/src/routes/company-data.ts",
+    "line": 146,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/company-data/glossary/resolve",
+    "source": "apps/api/src/routes/company-data.ts",
+    "line": 157,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/company-data/metrics",
+    "source": "apps/api/src/routes/company-data.ts",
+    "line": 171,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/company-data/metrics/:canonicalKey/observations",
+    "source": "apps/api/src/routes/company-data.ts",
+    "line": 179,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/company-data/metrics/:canonicalKey",
+    "source": "apps/api/src/routes/company-data.ts",
+    "line": 191,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/company-data/credentials",
+    "source": "apps/api/src/routes/company-data.ts",
+    "line": 225,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/company-data/integrations",
+    "source": "apps/api/src/routes/company-data.ts",
+    "line": 236,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/company-data/policy",
+    "source": "apps/api/src/routes/company-data.ts",
+    "line": 247,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/company-data/memory/index",
+    "source": "apps/api/src/routes/company-data.ts",
+    "line": 255,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/company-data/memory/search",
+    "source": "apps/api/src/routes/company-data.ts",
+    "line": 266,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/company-data/agents/:assignmentId/context",
+    "source": "apps/api/src/routes/company-data.ts",
+    "line": 308,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/company-management",
+    "source": "apps/api/src/routes/company-management.ts",
+    "line": 13,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/company-management/reviews",
+    "source": "apps/api/src/routes/company-management.ts",
+    "line": 21,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/core-adapters",
+    "source": "apps/api/src/routes/core-adapters.ts",
+    "line": 13,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/core-adapters/health",
+    "source": "apps/api/src/routes/core-adapters.ts",
+    "line": 24,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/core-adapters/context",
+    "source": "apps/api/src/routes/core-adapters.ts",
+    "line": 36,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/core-adapters/actions",
+    "source": "apps/api/src/routes/core-adapters.ts",
+    "line": 48,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/core-adapters/semantic-actions",
+    "source": "apps/api/src/routes/core-adapters.ts",
+    "line": 60,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/cross-application-workflows",
+    "source": "apps/api/src/routes/cross-application-workflows.ts",
+    "line": 18,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/cross-application-workflows/compose",
+    "source": "apps/api/src/routes/cross-application-workflows.ts",
+    "line": 29,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/cross-application-workflows/:graphId",
+    "source": "apps/api/src/routes/cross-application-workflows.ts",
+    "line": 51,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/cross-application-workflows/:graphId/start",
+    "source": "apps/api/src/routes/cross-application-workflows.ts",
+    "line": 63,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/cross-application-workflows/:graphId/pause",
+    "source": "apps/api/src/routes/cross-application-workflows.ts",
+    "line": 89,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/cross-application-workflows/:graphId/cancel",
+    "source": "apps/api/src/routes/cross-application-workflows.ts",
+    "line": 112,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/cross-application-workflows/:graphId/recover",
+    "source": "apps/api/src/routes/cross-application-workflows.ts",
+    "line": 135,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/cross-device/clients",
+    "source": "apps/api/src/routes/cross-device.ts",
+    "line": 41,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/cross-device/heartbeat",
+    "source": "apps/api/src/routes/cross-device.ts",
+    "line": 59,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/cross-device/commands",
+    "source": "apps/api/src/routes/cross-device.ts",
+    "line": 74,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/cross-device/poll",
+    "source": "apps/api/src/routes/cross-device.ts",
+    "line": 90,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/cross-device/receipts",
+    "source": "apps/api/src/routes/cross-device.ts",
+    "line": 105,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/cross-device/commands/:commandId",
+    "source": "apps/api/src/routes/cross-device.ts",
+    "line": 120,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/cross-device/clients",
+    "source": "apps/api/src/routes/cross-device.ts",
+    "line": 133,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/v1/device/cross-device",
+    "source": "apps/api/src/routes/cross-device.ts",
+    "line": 145,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/deep-indexers",
+    "source": "apps/api/src/routes/deep-indexers.ts",
+    "line": 13,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/deep-indexers/events",
+    "source": "apps/api/src/routes/deep-indexers.ts",
+    "line": 24,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/deep-indexers/health",
+    "source": "apps/api/src/routes/deep-indexers.ts",
+    "line": 34,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/deep-indexers/search-statistics",
+    "source": "apps/api/src/routes/deep-indexers.ts",
+    "line": 44,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/deep-indexers/incremental-sync",
+    "source": "apps/api/src/routes/deep-indexers.ts",
+    "line": 56,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/desktop-skills",
+    "source": "apps/api/src/routes/desktop-skills.ts",
+    "line": 16,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/desktop-skills/execute",
+    "source": "apps/api/src/routes/desktop-skills.ts",
+    "line": 27,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/desktop",
+    "source": "apps/api/src/routes/desktop.ts",
+    "line": 15,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/desktop/context/refresh",
+    "source": "apps/api/src/routes/desktop.ts",
+    "line": 26,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/desktop/actions",
+    "source": "apps/api/src/routes/desktop.ts",
+    "line": 47,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/desktop/spatial/interactions",
+    "source": "apps/api/src/routes/desktop.ts",
+    "line": 69,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/desktop/semantic/search",
+    "source": "apps/api/src/routes/desktop.ts",
+    "line": 91,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/desktop/navigation",
+    "source": "apps/api/src/routes/desktop.ts",
+    "line": 113,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/desktop/interactions",
+    "source": "apps/api/src/routes/desktop.ts",
+    "line": 135,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/desktop/forms/fill",
+    "source": "apps/api/src/routes/desktop.ts",
+    "line": 157,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/devices/pairing-intents",
+    "source": "apps/api/src/routes/devices.ts",
+    "line": 23,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/devices/pairing-requests",
+    "source": "apps/api/src/routes/devices.ts",
+    "line": 48,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/devices/pairing-status",
+    "source": "apps/api/src/routes/devices.ts",
+    "line": 79,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/devices",
+    "source": "apps/api/src/routes/devices.ts",
+    "line": 104,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/devices/:deviceId/approve",
+    "source": "apps/api/src/routes/devices.ts",
+    "line": 117,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/devices/:deviceId/revoke",
+    "source": "apps/api/src/routes/devices.ts",
+    "line": 150,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/security/signed-request/verify",
+    "source": "apps/api/src/routes/devices.ts",
+    "line": 221,
+    "dynamic": false
+  },
+  {
+    "method": "PUT",
+    "pathExpression": "/api/company-collaboration/policy",
+    "source": "apps/api/src/routes/durable-execution.ts",
+    "line": 45,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/cross-company-services",
+    "source": "apps/api/src/routes/durable-execution.ts",
+    "line": 58,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/cross-company-services",
+    "source": "apps/api/src/routes/durable-execution.ts",
+    "line": 69,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/cross-company-services/:id/decision",
+    "source": "apps/api/src/routes/durable-execution.ts",
+    "line": 81,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/cross-company-services/:id/cancel",
+    "source": "apps/api/src/routes/durable-execution.ts",
+    "line": 97,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/sandbox-executions",
+    "source": "apps/api/src/routes/durable-execution.ts",
+    "line": 110,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/engineering-deliveries",
+    "source": "apps/api/src/routes/engineering-delivery.ts",
+    "line": 41,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/engineering-deliveries/projects",
+    "source": "apps/api/src/routes/engineering-delivery.ts",
+    "line": 49,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/engineering-deliveries/:deliveryId",
+    "source": "apps/api/src/routes/engineering-delivery.ts",
+    "line": 66,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/engineering-deliveries",
+    "source": "apps/api/src/routes/engineering-delivery.ts",
+    "line": 80,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/engineering-deliveries/:deliveryId/${action}",
+    "source": "apps/api/src/routes/engineering-delivery.ts",
+    "line": 86,
+    "dynamic": true
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/engineering-deliveries/:deliveryId/instructions",
+    "source": "apps/api/src/routes/engineering-delivery.ts",
+    "line": 105,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/engineering-deliveries/:deliveryId/preview/${action}",
+    "source": "apps/api/src/routes/engineering-delivery.ts",
+    "line": 118,
+    "dynamic": true
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/engineering-integrations",
+    "source": "apps/api/src/routes/engineering-integration.ts",
+    "line": 43,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/engineering-integrations/:runId",
+    "source": "apps/api/src/routes/engineering-integration.ts",
+    "line": 52,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/engineering-integrations",
+    "source": "apps/api/src/routes/engineering-integration.ts",
+    "line": 67,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/engineering-integrations/:runId/${action}",
+    "source": "apps/api/src/routes/engineering-integration.ts",
+    "line": 76,
+    "dynamic": true
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/engineering-integrations/:runId/merge",
+    "source": "apps/api/src/routes/engineering-integration.ts",
+    "line": 95,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/engineering-objectives",
+    "source": "apps/api/src/routes/engineering-orchestration.ts",
+    "line": 46,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/engineering-objectives/:objectiveId",
+    "source": "apps/api/src/routes/engineering-orchestration.ts",
+    "line": 55,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/engineering-objectives",
+    "source": "apps/api/src/routes/engineering-orchestration.ts",
+    "line": 70,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/engineering-objectives/:objectiveId/${action}",
+    "source": "apps/api/src/routes/engineering-orchestration.ts",
+    "line": 76,
+    "dynamic": true
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/engineering-objectives/:objectiveId/clarifications/:clarificationId/answer",
+    "source": "apps/api/src/routes/engineering-orchestration.ts",
+    "line": 99,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/engineering-objectives/:objectiveId/replan",
+    "source": "apps/api/src/routes/engineering-orchestration.ts",
+    "line": 116,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/engineering-project-sessions",
+    "source": "apps/api/src/routes/engineering-project-sessions.ts",
+    "line": 24,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/engineering-project-sessions",
+    "source": "apps/api/src/routes/engineering-project-sessions.ts",
+    "line": 29,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/engineering-project-sessions/:sessionId",
+    "source": "apps/api/src/routes/engineering-project-sessions.ts",
+    "line": 31,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/engineering-project-sessions/:sessionId/messages",
+    "source": "apps/api/src/routes/engineering-project-sessions.ts",
+    "line": 36,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/engineering-project-sessions/:sessionId/queue",
+    "source": "apps/api/src/routes/engineering-project-sessions.ts",
+    "line": 39,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/executions",
+    "source": "apps/api/src/routes/executions.ts",
+    "line": 118,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/executions",
+    "source": "apps/api/src/routes/executions.ts",
+    "line": 143,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/executions/:executionRequestId",
+    "source": "apps/api/src/routes/executions.ts",
+    "line": 154,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/executions/:executionRequestId/export",
+    "source": "apps/api/src/routes/executions.ts",
+    "line": 181,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/executions/cleanup",
+    "source": "apps/api/src/routes/executions.ts",
+    "line": 222,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/executions/:executionRequestId/cancel",
+    "source": "apps/api/src/routes/executions.ts",
+    "line": 247,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent/execution",
+    "source": "apps/api/src/routes/executions.ts",
+    "line": 284,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/executive",
+    "source": "apps/api/src/routes/executive.ts",
+    "line": 5,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/executive/query",
+    "source": "apps/api/src/routes/executive.ts",
+    "line": 6,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/experiments",
+    "source": "apps/api/src/routes/experiments.ts",
+    "line": 11,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/objectives/:objectiveId/experiments",
+    "source": "apps/api/src/routes/experiments.ts",
+    "line": 12,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/objectives/:objectiveId/experiments",
+    "source": "apps/api/src/routes/experiments.ts",
+    "line": 13,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/experiments/:experimentId/${action}",
+    "source": "apps/api/src/routes/experiments.ts",
+    "line": 14,
+    "dynamic": true
+  },
+  {
+    "method": "PATCH",
+    "pathExpression": "/api/experiments/:experimentId",
+    "source": "apps/api/src/routes/experiments.ts",
+    "line": 15,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/experiments/:experimentId/assignments",
+    "source": "apps/api/src/routes/experiments.ts",
+    "line": 16,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/experiments/:experimentId/observations",
+    "source": "apps/api/src/routes/experiments.ts",
+    "line": 17,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-os/external-harvest",
+    "source": "apps/api/src/routes/external-harvest.ts",
+    "line": 17,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/agent-os/external-harvest/brain-summary",
+    "source": "apps/api/src/routes/external-harvest.ts",
+    "line": 28,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-os/external-harvest/brain-first-lookup",
+    "source": "apps/api/src/routes/external-harvest.ts",
+    "line": 39,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-os/external-harvest/delegations/execute",
+    "source": "apps/api/src/routes/external-harvest.ts",
+    "line": 59,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-os/external-harvest/knowledge-gaps",
+    "source": "apps/api/src/routes/external-harvest.ts",
+    "line": 81,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent-os/external-harvest/delegations/prepare",
+    "source": "apps/api/src/routes/external-harvest.ts",
+    "line": 103,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/personality/bootstrap",
+    "source": "apps/api/src/routes/human-understanding.ts",
+    "line": 63,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/personality/bootstrap",
+    "source": "apps/api/src/routes/human-understanding.ts",
+    "line": 69,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/personality/reset",
+    "source": "apps/api/src/routes/human-understanding.ts",
+    "line": 84,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/personality/export",
+    "source": "apps/api/src/routes/human-understanding.ts",
+    "line": 99,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/personality/simulation",
+    "source": "apps/api/src/routes/human-understanding.ts",
+    "line": 110,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/personality/profile/switch",
+    "source": "apps/api/src/routes/human-understanding.ts",
+    "line": 126,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/personality/learning/evidence",
+    "source": "apps/api/src/routes/human-understanding.ts",
+    "line": 143,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/personality/simulation/personality",
+    "source": "apps/api/src/routes/human-understanding.ts",
+    "line": 168,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/personality/why",
+    "source": "apps/api/src/routes/human-understanding.ts",
+    "line": 183,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/personality/corpus",
+    "source": "apps/api/src/routes/human-understanding.ts",
+    "line": 208,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/personality/corpus/import",
+    "source": "apps/api/src/routes/human-understanding.ts",
+    "line": 219,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/personality/corpus/test-utterance",
+    "source": "apps/api/src/routes/human-understanding.ts",
+    "line": 237,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/personality/version/compare",
+    "source": "apps/api/src/routes/human-understanding.ts",
+    "line": 252,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/human-understanding",
+    "source": "apps/api/src/routes/human-understanding.ts",
+    "line": 263,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/infrastructure/status",
+    "source": "apps/api/src/routes/infrastructure.ts",
+    "line": 15,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/infrastructure/redis",
+    "source": "apps/api/src/routes/infrastructure.ts",
+    "line": 22,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/infrastructure/cache/metrics",
+    "source": "apps/api/src/routes/infrastructure.ts",
+    "line": 36,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/infrastructure/workers",
+    "source": "apps/api/src/routes/infrastructure.ts",
+    "line": 42,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/infrastructure/embedding-jobs",
+    "source": "apps/api/src/routes/infrastructure.ts",
+    "line": 48,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/infrastructure/hybrid-search",
+    "source": "apps/api/src/routes/infrastructure.ts",
+    "line": 54,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/integrations/business/dashboard",
+    "source": "apps/api/src/routes/integrations.ts",
+    "line": 46,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/integrations/business/provider-readiness",
+    "source": "apps/api/src/routes/integrations.ts",
+    "line": 54,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/integrations/business/actions",
+    "source": "apps/api/src/routes/integrations.ts",
+    "line": 62,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/integrations/business/executions/:executionId/reconcile",
+    "source": "apps/api/src/routes/integrations.ts",
+    "line": 71,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/integrations/business/webhooks/:ownerId/:companyId/:integrationId",
+    "source": "apps/api/src/routes/integrations.ts",
+    "line": 81,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/integrations/dashboard",
+    "source": "apps/api/src/routes/integrations.ts",
+    "line": 92,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/integrations",
+    "source": "apps/api/src/routes/integrations.ts",
+    "line": 103,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/integrations/capabilities",
+    "source": "apps/api/src/routes/integrations.ts",
+    "line": 114,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/integrations/health",
+    "source": "apps/api/src/routes/integrations.ts",
+    "line": 123,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/integrations/permissions",
+    "source": "apps/api/src/routes/integrations.ts",
+    "line": 134,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/integrations/permissions",
+    "source": "apps/api/src/routes/integrations.ts",
+    "line": 145,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/integrations/:integrationId/disable",
+    "source": "apps/api/src/routes/integrations.ts",
+    "line": 170,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/integrations/operations",
+    "source": "apps/api/src/routes/integrations.ts",
+    "line": 193,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/integrations/operations",
+    "source": "apps/api/src/routes/integrations.ts",
+    "line": 204,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/command-studio",
+    "source": "apps/api/src/routes/intent-recording.ts",
+    "line": 24,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/command-studio/recordings",
+    "source": "apps/api/src/routes/intent-recording.ts",
+    "line": 35,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/command-studio/events",
+    "source": "apps/api/src/routes/intent-recording.ts",
+    "line": 51,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/command-studio/recordings/stop",
+    "source": "apps/api/src/routes/intent-recording.ts",
+    "line": 67,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/command-studio/generated/save",
+    "source": "apps/api/src/routes/intent-recording.ts",
+    "line": 83,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/command-studio/skills/save",
+    "source": "apps/api/src/routes/intent-recording.ts",
+    "line": 99,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/command-studio/workflows/validate",
+    "source": "apps/api/src/routes/intent-recording.ts",
+    "line": 115,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/command-studio/workflows/edit",
+    "source": "apps/api/src/routes/intent-recording.ts",
+    "line": 133,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/command-studio/workflows/simulate",
+    "source": "apps/api/src/routes/intent-recording.ts",
+    "line": 149,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/demonstrations/skills",
+    "source": "apps/api/src/routes/intent-recording.ts",
+    "line": 165,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/demonstrations/timelines",
+    "source": "apps/api/src/routes/intent-recording.ts",
+    "line": 176,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/demonstrations/execution-history",
+    "source": "apps/api/src/routes/intent-recording.ts",
+    "line": 187,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/demonstrations/analytics",
+    "source": "apps/api/src/routes/intent-recording.ts",
+    "line": 198,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/commands",
+    "source": "apps/api/src/routes/intent.ts",
+    "line": 15,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/commands",
+    "source": "apps/api/src/routes/intent.ts",
+    "line": 26,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/commands/saved",
+    "source": "apps/api/src/routes/intent.ts",
+    "line": 48,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/commands/macros",
+    "source": "apps/api/src/routes/intent.ts",
+    "line": 70,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/knowledge-graph",
+    "source": "apps/api/src/routes/knowledge-graph.ts",
+    "line": 30,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/knowledge-graph/entities",
+    "source": "apps/api/src/routes/knowledge-graph.ts",
+    "line": 41,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/knowledge-graph/entities",
+    "source": "apps/api/src/routes/knowledge-graph.ts",
+    "line": 53,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/knowledge-graph/entities/:id",
+    "source": "apps/api/src/routes/knowledge-graph.ts",
+    "line": 69,
+    "dynamic": false
+  },
+  {
+    "method": "PATCH",
+    "pathExpression": "/api/knowledge-graph/entities/:id",
+    "source": "apps/api/src/routes/knowledge-graph.ts",
+    "line": 81,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/knowledge-graph/entities/:id/relationships",
+    "source": "apps/api/src/routes/knowledge-graph.ts",
+    "line": 99,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/knowledge-graph/entities/:id/neighbors",
+    "source": "apps/api/src/routes/knowledge-graph.ts",
+    "line": 112,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/knowledge-graph/entities/:id/evidence",
+    "source": "apps/api/src/routes/knowledge-graph.ts",
+    "line": 128,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/knowledge-graph/relationships",
+    "source": "apps/api/src/routes/knowledge-graph.ts",
+    "line": 140,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/knowledge-graph/relationships",
+    "source": "apps/api/src/routes/knowledge-graph.ts",
+    "line": 152,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/knowledge-graph/search",
+    "source": "apps/api/src/routes/knowledge-graph.ts",
+    "line": 168,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/knowledge-graph/path",
+    "source": "apps/api/src/routes/knowledge-graph.ts",
+    "line": 180,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/knowledge-graph/context",
+    "source": "apps/api/src/routes/knowledge-graph.ts",
+    "line": 192,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/knowledge-graph/conflicts",
+    "source": "apps/api/src/routes/knowledge-graph.ts",
+    "line": 204,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/knowledge-graph/promote-memory/:memoryId",
+    "source": "apps/api/src/routes/knowledge-graph.ts",
+    "line": 215,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/launch-packages",
+    "source": "apps/api/src/routes/launch-workflow.ts",
+    "line": 30,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/launch-packages/:id",
+    "source": "apps/api/src/routes/launch-workflow.ts",
+    "line": 40,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/launch-packages/:id/versions/:version",
+    "source": "apps/api/src/routes/launch-workflow.ts",
+    "line": 48,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/launch-packages/:id/advance",
+    "source": "apps/api/src/routes/launch-workflow.ts",
+    "line": 62,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/launch-packages/:id/retry",
+    "source": "apps/api/src/routes/launch-workflow.ts",
+    "line": 72,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/launch-packages/:id/approve",
+    "source": "apps/api/src/routes/launch-workflow.ts",
+    "line": 83,
+    "dynamic": false
+  },
+  {
+    "method": "PATCH",
+    "pathExpression": "/api/launch-packages/:id/posts",
+    "source": "apps/api/src/routes/launch-workflow.ts",
+    "line": 94,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/launch-packages/:id/posts/cancel",
+    "source": "apps/api/src/routes/launch-workflow.ts",
+    "line": 105,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/learning",
+    "source": "apps/api/src/routes/learning-engine.ts",
+    "line": 29,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/learning/events",
+    "source": "apps/api/src/routes/learning-engine.ts",
+    "line": 40,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/learning/events",
+    "source": "apps/api/src/routes/learning-engine.ts",
+    "line": 52,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/learning/candidates",
+    "source": "apps/api/src/routes/learning-engine.ts",
+    "line": 66,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/learning/preferences",
+    "source": "apps/api/src/routes/learning-engine.ts",
+    "line": 78,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/learning/preferences",
+    "source": "apps/api/src/routes/learning-engine.ts",
+    "line": 92,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/learning/habits",
+    "source": "apps/api/src/routes/learning-engine.ts",
+    "line": 108,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/learning/sequences",
+    "source": "apps/api/src/routes/learning-engine.ts",
+    "line": 120,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/learning/sequences",
+    "source": "apps/api/src/routes/learning-engine.ts",
+    "line": 132,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/learning/suggestions",
+    "source": "apps/api/src/routes/learning-engine.ts",
+    "line": 146,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/learning/conflicts",
+    "source": "apps/api/src/routes/learning-engine.ts",
+    "line": 160,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/learning/stats",
+    "source": "apps/api/src/routes/learning-engine.ts",
+    "line": 171,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/learning/explain/:id",
+    "source": "apps/api/src/routes/learning-engine.ts",
+    "line": 182,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/learning/preferences/:id/approve",
+    "source": "apps/api/src/routes/learning-engine.ts",
+    "line": 194,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/learning/preferences/:id/reject",
+    "source": "apps/api/src/routes/learning-engine.ts",
+    "line": 206,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/learning/suggestions/:id/accept",
+    "source": "apps/api/src/routes/learning-engine.ts",
+    "line": 218,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/learning/suggestions/:id/reject",
+    "source": "apps/api/src/routes/learning-engine.ts",
+    "line": 230,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/learning/recompute",
+    "source": "apps/api/src/routes/learning-engine.ts",
+    "line": 242,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/local",
+    "source": "apps/api/src/routes/local-ai.ts",
+    "line": 30,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/local/health",
+    "source": "apps/api/src/routes/local-ai.ts",
+    "line": 35,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/local/models",
+    "source": "apps/api/src/routes/local-ai.ts",
+    "line": 40,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/local/models/:id",
+    "source": "apps/api/src/routes/local-ai.ts",
+    "line": 48,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/ai/local/stats",
+    "source": "apps/api/src/routes/local-ai.ts",
+    "line": 56,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/ai/local/test",
+    "source": "apps/api/src/routes/local-ai.ts",
+    "line": 61,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/ai/local/models/:id/load",
+    "source": "apps/api/src/routes/local-ai.ts",
+    "line": 119,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/ai/local/models/:id/unload",
+    "source": "apps/api/src/routes/local-ai.ts",
+    "line": 124,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory-studio",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 30,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory-studio/overview",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 41,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory-studio/search",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 52,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory-studio/items/:id",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 64,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory-studio/items/:id/provenance",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 76,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory-studio/items/:id/usage",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 89,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory-studio/items/:id/history",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 99,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory-studio/items/:id/related",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 109,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory-studio/items/:id/explain",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 122,
+    "dynamic": false
+  },
+  {
+    "method": "PATCH",
+    "pathExpression": "/api/memory-studio/items/:id",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 134,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/memory-studio/items/:id/archive",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 148,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/memory-studio/items/:id/restore",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 160,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/memory-studio/items/:id/pin",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 172,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/memory-studio/items/:id/unpin",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 184,
+    "dynamic": false
+  },
+  {
+    "method": "DELETE",
+    "pathExpression": "/api/memory-studio/items/:id",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 196,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/memory-studio/merge",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 208,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/memory-studio/reindex",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 219,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory-studio/conflicts",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 234,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory-studio/low-confidence",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 243,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory-studio/stale",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 252,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory-studio/embeddings",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 261,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory-studio/health",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 273,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/memory-studio/context-preview",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 282,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory-studio/export",
+    "source": "apps/api/src/routes/memory-studio.ts",
+    "line": 293,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory/center",
+    "source": "apps/api/src/routes/memory.ts",
+    "line": 34,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory/search",
+    "source": "apps/api/src/routes/memory.ts",
+    "line": 45,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/memory",
+    "source": "apps/api/src/routes/memory.ts",
+    "line": 57,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/memory/explicit",
+    "source": "apps/api/src/routes/memory.ts",
+    "line": 73,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory/graph",
+    "source": "apps/api/src/routes/memory.ts",
+    "line": 89,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory/decisions",
+    "source": "apps/api/src/routes/memory.ts",
+    "line": 100,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/memory/decisions",
+    "source": "apps/api/src/routes/memory.ts",
+    "line": 111,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory/repositories/:repositoryId",
+    "source": "apps/api/src/routes/memory.ts",
+    "line": 128,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory/agents/:agentId",
+    "source": "apps/api/src/routes/memory.ts",
+    "line": 140,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory/timeline",
+    "source": "apps/api/src/routes/memory.ts",
+    "line": 152,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory/suggestions",
+    "source": "apps/api/src/routes/memory.ts",
+    "line": 163,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/memory/statistics",
+    "source": "apps/api/src/routes/memory.ts",
+    "line": 174,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/v1/devices/push-token",
+    "source": "apps/api/src/routes/mobile-executive.ts",
+    "line": 42,
+    "dynamic": false
+  },
+  {
+    "method": "DELETE",
+    "pathExpression": "/api/v1/devices/push-token",
+    "source": "apps/api/src/routes/mobile-executive.ts",
+    "line": 67,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/v1/notifications/preferences",
+    "source": "apps/api/src/routes/mobile-executive.ts",
+    "line": 87,
+    "dynamic": false
+  },
+  {
+    "method": "PATCH",
+    "pathExpression": "/api/v1/notifications/preferences",
+    "source": "apps/api/src/routes/mobile-executive.ts",
+    "line": 98,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/v1/attention",
+    "source": "apps/api/src/routes/mobile-executive.ts",
+    "line": 119,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/v1/device/recent-auth/challenge",
+    "source": "apps/api/src/routes/mobile-executive.ts",
+    "line": 138,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/v1/device/biometric-key",
+    "source": "apps/api/src/routes/mobile-executive.ts",
+    "line": 168,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/v1/device/recent-auth/verify",
+    "source": "apps/api/src/routes/mobile-executive.ts",
+    "line": 197,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/v1/device/approvals/:approvalId/decision",
+    "source": "apps/api/src/routes/mobile-executive.ts",
+    "line": 245,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/v1/device/objectives/:objectiveId/action",
+    "source": "apps/api/src/routes/mobile-executive.ts",
+    "line": 304,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/v1/device/objectives",
+    "source": "apps/api/src/routes/mobile-executive.ts",
+    "line": 328,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/v1/device/objectives/:objectiveId/modify",
+    "source": "apps/api/src/routes/mobile-executive.ts",
+    "line": 347,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/native-providers",
+    "source": "apps/api/src/routes/native-providers.ts",
+    "line": 17,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/native-providers/validate",
+    "source": "apps/api/src/routes/native-providers.ts",
+    "line": 28,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/native-providers/dispatch",
+    "source": "apps/api/src/routes/native-providers.ts",
+    "line": 43,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/objectives",
+    "source": "apps/api/src/routes/objectives.ts",
+    "line": 8,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/objectives",
+    "source": "apps/api/src/routes/objectives.ts",
+    "line": 9,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/objectives/:objectiveId/${action}",
+    "source": "apps/api/src/routes/objectives.ts",
+    "line": 10,
+    "dynamic": true
+  },
+  {
+    "method": "PATCH",
+    "pathExpression": "/api/objectives/:objectiveId",
+    "source": "apps/api/src/routes/objectives.ts",
+    "line": 14,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/objectives/:objectiveId/observations",
+    "source": "apps/api/src/routes/objectives.ts",
+    "line": 18,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/patches",
+    "source": "apps/api/src/routes/patches.ts",
+    "line": 14,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/patches/:patchId",
+    "source": "apps/api/src/routes/patches.ts",
+    "line": 25,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/patches",
+    "source": "apps/api/src/routes/patches.ts",
+    "line": 37,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/patches/:patchId/decision",
+    "source": "apps/api/src/routes/patches.ts",
+    "line": 59,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/patches/:patchId/execute",
+    "source": "apps/api/src/routes/patches.ts",
+    "line": 84,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/patches/:patchId/rollback",
+    "source": "apps/api/src/routes/patches.ts",
+    "line": 111,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/policies/evaluate",
+    "source": "apps/api/src/routes/policies.ts",
+    "line": 22,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/policies/evaluations",
+    "source": "apps/api/src/routes/policies.ts",
+    "line": 52,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/portfolio",
+    "source": "apps/api/src/routes/portfolio.ts",
+    "line": 73,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/portfolio/compare-companies",
+    "source": "apps/api/src/routes/portfolio.ts",
+    "line": 89,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/portfolio/objectives",
+    "source": "apps/api/src/routes/portfolio.ts",
+    "line": 100,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/portfolio/objectives",
+    "source": "apps/api/src/routes/portfolio.ts",
+    "line": 108,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/portfolio/economy",
+    "source": "apps/api/src/routes/portfolio.ts",
+    "line": 126,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/portfolio/economy/funding",
+    "source": "apps/api/src/routes/portfolio.ts",
+    "line": 133,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/portfolio/economy/transfers",
+    "source": "apps/api/src/routes/portfolio.ts",
+    "line": 149,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/portfolio/governor-proposals",
+    "source": "apps/api/src/routes/portfolio.ts",
+    "line": 166,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/portfolio/governor-proposals/:proposalId/decision",
+    "source": "apps/api/src/routes/portfolio.ts",
+    "line": 176,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/portfolio/search",
+    "source": "apps/api/src/routes/portfolio.ts",
+    "line": 193,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/portfolio/approvals",
+    "source": "apps/api/src/routes/portfolio.ts",
+    "line": 255,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/portfolio/approvals/:approvalId/${decision}",
+    "source": "apps/api/src/routes/portfolio.ts",
+    "line": 270,
+    "dynamic": true
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/portfolio/compare",
+    "source": "apps/api/src/routes/portfolio.ts",
+    "line": 303,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/portfolio/system",
+    "source": "apps/api/src/routes/portfolio.ts",
+    "line": 314,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/portfolio/ai",
+    "source": "apps/api/src/routes/portfolio.ts",
+    "line": 322,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/portfolio/traces",
+    "source": "apps/api/src/routes/portfolio.ts",
+    "line": 330,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/portfolio/ai-traces",
+    "source": "apps/api/src/routes/portfolio.ts",
+    "line": 348,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/portfolio/brief",
+    "source": "apps/api/src/routes/portfolio.ts",
+    "line": 367,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/portfolio/attention/:signalId",
+    "source": "apps/api/src/routes/portfolio.ts",
+    "line": 375,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/reflections",
+    "source": "apps/api/src/routes/reflection.ts",
+    "line": 14,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/reflections/query",
+    "source": "apps/api/src/routes/reflection.ts",
+    "line": 24,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/reflections/:reflectionId/feedback",
+    "source": "apps/api/src/routes/reflection.ts",
+    "line": 50,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/repositories",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 39,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/repositories/:repositoryId",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 50,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/repositories/:repositoryId/reindex",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 62,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/repositories/:repositoryId/tree",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 87,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/repositories/:repositoryId/files",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 99,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/repositories/:repositoryId/search",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 111,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/repositories/:repositoryId/statistics",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 127,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/repositories/:repositoryId/semantic-search",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 141,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/repositories/:repositoryId/definition",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 157,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/repositories/:repositoryId/references",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 173,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/repositories/:repositoryId/dependencies",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 189,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/repositories/:repositoryId/architecture",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 201,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/repositories/:repositoryId/api-routes",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 213,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/repositories/:repositoryId/database-models",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 225,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/repositories/:repositoryId/insights",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 237,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/repositories/:repositoryId/engineering/question",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 249,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/repositories/:repositoryId/engineering/impact",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 272,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/repositories/:repositoryId/engineering/plan",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 295,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/repositories/:repositoryId/engineering/review",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 318,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/repositories/:repositoryId/engineering/documentation",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 341,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/repositories/:repositoryId/engineering/memory",
+    "source": "apps/api/src/routes/repositories.ts",
+    "line": 364,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/security/csrf",
+    "source": "apps/api/src/routes/security.ts",
+    "line": 29,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/security/network",
+    "source": "apps/api/src/routes/security.ts",
+    "line": 40,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/security/recent-auth/challenge",
+    "source": "apps/api/src/routes/security.ts",
+    "line": 51,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/security/recent-auth/verify-password",
+    "source": "apps/api/src/routes/security.ts",
+    "line": 81,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/security/recent-auth/status",
+    "source": "apps/api/src/routes/security.ts",
+    "line": 124,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/security/recovery-codes/status",
+    "source": "apps/api/src/routes/security.ts",
+    "line": 138,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/security/recovery-codes/generate",
+    "source": "apps/api/src/routes/security.ts",
+    "line": 149,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/security/recovery-codes/invalidate",
+    "source": "apps/api/src/routes/security.ts",
+    "line": 179,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/security/recovery-codes/verify",
+    "source": "apps/api/src/routes/security.ts",
+    "line": 204,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/semantic",
+    "source": "apps/api/src/routes/semantic.ts",
+    "line": 19,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/semantic/search",
+    "source": "apps/api/src/routes/semantic.ts",
+    "line": 30,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/semantic/objects",
+    "source": "apps/api/src/routes/semantic.ts",
+    "line": 46,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/semantic/aliases",
+    "source": "apps/api/src/routes/semantic.ts",
+    "line": 62,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/semantic/synonyms",
+    "source": "apps/api/src/routes/semantic.ts",
+    "line": 78,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/skill-evolution",
+    "source": "apps/api/src/routes/skill-evolution.ts",
+    "line": 16,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/skill-evolution/query",
+    "source": "apps/api/src/routes/skill-evolution.ts",
+    "line": 27,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/skill-evolution/candidates/build",
+    "source": "apps/api/src/routes/skill-evolution.ts",
+    "line": 69,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/skill-evolution/draft-benchmark",
+    "source": "apps/api/src/routes/skill-evolution.ts",
+    "line": 87,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/spatial",
+    "source": "apps/api/src/routes/spatial.ts",
+    "line": 86,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/spatial/native",
+    "source": "apps/api/src/routes/spatial.ts",
+    "line": 97,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/spatial/ui",
+    "source": "apps/api/src/routes/spatial.ts",
+    "line": 108,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/spatial/command-space",
+    "source": "apps/api/src/routes/spatial.ts",
+    "line": 119,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/spatial/cameras/refresh",
+    "source": "apps/api/src/routes/spatial.ts",
+    "line": 130,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/spatial/profiles",
+    "source": "apps/api/src/routes/spatial.ts",
+    "line": 151,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/spatial/mappings",
+    "source": "apps/api/src/routes/spatial.ts",
+    "line": 173,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/spatial/gestures",
+    "source": "apps/api/src/routes/spatial.ts",
+    "line": 195,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/spatial/ui/metrics",
+    "source": "apps/api/src/routes/spatial.ts",
+    "line": 217,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/spatial/ui/engine-metrics",
+    "source": "apps/api/src/routes/spatial.ts",
+    "line": 239,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/spatial/command-space/mode",
+    "source": "apps/api/src/routes/spatial.ts",
+    "line": 261,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/agent/spatial/gestures",
+    "source": "apps/api/src/routes/spatial.ts",
+    "line": 283,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/health",
+    "source": "apps/api/src/routes/system.ts",
+    "line": 205,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/v1/health",
+    "source": "apps/api/src/routes/system.ts",
+    "line": 216,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/v1/system/summary",
+    "source": "apps/api/src/routes/system.ts",
+    "line": 221,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/v1/device/system-summary",
+    "source": "apps/api/src/routes/system.ts",
+    "line": 231,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/ready",
+    "source": "apps/api/src/routes/system.ts",
+    "line": 240,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/security/readiness",
+    "source": "apps/api/src/routes/system.ts",
+    "line": 273,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/system/status",
+    "source": "apps/api/src/routes/system.ts",
+    "line": 310,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/security/status",
+    "source": "apps/api/src/routes/system.ts",
+    "line": 362,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/security/emergency-stop",
+    "source": "apps/api/src/routes/system.ts",
+    "line": 388,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/security/execution/enable",
+    "source": "apps/api/src/routes/system.ts",
+    "line": 418,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/security/emergency-stop/release",
+    "source": "apps/api/src/routes/system.ts",
+    "line": 441,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/tasks",
+    "source": "apps/api/src/routes/tasks.ts",
+    "line": 7,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/tools",
+    "source": "apps/api/src/routes/tools.ts",
+    "line": 11,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/tools/:toolName",
+    "source": "apps/api/src/routes/tools.ts",
+    "line": 17,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/validation/profiles",
+    "source": "apps/api/src/routes/validations.ts",
+    "line": 20,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/validations",
+    "source": "apps/api/src/routes/validations.ts",
+    "line": 26,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/validations",
+    "source": "apps/api/src/routes/validations.ts",
+    "line": 37,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/validations/:validationRunId",
+    "source": "apps/api/src/routes/validations.ts",
+    "line": 60,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/validations/:validationRunId/start",
+    "source": "apps/api/src/routes/validations.ts",
+    "line": 72,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/validations/:validationRunId/cancel",
+    "source": "apps/api/src/routes/validations.ts",
+    "line": 100,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/voice/device-runtime",
+    "source": "apps/api/src/routes/voice.ts",
+    "line": 121,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/voice",
+    "source": "apps/api/src/routes/voice.ts",
+    "line": 200,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/voice/capture-lease",
+    "source": "apps/api/src/routes/voice.ts",
+    "line": 211,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/voice/sessions",
+    "source": "apps/api/src/routes/voice.ts",
+    "line": 235,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/voice/sessions",
+    "source": "apps/api/src/routes/voice.ts",
+    "line": 257,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/voice/transcripts",
+    "source": "apps/api/src/routes/voice.ts",
+    "line": 268,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/voice/transcripts",
+    "source": "apps/api/src/routes/voice.ts",
+    "line": 314,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/voice/metrics",
+    "source": "apps/api/src/routes/voice.ts",
+    "line": 328,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/voice/profiles",
+    "source": "apps/api/src/routes/voice.ts",
+    "line": 350,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/voice/shortcuts",
+    "source": "apps/api/src/routes/voice.ts",
+    "line": 372,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/conversations",
+    "source": "apps/api/src/routes/voice.ts",
+    "line": 394,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/conversations/personas",
+    "source": "apps/api/src/routes/voice.ts",
+    "line": 405,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/conversations/bookmarks",
+    "source": "apps/api/src/routes/voice.ts",
+    "line": 421,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/conversations/turns/:turnId/feedback",
+    "source": "apps/api/src/routes/voice.ts",
+    "line": 437,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/conversations/turns/:turnId/replay",
+    "source": "apps/api/src/routes/voice.ts",
+    "line": 458,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/workflows",
+    "source": "apps/api/src/routes/workflows.ts",
+    "line": 39,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/workflows",
+    "source": "apps/api/src/routes/workflows.ts",
+    "line": 50,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/workflows/:workflowId",
+    "source": "apps/api/src/routes/workflows.ts",
+    "line": 68,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/workflows/:workflowId/approve",
+    "source": "apps/api/src/routes/workflows.ts",
+    "line": 80,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/workflows/:workflowId/advance",
+    "source": "apps/api/src/routes/workflows.ts",
+    "line": 93,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/workflows/:workflowId/pause",
+    "source": "apps/api/src/routes/workflows.ts",
+    "line": 105,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/workflows/:workflowId/cancel",
+    "source": "apps/api/src/routes/workflows.ts",
+    "line": 118,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/workflows/:workflowId/tasks/:taskId/complete",
+    "source": "apps/api/src/routes/workflows.ts",
+    "line": 131,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/workflows/:workflowId/tasks/:taskId/artifacts",
+    "source": "apps/api/src/routes/workflows.ts",
+    "line": 143,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/workforce-runtime",
+    "source": "apps/api/src/routes/workforce-runtime.ts",
+    "line": 18,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/workforce-runtime/tasks",
+    "source": "apps/api/src/routes/workforce-runtime.ts",
+    "line": 22,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/workforce-runtime/tasks/:taskId/schedule",
+    "source": "apps/api/src/routes/workforce-runtime.ts",
+    "line": 26,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/workforce-runtime/tasks/:taskId/execute",
+    "source": "apps/api/src/routes/workforce-runtime.ts",
+    "line": 30,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/workforce-runtime/tasks/:taskId/specialist-approval",
+    "source": "apps/api/src/routes/workforce-runtime.ts",
+    "line": 34,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/workforce-runtime/tasks/:taskId/complete",
+    "source": "apps/api/src/routes/workforce-runtime.ts",
+    "line": 38,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/workforce-runtime/tasks/:taskId/reviews",
+    "source": "apps/api/src/routes/workforce-runtime.ts",
+    "line": 42,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/workforce-runtime/tasks/:taskId/cancel",
+    "source": "apps/api/src/routes/workforce-runtime.ts",
+    "line": 46,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/workforce-runtime/messages",
+    "source": "apps/api/src/routes/workforce-runtime.ts",
+    "line": 50,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/workforce-runtime/recover",
+    "source": "apps/api/src/routes/workforce-runtime.ts",
+    "line": 54,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/workspace-intelligence",
+    "source": "apps/api/src/routes/workspace-intelligence.ts",
+    "line": 13,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/workspace-intelligence/search",
+    "source": "apps/api/src/routes/workspace-intelligence.ts",
+    "line": 24,
+    "dynamic": false
+  },
+  {
+    "method": "GET",
+    "pathExpression": "/api/workspaces",
+    "source": "apps/api/src/routes/workspaces.ts",
+    "line": 23,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/workspaces",
+    "source": "apps/api/src/routes/workspaces.ts",
+    "line": 34,
+    "dynamic": false
+  },
+  {
+    "method": "PATCH",
+    "pathExpression": "/api/workspaces/:workspaceId",
+    "source": "apps/api/src/routes/workspaces.ts",
+    "line": 61,
+    "dynamic": false
+  },
+  {
+    "method": "POST",
+    "pathExpression": "/api/workspaces/:workspaceId/disable",
+    "source": "apps/api/src/routes/workspaces.ts",
+    "line": 90,
+    "dynamic": false
+  }
+]
