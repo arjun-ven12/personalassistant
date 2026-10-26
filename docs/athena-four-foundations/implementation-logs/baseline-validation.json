@@ -1,0 +1,51 @@
+{
+  "scope": "Pre-change current workspace; no model/provider/DB credentials; safe test environment",
+  "toolchain": {
+    "node": "22.16.0",
+    "pnpm": "11.17.0"
+  },
+  "checks": [
+    {
+      "check": "typecheck",
+      "command": "pnpm typecheck",
+      "exitCode": 0,
+      "durationSeconds": 20.5
+    },
+    {
+      "check": "lint",
+      "command": "pnpm lint",
+      "exitCode": 0,
+      "durationSeconds": 67.7
+    },
+    {
+      "check": "test",
+      "command": "pnpm test --reporter=json --outputFile=/tmp/athena-foundations-work/vitest.json",
+      "exitCode": 0,
+      "durationSeconds": 187.2
+    },
+    {
+      "check": "build",
+      "command": "pnpm build",
+      "exitCode": 0,
+      "durationSeconds": 37.0
+    },
+    {
+      "check": "security",
+      "command": "pnpm --filter @alexa-control/api security:check",
+      "exitCode": 0,
+      "durationSeconds": 0.8
+    },
+    {
+      "check": "production-config",
+      "command": "pnpm verify:production-config",
+      "exitCode": 0,
+      "durationSeconds": 1.2
+    }
+  ],
+  "tests": {
+    "passed": 1092,
+    "failed": 0,
+    "skipped": 58,
+    "files": 197
+  }
+}

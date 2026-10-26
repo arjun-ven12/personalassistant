@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const IntegrationProviderSchema = z.enum([
+  "mcp_local",
   "github",
   "jira",
   "slack",

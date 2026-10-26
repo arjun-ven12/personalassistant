@@ -1,0 +1,50 @@
+ M .github/workflows/ci.yml
+ M apps/api/src/app.ts
+ M apps/api/src/governance/approval-service.ts
+ M apps/api/src/governance/postgres-store.ts
+ M apps/api/src/governance/store.ts
+ M apps/api/src/human-understanding/corpus.test.ts
+ M apps/api/src/integrations/business-providers.ts
+ M apps/api/src/integrations/business-runtime.test.ts
+ M apps/api/src/integrations/business-runtime.ts
+ M apps/api/src/integrations/commercial-read-providers.test.ts
+ M apps/api/src/integrations/commercial-read-providers.ts
+ M apps/api/src/integrations/gmail-provider.test.ts
+ M apps/api/src/integrations/gmail-provider.ts
+ M apps/api/src/integrations/phase26-1.test.ts
+ M apps/api/src/integrations/postgres-store.ts
+ M apps/api/src/integrations/service.ts
+ M apps/api/src/integrations/store.ts
+ M apps/api/src/integrations/stripe-provider.test.ts
+ M apps/api/src/integrations/stripe-provider.ts
+ M apps/api/src/intelligence/cache-service.test.ts
+ M apps/api/src/intelligence/cache-service.ts
+ M apps/api/src/persistence/test-database.ts
+ M apps/api/src/routes/context.ts
+ M apps/api/src/routes/integrations.ts
+ M apps/api/src/workforce-runtime/postgres-store.ts
+ M apps/api/src/workforce-runtime/service.ts
+ M apps/api/src/workforce-runtime/store.ts
+ M apps/mac-agent/dist-electron/main.cjs
+ M apps/mac-agent/dist-electron/preload.cjs
+ M apps/mac-agent/electron/application-discovery.test.ts
+ M apps/mac-agent/package.json
+ M package.json
+ M packages/shared/src/audit.ts
+ M packages/shared/src/business-operations.ts
+ M packages/shared/src/index.ts
+ M pnpm-lock.yaml
+ M pnpm-workspace.yaml
+?? apps/api/migrations/0110_phase_28_launch_review_packages.sql
+?? apps/api/src/human-understanding/fixtures/
+?? apps/api/src/integrations/provider-cache.ts
+?? apps/api/src/launch-workflow/
+?? apps/api/src/routes/launch-workflow.ts
+?? apps/api/src/scripts/phase28-postgres-acceptance.ts
+?? apps/mac-agent/scripts/build-native-if-darwin.mjs
+?? docs/athena-institutional-audit/
+?? docs/phase-28-acceptance-matrix-2026-10-14.md
+?? docs/phase-28-final-hardening-2026-10-13.md
+?? docs/phase-28-readiness-repair-2026-10-13.md
+?? docs/system-autonomy-audit-2026-10-13.md
+?? packages/shared/src/launch-workflow.ts

@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 export default defineConfig({
   entry: {
     index: "src/index.ts",
+    "mcp-fixture": "src/mcp/fixture-server.ts",
     "engineering-worker": "src/cloud-engineering/worker-entry.ts",
     "provisioned-engineering-worker": "src/cloud-engineering/provisioned-worker.ts",
     database: "src/scripts/database.ts",

@@ -1,0 +1,29 @@
+{
+  "artifactValidation": "PASS; see artifact-validation.json",
+  "diffWhitespace": "PASS",
+  "targetedFormat": "PASS",
+  "repositoryFormat": {
+    "exitCode": 1,
+    "preExistingFilesWithDifferences": 445
+  },
+  "newMcpAcceptance": {
+    "passed": 47,
+    "failed": 0,
+    "skippedPostgres": 1
+  },
+  "fullTests": {
+    "passed": 1139,
+    "failed": 0,
+    "skipped": 59,
+    "files": 203
+  },
+  "dependencyAudit": {
+    "exitCode": 1,
+    "high": 1,
+    "moderate": 4,
+    "low": 5
+  },
+  "releaseDecision": "REQUIRES_ADDITIONAL_VALIDATION",
+  "mermaidRendering": "NOT_RUN",
+  "sourceChanges": "Only intentional additive implementation edits and institutional register updates; all other pre-existing file hashes unchanged."
+}

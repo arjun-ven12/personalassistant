@@ -451,6 +451,7 @@ const networkVerifier =
         : new UnknownNetworkVerifier();
 
 const app = await buildApi({
+  mcpLocalFixtureEnabled: environment.MCP_LOCAL_FIXTURE_ENABLED,
   telemetry: createTelemetrySink(process.env.OTEL_EXPORTER_OTLP_ENDPOINT),
   deploymentMode: environment.DEPLOYMENT_MODE,
   corsOrigin: environment.WEB_ORIGIN,

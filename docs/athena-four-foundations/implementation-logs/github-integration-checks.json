@@ -1,0 +1,72 @@
+{
+  "baseRevision": "7e7c4627b8d38a7a5747ba0cbd5f655ac31887c1",
+  "nodeVersion": "22.16.0",
+  "pnpmVersion": "11.17.0",
+  "checks": [
+    {
+      "check": "typecheck",
+      "command": "pnpm typecheck",
+      "exitCode": 0,
+      "durationSeconds": 28.4
+    },
+    {
+      "check": "lint",
+      "command": "pnpm lint",
+      "exitCode": 0,
+      "durationSeconds": 89.3
+    },
+    {
+      "check": "test",
+      "command": "pnpm test --reporter=json --outputFile=/tmp/athena-foundations-push-checks/vitest.json",
+      "exitCode": 1,
+      "durationSeconds": 306.0
+    },
+    {
+      "check": "build",
+      "command": "pnpm build",
+      "exitCode": 1,
+      "durationSeconds": 16.5
+    },
+    {
+      "check": "security",
+      "command": "pnpm --filter @alexa-control/api security:check",
+      "exitCode": 0,
+      "durationSeconds": 0.7
+    },
+    {
+      "check": "production-config",
+      "command": "pnpm verify:production-config",
+      "exitCode": 0,
+      "durationSeconds": 1.1
+    }
+  ],
+  "regressionSuite": {
+    "passed": 1499,
+    "failed": 6,
+    "skipped": 89,
+    "allFailuresReproducedOnUnchangedBase": true,
+    "baselineTargetedPassed": 7,
+    "baselineTargetedFailed": 6,
+    "failureReasons": [
+      "Four corpus tests require an unavailable developer-local fixture.",
+      "Mac application discovery fixture is not portable in this Linux environment.",
+      "Existing worker-image Python test requires hashlib.file_digest; installed Python is 3.10.12."
+    ]
+  },
+  "mcp": {
+    "passed": 47,
+    "failed": 0,
+    "postgresAcceptance": "SKIPPED_NO_DISPOSABLE_DATABASE"
+  },
+  "apiBuild": {
+    "exitCode": 0,
+    "includes": "bundled mcp-fixture.js"
+  },
+  "fullBuildLimitation": "Existing Mac native build requires swiftc and macOS frameworks unavailable on Linux.",
+  "additionalValidation": {
+    "mcpSourceEvidenceHashes": "PASS",
+    "migrationSequence": "0118; no collision",
+    "gitDiffCheck": "PASS"
+  },
+  "releaseRecommendation": "REQUIRES_ADDITIONAL_VALIDATION"
+}

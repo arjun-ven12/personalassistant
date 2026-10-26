@@ -1,3 +1,4 @@
+import type { McpLocalService } from "../mcp/service.js";
 import type { AthenaCoderControlService } from "../ai/athena-coder/control.js";
 import type { AthenaCoderEngineeringBenchmarkHarness } from "../engineering-dataset/benchmark.js";
 import type { EngineeringDatasetService } from "../engineering-dataset/service.js";
@@ -214,6 +215,7 @@ export interface ApiRouteContext {
   validationStore: ValidationStore;
   workflows: WorkflowEngineService;
   workflowStore: WorkflowStore;
+  mcpLocal: McpLocalService;
   integrations: IntegrationRegistryService;
   integrationStore: IntegrationStore;
   agents: AgentRegistryService;

@@ -26,6 +26,18 @@ const capability = (
 
 export const BUILT_IN_INTEGRATIONS: BuiltInIntegration[] = [
   {
+    id: "mcp_local_fixture", provider: "mcp_local", category: "documentation",
+    displayName: "Local MCP compatibility fixture", version: "1.0.0",
+    supportedAuth: ["local_app"],
+    healthSummary: "Fixed local read-only MCP diagnostics; disabled by default and prohibited in production.",
+    capabilities: [capability({
+      id: "mcp.local_fixture.read", name: "Local MCP diagnostics",
+      description: "Discover and read one reviewed static diagnostic tool over bounded stdio.",
+      category: "documentation", risk: "low", approvalRequired: false,
+      destructive: false, operations: ["local_fixture.discover", "local_fixture.read_status"],
+    })],
+  },
+  {
     id: "gmail",
     provider: "gmail",
     category: "communication",

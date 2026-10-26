@@ -158,7 +158,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -314,7 +316,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -550,7 +554,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -716,7 +722,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -914,7 +922,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -1113,7 +1123,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -1335,7 +1347,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -1566,7 +1580,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -2135,7 +2151,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -2826,7 +2844,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -3009,7 +3029,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -3146,7 +3168,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -3292,7 +3316,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -3421,7 +3447,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -3540,7 +3568,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -3674,7 +3704,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -3882,7 +3914,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -4180,7 +4214,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -4307,7 +4343,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -4413,7 +4451,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -4539,7 +4579,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -4713,7 +4755,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -4900,7 +4944,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -5077,7 +5123,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -5248,7 +5296,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -5448,7 +5498,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -5600,7 +5652,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -5825,7 +5879,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -6033,7 +6089,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -6249,7 +6307,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -6491,7 +6551,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -6652,7 +6714,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -6894,7 +6958,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -7155,7 +7221,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -7318,7 +7386,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -7491,7 +7561,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -7622,7 +7694,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -7919,7 +7993,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -8049,7 +8125,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -8395,7 +8473,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -8561,7 +8641,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -8800,7 +8882,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -9019,7 +9103,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -9267,7 +9353,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -9462,7 +9550,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -9735,7 +9825,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -9924,7 +10016,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -10337,7 +10431,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -10654,7 +10750,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -10818,7 +10916,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -10935,7 +11035,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -11094,7 +11196,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -11260,7 +11364,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -11413,7 +11519,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -11560,7 +11668,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -11741,7 +11851,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -12040,7 +12152,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -12218,7 +12332,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -12374,7 +12490,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -12552,7 +12670,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -12761,7 +12881,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -12889,7 +13011,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -12992,7 +13116,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -13154,7 +13280,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -13426,7 +13554,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -13676,7 +13806,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -13898,7 +14030,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -14044,7 +14178,9 @@
       "review": {
         "status": "DRAFT",
         "approvedBy": null,
-        "approvedAt": null
+        "approvedAt": null,
+        "sourceChangeReviewRequired": ["apps/api/src/app.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Implementation inspected; independent complete-capability acceptance remains unestablished."
@@ -15381,7 +15517,9 @@
       "revision": 1,
       "review": {
         "status": "DRAFT",
-        "approvedBy": null
+        "approvedBy": null,
+        "sourceChangeReviewRequired": ["apps/api/src/index.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Test-mailbox read/send acceptance absent; no mail sent by audit."
@@ -15470,7 +15608,9 @@
       "revision": 1,
       "review": {
         "status": "DRAFT",
-        "approvedBy": null
+        "approvedBy": null,
+        "sourceChangeReviewRequired": ["apps/api/src/index.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Test account only; no real banking/payment authority or live acceptance."
@@ -15564,7 +15704,9 @@
       "revision": 1,
       "review": {
         "status": "DRAFT",
-        "approvedBy": null
+        "approvedBy": null,
+        "sourceChangeReviewRequired": ["apps/api/src/index.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Broader declared accounting writes unavailable; live sandbox not accepted."
@@ -15658,7 +15800,9 @@
       "revision": 1,
       "review": {
         "status": "DRAFT",
-        "approvedBy": null
+        "approvedBy": null,
+        "sourceChangeReviewRequired": ["apps/api/src/index.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "No verified live ad spend/publication or test-account acceptance."
@@ -15752,7 +15896,9 @@
       "revision": 1,
       "review": {
         "status": "DRAFT",
-        "approvedBy": null
+        "approvedBy": null,
+        "sourceChangeReviewRequired": ["apps/api/src/index.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "No live property acceptance; exact department capability grants require alignment."
@@ -15846,7 +15992,9 @@
       "revision": 1,
       "review": {
         "status": "DRAFT",
-        "approvedBy": null
+        "approvedBy": null,
+        "sourceChangeReviewRequired": ["apps/api/src/index.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "No accepted production-store management/fulfilment or broad writes."
@@ -15961,7 +16109,9 @@
       "revision": 1,
       "review": {
         "status": "DRAFT",
-        "approvedBy": null
+        "approvedBy": null,
+        "sourceChangeReviewRequired": ["apps/api/src/index.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "No concrete provider wired in production bootstrap for this domain; fixtures are not live implementations."
@@ -16076,7 +16226,9 @@
       "revision": 1,
       "review": {
         "status": "DRAFT",
-        "approvedBy": null
+        "approvedBy": null,
+        "sourceChangeReviewRequired": ["apps/api/src/index.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "No concrete provider wired in production bootstrap for this domain; fixtures are not live implementations."
@@ -16191,7 +16343,9 @@
       "revision": 1,
       "review": {
         "status": "DRAFT",
-        "approvedBy": null
+        "approvedBy": null,
+        "sourceChangeReviewRequired": ["apps/api/src/index.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "No concrete provider wired in production bootstrap for this domain; fixtures are not live implementations."
@@ -16306,7 +16460,9 @@
       "revision": 1,
       "review": {
         "status": "DRAFT",
-        "approvedBy": null
+        "approvedBy": null,
+        "sourceChangeReviewRequired": ["apps/api/src/index.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "No concrete provider wired in production bootstrap for this domain; fixtures are not live implementations."
@@ -16421,7 +16577,9 @@
       "revision": 1,
       "review": {
         "status": "DRAFT",
-        "approvedBy": null
+        "approvedBy": null,
+        "sourceChangeReviewRequired": ["apps/api/src/index.ts"],
+        "sourceChangeReviewNote": "Historical audit evidence retained; this source change flags review and does not silently rewrite approved claims. See four-foundations acceptance."
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "No concrete provider wired in production bootstrap for this domain; fixtures are not live implementations."
@@ -17334,7 +17492,8 @@
       "technicalArchitecture": {
         "mechanism": "Requested capability investigated; implementation or approved acceptance specification not established.",
         "sourceFiles": ["docs/phase-28-acceptance-matrix-2026-10-14.md"],
-        "operations": "Only finite operations declared by referenced source/schema; no generic authority."
+        "operations": "Only finite operations declared by referenced source/schema; no generic authority.",
+        "currentSubset": "Pinned 2025-11-25 local read-only fixture via existing company/workspace policy; universal remote/side-effect compatibility remains absent."
       },
       "repositoryPathsAndSymbols": [
         {
@@ -17355,24 +17514,83 @@
         "Current exact approval and recent authentication for applicable risk",
         "No authority from model/role/content; unknown state denies"
       ],
-      "implementationStatus": "UNKNOWN",
-      "evidenceState": "UNKNOWN",
-      "verificationScope": "Current local test scope only where referenced; no live acceptance.",
+      "implementationStatus": "PARTIALLY_IMPLEMENTED",
+      "evidenceState": "MCP_1A_LOCAL_SUBSET_ACCEPTED",
+      "verificationScope": "Exact MCP-1A scope only; never universal compatibility.",
       "sourceEvidence": [
         {
           "path": "docs/phase-28-acceptance-matrix-2026-10-14.md",
           "kind": "SOURCE",
           "sha256": "46b953d311514d870a561f426be52c8e49874fbb5a5400fca4df2d19eda9204f",
           "scope": "Workspace source; not deployment evidence"
+        },
+        {
+          "path": "apps/api/src/mcp/service.ts",
+          "kind": "SOURCE",
+          "sha256": "fdf2373a4ad3370b5c07c73539305fc4d42e0024f41c44815c1a6b6c9b34c1df",
+          "scope": "MCP-1A working increment; development/test fixture only, not deployment acceptance",
+          "symbol": "McpLocalService"
+        },
+        {
+          "path": "apps/api/src/mcp/protocol.ts",
+          "kind": "SOURCE",
+          "sha256": "793305eb0101c5cdc45c9ddfe22d3124d3a1354927d80f14a30d282c6373ff2a",
+          "scope": "MCP-1A working increment; development/test fixture only, not deployment acceptance",
+          "symbol": "McpProtocolClient"
         }
       ],
-      "existingTestsAndResults": [],
+      "existingTestsAndResults": [
+        {
+          "path": "apps/api/src/mcp/api.test.ts",
+          "run": "LOCAL_MCP_1A_2026_10_26",
+          "passed": 4,
+          "failed": 0,
+          "skipped": 0,
+          "scope": "Real SDK stdio/API fixture and mocked protocol/authorization fault tests; PostgreSQL separately gated."
+        },
+        {
+          "path": "apps/api/src/mcp/postgres.integration.test.ts",
+          "run": "LOCAL_MCP_1A_2026_10_26",
+          "passed": 0,
+          "failed": 0,
+          "skipped": 1,
+          "scope": "Real SDK stdio/API fixture and mocked protocol/authorization fault tests; PostgreSQL separately gated."
+        },
+        {
+          "path": "apps/api/src/mcp/protocol.test.ts",
+          "run": "LOCAL_MCP_1A_2026_10_26",
+          "passed": 15,
+          "failed": 0,
+          "skipped": 0,
+          "scope": "Real SDK stdio/API fixture and mocked protocol/authorization fault tests; PostgreSQL separately gated."
+        },
+        {
+          "path": "apps/api/src/mcp/service.test.ts",
+          "run": "LOCAL_MCP_1A_2026_10_26",
+          "passed": 21,
+          "failed": 0,
+          "skipped": 0,
+          "scope": "Real SDK stdio/API fixture and mocked protocol/authorization fault tests; PostgreSQL separately gated."
+        },
+        {
+          "path": "apps/api/src/mcp/transport.test.ts",
+          "run": "LOCAL_MCP_1A_2026_10_26",
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0,
+          "scope": "Real SDK stdio/API fixture and mocked protocol/authorization fault tests; PostgreSQL separately gated."
+        }
+      ],
       "knownLimitations": [
-        "No dedicated Athena MCP transport/session/client implementation or approved named acceptance contract located."
+        "Only the source-owned local read-only diagnostic fixture is implemented and locally accepted.",
+        "Remote connectivity, public server registration, arbitrary tools, side effects and 2026-07-28 compatibility are not implemented.",
+        "PostgreSQL migration/persistence acceptance was not run; inherited dependency advisories remain unresolved."
       ],
       "requiredIntegrations": "Existing policy, approval, identity, scope and audit plus capability-specific reviewed provider.",
       "openImplementationGaps": [
-        "No dedicated Athena MCP transport/session/client implementation or approved named acceptance contract located."
+        "Only the source-owned local read-only diagnostic fixture is implemented and locally accepted.",
+        "Remote connectivity, public server registration, arbitrary tools, side effects and 2026-07-28 compatibility are not implemented.",
+        "PostgreSQL migration/persistence acceptance was not run; inherited dependency advisories remain unresolved."
       ],
       "suggestedTechnicalImprovements": [
         "Define/accept the missing scope described above before expanding claims."
@@ -17381,7 +17599,7 @@
         "role": "Proposed athena-core steward",
         "assignedPerson": null
       },
-      "revision": 1,
+      "revision": 2,
       "review": {
         "status": "DRAFT",
         "approvedBy": null
@@ -17421,20 +17639,27 @@
         "Current exact approval and recent authentication for applicable risk",
         "No authority from model/role/content; unknown state denies"
       ],
-      "implementationStatus": "UNKNOWN",
-      "evidenceState": "UNKNOWN",
-      "verificationScope": "Current local test scope only where referenced; no live acceptance.",
+      "implementationStatus": "ARCHITECTURE_ONLY",
+      "evidenceState": "DESIGN_ONLY_IMPLEMENTATION_ABSENT",
+      "verificationScope": "Versioned program design only; no data ingestion, training or optimization implementation/test result.",
       "sourceEvidence": [
         {
           "path": "docs/phase-28-acceptance-matrix-2026-10-14.md",
           "kind": "SOURCE",
           "sha256": "46b953d311514d870a561f426be52c8e49874fbb5a5400fca4df2d19eda9204f",
           "scope": "Workspace source; not deployment evidence"
+        },
+        {
+          "path": "docs/athena-four-foundations/05_FOUNDATION_ATHENACODER.md",
+          "kind": "SOURCE",
+          "sha256": "484d15d592750421aa91e1e85fa96c20a691638c21cc9b68f6c08acd1496d9d9",
+          "scope": "MCP-1A working increment; development/test fixture only, not deployment acceptance"
         }
       ],
       "existingTestsAndResults": [],
       "knownLimitations": [
-        "No dedicated named training/dataset implementation located; engineering runtime and personality corpus are adjacent systems."
+        "No dedicated named training/dataset implementation located; engineering runtime and personality corpus are adjacent systems.",
+        "The four-foundations program now defines architecture/phases; implementation remains absent and no experimental result is claimed."
       ],
       "requiredIntegrations": "Existing policy, approval, identity, scope and audit plus capability-specific reviewed provider.",
       "openImplementationGaps": [
@@ -17447,7 +17672,7 @@
         "role": "Proposed machine-intelligence steward",
         "assignedPerson": null
       },
-      "revision": 1,
+      "revision": 2,
       "review": {
         "status": "DRAFT",
         "approvedBy": null
@@ -17500,7 +17725,8 @@
       ],
       "existingTestsAndResults": [],
       "knownLimitations": [
-        "No inspectable named distillation training/evaluation/promotion implementation located."
+        "No inspectable named distillation training/evaluation/promotion implementation located.",
+        "Explicitly separate future research charter in the four-foundations program; no teacher data/training or promotion implementation."
       ],
       "requiredIntegrations": "Existing policy, approval, identity, scope and audit plus capability-specific reviewed provider.",
       "openImplementationGaps": [
@@ -17513,7 +17739,7 @@
         "role": "Proposed machine-intelligence steward",
         "assignedPerson": null
       },
-      "revision": 1,
+      "revision": 2,
       "review": {
         "status": "DRAFT",
         "approvedBy": null
@@ -17548,13 +17774,21 @@
         "Current exact approval and recent authentication for applicable risk",
         "No authority from model/role/content; unknown state denies"
       ],
-      "implementationStatus": "UNKNOWN",
-      "evidenceState": "UNKNOWN",
-      "verificationScope": "Current local test scope only where referenced; no live acceptance.",
-      "sourceEvidence": [],
+      "implementationStatus": "ARCHITECTURE_ONLY",
+      "evidenceState": "DESIGN_ONLY_IMPLEMENTATION_ABSENT",
+      "verificationScope": "Versioned program design only; no data ingestion, training or optimization implementation/test result.",
+      "sourceEvidence": [
+        {
+          "path": "docs/athena-four-foundations/07_FOUNDATION_QUANTUM_RUNTIME.md",
+          "kind": "SOURCE",
+          "sha256": "00b13d50b8f92fd5b1ad366f54eaca946cea331b6323169df310ab5a67cc67c8",
+          "scope": "MCP-1A working increment; development/test fixture only, not deployment acceptance"
+        }
+      ],
       "existingTestsAndResults": [],
       "knownLimitations": [
-        "No dedicated quantum research code, simulator adapter or experimental result located."
+        "No dedicated quantum research code, simulator adapter or experimental result located.",
+        "The four-foundations program now defines architecture/phases; implementation remains absent and no experimental result is claimed."
       ],
       "requiredIntegrations": "Existing policy, approval, identity, scope and audit plus capability-specific reviewed provider.",
       "openImplementationGaps": [
@@ -17567,7 +17801,7 @@
         "role": "Proposed quantum-research steward",
         "assignedPerson": null
       },
-      "revision": 1,
+      "revision": 2,
       "review": {
         "status": "DRAFT",
         "approvedBy": null
@@ -17974,15 +18208,328 @@
       },
       "confidentiality": "CONFIDENTIAL",
       "claimBoundary": "Current audit supplies source material; automatic CI impact detection, PDF and sync pipelines are not implemented."
+    },
+    {
+      "id": "ATHENA.MCP.LOCAL_READ_ONLY",
+      "name": "MCP-1A trusted local read-only client transport",
+      "sector": "athena-core",
+      "owningSubsystem": "Foundation One / mcp",
+      "description": "One fixed reviewed MCP diagnostic server/tool over bounded stdio.",
+      "intendedPurpose": "Establish real local MCP compatibility while retaining existing deterministic authority.",
+      "userFacingBehavior": "Finite signed discovery/read-status API with explicit company grant and readable registered workspace; fixture disabled by default and prohibited in production.",
+      "technicalArchitecture": {
+        "workstream": "FOUNDATION_ONE",
+        "protocolVersion": "2025-11-25",
+        "sdk": "@modelcontextprotocol/sdk@1.32.2",
+        "mechanism": "Official SDK protocol client/server, pre-parse bounded stdio, exact reviewed schemas, existing policy/permission rechecks, abort/deadline/cleanup and safe audit.",
+        "sourceFiles": [
+          "apps/api/src/mcp/service.ts",
+          "apps/api/src/mcp/protocol.ts",
+          "apps/api/src/mcp/transport.ts",
+          "apps/api/src/mcp/fixture-server.ts",
+          "apps/api/src/mcp/errors.ts",
+          "apps/api/src/routes/mcp.ts",
+          "packages/shared/src/mcp.ts"
+        ],
+        "composition": "apps/api/src/app.ts::buildApi; bootstrap flag MCP_LOCAL_FIXTURE_ENABLED",
+        "limits": {
+          "deadlineMs": 5000,
+          "frameBytes": 16384,
+          "connectionBytes": 65536,
+          "incomingFrames": 16,
+          "concurrentPerApiProcess": 1,
+          "maxStartsPerMinutePerApiProcess": 30
+        }
+      },
+      "repositoryPathsAndSymbols": [
+        {
+          "path": "apps/api/src/mcp/service.ts",
+          "symbols": ["McpLocalService"]
+        },
+        {
+          "path": "apps/api/src/mcp/protocol.ts",
+          "symbols": ["McpProtocolClient"]
+        },
+        {
+          "path": "packages/shared/src/mcp.ts",
+          "symbols": [
+            "McpLocalRequestSchema",
+            "McpLocalResponseSchema",
+            "McpStatusInputSchema",
+            "McpStatusOutputSchema"
+          ]
+        }
+      ],
+      "apiDependencies": {
+        "routes": [
+          {
+            "method": "POST",
+            "path": "/api/mcp/local-fixture/discover"
+          },
+          {
+            "method": "POST",
+            "path": "/api/mcp/local-fixture/read-status"
+          }
+        ],
+        "guards": [
+          "Session",
+          "CompanyContextResolver",
+          "Exact trusted origin",
+          "CSRF",
+          "Trusted device",
+          "Verified signed envelope and replay",
+          "Private-network state"
+        ]
+      },
+      "databaseDependencies": {
+        "existingTables": [
+          "integrations",
+          "integration_permissions",
+          "workspaces",
+          "policy_evaluations",
+          "security_state"
+        ],
+        "existingStores": [
+          "IdentityStore",
+          "GovernanceStore",
+          "IntegrationStore",
+          "CompanyStore"
+        ],
+        "migration": "apps/api/migrations/0118_mcp_local_fixture_provider.sql",
+        "newTables": [],
+        "acceptance": "NOT_RUN: no disposable TEST_DATABASE_URL selected"
+      },
+      "associatedAgentsOrModels": "No automatic agent enrollment or model invocation; future workforce reuse must use the same governed adapter.",
+      "executionEnvironment": [
+        "Node >=22 development/test API",
+        "Fixed local Node fixture child with minimal environment"
+      ],
+      "securityAndAuthorizationRequirements": [
+        "Authenticated live owner session and trusted signed device",
+        "Current company membership and readable registered workspace",
+        "Explicit company integration permission and existing policy allow within read-only/session baseline",
+        "Source-owned fixed server/tool/schema; no caller executable, URL, env or trust/risk",
+        "Current stop/revocation rechecks, local resource quotas, required audit"
+      ],
+      "implementationStatus": "IMPLEMENTED_AND_VERIFIED",
+      "evidenceState": "REAL_LOCAL_STDIO_AND_API_ACCEPTANCE",
+      "verificationScope": "47 passing local tests: actual SDK child handshake/discovery/read plus signed API integration and fault/authorization fixtures. One PostgreSQL acceptance test skipped. No third-party/live/production compatibility accepted.",
+      "sourceEvidence": [
+        {
+          "path": "apps/api/src/mcp/service.ts",
+          "kind": "SOURCE",
+          "sha256": "fdf2373a4ad3370b5c07c73539305fc4d42e0024f41c44815c1a6b6c9b34c1df",
+          "scope": "MCP-1A working increment; development/test fixture only, not deployment acceptance",
+          "symbol": "McpLocalService"
+        },
+        {
+          "path": "apps/api/src/mcp/protocol.ts",
+          "kind": "SOURCE",
+          "sha256": "793305eb0101c5cdc45c9ddfe22d3124d3a1354927d80f14a30d282c6373ff2a",
+          "scope": "MCP-1A working increment; development/test fixture only, not deployment acceptance",
+          "symbol": "McpProtocolClient"
+        },
+        {
+          "path": "apps/api/src/mcp/transport.ts",
+          "kind": "SOURCE",
+          "sha256": "25426efe7b2f1155d5366dbff830e76574336db353a99db44cb73236516f47d3",
+          "scope": "MCP-1A working increment; development/test fixture only, not deployment acceptance",
+          "symbol": "createLocalFixtureTransport"
+        },
+        {
+          "path": "apps/api/src/mcp/fixture-server.ts",
+          "kind": "SOURCE",
+          "sha256": "0b0dc63d7472df06c0453d8fec91a3209b8cd845d57b65ad21e77a58e2eee924",
+          "scope": "MCP-1A working increment; development/test fixture only, not deployment acceptance"
+        },
+        {
+          "path": "apps/api/src/routes/mcp.ts",
+          "kind": "SOURCE",
+          "sha256": "e7dfe77371d6fc5c9d9a5ab907547bfcc4362869a424c52092400c0725f896db",
+          "scope": "MCP-1A working increment; development/test fixture only, not deployment acceptance",
+          "symbol": "registerMcpLocalRoutes"
+        },
+        {
+          "path": "packages/shared/src/mcp.ts",
+          "kind": "SOURCE",
+          "sha256": "231d8626036adf916dfe9ac29bdd9d6ec492de77c1ff1352b42419e6be8d49d8",
+          "scope": "MCP-1A working increment; development/test fixture only, not deployment acceptance",
+          "symbol": "McpLocalRequestSchema"
+        },
+        {
+          "path": "apps/api/migrations/0118_mcp_local_fixture_provider.sql",
+          "kind": "SOURCE",
+          "sha256": "a064c68acb41802546bb4756477eafa63f7cc8cf1bd9b640a2f6993be8684ac2",
+          "scope": "MCP-1A working increment; development/test fixture only, not deployment acceptance"
+        }
+      ],
+      "existingTestsAndResults": [
+        {
+          "path": "apps/api/src/mcp/api.test.ts",
+          "run": "LOCAL_MCP_1A_2026_10_26",
+          "passed": 4,
+          "failed": 0,
+          "skipped": 0,
+          "scope": "Real SDK stdio/API fixture and mocked protocol/authorization fault tests; PostgreSQL separately gated."
+        },
+        {
+          "path": "apps/api/src/mcp/postgres.integration.test.ts",
+          "run": "LOCAL_MCP_1A_2026_10_26",
+          "passed": 0,
+          "failed": 0,
+          "skipped": 1,
+          "scope": "Real SDK stdio/API fixture and mocked protocol/authorization fault tests; PostgreSQL separately gated."
+        },
+        {
+          "path": "apps/api/src/mcp/protocol.test.ts",
+          "run": "LOCAL_MCP_1A_2026_10_26",
+          "passed": 15,
+          "failed": 0,
+          "skipped": 0,
+          "scope": "Real SDK stdio/API fixture and mocked protocol/authorization fault tests; PostgreSQL separately gated."
+        },
+        {
+          "path": "apps/api/src/mcp/service.test.ts",
+          "run": "LOCAL_MCP_1A_2026_10_26",
+          "passed": 21,
+          "failed": 0,
+          "skipped": 0,
+          "scope": "Real SDK stdio/API fixture and mocked protocol/authorization fault tests; PostgreSQL separately gated."
+        },
+        {
+          "path": "apps/api/src/mcp/transport.test.ts",
+          "run": "LOCAL_MCP_1A_2026_10_26",
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0,
+          "scope": "Real SDK stdio/API fixture and mocked protocol/authorization fault tests; PostgreSQL separately gated."
+        },
+        {
+          "path": "packages/config/src/mcp.test.ts",
+          "run": "LOCAL_MCP_1A_2026_10_26",
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "scope": "Real SDK stdio/API fixture and mocked protocol/authorization fault tests; PostgreSQL separately gated."
+        }
+      ],
+      "knownLimitations": [
+        "Development/test source-owned fixture only; read-only is not a sandbox guarantee for third-party code.",
+        "No remote transport, credentials, public registration, side effects, generic schema compilation or modern protocol support.",
+        "No disposable PostgreSQL migration/restart/concurrency acceptance in this environment.",
+        "Inherited Zod/Fastify/fast-uri advisories remain; dependency audit is not passing.",
+        "Host quotas are per API process; fleet-wide quota enforcement is later work."
+      ],
+      "requiredIntegrations": "Existing company-scoped integration/governance/identity stores and fixed source-owned SDK server; no external credentials.",
+      "openImplementationGaps": [
+        "MCP-1B PostgreSQL/restart/concurrency acceptance and dependency remediation before wider registration."
+      ],
+      "suggestedTechnicalImprovements": [
+        "Run gated DB acceptance, resolve inherited dependency advisories in a reviewed patch, then add reviewed binding/schema lifecycle."
+      ],
+      "documentationOwner": {
+        "role": "Core runtime and Security maintainers",
+        "assignedPerson": null
+      },
+      "revision": 1,
+      "review": {
+        "status": "REQUIRES_ADDITIONAL_VALIDATION",
+        "approvedBy": null,
+        "acceptanceRecord": "docs/athena-four-foundations/implementation-logs/03_COMPLETION_REPORT.md",
+        "releaseDecision": "REQUIRES_ADDITIONAL_VALIDATION"
+      },
+      "confidentiality": "CONFIDENTIAL",
+      "claimBoundary": "Locally accepted fixed read-only stdio fixture only; no production/third-party compatibility or complete universal runtime.",
+      "acceptedAssertions": [
+        "runs an actual SDK server child through initialization, discovery and read",
+        "executes through actual API composition and real stdio, then rejects replay"
+      ]
+    },
+    {
+      "id": "ATHENA.MODEL_LIFECYCLE",
+      "name": "Governed model artifact and serving lifecycle design",
+      "sector": "machine-intelligence",
+      "owningSubsystem": "Foundation Three / model lifecycle",
+      "description": "Proposed immutable artifact/evaluation/review and simulated deployment/rollback lifecycle extending existing inference registries.",
+      "intendedPurpose": "Separate artifact/promotion authority from inference model descriptors.",
+      "userFacingBehavior": "Design only; no registry, deployment, simulation or promotion operation added in MCP-1A.",
+      "technicalArchitecture": {
+        "workstream": "FOUNDATION_THREE",
+        "mechanism": "Extend existing AI model/provider registries with future versioned artifact provenance, independent review and finite serving adapters.",
+        "sourceFiles": [
+          "docs/athena-four-foundations/06_FOUNDATION_MODEL_LIFECYCLE.md"
+        ],
+        "phases": [
+          "MODEL-1 offline dummy artifacts/simulation",
+          "MODEL-2 local serving/evaluation",
+          "MODEL-3 staging",
+          "MODEL-4 canary/rollback",
+          "MODEL-5 reviewed production"
+        ]
+      },
+      "repositoryPathsAndSymbols": [
+        {
+          "path": "docs/athena-four-foundations/06_FOUNDATION_MODEL_LIFECYCLE.md",
+          "symbols": []
+        }
+      ],
+      "apiDependencies": {
+        "status": "PROPOSED_ONLY"
+      },
+      "databaseDependencies": {
+        "status": "PROPOSED_ONLY; reuse existing PostgreSQL patterns, no migration implemented"
+      },
+      "associatedAgentsOrModels": "Existing AIModelRegistry/AIProviderRegistry/AIRouter would consume approved serving bindings only.",
+      "executionEnvironment": "Future offline dummy fixture, then separately approved local/staging serving.",
+      "securityAndAuthorizationRequirements": [
+        "Existing identity/company/policy/approval/economics/audit",
+        "Independent human promotion and no model self-deployment",
+        "Immutable artifact/evaluation/data hashes and approved storage/runtime profiles"
+      ],
+      "implementationStatus": "ARCHITECTURE_ONLY",
+      "evidenceState": "DESIGN_ONLY_IMPLEMENTATION_ABSENT",
+      "verificationScope": "Design source only; no artifact lifecycle or simulated deployment test implemented.",
+      "sourceEvidence": [
+        {
+          "path": "docs/athena-four-foundations/06_FOUNDATION_MODEL_LIFECYCLE.md",
+          "kind": "SOURCE",
+          "sha256": "e1a8ccc0c70d3e983d2a9e8424e5ef2c8b49b1a6514b795fee388d4b0b69b184",
+          "scope": "MCP-1A working increment; development/test fixture only, not deployment acceptance"
+        }
+      ],
+      "existingTestsAndResults": [],
+      "knownLimitations": [
+        "All model artifact/deployment lifecycle implementation remains future work.",
+        "Existing inference model registries are adjacent code, not artifact promotion acceptance."
+      ],
+      "requiredIntegrations": "Future approved artifact storage and finite serving provider, existing AIRouter/governance/economics.",
+      "openImplementationGaps": [
+        "MODEL-1 offline dummy artifact slice not implemented."
+      ],
+      "suggestedTechnicalImprovements": [
+        "Implement only MODEL-1 with inert artifacts, independent review, simulated failure and deterministic rollback after design review."
+      ],
+      "documentationOwner": {
+        "role": "Core runtime and Security maintainers",
+        "assignedPerson": null
+      },
+      "revision": 1,
+      "review": {
+        "status": "DRAFT",
+        "approvedBy": null,
+        "releaseDecision": "DESIGN_ONLY"
+      },
+      "confidentiality": "CONFIDENTIAL",
+      "claimBoundary": "Program architecture only; no training, serving deployment or promotion result claimed."
     }
   ],
   "statusCounts": {
     "IMPLEMENTED_NOT_VERIFIED": 71,
-    "PARTIALLY_IMPLEMENTED": 27,
+    "PARTIALLY_IMPLEMENTED": 28,
     "DEPRECATED": 1,
-    "IMPLEMENTED_AND_VERIFIED": 1,
-    "UNKNOWN": 6,
-    "ARCHITECTURE_ONLY": 2,
+    "IMPLEMENTED_AND_VERIFIED": 2,
+    "ARCHITECTURE_ONLY": 5,
+    "UNKNOWN": 3,
     "RESEARCH": 2
   },
   "finiteToolDeclarations": [
@@ -18993,6 +19540,20 @@
       "source": "apps/api/src/governance/defaults.ts::BUILT_IN_TOOLS/defineTool",
       "dispatchAvailability": "UNKNOWN_FROM_DECLARATION_ALONE",
       "acceptance": "See parent capability tests; no per-tool live verification asserted."
+    },
+    {
+      "toolName": "mcp.local_fixture.read_status",
+      "riskDeclaration": "read_only",
+      "approvalDeclaration": "session",
+      "requiredCapabilities": ["workspace.read"],
+      "targetType": "workspace",
+      "catalogEnabledDefault": true,
+      "requiresTrustedDevice": true,
+      "inputSchemaId": "mcp.local_fixture.read_status.input.v1",
+      "outputSchemaId": "mcp.local_fixture.read_status.output.v1",
+      "source": "apps/api/src/governance/defaults.ts::BUILT_IN_TOOLS",
+      "dispatchAvailability": "Only finite fixture routes, explicit grant/readable workspace, feature off by default and prohibited in production",
+      "acceptance": "MCP-1A local stdio/API acceptance only."
     }
   ],
   "finiteCatalogIndex": "evidence/finite-catalogs.json"

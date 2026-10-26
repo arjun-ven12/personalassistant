@@ -1,3 +1,7 @@
+import { McpLocalService } from "./mcp/service.js";
+import { McpProtocolClient } from "./mcp/protocol.js";
+import { createLocalFixtureTransport } from "./mcp/transport.js";
+import { registerMcpLocalRoutes } from "./routes/mcp.js";
 import { DocumentStore } from "./documents/store.js";
 import { FileDocumentAssets } from "./documents/assets.js";
 import { DocumentService } from "./documents/service.js";
@@ -660,6 +664,7 @@ export interface BuildApiOptions {
   cognitiveContext?: CognitiveContextService;
   benchmarkRunner?: AIBenchmarkRunner;
   executionLimits?: ExecutionLimits;
+  mcpLocalFixtureEnabled?: boolean;
 }
 
 export const buildApi = async ({
@@ -667,6 +672,7 @@ export const buildApi = async ({
   privateNetworkRequired,
   logger = true,
   nodeEnvironment = "development",
+  mcpLocalFixtureEnabled = false,
   allowOwnerBootstrap = true,
   sessionCookieName = "alexa_session",
   sessionTtlSeconds = 28_800,
@@ -2664,6 +2670,18 @@ export const buildApi = async ({
   });
   workforceRuntime.setLifecycleSink(objectives);
   crossApplicationWorkflows.setLifecycleSink(objectives);
+  const mcpLocal = new McpLocalService({
+    enabled: mcpLocalFixtureEnabled,
+    nodeEnvironment,
+    identity: identityStore,
+    companies,
+    governance: governanceStore,
+    policy: policyEngine,
+    integrations,
+    audit: governanceAudit,
+    factory: () => new McpProtocolClient(createLocalFixtureTransport()),
+  });
+  app.addHook("onClose", async () => mcpLocal.close());
   const productionUniversalReady =
     nodeEnvironment !== "production" ||
     Boolean(database && persistenceMode === "postgresql");
@@ -3139,6 +3157,7 @@ export const buildApi = async ({
     validationStore,
     workflows,
     workflowStore,
+    mcpLocal,
     integrations,
     integrationStore,
     agents,
@@ -3369,6 +3388,7 @@ export const buildApi = async ({
     });
   });
 
+  registerMcpLocalRoutes(app, context);
   if (documentService) {
     documentService.gateway = universalGateway;
     documentService.semanticIndex = async (scope, doc) => {

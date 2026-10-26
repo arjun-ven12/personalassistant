@@ -34,6 +34,7 @@ const selfImprovementRepositories = z.preprocess((value) => {
 export const ApiEnvironmentSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+    MCP_LOCAL_FIXTURE_ENABLED: booleanValue.default(false),
     DEPLOYMENT_MODE: z.enum(["private", "cloud"]).default("private"),
     API_HOST: z.string().min(1).default("127.0.0.1"),
     API_PORT: z.coerce.number().int().min(1).max(65_535).default(3001),
@@ -255,6 +256,16 @@ export const ApiEnvironmentSchema = z
   })
   .passthrough()
   .superRefine((environment, context) => {
+    if (
+      environment.NODE_ENV === "production" &&
+      environment.MCP_LOCAL_FIXTURE_ENABLED
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["MCP_LOCAL_FIXTURE_ENABLED"],
+        message: "The local MCP compatibility fixture is prohibited in production.",
+      });
+    }
     if (
       environment.SESSION_IDLE_TTL_SECONDS > environment.SESSION_ABSOLUTE_TTL_SECONDS
     ) {
