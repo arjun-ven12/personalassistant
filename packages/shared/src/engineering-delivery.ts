@@ -22,6 +22,7 @@ export const EngineeringComplexitySchema = z.enum([
   "HIGH_RISK",
 ]);
 export const EngineeringDeliveryStatusSchema = z.enum([
+  "DRAFT",
   "RECEIVED",
   "INITIALIZING",
   "PLANNING",
@@ -110,6 +111,7 @@ export const EngineeringModelUsageSchema = z
 
 export const EngineeringDeliverySchema = z
   .object({
+    draftRequestDigest: z.string().regex(/^[a-f0-9]{64}$/).nullable().default(null),
     schemaVersion: z.literal("1"),
     id: z.string().uuid(),
     ownerId: z.string().uuid(),

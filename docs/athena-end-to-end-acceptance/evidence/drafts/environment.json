@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-27",
+  "baseHead": "90c77ecceb35682e0b64bcc512b8d83ae23a78d1",
+  "latestFetchedMain": "90c77ecceb35682e0b64bcc512b8d83ae23a78d1",
+  "branch": "engineering/signed-drafts-2026-10-27",
+  "node": "22.16.0",
+  "pnpm": "11.17.0",
+  "vitest": "4.1.12",
+  "platform": "Linux",
+  "postgresql": "18.6 (Ubuntu 18.6-1.pgdg22.04+2)",
+  "pgvector": "0.8.7",
+  "databaseProvenance": "Fresh empty unprivileged initdb, private Unix socket, TCP disabled; 60 connections, max_locks_per_transaction=1024. No ambient connection used.",
+  "databaseShutdown": "PASS; final owned postmaster stopped after accepted final checks and PID file absent",
+  "realAndroidKeystore": "NOT_RUN",
+  "realMacExecution": "NOT_RUN"
+}

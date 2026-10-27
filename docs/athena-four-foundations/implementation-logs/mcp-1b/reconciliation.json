@@ -1,0 +1,23 @@
+{
+  "originalCheckoutHead": "7ee28be9de093a0446dfbe95b7145278b9087ea9",
+  "latestFetchedMain": "90c77ecceb35682e0b64bcc512b8d83ae23a78d1",
+  "acceptanceWorktree": "/tmp/athena-mcp-1b",
+  "acceptanceBranch": "foundation/mcp-1b-acceptance-2026-10-26",
+  "originalCheckoutPolicy": "Preserve byte-for-byte; no checkout/reset/stash/merge or copied source replacements.",
+  "failedWorkspaceCheckout": "Attempt to create separate checkout under /workspace hit filesystem capacity; subsequent work is isolated under /tmp. No pre-existing work overwritten.",
+  "database": {
+    "provenance": "New empty initdb cluster created for this run, under a new temporary directory; no ambient database URL loaded.",
+    "version": "PostgreSQL 18",
+    "role": "Unprivileged local fixture process (privileges voluntarily dropped before initdb).",
+    "transport": "TCP listening disabled; private Unix socket only.",
+    "databaseName": "athena_mcp_1b_test",
+    "requiredExtensions": ["vector"],
+    "maxConnections": 60,
+    "maxLocksPerTransaction": 1024,
+    "initialAcceptance": "Assertion passed but schema teardown failed at default lock capacity; disposable cluster restarted with increased lock capacity, then rerun passed.",
+    "serverVersion": "18.6",
+    "vectorVersion": "0.8.7",
+    "shutdown": "PASS; owned fixture stopped, postmaster.pid absent."
+  },
+  "changesExcluded": "All original dirty/untracked work; existing credentials, production settings, account connections and permissions."
+}

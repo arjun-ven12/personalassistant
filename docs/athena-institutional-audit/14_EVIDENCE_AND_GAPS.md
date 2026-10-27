@@ -220,3 +220,7 @@ The 110 significant claims include 71 implemented but not fully accepted, 27 par
 | ATHENA.RESEARCH.MACHINE_LAB        | RESEARCH                 | Machine Intelligence Lab institutional program                              |
 | ATHENA.RESEARCH.QUANTUM_LAB        | RESEARCH                 | Quantum Systems Research institutional program                              |
 | ATHENA.DOCS.PIPELINE               | ARCHITECTURE_ONLY        | Institutional documentation automation                                      |
+
+## MCP-1B supplemental evidence — 2026-10-26
+
+The historical audit baseline above is retained. The MCP-1B candidate based on merged `90c77ec` now has 63 passing focused assertions, including 16 PostgreSQL assertions against a newly created disposable local cluster. This closes the bounded MCP migration/store/replay/revocation/API-reconstruction evidence gap; it does not close all platform-wide durable governance or provider acceptance gaps. The historical ten Zod/Fastify/fast-uri advisory entries are resolved by scoped same-major updates, while the whole dependency audit still fails. Release decision: **REQUIRES_ADDITIONAL_VALIDATION**. See [current MCP-1B acceptance report](../athena-four-foundations/implementation-logs/mcp-1b/ACCEPTANCE_REPORT.md). No production enablement or permission expansion is authorized by this evidence.

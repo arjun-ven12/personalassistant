@@ -1,0 +1,7 @@
+{
+  "originalHead": "7ee28be9de093a0446dfbe95b7145278b9087ea9",
+  "capturedExistingFiles": 1347,
+  "modifiedOrMissingOriginalFiles": [],
+  "result": "PASS",
+  "method": "Before/after SHA-256 comparison of every existing tracked and nonignored untracked file; no secret file content included."
+}

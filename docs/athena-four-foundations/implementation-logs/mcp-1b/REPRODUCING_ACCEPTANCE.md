@@ -1,0 +1,20 @@
+# Reproducing bounded MCP-1B acceptance
+
+Use Node 22–24 and pnpm 11, as specified by the repository. This run used Node 22.16.0, pnpm 11.17.0, Linux x86_64 and PostgreSQL 18 with pgvector. Use a clean worktree; do not overwrite the original dirty checkout.
+
+1. Provision a **new empty disposable PostgreSQL cluster/database**, never a production host or copied customer dataset. Disable TCP listening; place its Unix socket in a private temporary directory. Run PostgreSQL unprivileged. This run used a synthetic `athena_mcp_1b_test` database, 60 maximum connections and `max_locks_per_transaction=1024` because complete schema cleanup exceeds the default lock capacity. No system PostgreSQL service or existing database configuration was modified.
+2. Install reviewed dependencies with `pnpm install --frozen-lockfile --ignore-scripts`. Supply only the disposable URL as `TEST_DATABASE_URL`; leave production `DATABASE_URL` and provider credentials absent. Use `sslmode=disable` only for the isolated local fixture. The URL may carry a `host` query parameter pointing to the owned private Unix socket. Do not copy connection strings into reports.
+3. Disable implicit `.env` loading in the test process. This run preloaded a temporary file containing `process.loadEnvFile = () => {};` and used an allowlisted subprocess environment. Live Gmail/Stripe acceptance flags were disabled. The MCP child already receives only its fixed minimal environment.
+4. Run `pnpm exec vitest run apps/api/src/mcp packages/config/src/mcp.test.ts`. With the explicitly configured disposable database this includes actual PostgreSQL adapters and real local SDK stdio. Without that URL the database suites intentionally skip; skips do not establish durable acceptance.
+5. Run `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm --filter @alexa-control/api build`, `pnpm --filter @alexa-control/api security:check`, `pnpm verify:production-config`, and `pnpm audit --json`. The whole-suite regression run here deliberately had no database URL; durable MCP acceptance was run separately against the disposable cluster. No remote provider test was enabled.
+6. Preserve pre-existing tracked build outputs around builds. Stop only the PostgreSQL process created for this fixture and confirm it exited. Test schemas contain synthetic records only and are torn down after each case.
+
+## What the durable suite proves
+
+`apps/api/src/mcp/durability.integration.test.ts` uses the existing API composition with PostgreSQL identity, company, governance, integration and session-security stores. It verifies digest-current fresh migrations, a chronological pre-0118 → 0118 upgrade with existing synthetic integrations, preserved provider vocabulary, attributed policy/audit records, company/workspace separation, signature tampering, replay/duplicate races, revocation and approval digest/expiry boundaries.
+
+It closes and reconstructs the API and database pool, then rejects retained replay state. Two API instances race the same envelope and the same operation ID with independently signed nonces; exactly one completion is accepted. The read-only fixture has no side effect to reconcile. This is not a claim of durable write idempotency, distributed fleet quotas, or remote-provider recovery.
+
+For stop, permission/session revocation, explicit cancellation and timeout, a test-only barrier pauses immediately before the real SDK tool call. Authorization/policy/audit stores and the stdio child remain real. The test changes only timing, observes denial, and confirms process exit and absence of success audit. Protocol-poisoning tests use scripted fault transports and are explicitly separate from live local-fixture acceptance.
+
+API/pool reconstruction is a restart acceptance scope; this suite does not certify abrupt host power loss, production backup/restore, network partitions, or third-party MCP compatibility. Stronger explicit approval requirements remain denied by this slice; an approval record never expands its capability scope. Production fixture enablement remains prohibited independently of these checks.

@@ -1,0 +1,6 @@
+{
+  "test": "GHSA-pqg4-j6r4-53mv pure data regression on inherited dependency",
+  "expectedRejected": 4,
+  "actualRejected": 0,
+  "externalCommandsExecuted": 0
+}

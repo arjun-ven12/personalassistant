@@ -1,0 +1,143 @@
+{
+  "scope": "Intermediate test-construction/environment diagnostics, not final accepted commands. Corrected fixtures and final reruns are reported separately.",
+  "commands": [
+    {
+      "name": "postgres-baseline-verbose",
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/api/src/mcp/postgres.integration.test.ts",
+        "--reporter=verbose"
+      ],
+      "exitCode": 1,
+      "durationSeconds": 4.1,
+      "disposableDatabase": true
+    },
+    {
+      "name": "postgres-capacity-fixed",
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/api/src/mcp/postgres.integration.test.ts",
+        "--reporter=verbose"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 4.11,
+      "disposableDatabase": true
+    },
+    {
+      "name": "typecheck-first",
+      "command": ["pnpm", "typecheck"],
+      "exitCode": 2,
+      "durationSeconds": 21.99,
+      "disposableDatabase": false
+    },
+    {
+      "name": "typecheck",
+      "command": ["pnpm", "typecheck"],
+      "exitCode": 2,
+      "durationSeconds": 22.31,
+      "disposableDatabase": false
+    },
+    {
+      "name": "lint",
+      "command": ["pnpm", "lint"],
+      "exitCode": 1,
+      "durationSeconds": 158.85,
+      "disposableDatabase": false
+    },
+    {
+      "name": "durable-first",
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/api/src/mcp/durability.integration.test.ts",
+        "--reporter=verbose"
+      ],
+      "exitCode": 1,
+      "durationSeconds": 34.99,
+      "disposableDatabase": true
+    },
+    {
+      "name": "durable-final",
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/api/src/mcp/durability.integration.test.ts",
+        "--reporter=json",
+        "--outputFile=/tmp/athena-mcp-1b-evidence/durable-final.json"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 37.33,
+      "disposableDatabase": true
+    },
+    {
+      "name": "mcp-acceptance",
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/api/src/mcp",
+        "packages/config/src/mcp.test.ts",
+        "--reporter=json",
+        "--outputFile=/tmp/athena-mcp-1b-evidence/mcp-acceptance.json"
+      ],
+      "exitCode": 1,
+      "durationSeconds": 161.8,
+      "disposableDatabase": true
+    },
+    {
+      "name": "approval-diagnostic",
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/api/src/mcp/durability.integration.test.ts",
+        "-t",
+        "preserves exact approval",
+        "--reporter=verbose"
+      ],
+      "exitCode": 1,
+      "durationSeconds": 10.49,
+      "disposableDatabase": true
+    },
+    {
+      "name": "approval-corrected",
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/api/src/mcp/durability.integration.test.ts",
+        "-t",
+        "preserves exact approval",
+        "--reporter=verbose"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 8.79,
+      "disposableDatabase": true
+    },
+    {
+      "name": "lint-targeted",
+      "command": [
+        "pnpm",
+        "exec",
+        "eslint",
+        "apps/api/src/mcp/durability.integration.test.ts"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 9.95,
+      "disposableDatabase": false
+    }
+  ]
+}

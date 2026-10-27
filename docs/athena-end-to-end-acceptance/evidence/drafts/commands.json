@@ -1,0 +1,312 @@
+{
+  "sourceBase": "90c77ecceb35682e0b64bcc512b8d83ae23a78d1",
+  "candidateWorktree": "/tmp/athena-engineering-drafts",
+  "commands": [
+    {
+      "name": "install",
+      "command": [
+        "pnpm",
+        "install",
+        "--frozen-lockfile",
+        "--ignore-scripts"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 1.25,
+      "disposableDatabase": false
+    },
+    {
+      "name": "draft-contract-red",
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "packages/shared/src/engineering-draft.test.ts",
+        "--reporter=json",
+        "--outputFile=/tmp/athena-drafts-evidence/draft-contract-red.json"
+      ],
+      "exitCode": 1,
+      "durationSeconds": 0.79,
+      "disposableDatabase": false
+    },
+    {
+      "name": "durable-accepted",
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/api/src/engineering-delivery/drafts.integration.test.ts",
+        "packages/shared/src/engineering-draft.test.ts",
+        "apps/api/src/mcp",
+        "apps/api/src/engineering-runtime/postgres-store.integration.test.ts",
+        "apps/api/src/engineering-orchestration/postgres-store.integration.test.ts",
+        "apps/api/src/engineering-integration/postgres-store.integration.test.ts",
+        "apps/api/src/workforce-runtime/postgres-store.integration.test.ts",
+        "packages/config/src/mcp.test.ts",
+        "--reporter=json",
+        "--outputFile=/tmp/athena-drafts-evidence/durable-accepted.json"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 122.29,
+      "disposableDatabase": true
+    },
+    {
+      "name": "final-typecheck",
+      "command": [
+        "pnpm",
+        "typecheck"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 33.22,
+      "disposableDatabase": false
+    },
+    {
+      "name": "final-lint",
+      "command": [
+        "pnpm",
+        "lint"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 100.7,
+      "disposableDatabase": false
+    },
+    {
+      "name": "final-full-tests",
+      "command": [
+        "pnpm",
+        "test",
+        "--reporter=json",
+        "--outputFile=/tmp/athena-drafts-evidence/final-full-tests.json"
+      ],
+      "exitCode": 1,
+      "durationSeconds": 207.64,
+      "disposableDatabase": false
+    },
+    {
+      "name": "failure-reproduction-1",
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/api/src/human-understanding/corpus.test.ts",
+        "apps/mac-agent/electron/application-discovery.test.ts",
+        "apps/api/src/cloud-engineering/image-builder.test.ts",
+        "--reporter=json",
+        "--outputFile=/tmp/athena-drafts-evidence/failure-reproduction-1.json"
+      ],
+      "exitCode": 1,
+      "durationSeconds": 3.67,
+      "disposableDatabase": false
+    },
+    {
+      "name": "failure-reproduction-2",
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/api/src/human-understanding/corpus.test.ts",
+        "apps/mac-agent/electron/application-discovery.test.ts",
+        "apps/api/src/cloud-engineering/image-builder.test.ts",
+        "--reporter=json",
+        "--outputFile=/tmp/athena-drafts-evidence/failure-reproduction-2.json"
+      ],
+      "exitCode": 1,
+      "durationSeconds": 3.61,
+      "disposableDatabase": false
+    },
+    {
+      "name": "failure-reproduction-3",
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/api/src/human-understanding/corpus.test.ts",
+        "apps/mac-agent/electron/application-discovery.test.ts",
+        "apps/api/src/cloud-engineering/image-builder.test.ts",
+        "--reporter=json",
+        "--outputFile=/tmp/athena-drafts-evidence/failure-reproduction-3.json"
+      ],
+      "exitCode": 1,
+      "durationSeconds": 3.48,
+      "disposableDatabase": false
+    },
+    {
+      "name": "failure-probes",
+      "command": [
+        "pnpm",
+        "--filter",
+        "@alexa-control/api",
+        "exec",
+        "tsx",
+        "/tmp/athena-drafts-evidence/failure-probes.ts"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 0.74,
+      "disposableDatabase": false
+    },
+    {
+      "name": "full-build",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "exitCode": 1,
+      "durationSeconds": 15.43,
+      "disposableDatabase": false
+    },
+    {
+      "name": "final-api-build",
+      "command": [
+        "pnpm",
+        "--filter",
+        "@alexa-control/api",
+        "build"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 1.62,
+      "disposableDatabase": false
+    },
+    {
+      "name": "final-security",
+      "command": [
+        "pnpm",
+        "--filter",
+        "@alexa-control/api",
+        "security:check"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 0.92,
+      "disposableDatabase": false
+    },
+    {
+      "name": "final-production-config",
+      "command": [
+        "pnpm",
+        "verify:production-config"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 1.36,
+      "disposableDatabase": false
+    },
+    {
+      "name": "audit",
+      "command": [
+        "pnpm",
+        "audit",
+        "--json"
+      ],
+      "exitCode": 1,
+      "durationSeconds": 0.68,
+      "disposableDatabase": false
+    },
+    {
+      "name": "docs-format",
+      "command": [
+        "pnpm",
+        "exec",
+        "prettier",
+        "--write",
+        "docs/athena-end-to-end-acceptance"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 1.13,
+      "disposableDatabase": false
+    },
+    {
+      "name": "new-format-check",
+      "command": [
+        "pnpm",
+        "exec",
+        "prettier",
+        "--check",
+        "packages/shared/src/engineering-draft.ts",
+        "packages/shared/src/engineering-draft.test.ts",
+        "apps/api/src/engineering-delivery/drafts.ts",
+        "apps/api/src/engineering-delivery/drafts.integration.test.ts",
+        "apps/api/src/routes/engineering-drafts.ts",
+        "docs/athena-end-to-end-acceptance"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 1.31,
+      "disposableDatabase": false
+    },
+    {
+      "name": "cancel-listener-accepted",
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/api/src/engineering-delivery/drafts.integration.test.ts",
+        "-t",
+        "keeps cancellation durable",
+        "--reporter=verbose"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 10.42,
+      "disposableDatabase": true
+    }
+  ],
+  "note": "No DATABASE_URL or provider credentials; only explicitly flagged commands receive the freshly owned TEST_DATABASE_URL. No raw URL, token, signature or private exception content is copied.",
+  "intermediateSetupFailures": [
+    {
+      "name": "cancel-listener-fence",
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/api/src/engineering-delivery/drafts.integration.test.ts",
+        "-t",
+        "keeps cancellation durable",
+        "--reporter=verbose"
+      ],
+      "exitCode": 1,
+      "durationSeconds": 5.45,
+      "disposableDatabase": true
+    },
+    {
+      "name": "cancel-listener-verified",
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/api/src/engineering-delivery/drafts.integration.test.ts",
+        "-t",
+        "keeps cancellation durable",
+        "--reporter=verbose"
+      ],
+      "exitCode": 1,
+      "durationSeconds": 10.16,
+      "disposableDatabase": true
+    },
+    {
+      "name": "final-durable",
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/api/src/engineering-delivery/drafts.integration.test.ts",
+        "packages/shared/src/engineering-draft.test.ts",
+        "apps/api/src/mcp",
+        "apps/api/src/engineering-runtime/postgres-store.integration.test.ts",
+        "apps/api/src/engineering-orchestration/postgres-store.integration.test.ts",
+        "apps/api/src/engineering-integration/postgres-store.integration.test.ts",
+        "apps/api/src/workforce-runtime/postgres-store.integration.test.ts",
+        "packages/config/src/mcp.test.ts",
+        "--reporter=json",
+        "--outputFile=/tmp/athena-drafts-evidence/final-durable.json"
+      ],
+      "exitCode": 1,
+      "durationSeconds": 26.97,
+      "disposableDatabase": true
+    }
+  ],
+  "setupFailureExplanation": "Those reruns encountered the deliberately stopped owned fixture. A restart missing its Unix-only options failed before readiness; explicit private socket/no-TCP restart succeeded, then cancel-listener-accepted and durable-accepted passed. No fallback database was used."
+}

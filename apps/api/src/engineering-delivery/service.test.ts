@@ -473,7 +473,8 @@ describe("EngineeringDeliveryService", () => {
     const blocked = await service.controlCenter(ownerId, companyId, created.delivery.id);
     expect(blocked.blocker?.category).toBe(category);
     const managerResume = vi.spyOn(manager, "resume");
-    const executeCompletedTasks = vi.spyOn(manager, "runReady");
+    // Vitest 4 reuses an existing mock; measure only recovery, not initial delivery.
+    const executeCompletedTasks = vi.spyOn(manager, "runReady").mockClear();
     const resumed = await service.resume(context, created.delivery.id);
     expect(resumed.delivery.id).toBe(created.delivery.id);
     expect(managerResume).not.toHaveBeenCalled();
@@ -837,7 +838,8 @@ describe("EngineeringDeliveryService", () => {
     expect(blocked.blocker).toMatchObject({
       category,
     });
-    const executeTask = vi.spyOn(service.manager, "runReady");
+    // Preserve the assertion that recovery never repeats completed task execution.
+    const executeTask = vi.spyOn(service.manager, "runReady").mockClear();
     await service.resume(context, created.delivery.id);
     await vi.waitFor(() => {
       expect(["DONE", "DONE_WITH_WARNINGS"]).toContain(store.find(ownerId, companyId, created.delivery.id)?.status);

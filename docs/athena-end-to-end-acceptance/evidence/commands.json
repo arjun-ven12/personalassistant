@@ -1,0 +1,240 @@
+{
+  "commands": [
+    {
+      "name": "inherited-install",
+      "command": ["pnpm", "install", "--frozen-lockfile", "--ignore-scripts"],
+      "exitCode": 0,
+      "durationSeconds": 1.3,
+      "disposableDatabase": false
+    },
+    {
+      "name": "audit-before",
+      "command": ["pnpm", "audit", "--json"],
+      "exitCode": 1,
+      "durationSeconds": 0.76,
+      "disposableDatabase": false
+    },
+    {
+      "name": "prerequisite-lock",
+      "command": ["pnpm", "install", "--lockfile-only", "--ignore-scripts"],
+      "exitCode": 0,
+      "durationSeconds": 3.2,
+      "disposableDatabase": false
+    },
+    {
+      "name": "prerequisite-install",
+      "command": ["pnpm", "install", "--frozen-lockfile", "--ignore-scripts"],
+      "exitCode": 0,
+      "durationSeconds": 1.07,
+      "disposableDatabase": false
+    },
+    {
+      "name": "prerequisite-audit",
+      "command": ["pnpm", "audit", "--json"],
+      "exitCode": 1,
+      "durationSeconds": 0.68,
+      "disposableDatabase": false
+    },
+    {
+      "name": "prerequisite-focused",
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/api/src/engineering-delivery/service.test.ts",
+        "apps/api/src/durable-execution/service.test.ts",
+        "apps/mac-agent/electron/toolchain-security.test.ts",
+        "--reporter=json",
+        "--outputFile=/tmp/athena-e2e-evidence/prerequisite-focused.json"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 5.82,
+      "disposableDatabase": false
+    },
+    {
+      "name": "security-tests-final",
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/mac-agent/electron/toolchain-security.test.ts",
+        "apps/api/src/durable-execution/service.test.ts",
+        "apps/api/src/engineering-delivery/service.test.ts",
+        "--reporter=json",
+        "--outputFile=/tmp/athena-e2e-evidence/security-tests-final.json"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 4.61,
+      "disposableDatabase": false
+    },
+    {
+      "name": "durable-regression",
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/api/src/mcp",
+        "apps/api/src/engineering-runtime/postgres-store.integration.test.ts",
+        "apps/api/src/engineering-orchestration/postgres-store.integration.test.ts",
+        "apps/api/src/engineering-integration/postgres-store.integration.test.ts",
+        "apps/api/src/workforce-runtime/postgres-store.integration.test.ts",
+        "packages/config/src/mcp.test.ts",
+        "--reporter=json",
+        "--outputFile=/tmp/athena-e2e-evidence/durable-regression.json"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 78.34,
+      "disposableDatabase": true
+    },
+    {
+      "name": "final-typecheck",
+      "command": ["pnpm", "typecheck"],
+      "exitCode": 0,
+      "durationSeconds": 26.79,
+      "disposableDatabase": false
+    },
+    {
+      "name": "final-lint",
+      "command": ["pnpm", "lint"],
+      "exitCode": 0,
+      "durationSeconds": 86.8,
+      "disposableDatabase": false
+    },
+    {
+      "name": "final-full-tests",
+      "command": [
+        "pnpm",
+        "test",
+        "--reporter=json",
+        "--outputFile=/tmp/athena-e2e-evidence/final-full-tests.json"
+      ],
+      "exitCode": 1,
+      "durationSeconds": 202.75,
+      "disposableDatabase": false
+    },
+    {
+      "name": "baseline-existing-failures",
+      "command": [
+        "/tmp/athena-phase28-tools/node-v22.16.0-linux-x64/bin/node",
+        "/tmp/athena-e2e-acceptance/node_modules/vitest/vitest.mjs",
+        "run",
+        "apps/api/src/cloud-engineering/image-builder.test.ts",
+        "apps/api/src/human-understanding/corpus.test.ts",
+        "apps/mac-agent/electron/application-discovery.test.ts",
+        "--reporter=json",
+        "--outputFile=/tmp/athena-e2e-evidence/baseline-existing-failures.json"
+      ],
+      "exitCode": 1,
+      "durationSeconds": 3.28,
+      "disposableDatabase": false
+    },
+    {
+      "name": "api-build",
+      "command": ["pnpm", "--filter", "@alexa-control/api", "build"],
+      "exitCode": 0,
+      "durationSeconds": 1.32,
+      "disposableDatabase": false
+    },
+    {
+      "name": "full-build",
+      "command": ["pnpm", "build"],
+      "exitCode": 1,
+      "durationSeconds": 17.0,
+      "disposableDatabase": false
+    },
+    {
+      "name": "android-build",
+      "command": [
+        "bash",
+        "apps/android/gradlew",
+        "-p",
+        "apps/android",
+        ":app:testDebugUnitTest",
+        ":app:assembleDebug",
+        "--no-daemon"
+      ],
+      "exitCode": 1,
+      "durationSeconds": 45.02,
+      "disposableDatabase": false
+    },
+    {
+      "name": "security",
+      "command": ["pnpm", "--filter", "@alexa-control/api", "security:check"],
+      "exitCode": 0,
+      "durationSeconds": 0.83,
+      "disposableDatabase": false
+    },
+    {
+      "name": "production-config",
+      "command": ["pnpm", "verify:production-config"],
+      "exitCode": 0,
+      "durationSeconds": 1.07,
+      "disposableDatabase": false
+    },
+    {
+      "name": "format-new",
+      "command": [
+        "pnpm",
+        "exec",
+        "prettier",
+        "--write",
+        "apps/mac-agent/electron/toolchain-security.test.ts",
+        "docs/athena-end-to-end-acceptance"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 0.99,
+      "disposableDatabase": false
+    },
+    {
+      "name": "format-evidence",
+      "command": [
+        "pnpm",
+        "exec",
+        "prettier",
+        "--write",
+        "docs/athena-end-to-end-acceptance/evidence"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 0.7,
+      "disposableDatabase": false
+    },
+    {
+      "name": "final-format-check",
+      "command": [
+        "pnpm",
+        "exec",
+        "prettier",
+        "--check",
+        "apps/mac-agent/electron/toolchain-security.test.ts",
+        "docs/athena-end-to-end-acceptance"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 0.88,
+      "disposableDatabase": false
+    },
+    {
+      "name": "artifact-validation",
+      "command": ["node", "<temporary-validator>"],
+      "exitCode": 0,
+      "disposableDatabase": false,
+      "scope": "Strict Zod register and preserved IDs, candidate hashes, trace paths, explicit historical gaps and source diagram structure."
+    },
+    {
+      "name": "prerequisite-patch-check",
+      "command": ["git", "apply", "--check", "<prerequisite-patch>"],
+      "exitCode": 0,
+      "disposableDatabase": false,
+      "scope": "Read-only applicability check in preserved MCP-1B worktree."
+    },
+    {
+      "name": "git-diff-check",
+      "command": ["git", "diff", "--check"],
+      "exitCode": 0,
+      "disposableDatabase": false
+    }
+  ],
+  "scope": "Commands run in new candidate worktree except baseline source comparison; database access only when explicitly flagged as owned disposable test fixture."
+}

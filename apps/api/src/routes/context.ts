@@ -1,3 +1,4 @@
+import type { EngineeringDraftService } from "../engineering-delivery/drafts.js";
 import type { McpLocalService } from "../mcp/service.js";
 import type { AthenaCoderControlService } from "../ai/athena-coder/control.js";
 import type { AthenaCoderEngineeringBenchmarkHarness } from "../engineering-dataset/benchmark.js";
@@ -149,6 +150,7 @@ import type { MarketingArtifactReviewService } from "../marketing/review.js";
 import type { MarketingCampaignCoordinator } from "../marketing/coordinator.js";
 
 export interface ApiRouteContext {
+  engineeringDrafts?: EngineeringDraftService;
   documentChat?: (ownerId: string, text: string) => Promise<string | null>;
   marketing: MarketingService;
   marketingReview: MarketingArtifactReviewService;

@@ -44,6 +44,7 @@ const defineTool = (
   });
 
 export const BUILT_IN_TOOLS: ToolDefinition[] = [
+  defineTool("engineering.draft.create", "read_only", "session", ["workspace.read"], "workspace", true, true),
   {
     ...defineTool(
       "mcp.local_fixture.read_status",

@@ -1,0 +1,13 @@
+# E2E-1: signed engineering drafts
+
+Design boundary: one finite signed POST for existing registered repositories, authenticated owner/session/device, exact trusted origin/CSRF, verified network and company context. Reuse existing shared engineering request, policy, audit, delivery/manager and PostgreSQL unit of work. No model call, task assignment, worktree, native dispatch, validation, merge or deployment is permitted by creation.
+
+The persisted objective and delivery gain a server-owned draft marker. Drafts cannot be activated by existing run/resume/recovery/instruction/integration paths. Existing records default to non-draft; request schemas reject caller-owned execution/authority fields. A later reviewed activation slice must explicitly replace this immutable boundary.
+
+Durable idempotency uses the existing delivery unique key (owner/company/key), a complete normalized canonical request digest, and the existing transactional PostgreSQL advisory lock. Objective, delivery, digest and completion audit commit together. Policy evaluation remains persisted independently, including when creation rolls back. Authority rows and the policy's tool/workspace snapshots are checked under shared locks before commit: revocation/stop updates linearize before or after creation, with no external effects in either case. No in-memory durable acceptance fallback or new idempotency platform is added.
+
+Fresh envelopes are required for retries after a lost acknowledgment: nonce replay still denies the same envelope; an equivalent newly signed request with the same business key returns the same draft. Any changed canonical content conflicts. Unknown or unavailable state denies, including audit failures. No migration is currently expected because existing records use JSON contracts and unconstrained textual status, with an existing unique idempotency index; verify that in disposable PostgreSQL before acceptance.
+
+Rollback retains draft records and audit. Older readers that cannot understand DRAFT must fail closed; never remove a draft marker or reinterpret its status as executable. This run does not wire or accept Android submission on a device. Next dependency is Android's bounded signed request and truthful non-executing draft UX, followed separately by reviewed activation and trusted Mac acceptance.
+
+Acceptance update: cancellation is explicitly metadata-only and bypasses legacy terminal-work continuations. Final tests verify this fence. Intermediate fixture shutdown/restart setup failures are retained separately from accepted test evidence; the accepted fixture uses explicit Unix-only transport.

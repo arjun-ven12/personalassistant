@@ -1,0 +1,546 @@
+{
+  "baseRevision": "90c77ecceb35682e0b64bcc512b8d83ae23a78d1",
+  "scope": "Current source trace; runtime acceptance is explicitly separate. MCP-1B candidate inherited without changing original worktree.",
+  "transitions": [
+    {
+      "id": "T01",
+      "transition": "Android owner brief to existing engineering delivery API",
+      "owningService": "AlexaRepository / AlexaApiService / EngineeringDeliveryService",
+      "sourcePaths": [
+        "apps/android/app/src/main/java/com/alexa/commandcenter/repository/AlexaRepository.kt",
+        "apps/android/app/src/main/java/com/alexa/commandcenter/network/AlexaApiClient.kt",
+        "apps/api/src/routes/engineering-delivery.ts",
+        "apps/api/src/engineering-delivery/service.ts",
+        "apps/api/src/routes/engineering-drafts.ts",
+        "apps/api/src/engineering-delivery/drafts.ts",
+        "packages/shared/src/engineering-draft.ts"
+      ],
+      "inputOutputContracts": [
+        "EngineeringCreateRequest -> CreateSoftwareObjectiveRequestSchema -> EngineeringControlCenterSchema",
+        "New backend only: EngineeringDraftCreateOperationSchema -> EngineeringDraftResponseSchema / NOT_STARTED"
+      ],
+      "persistentState": [
+        "engineering_deliveries; engineering objective/task records; project sessions"
+      ],
+      "authorizationChecks": [
+        "Android engineeringMutation checks session/trusted registration and company gate; API cookie authentication, company, exact origin, CSRF, transport network; service registered repository/idempotency checks",
+        "New draft backend independently enforces all session/company/origin/CSRF/device/signature/nonce/private-network gates, finite policy and transactional authority snapshots."
+      ],
+      "agentModelDependencies": [
+        "Engineering manager for bounded planning; no model-selected authority"
+      ],
+      "failureAndCancellation": [
+        "Company switch/stale response rejected; existing idempotency key is reused by engineering UI; creation can start background drive unless deferred internally."
+      ],
+      "auditEvidence": [
+        "ENGINEERING_DELIVERY_CREATED",
+        "ENGINEERING_OBJECTIVE_CREATED"
+      ],
+      "existingTests": ["apps/api/src/engineering-delivery/service.test.ts"],
+      "missingAcceptanceEvidence": [
+        "Actual Android engineering UI/Keystore request to the new inert draft endpoint.",
+        "Separate reviewed activation and real trusted Mac execution; existing draft markers deny all legacy execution paths."
+      ]
+    },
+    {
+      "id": "T02",
+      "transition": "Owner/session and selected company resolution",
+      "owningService": "IdentityService / SecurityMiddleware / CompanyContextResolver",
+      "sourcePaths": [
+        "apps/api/src/identity/service.ts",
+        "apps/api/src/identity/security.ts",
+        "apps/api/src/companies/context.ts"
+      ],
+      "inputOutputContracts": [
+        "Cookie session -> server-derived authenticated identity and CompanyContext"
+      ],
+      "persistentState": ["owners; sessions; devices; companies; company_memberships"],
+      "authorizationChecks": [
+        "Hashed token lookup, expiry/revocation, company membership/lifecycle; company header is selection, not authority"
+      ],
+      "agentModelDependencies": [],
+      "failureAndCancellation": [
+        "Missing/revoked state denies; Android clears cached authority on revocation and checks selected company on returned data."
+      ],
+      "auditEvidence": [
+        "Identity/governance bounded denial audit; exact route composition must be checked"
+      ],
+      "existingTests": [
+        "apps/api/src/security-api.test.ts",
+        "apps/api/src/mcp/durability.integration.test.ts"
+      ],
+      "missingAcceptanceEvidence": [
+        "Real mobile session/revocation and company switching during an engineering run."
+      ]
+    },
+    {
+      "id": "T03",
+      "transition": "Signed Android metadata request validation",
+      "owningService": "AndroidDeviceIdentity / mobile executive routes / SecurityMiddleware",
+      "sourcePaths": [
+        "apps/android/app/src/main/java/com/alexa/commandcenter/security/AndroidDeviceIdentity.kt",
+        "apps/api/src/routes/mobile-executive.ts",
+        "packages/shared/src/notifications.ts"
+      ],
+      "inputOutputContracts": [
+        "SignedEnvelope / SignedCommandEnvelope; MobileObjectiveCreateOperationSchema -> ObjectiveDraftResponseSchema"
+      ],
+      "persistentState": [
+        "used_nonces; audit_events; executive objective/goal/plan records"
+      ],
+      "authorizationChecks": [
+        "Ed25519 signature, device ownership/trust, timestamps/expiry, atomic nonce consumption; authenticated owner/company"
+      ],
+      "agentModelDependencies": [],
+      "failureAndCancellation": [
+        "Repeated signed envelope denied; signature is not permission for repository operations."
+      ],
+      "auditEvidence": ["OBJECTIVE_DRAFTED plus identity rejection audit"],
+      "existingTests": [
+        "apps/api/src/security-api.test.ts",
+        "apps/api/src/mcp/api.test.ts"
+      ],
+      "missingAcceptanceEvidence": [
+        "General-objective path is implemented; it is not the engineering-delivery route. Verify each signed mobile mutation against origin/CSRF policy rather than assuming guards from another route."
+      ]
+    },
+    {
+      "id": "T04",
+      "transition": "Delivery persistence to bounded engineering plan",
+      "owningService": "EngineeringDeliveryService.create / EngineeringManagerService.create",
+      "sourcePaths": [
+        "apps/api/src/engineering-delivery/service.ts",
+        "apps/api/src/engineering-orchestration/service.ts",
+        "apps/api/src/engineering-delivery/postgres-store.ts",
+        "apps/api/src/engineering-orchestration/postgres-store.ts"
+      ],
+      "inputOutputContracts": [
+        "CreateSoftwareObjectiveRequestSchema -> CreateEngineeringObjectiveRequestSchema -> EngineeringObjectiveViewSchema"
+      ],
+      "persistentState": [
+        "engineering_deliveries; engineering_objectives; engineering_tasks; engineering_events"
+      ],
+      "authorizationChecks": [
+        "Owner/company/repository scope; active registered command/capability profiles; no self-improvement route bypass"
+      ],
+      "agentModelDependencies": [
+        "Existing manager planner and canonical AIRouter where selected; finite task/role/round budgets"
+      ],
+      "failureAndCancellation": [
+        "Clarification blocks; unavailable planner/provider must not fabricate tasks or receipts. Duplicate-create race and crash between objective/delivery persistence need dedicated joined acceptance."
+      ],
+      "auditEvidence": [
+        "ENGINEERING_OBJECTIVE_CREATED",
+        "ENGINEERING_OWNER_CLARIFICATION_REQUIRED",
+        "ENGINEERING_DELIVERY_CREATED"
+      ],
+      "existingTests": [
+        "apps/api/src/engineering-delivery/service.test.ts",
+        "apps/api/src/engineering-orchestration/service.test.ts"
+      ],
+      "missingAcceptanceEvidence": [
+        "Real signed mobile create with persistent idempotency and no extra run after duplicate/timeout."
+      ]
+    },
+    {
+      "id": "T05",
+      "transition": "Task plan to scoped specialized assignment",
+      "owningService": "EngineeringManagerService / WorkforceRuntimeService.rankEngineeringCandidates",
+      "sourcePaths": [
+        "apps/api/src/engineering-orchestration/service.ts",
+        "apps/api/src/workforce-runtime/service.ts",
+        "apps/api/src/agent-workforce/service.ts"
+      ],
+      "inputOutputContracts": [
+        "EngineeringTaskSchema -> active company assignment with role/model policy"
+      ],
+      "persistentState": [
+        "engineering_tasks; company agent assignments; workforce/economics state"
+      ],
+      "authorizationChecks": [
+        "Registered repository authorizedAgentIds, active assignment and capability profile; resource/attempt/model tier caps"
+      ],
+      "agentModelDependencies": [
+        "Existing specialized engineering roles; Workforce candidate ranking; canonical provider/model policy"
+      ],
+      "failureAndCancellation": [
+        "No eligible specialist yields blocker; canceled/expired lease must not continue through a stale assignment."
+      ],
+      "auditEvidence": [
+        "WORKFORCE_TASK_SCHEDULED where workforce path used; engineering task events remain separate"
+      ],
+      "existingTests": [
+        "apps/api/src/engineering-orchestration/service.test.ts",
+        "apps/api/src/workforce-runtime/service.test.ts"
+      ],
+      "missingAcceptanceEvidence": [
+        "Real delegated work; do not equate candidate ranking with creation of a generic workforce task for every engineering task."
+      ]
+    },
+    {
+      "id": "T06",
+      "transition": "Engineering task to Agent OS runtime session",
+      "owningService": "AgentOsEngineeringGateway / AgentOsService",
+      "sourcePaths": [
+        "apps/api/src/engineering-orchestration/agent-os-gateway.ts",
+        "apps/api/src/agents/os-service.ts"
+      ],
+      "inputOutputContracts": [
+        "EngineeringAgentOsGateway.start -> startIsolatedDelegation -> sessionId"
+      ],
+      "persistentState": [
+        "Agent OS sessions/runtime events and delegation context references"
+      ],
+      "authorizationChecks": [
+        "Current company assignment, manifest and repository memory scopes; no ad hoc tool grants"
+      ],
+      "agentModelDependencies": [
+        "Existing manager/specialist agent definitions and bounded context packages"
+      ],
+      "failureAndCancellation": [
+        "Replacement lease reconciles only older sessions for exact scoped task; isolated failures do not confer success."
+      ],
+      "auditEvidence": ["AGENT_SESSION_STARTED", "AGENT_RUNTIME_EVENT_RECORDED"],
+      "existingTests": [
+        "apps/api/src/engineering-orchestration/agent-os-gateway.test.ts"
+      ],
+      "missingAcceptanceEvidence": [
+        "Observed Agent OS session lineage linked to actual Mac task results."
+      ]
+    },
+    {
+      "id": "T07",
+      "transition": "Dependency-ready task to repository worktree",
+      "owningService": "EngineeringManagerService / EngineeringRuntimeService",
+      "sourcePaths": [
+        "apps/api/src/engineering-orchestration/service.ts",
+        "apps/api/src/engineering-runtime/service.ts",
+        "apps/api/src/engineering-orchestration/postgres-store.ts"
+      ],
+      "inputOutputContracts": [
+        "EngineeringTaskSchema lease -> EngineeringWorkspaceSchema and finite EngineeringTransportRequestSchema"
+      ],
+      "persistentState": [
+        "engineering repository/workspace/task lease records; version/generation/expiry"
+      ],
+      "authorizationChecks": [
+        "Owner/company/repository/agent intersection; registered locator/profile; protected paths and branch/head checks"
+      ],
+      "agentModelDependencies": [],
+      "failureAndCancellation": [
+        "Atomic claims and fenced saves reject old generation; preserve dirty/conflicting work and uncertain mutations instead of replay."
+      ],
+      "auditEvidence": [
+        "ENGINEERING_WORKSPACE_CREATED",
+        "ENGINEERING_WORKSPACE_RECONCILED"
+      ],
+      "existingTests": [
+        "apps/api/src/engineering-runtime/postgres-store.integration.test.ts",
+        "apps/api/src/engineering-orchestration/postgres-store.integration.test.ts"
+      ],
+      "missingAcceptanceEvidence": [
+        "Actual Mac worktree creation, crash at mutation boundary and stale lease denial before effect."
+      ]
+    },
+    {
+      "id": "T08",
+      "transition": "Structured proposal to deterministic approval and signed execution",
+      "owningService": "AIRouterEngineeringTaskWorker / SignedExecutionEngineeringGateway / ExecutionService",
+      "sourcePaths": [
+        "apps/api/src/engineering-orchestration/ai-worker.ts",
+        "apps/api/src/engineering-orchestration/signed-gateway.ts",
+        "apps/api/src/execution/service.ts",
+        "apps/api/src/governance/policy-engine.ts",
+        "apps/api/src/governance/approval-service.ts"
+      ],
+      "inputOutputContracts": [
+        "Bounded structured model proposal -> EngineeringTransportRequestSchema -> ServerExecutionEnvelopeSchema"
+      ],
+      "persistentState": [
+        "execution_requests; approval_requests; policy_evaluations; audit_events"
+      ],
+      "authorizationChecks": [
+        "Current repository/task/workspace lease, finite capability, trusted Mac assignment, policy, exact approval digest, recent authentication where required, network and emergency stop"
+      ],
+      "agentModelDependencies": [
+        "Canonical AIRouter; model may propose only registered operations"
+      ],
+      "failureAndCancellation": [
+        "Provider failure denies work; signal cancels queued execution; timeout is not success; no arbitrary command fallback."
+      ],
+      "auditEvidence": ["Policy/approval audit; execution enqueue/lifecycle events"],
+      "existingTests": [
+        "apps/api/src/engineering-orchestration/ai-worker.test.ts",
+        "apps/api/src/engineering-orchestration/signed-gateway.test.ts",
+        "apps/api/src/governance-api.test.ts"
+      ],
+      "missingAcceptanceEvidence": [
+        "Exact signed Android intent -> actual policy/approval -> Mac envelope linkage."
+      ]
+    },
+    {
+      "id": "T09",
+      "transition": "Signed API execution poll to trusted Mac verification",
+      "owningService": "ExecutionService / ReadOnlyExecutionClient / dispatcher",
+      "sourcePaths": [
+        "apps/api/src/routes/executions.ts",
+        "apps/api/src/execution/service.ts",
+        "apps/mac-agent/electron/execution/execution-client.ts",
+        "apps/mac-agent/electron/execution/dispatcher.ts"
+      ],
+      "inputOutputContracts": [
+        "Signed poll -> ServerExecutionEnvelopeSchema -> finite dispatcher request"
+      ],
+      "persistentState": [
+        "execution_requests; nonces; heartbeat/cancellation state; Mac result outbox"
+      ],
+      "authorizationChecks": [
+        "Pinned server key, envelope digest/time/expiry/device, trusted device, current scope and stop checks"
+      ],
+      "agentModelDependencies": [],
+      "failureAndCancellation": [
+        "Stop/suspend after poll must not start privileged work; cancellations arrive through existing signed poll; disconnect becomes heartbeat expiry, not fallback execution."
+      ],
+      "auditEvidence": ["EXECUTION lifecycle audit and signed device result events"],
+      "existingTests": [
+        "apps/mac-agent/electron/execution/execution-client.test.ts",
+        "apps/api/src/engineering-runtime/transport.e2e.test.ts"
+      ],
+      "missingAcceptanceEvidence": [
+        "Actual enrolled Mac and Android; Linux fixture is not device acceptance."
+      ]
+    },
+    {
+      "id": "T10",
+      "transition": "Finite Mac capability to isolated filesystem/Git result",
+      "owningService": "NativeEngineeringRuntime / EngineeringExecutionTransport",
+      "sourcePaths": [
+        "apps/mac-agent/electron/engineering-runtime/runtime.ts",
+        "apps/api/src/engineering-runtime/transport.ts",
+        "packages/shared/src/engineering-runtime.ts"
+      ],
+      "inputOutputContracts": [
+        "EngineeringTransportRequestSchema -> EngineeringTransportResultSchema"
+      ],
+      "persistentState": [
+        "Task worktree + persisted operation/workspace metadata and signed result outbox"
+      ],
+      "authorizationChecks": [
+        "Registered local root; normalized relative paths, blocked/symlink/expected-hash checks; task/lease/capability fencing; finite Git operation"
+      ],
+      "agentModelDependencies": [],
+      "failureAndCancellation": [
+        "Preserve conflict/dirty state; quarantine approved deletes; reject unknown operations; cancellation suppresses continuation."
+      ],
+      "auditEvidence": [
+        "ENGINEERING_CAPABILITY_INVOKED",
+        "ENGINEERING_FILE_PATCHED and capability-specific events"
+      ],
+      "existingTests": [
+        "apps/mac-agent/electron/engineering-runtime/runtime.test.ts",
+        "apps/api/src/engineering-runtime/transport.e2e.test.ts"
+      ],
+      "missingAcceptanceEvidence": [
+        "Actual Mac effect/receipt under revoke/cancel; no claim of sandbox containment merely from finite operations."
+      ]
+    },
+    {
+      "id": "T11",
+      "transition": "Task result to registered validation receipts",
+      "owningService": "NativeEngineeringRuntime / validation-runner / EngineeringManagerService",
+      "sourcePaths": [
+        "apps/mac-agent/electron/engineering-runtime/runtime.ts",
+        "apps/mac-agent/electron/execution/validation-runner.ts",
+        "apps/api/src/engineering-orchestration/service.ts"
+      ],
+      "inputOutputContracts": [
+        "EngineeringCommandProfileSchema -> EngineeringValidationReportSchema with per-step command/result IDs"
+      ],
+      "persistentState": ["engineering validation reports; task results/artifacts"],
+      "authorizationChecks": [
+        "Immutable registered profile, fixed executable/args/time/resource/network policy; governed approval/lease/stop; shell false and minimal environment"
+      ],
+      "agentModelDependencies": [],
+      "failureAndCancellation": [
+        "Failure blocks dependent tasks; changed files invalidate receipts; cancellation terminates bounded work; missing checks cannot become PASS."
+      ],
+      "auditEvidence": ["ENGINEERING_COMMAND_RUN", "ENGINEERING_VALIDATION_RUN"],
+      "existingTests": [
+        "apps/mac-agent/electron/execution/validation-runner.test.ts",
+        "apps/api/src/engineering-orchestration/ai-worker.test.ts"
+      ],
+      "missingAcceptanceEvidence": [
+        "Real reviewed local validation image/toolchain and Mac-signed lint/typecheck/test/build receipts."
+      ]
+    },
+    {
+      "id": "T12",
+      "transition": "Validated tasks to integration candidate and independent review",
+      "owningService": "EngineeringIntegrationService / AIRouterEngineeringIntegrationReviewer",
+      "sourcePaths": [
+        "apps/api/src/engineering-integration/service.ts",
+        "apps/api/src/engineering-integration/ai-reviewer.ts",
+        "apps/api/src/engineering-integration/evidence.ts"
+      ],
+      "inputOutputContracts": [
+        "CreateEngineeringIntegrationRequestSchema -> candidate, combined validation, EngineeringIntegrationReviewSchema"
+      ],
+      "persistentState": [
+        "engineering_integration_runs; engineering_merge_candidates; reviews/repair evidence"
+      ],
+      "authorizationChecks": [
+        "Eligible completed task evidence; current candidate head; repository-authorized separate reviewer; lease and scope; no author self-approval"
+      ],
+      "agentModelDependencies": [
+        "Existing independent reviewer selection and canonical router; model review is advisory evidence, not approval authority"
+      ],
+      "failureAndCancellation": [
+        "Conflict/stale head blocks; bounded repair has lineage; unavailable reviewer/provider cannot fabricate PASS."
+      ],
+      "auditEvidence": [
+        "ENGINEERING_INTEGRATION_VALIDATION_EXECUTED",
+        "ENGINEERING_INTEGRATION_REVIEW_EXECUTED",
+        "ENGINEERING_MERGE_CANDIDATE_READY"
+      ],
+      "existingTests": [
+        "apps/api/src/engineering-integration/service.test.ts",
+        "apps/api/src/engineering-integration/postgres-store.integration.test.ts"
+      ],
+      "missingAcceptanceEvidence": [
+        "Real separate reviewer and candidate/evidence binding across restart and Mac execution."
+      ]
+    },
+    {
+      "id": "T13",
+      "transition": "Owner decision to guarded local integration",
+      "owningService": "EngineeringIntegrationService.merge / merge-action",
+      "sourcePaths": [
+        "apps/api/src/engineering-integration/service.ts",
+        "apps/api/src/engineering-integration/merge-action.ts",
+        "apps/api/src/routes/engineering-integration.ts"
+      ],
+      "inputOutputContracts": [
+        "MergeEngineeringCandidateRequestSchema -> exact approved local merge result"
+      ],
+      "persistentState": [
+        "approval/decision, candidate status/head and execution result"
+      ],
+      "authorizationChecks": [
+        "Exact candidate/head/digest, owner/company, recent authentication where required, current validation/review, network/device and stop"
+      ],
+      "agentModelDependencies": [],
+      "failureAndCancellation": [
+        "Reject preserves candidate; changed base/head invalidates earlier approval; uncertain native result reconciles rather than blind merge retry."
+      ],
+      "auditEvidence": [
+        "ENGINEERING_MERGE_EXECUTED",
+        "ENGINEERING_MERGE_CANDIDATE_REJECTED",
+        "ENGINEERING_MERGE_CANDIDATE_STALE"
+      ],
+      "existingTests": ["apps/api/src/engineering-integration/service.test.ts"],
+      "missingAcceptanceEvidence": [
+        "Actual Mac local merge with genuine owner approval and stale/replayed decision rejection. Git push/deploy excluded."
+      ]
+    },
+    {
+      "id": "T14",
+      "transition": "Engineering evidence to persisted terminal status and notification",
+      "owningService": "EngineeringDeliveryService / ExecutiveNotificationService",
+      "sourcePaths": [
+        "apps/api/src/engineering-delivery/service.ts",
+        "apps/api/src/notifications/service.ts",
+        "apps/api/src/app.ts"
+      ],
+      "inputOutputContracts": [
+        "EngineeringControlCenterSchema -> ENGINEERING_BUILD notification/terminal listeners"
+      ],
+      "persistentState": [
+        "engineering_deliveries; notification event/inbox/delivery records"
+      ],
+      "authorizationChecks": [
+        "Owner/company read scope; no new authority from terminal summary or notification"
+      ],
+      "agentModelDependencies": [],
+      "failureAndCancellation": [
+        "Provider push can be unavailable; canonical API status remains source; delivery DONE is candidate readiness, not proof of deployment or local merge."
+      ],
+      "auditEvidence": ["ENGINEERING_DELIVERY_COMPLETED; bounded notification audit"],
+      "existingTests": [
+        "apps/api/src/engineering-delivery/service.test.ts",
+        "apps/api/src/notifications/service.test.ts"
+      ],
+      "missingAcceptanceEvidence": [
+        "Phone receives correct terminal evidence, including warnings; FCM disabled/default provider is not live delivery proof."
+      ]
+    },
+    {
+      "id": "T15",
+      "transition": "Canonical status to foreground Android UX / owner controls",
+      "owningService": "AlexaViewModel / EngineeringScreen / ForegroundSyncController",
+      "sourcePaths": [
+        "apps/android/app/src/main/java/com/alexa/commandcenter/ui/AlexaViewModel.kt",
+        "apps/android/app/src/main/java/com/alexa/commandcenter/ui/EngineeringScreen.kt",
+        "apps/android/app/src/main/java/com/alexa/commandcenter/realtime/ForegroundSyncController.kt",
+        "apps/android/app/src/main/java/com/alexa/commandcenter/lifecycle/AppLockController.kt"
+      ],
+      "inputOutputContracts": [
+        "EngineeringSnapshot / EngineeringBuild / approval details -> bounded UI state and explicit actions"
+      ],
+      "persistentState": [
+        "Company-scoped encrypted/cache state; canonical backend records remain authoritative"
+      ],
+      "authorizationChecks": [
+        "Session/trusted registration, company gate/stale response check, owner-triggered controls; biometric step-up for required approvals"
+      ],
+      "agentModelDependencies": [],
+      "failureAndCancellation": [
+        "Foreground bounded reconnect; background stops polling; lock/revocation clears authority-sensitive state; no mobile executor."
+      ],
+      "auditEvidence": ["Server-side control audit; UI state itself grants nothing"],
+      "existingTests": [
+        "apps/android/app/src/test/java/com/alexa/commandcenter/realtime/ForegroundSyncControllerTest.kt",
+        "apps/android/app/src/test/java/com/alexa/commandcenter/lifecycle/AppLockControllerTest.kt"
+      ],
+      "missingAcceptanceEvidence": [
+        "Real Android lifecycle, request signing, approval/reject/cancel/revise UX, and notification deep-link acceptance."
+      ]
+    },
+    {
+      "id": "T16",
+      "transition": "Owner cancel/worker failure to fenced recovery",
+      "owningService": "EngineeringDeliveryService / EngineeringManagerService / stores / signed gateway",
+      "sourcePaths": [
+        "apps/api/src/engineering-delivery/service.ts",
+        "apps/api/src/engineering-orchestration/service.ts",
+        "apps/api/src/engineering-orchestration/signed-gateway.ts",
+        "apps/api/src/engineering-orchestration/postgres-store.ts",
+        "apps/mac-agent/electron/execution/execution-client.ts"
+      ],
+      "inputOutputContracts": [
+        "Pause/cancel/recover intent -> durable task/objective/execution transitions"
+      ],
+      "persistentState": [
+        "Lease generations, objective/task versions, execution cancel/outcome, preserved worktree/diff"
+      ],
+      "authorizationChecks": [
+        "Current owner/company and authorization; no use of expired lease, revoked device, previous approval or stale candidate"
+      ],
+      "agentModelDependencies": [],
+      "failureAndCancellation": [
+        "Abort active controllers; persist cancel; deliver poll cancellation; expired work becomes blocked/reviewable. Existing waits/cancel paths need joined race acceptance before claiming no post-cancel effect."
+      ],
+      "auditEvidence": [
+        "WORKFORCE_TASK_CANCELLED where workforce path used; ENGINEERING_INTEGRATION_CANCELLED; execution cancel and engineering event records"
+      ],
+      "existingTests": [
+        "apps/api/src/engineering-orchestration/service.test.ts",
+        "apps/api/src/engineering-orchestration/postgres-store.integration.test.ts",
+        "apps/api/src/engineering-integration/service.test.ts",
+        "apps/mac-agent/electron/execution/execution-client.test.ts"
+      ],
+      "missingAcceptanceEvidence": [
+        "Cut network/kill API or worker/revoke device at each real Mac effect boundary; retain unknown outcome and prove no subsequent effect."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "tree": "/workspace/personalassistant",
+    "head": "7ee28be9de093a0446dfbe95b7145278b9087ea9",
+    "filesCompared": 1347,
+    "changedOrMissing": [],
+    "result": "PASS"
+  },
+  {
+    "tree": "/tmp/athena-mcp-1b",
+    "head": "90c77ecceb35682e0b64bcc512b8d83ae23a78d1",
+    "filesCompared": 1670,
+    "changedOrMissing": [],
+    "result": "PASS"
+  },
+  {
+    "tree": "/tmp/athena-e2e-acceptance",
+    "head": "90c77ecceb35682e0b64bcc512b8d83ae23a78d1",
+    "filesCompared": 1696,
+    "changedOrMissing": [],
+    "result": "PASS"
+  }
+]

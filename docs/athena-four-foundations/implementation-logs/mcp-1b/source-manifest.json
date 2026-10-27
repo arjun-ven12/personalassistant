@@ -1,0 +1,14 @@
+{
+  "baseRevision": "90c77ecceb35682e0b64bcc512b8d83ae23a78d1",
+  "candidateSnapshotSha256": "dcbd5fe99b8f617e840bd2f3ee7f0fe9ecad5d3c8a86fb0dc96c5b4bdf04727d",
+  "files": {
+    "apps/api/package.json": "9332ab726b7b4326e7e5fdd0adbab88d1ec1a2a0ba68e062c6ff5a4a6103c7ae",
+    "apps/api/src/mcp/durability.integration.test.ts": "827a68f1e8f2f05c1b9c047eac6153bd53feb3c718c107499e3903584721ffee",
+    "apps/mac-agent/package.json": "3ec383e864db5521973c6f453be20f6b305588e3daa95a99c56debfb3b038db2",
+    "apps/web/package.json": "6637b5004c272046f9ac3a1c429b784193a85062538c01179f72f75c2c942388",
+    "packages/config/package.json": "69a3bda9e5b11fbfa0c8bd00be7aedd22206a82bf485023935fe5e257db46d67",
+    "packages/shared/package.json": "5663fc6e7dc8c9afe476cd036ed9eaf06da98b3e6d1764c13dd5c1f6bc5de17c",
+    "pnpm-lock.yaml": "dbb79b3632be0021f20a21d321e6d515548523a98805e379913ad83b04f231e1",
+    "pnpm-workspace.yaml": "9ea78d062af5928607276474e3f170c745caefc9f13a0a1cc1b555a1c3f35d1a"
+  }
+}

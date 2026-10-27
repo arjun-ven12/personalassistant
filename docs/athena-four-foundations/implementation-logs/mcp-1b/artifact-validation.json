@@ -1,0 +1,14 @@
+{
+  "status": "PASS_WITH_EXPLICIT_HISTORICAL_GAPS",
+  "capabilities": 112,
+  "currentMcpAssertions": 63,
+  "currentMcpFailures": 0,
+  "historicalDriftReferencesFlagged": 129,
+  "missingHistoricalPaths": [
+    "apps/api/src/launch-workflow/service.ts",
+    "docs/phase-28-acceptance-matrix-2026-10-14.md"
+  ],
+  "candidateSourceHashes": "PASS",
+  "registrySchema": "STRICT_ZOD_PASS",
+  "statusCounts": "PASS"
+}

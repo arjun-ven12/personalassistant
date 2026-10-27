@@ -132,10 +132,13 @@ export class EngineeringDeliveryService {
   }
 
   async create(context: EngineeringDeliveryContext, body: unknown, options?: {
-    selfImprovement: { riskLevel: "LOW" | "MEDIUM" | "HIGH"; engineeringMode: "FAST" | "FULL"; targetAreas: string[]; requestDigest?: string };
+    selfImprovement?: { riskLevel: "LOW" | "MEDIUM" | "HIGH"; engineeringMode: "FAST" | "FULL"; targetAreas: string[]; requestDigest?: string };
     deferDrive?: boolean;
+    draftRequestDigest?: string;
   }) {
     const request = CreateSoftwareObjectiveRequestSchema.parse(body);
+    if (options?.draftRequestDigest && (!request.repositoryId || options.selfImprovement || !options.deferDrive))
+      throw new EngineeringDeliveryError("INVALID_STATE", "Draft creation cannot initialize or execute a project.");
     if (request.repositoryId && this.selfImprovementRepository?.(context.companyId, request.repositoryId) && !options?.selfImprovement)
       throw new EngineeringDeliveryError("DEVELOPMENT_ROOT_DENIED", "Athena's registered repository requires the governed self-improvement flow.");
     const existing = await this.store.findByIdempotencyKey(
@@ -204,7 +207,7 @@ export class EngineeringDeliveryService {
           : interpretation.complexity === "MEDIUM"
             ? 4
             : 5,
-    }, options?.selfImprovement ? { engineeringMode: options.selfImprovement.engineeringMode, selfImprovement: true } : undefined);
+    }, options?.draftRequestDigest ? { draftOnly: true } : options?.selfImprovement ? { engineeringMode: options.selfImprovement.engineeringMode, selfImprovement: true } : undefined);
     const objective = objectiveView.objective;
     const at = this.now().toISOString();
     const implementationIds = objectiveView.tasks
@@ -215,6 +218,7 @@ export class EngineeringDeliveryService {
       .map((task) => task.id);
     const featureWeight = Math.max(1, Math.floor(100 / interpretation.features.length));
     const delivery = EngineeringDeliverySchema.parse({
+      draftRequestDigest: options?.draftRequestDigest ?? null,
       schemaVersion: "1",
       id: crypto.randomUUID(),
       ownerId: context.ownerId,
@@ -240,7 +244,7 @@ export class EngineeringDeliveryService {
         weight: featureWeight,
         status: "PLANNING",
       })),
-      status:
+      status: options?.draftRequestDigest ? "DRAFT" :
         objective.status === "NEEDS_CLARIFICATION"
           ? "OWNER_INPUT_REQUIRED"
           : "PLANNING",
@@ -269,6 +273,7 @@ export class EngineeringDeliveryService {
     await this.writeAudit(context, "ENGINEERING_DELIVERY_CREATED", delivery, {
       projectMode: delivery.projectMode,
       complexity: delivery.complexity,
+      draftOnly: Boolean(options?.draftRequestDigest),
     });
     if (delivery.status !== "OWNER_INPUT_REQUIRED" && !options?.deferDrive)
       this.start(context, delivery.id);
@@ -796,14 +801,20 @@ export class EngineeringDeliveryService {
     return blocked;
   }
   async cancel(context: EngineeringDeliveryContext, id: string) {
-    let delivery = await this.require(context.ownerId, context.companyId, id);
+    let delivery = await this.require(context.ownerId, context.companyId, id, true);
     await this.manager.cancel(context, delivery.objectiveId);
-    delivery = await this.require(context.ownerId, context.companyId, id);
+    delivery = await this.require(context.ownerId, context.companyId, id, true);
+    if (delivery.draftRequestDigest) {
+      if (delivery.status !== "CANCELLED")
+        await this.update(delivery, { status: "CANCELLED", completedAt: this.now().toISOString() });
+      // Inert drafts have no execution/preview/session continuation to notify.
+      return this.controlCenter(context.ownerId, context.companyId, id);
+    }
     const stoppedPreview = delivery.preview?.previewId
       ? await this.previewAction(context, delivery, "repository.dev_server_stop")
       : null;
     for (let attempt = 0; attempt < 3; attempt += 1) {
-      delivery = await this.require(context.ownerId, context.companyId, id);
+      delivery = await this.require(context.ownerId, context.companyId, id, true);
       if (delivery.status === "CANCELLED") break;
       try {
         await this.update(delivery, {
@@ -873,7 +884,7 @@ export class EngineeringDeliveryService {
   }
 
   async controlCenter(ownerId: string, companyId: string, id: string, readRetry = 0): Promise<EngineeringControlCenter> {
-    const delivery = await this.require(ownerId, companyId, id);
+    const delivery = await this.require(ownerId, companyId, id, true);
     const view = await this.manager.view(ownerId, companyId, delivery.objectiveId);
     const nowMs = this.now().getTime();
     const hasLiveLease = (task: (typeof view.tasks)[number]) =>
@@ -1616,13 +1627,15 @@ export class EngineeringDeliveryService {
     });
     await this.notifyTerminal(context, delivery.id);
   }
-  private async require(ownerId: string, companyId: string, id: string) {
+  private async require(ownerId: string, companyId: string, id: string, allowDraft = false) {
     const delivery = await this.store.find(ownerId, companyId, id);
     if (!delivery)
       throw new EngineeringDeliveryError(
         "DELIVERY_NOT_FOUND",
         "Engineering delivery was not found in this company scope.",
       );
+    if (delivery.draftRequestDigest && !allowDraft)
+      throw new EngineeringDeliveryError("INVALID_STATE", "Engineering drafts cannot execute in this phase.");
     return delivery;
   }
   private async requireRepository(
@@ -1650,9 +1663,11 @@ export class EngineeringDeliveryService {
     return this.audit({
       eventType,
       ownerId: context.ownerId,
+      companyId: context.companyId,
+      ...(context.deviceId ? { deviceId: context.deviceId } : {}),
       ipAddress: context.ipAddress,
       outcome: "SUCCESS",
-      reason:
+      reason: delivery.draftRequestDigest ? "Signed engineering draft persisted; no execution authorized." :
         eventType === "ENGINEERING_DELIVERY_CREATED"
           ? "Autonomous engineering delivery accepted."
           : "Autonomous engineering delivery completed with verified state.",

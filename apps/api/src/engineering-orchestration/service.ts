@@ -777,7 +777,7 @@ export class EngineeringManagerService {
     return task;
   }
 
-  async create(context: ManagerContext, body: unknown, options?: { engineeringMode: "FAST" | "FULL"; selfImprovement?: true }) {
+  async create(context: ManagerContext, body: unknown, options?: { engineeringMode?: "FAST" | "FULL"; selfImprovement?: true; draftOnly?: true }) {
     const request = CreateEngineeringObjectiveRequestSchema.parse(body);
     if (this.selfImprovementRepository?.(context.companyId, request.repositoryId) && !options?.selfImprovement)
       throw new EngineeringOrchestrationError("REPOSITORY_NOT_AUTHORIZED", "Athena's registered repository requires the governed self-improvement flow.");
@@ -823,7 +823,8 @@ export class EngineeringManagerService {
       engineeringMode: options?.engineeringMode ?? "FULL",
       selfImprovement: options?.selfImprovement ?? false,
       repositoryId: repository.id,
-      status: ambiguous ? "NEEDS_CLARIFICATION" : "PLANNING",
+      draftOnly: options?.draftOnly ?? false,
+      status: options?.draftOnly ? "DRAFT" : ambiguous ? "NEEDS_CLARIFICATION" : "PLANNING",
       clarificationQuestion: ambiguous,
       clarification: ambiguous
         ? {
@@ -838,7 +839,7 @@ export class EngineeringManagerService {
         : null,
       maxReplans: 2,
       replanCount: 0,
-      managerReasoningCount: ambiguous ? 1 : 0,
+      managerReasoningCount: options?.draftOnly ? 0 : ambiguous ? 1 : 0,
       totalInputTokens: 0,
       totalOutputTokens: 0,
       totalCostUsd: "0.0",
@@ -848,6 +849,10 @@ export class EngineeringManagerService {
       completedAt: null,
     });
     await this.store.saveObjective(objective);
+    if (options?.draftOnly) {
+      await this.writeAudit(context, "ENGINEERING_OBJECTIVE_CREATED", objective, { draftOnly: true, taskCount: 0 });
+      return this.view(context.ownerId, context.companyId, objective.id);
+    }
     if (ambiguous) {
       await this.event(objective, null, "OBJECTIVE_BLOCKED", ambiguous);
       await this.event(objective, null, "OWNER_CLARIFICATION_REQUIRED", ambiguous, {
@@ -1332,6 +1337,7 @@ export class EngineeringManagerService {
       context.ownerId,
       context.companyId,
       objectiveId,
+      true,
     );
     const controllers = this.#active.get(objective.id);
     for (const controller of controllers?.values() ?? []) controller.abort();
@@ -1474,7 +1480,7 @@ export class EngineeringManagerService {
   }
 
   async view(ownerId: string, companyId: string, objectiveId: string) {
-    const objective = await this.requireObjective(ownerId, companyId, objectiveId);
+    const objective = await this.requireObjective(ownerId, companyId, objectiveId, true);
     const [tasks, results, artifacts, events] = await Promise.all([
       this.store.listTasks(ownerId, companyId, objectiveId),
       this.store.listResults(ownerId, companyId, objectiveId),
@@ -2885,6 +2891,7 @@ export class EngineeringManagerService {
     ownerId: string,
     companyId: string,
     objectiveId: string,
+    allowDraft = false,
   ) {
     const objective = await this.store.findObjective(ownerId, companyId, objectiveId);
     if (!objective)
@@ -2892,6 +2899,8 @@ export class EngineeringManagerService {
         "OBJECTIVE_NOT_FOUND",
         "Engineering objective not found.",
       );
+    if (objective.draftOnly && !allowDraft)
+      throw new EngineeringOrchestrationError("INVALID_STATE", "Engineering drafts cannot execute in this phase.");
     return objective;
   }
 

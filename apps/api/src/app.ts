@@ -1,3 +1,5 @@
+import { EngineeringDraftService } from "./engineering-delivery/drafts.js";
+import { registerEngineeringDraftRoutes } from "./routes/engineering-drafts.js";
 import { McpLocalService } from "./mcp/service.js";
 import { McpProtocolClient } from "./mcp/protocol.js";
 import { createLocalFixtureTransport } from "./mcp/transport.js";
@@ -3084,6 +3086,7 @@ export const buildApi = async ({
     },
   });
   const context: ApiRouteContext = {
+    ...(database ? { engineeringDrafts: new EngineeringDraftService(database, identityStore, companies, governanceStore, policyEngine, engineeringDelivery, governanceAudit) } : {}),
     marketing,
     marketingReview,
     marketingCoordinator,
@@ -3389,6 +3392,7 @@ export const buildApi = async ({
   });
 
   registerMcpLocalRoutes(app, context);
+  registerEngineeringDraftRoutes(app, context);
   if (documentService) {
     documentService.gateway = universalGateway;
     documentService.semanticIndex = async (scope, doc) => {

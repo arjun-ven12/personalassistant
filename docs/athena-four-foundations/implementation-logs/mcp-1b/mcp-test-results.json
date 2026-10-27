@@ -1,0 +1,358 @@
+{
+  "passed": 63,
+  "failed": 0,
+  "skipped": 0,
+  "success": true,
+  "files": [
+    {
+      "path": "packages/config/src/mcp.test.ts",
+      "assertions": [
+        {
+          "name": "local MCP fixture configuration defaults disabled and permits explicit test/development enablement",
+          "status": "passed",
+          "durationMs": 7.449489999999969
+        },
+        {
+          "name": "local MCP fixture configuration rejects production enablement independently of other production constraints",
+          "status": "passed",
+          "durationMs": 0.8192710000000147
+        }
+      ]
+    },
+    {
+      "path": "apps/api/src/mcp/api.test.ts",
+      "assertions": [
+        {
+          "name": "MCP finite API routes executes through actual API composition and real stdio, then rejects replay",
+          "status": "passed",
+          "durationMs": 941.1557619999994
+        },
+        {
+          "name": "MCP finite API routes denies absent identity, CSRF, wrong origin and revoked device",
+          "status": "passed",
+          "durationMs": 212.7096449999999
+        },
+        {
+          "name": "MCP finite API routes denies foreign company, unknown tool, arbitrary process fields and expired signature",
+          "status": "passed",
+          "durationMs": 158.56218699999954
+        },
+        {
+          "name": "MCP finite API routes does not expose registration or arbitrary invocation routes",
+          "status": "passed",
+          "durationMs": 121.79807099999925
+        }
+      ]
+    },
+    {
+      "path": "apps/api/src/mcp/durability.integration.test.ts",
+      "assertions": [
+        {
+          "name": "MCP-1B PostgreSQL and real local stdio acceptance fresh migrations are digest-current and real signed stdio leaves persistent attributable policy/audit evidence",
+          "status": "passed",
+          "durationMs": 2867.4891000000002
+        },
+        {
+          "name": "MCP-1B PostgreSQL and real local stdio acceptance rejects foreign company and workspace access plus unknown servers/tools, side effects and tampered envelopes",
+          "status": "passed",
+          "durationMs": 2448.896522
+        },
+        {
+          "name": "MCP-1B PostgreSQL and real local stdio acceptance isolates an authorized second company even for the same owner and hides the first company's audit records",
+          "status": "passed",
+          "durationMs": 2739.2970720000003
+        },
+        {
+          "name": "MCP-1B PostgreSQL and real local stdio acceptance persists replay denial across API/pool reconstruction and rejects duplicates concurrently across API instances",
+          "status": "passed",
+          "durationMs": 4194.914617
+        },
+        {
+          "name": "MCP-1B PostgreSQL and real local stdio acceptance denies persisted permission revocation after service reconstruction",
+          "status": "passed",
+          "durationMs": 2528.585997
+        },
+        {
+          "name": "MCP-1B PostgreSQL and real local stdio acceptance denies persisted session revocation after service reconstruction",
+          "status": "passed",
+          "durationMs": 2685.8121079999983
+        },
+        {
+          "name": "MCP-1B PostgreSQL and real local stdio acceptance denies persisted device revocation after service reconstruction",
+          "status": "passed",
+          "durationMs": 2543.233355999997
+        },
+        {
+          "name": "MCP-1B PostgreSQL and real local stdio acceptance preserves exact approval digest and expiry without allowing approvals to elevate this read-only slice",
+          "status": "passed",
+          "durationMs": 1808.160703999998
+        },
+        {
+          "name": "MCP-1B PostgreSQL and real local stdio acceptance cancels real stdio at a deterministic pre-call barrier after stop and cleans up its child",
+          "status": "passed",
+          "durationMs": 2441.2201129999994
+        },
+        {
+          "name": "MCP-1B PostgreSQL and real local stdio acceptance cancels real stdio at a deterministic pre-call barrier after permission and cleans up its child",
+          "status": "passed",
+          "durationMs": 2356.602726000001
+        },
+        {
+          "name": "MCP-1B PostgreSQL and real local stdio acceptance cancels real stdio at a deterministic pre-call barrier after session and cleans up its child",
+          "status": "passed",
+          "durationMs": 2281.842839000001
+        },
+        {
+          "name": "MCP-1B PostgreSQL and real local stdio acceptance cancels real stdio at a deterministic pre-call barrier after cancel and cleans up its child",
+          "status": "passed",
+          "durationMs": 2247.4539380000024
+        },
+        {
+          "name": "MCP-1B PostgreSQL and real local stdio acceptance cancels real stdio at a deterministic pre-call barrier after timeout and cleans up its child",
+          "status": "passed",
+          "durationMs": 6719.041674999993
+        },
+        {
+          "name": "MCP-1B PostgreSQL and real local stdio acceptance reapplying the additive provider SQL preserves all existing provider records and rejects unknown providers",
+          "status": "passed",
+          "durationMs": 1835.6697129999957
+        },
+        {
+          "name": "MCP-1B chronological existing-data migration migrates the real pre-0118 schema with existing integrations without rewriting records or broadening unknown providers",
+          "status": "passed",
+          "durationMs": 1720.717442000001
+        }
+      ]
+    },
+    {
+      "path": "apps/api/src/mcp/postgres.integration.test.ts",
+      "assertions": [
+        {
+          "name": "MCP existing PostgreSQL permission/audit boundary accepts the finite provider migration and retains company isolation/revocation/audit after store reconstruction",
+          "status": "passed",
+          "durationMs": 63.91124799999989
+        }
+      ]
+    },
+    {
+      "path": "apps/api/src/mcp/protocol.test.ts",
+      "assertions": [
+        {
+          "name": "MCP pinned protocol boundary initializes, discovers and invokes only the reviewed read-only tool",
+          "status": "passed",
+          "durationMs": 16.12172600000008
+        },
+        {
+          "name": "MCP pinned protocol boundary denies version downgrade before tool invocation",
+          "status": "passed",
+          "durationMs": 0.7756590000000188
+        },
+        {
+          "name": "MCP pinned protocol boundary denies unknown tool before tool invocation",
+          "status": "passed",
+          "durationMs": 0.8705009999999902
+        },
+        {
+          "name": "MCP pinned protocol boundary denies extra tool before tool invocation",
+          "status": "passed",
+          "durationMs": 0.5534160000000838
+        },
+        {
+          "name": "MCP pinned protocol boundary denies external schema reference before tool invocation",
+          "status": "passed",
+          "durationMs": 0.7246189999999615
+        },
+        {
+          "name": "MCP pinned protocol boundary denies schema weakening before tool invocation",
+          "status": "passed",
+          "durationMs": 0.46891599999992195
+        },
+        {
+          "name": "MCP pinned protocol boundary denies pagination before tool invocation",
+          "status": "passed",
+          "durationMs": 0.4691060000000107
+        },
+        {
+          "name": "MCP pinned protocol boundary does not trust descriptions or arbitrary output instructions",
+          "status": "passed",
+          "durationMs": 0.6975979999999709
+        },
+        {
+          "name": "MCP pinned protocol boundary rejects malformed structured content and explicit tool errors",
+          "status": "passed",
+          "durationMs": 1.4346279999999751
+        },
+        {
+          "name": "MCP pinned protocol boundary cancels a hanging handshake and closes transport",
+          "status": "passed",
+          "durationMs": 0.45041600000001836
+        },
+        {
+          "name": "MCP pinned protocol boundary normalizes transport errors without exposing payloads",
+          "status": "passed",
+          "durationMs": 0.8205189999999902
+        },
+        {
+          "name": "MCP pinned protocol boundary cancels a hanging tools/list",
+          "status": "passed",
+          "durationMs": 20.17130599999996
+        },
+        {
+          "name": "MCP pinned protocol boundary cancels a hanging tools/call",
+          "status": "passed",
+          "durationMs": 20.728341999999998
+        },
+        {
+          "name": "MCP pinned protocol boundary rechecks authority after discovery and before dispatch",
+          "status": "passed",
+          "durationMs": 1.3982770000000073
+        },
+        {
+          "name": "MCP pinned protocol boundary rejects changed tool notifications and server-initiated authority requests",
+          "status": "passed",
+          "durationMs": 1.3282359999999471
+        }
+      ]
+    },
+    {
+      "path": "apps/api/src/mcp/service.test.ts",
+      "assertions": [
+        {
+          "name": "governed MCP local service uses existing policy and company permission and emits safe attributable events",
+          "status": "passed",
+          "durationMs": 24.377075999999988
+        },
+        {
+          "name": "governed MCP local service denies revoked/disabled permission before starting transport",
+          "status": "passed",
+          "durationMs": 16.79954399999997
+        },
+        {
+          "name": "governed MCP local service denies revoked/disabled device before starting transport",
+          "status": "passed",
+          "durationMs": 2.8138040000000046
+        },
+        {
+          "name": "governed MCP local service denies revoked/disabled session before starting transport",
+          "status": "passed",
+          "durationMs": 2.6232120000000805
+        },
+        {
+          "name": "governed MCP local service denies revoked/disabled workspace before starting transport",
+          "status": "passed",
+          "durationMs": 2.8552139999999326
+        },
+        {
+          "name": "governed MCP local service denies revoked/disabled company before starting transport",
+          "status": "passed",
+          "durationMs": 2.0698750000000246
+        },
+        {
+          "name": "governed MCP local service denies revoked/disabled tool before starting transport",
+          "status": "passed",
+          "durationMs": 2.9342359999999417
+        },
+        {
+          "name": "governed MCP local service denies revoked/disabled stop before starting transport",
+          "status": "passed",
+          "durationMs": 2.507440000000088
+        },
+        {
+          "name": "governed MCP local service rejects foreign company, missing context, unknown tool and caller authorization fields",
+          "status": "passed",
+          "durationMs": 3.4492219999999634
+        },
+        {
+          "name": "governed MCP local service does not weaken a stronger permission or policy approval requirement",
+          "status": "passed",
+          "durationMs": 2.122445999999968
+        },
+        {
+          "name": "governed MCP local service denies duplicate operation IDs using the existing persistent nonce boundary",
+          "status": "passed",
+          "durationMs": 2.695272999999929
+        },
+        {
+          "name": "governed MCP local service suppresses success when stop is asserted during exchange",
+          "status": "passed",
+          "durationMs": 2.0729949999999917
+        },
+        {
+          "name": "governed MCP local service times out a non-cooperating transport and releases its concurrency slot",
+          "status": "passed",
+          "durationMs": 104.96429499999999
+        },
+        {
+          "name": "governed MCP local service cancels a non-cooperating exchange and supports service shutdown",
+          "status": "passed",
+          "durationMs": 7.836026000000061
+        },
+        {
+          "name": "governed MCP local service fails closed on missing security state or audit persistence",
+          "status": "passed",
+          "durationMs": 4.075888999999961
+        },
+        {
+          "name": "governed MCP local service denies disabled fixture and prohibits production enablement",
+          "status": "passed",
+          "durationMs": 3.307060999999976
+        },
+        {
+          "name": "governed MCP local service denies expired authorization, unknown network and unavailable workspace",
+          "status": "passed",
+          "durationMs": 1.9295329999999922
+        },
+        {
+          "name": "governed MCP local service retains stronger policy approval and denies disabled integration",
+          "status": "passed",
+          "durationMs": 7.651294000000007
+        },
+        {
+          "name": "governed MCP local service rejects competing operations and cancels active work on permission revocation",
+          "status": "passed",
+          "durationMs": 28.30661400000008
+        },
+        {
+          "name": "governed MCP local service enforces the configured resource rate ceiling without a second transport",
+          "status": "passed",
+          "durationMs": 3.4575230000000374
+        },
+        {
+          "name": "governed MCP local service does not return success when completion audit persistence fails",
+          "status": "passed",
+          "durationMs": 2.731062999999949
+        }
+      ]
+    },
+    {
+      "path": "apps/api/src/mcp/transport.test.ts",
+      "assertions": [
+        {
+          "name": "bounded local stdio transport runs an actual SDK server child through initialization, discovery and read",
+          "status": "passed",
+          "durationMs": 564.8132940000002
+        },
+        {
+          "name": "bounded local stdio transport discovers real tools without invoking a tool",
+          "status": "passed",
+          "durationMs": 591.760998
+        },
+        {
+          "name": "bounded local stdio transport closes a real child on cancellation",
+          "status": "passed",
+          "durationMs": 3.355792000000065
+        },
+        {
+          "name": "bounded local stdio transport rejects oversized unterminated lines, aggregate flooding and invalid UTF-8 before SDK parsing",
+          "status": "passed",
+          "durationMs": 1.502958000000035
+        },
+        {
+          "name": "bounded local stdio transport handles split UTF-8 and rejects malformed complete JSON",
+          "status": "passed",
+          "durationMs": 0.46114600000009887
+        }
+      ]
+    }
+  ]
+}

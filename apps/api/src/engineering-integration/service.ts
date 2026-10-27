@@ -2172,6 +2172,8 @@ export class EngineeringIntegrationService {
         "INTEGRATION_NOT_READY",
         "Engineering objective not found in company scope.",
       );
+    if (objective.draftOnly)
+      throw new EngineeringIntegrationError("INTEGRATION_NOT_READY", "Engineering drafts cannot integrate in this phase.");
     return objective;
   }
 

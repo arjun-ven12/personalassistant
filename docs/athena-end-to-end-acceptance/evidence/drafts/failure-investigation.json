@@ -1,0 +1,42 @@
+{
+  "reproducibleInThreeConsecutiveRuns": true,
+  "failureCount": 6,
+  "failedAssertions": [
+    "Image Builder infrastructure boundary rejects traversal, symlinks, duplicate members and wrong digest without privileged execution",
+    "Personality seed corpus compiles the canonical markdown into structured deterministic runtime entries",
+    "Personality seed corpus imports idempotently into existing runtime stores and seeds vector memory records",
+    "Personality seed corpus treats negative examples as first-class non-execution data",
+    "Personality seed corpus validates corpus ambiguity without treating ordinary contextual ambiguity as startup-fatal",
+    "discoverInstalledMacApplications extracts safe metadata from fixed macOS application roots"
+  ],
+  "observedFlakiness": "No variation in these three targeted runs or the full suite; no universal absence-of-flakiness claim.",
+  "classifications": {
+    "fourCorpusAssertions": "Missing external developer-local fixture; deterministic non-hermetic test design, no demonstrated compiler defect.",
+    "oneMacDiscoveryAssertion": "Fixture home path rejected by the unchanged canonical macOS path schema; invalid fixture on current host, correct product denial.",
+    "oneImageBuilderAssertion": "Unqualified host Python 3.10 lacks file_digest while reviewed builder fixtures target Python 3.12; deterministic harness/toolchain mismatch."
+  },
+  "macPathProbe": {
+    "probe": "Mac discovery test root versus unchanged boundary",
+    "platform": "linux",
+    "currentHomeFixtureAccepted": false,
+    "canonicalMacUserFixtureAccepted": true,
+    "systemFixtureAccepted": true,
+    "hostApplicationsLaunched": 0
+  },
+  "pythonProbe": {
+    "pythonVersion": "3.10.12",
+    "hashlibFileDigestAvailable": false,
+    "extractallHasFilterArgument": true,
+    "sourceBuilderTargets": "Python 3.12 in reviewed image inputs",
+    "externalBuildsRun": 0
+  },
+  "sourceReferences": [
+    "apps/api/src/human-understanding/corpus.test.ts",
+    "apps/mac-agent/electron/application-discovery.test.ts",
+    "packages/shared/src/applications.ts",
+    "apps/api/src/cloud-engineering/image-builder.test.ts",
+    "deploy/engineering-worker/aws/image-builder/prepare.py"
+  ],
+  "rawPersonalPathsCopied": false,
+  "suppressionOrUnrelatedFixes": false
+}

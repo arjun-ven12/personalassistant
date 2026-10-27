@@ -1,0 +1,156 @@
+{
+  "baseRevision": "90c77ecceb35682e0b64bcc512b8d83ae23a78d1",
+  "defaultEnvironment": "Allowlisted test subprocess; implicit env-file loading disabled; no ambient credentials.",
+  "commands": [
+    {
+      "command": ["pnpm", "install", "--frozen-lockfile", "--ignore-scripts"],
+      "exitCode": 0,
+      "durationSeconds": 1.11,
+      "disposableDatabase": false,
+      "name": "dependency-install"
+    },
+    {
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "apps/api/src/mcp",
+        "packages/config/src/mcp.test.ts",
+        "--reporter=json",
+        "--outputFile=/tmp/athena-mcp-1b-evidence/mcp-verified.json"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 57.37,
+      "disposableDatabase": true,
+      "name": "mcp-verified"
+    },
+    {
+      "command": ["pnpm", "typecheck"],
+      "exitCode": 0,
+      "durationSeconds": 22.5,
+      "disposableDatabase": false,
+      "name": "typecheck-verified"
+    },
+    {
+      "command": ["pnpm", "lint"],
+      "exitCode": 0,
+      "durationSeconds": 75.65,
+      "disposableDatabase": false,
+      "name": "lint-verified"
+    },
+    {
+      "command": [
+        "pnpm",
+        "test",
+        "--reporter=json",
+        "--outputFile=/tmp/athena-mcp-1b-evidence/full-tests.json"
+      ],
+      "exitCode": 1,
+      "durationSeconds": 314.92,
+      "disposableDatabase": false,
+      "name": "full-tests"
+    },
+    {
+      "command": [
+        "/tmp/athena-phase28-tools/node-v22.16.0-linux-x64/bin/node",
+        "/tmp/athena-mcp-1b/node_modules/vitest/vitest.mjs",
+        "run",
+        "apps/api/src/cloud-engineering/image-builder.test.ts",
+        "apps/api/src/human-understanding/corpus.test.ts",
+        "apps/mac-agent/electron/application-discovery.test.ts",
+        "--reporter=json",
+        "--outputFile=/tmp/athena-mcp-1b-evidence/baseline-failures.json"
+      ],
+      "exitCode": 1,
+      "durationSeconds": 3.87,
+      "disposableDatabase": false,
+      "name": "baseline-failures"
+    },
+    {
+      "command": ["pnpm", "build"],
+      "exitCode": 1,
+      "durationSeconds": 19.23,
+      "disposableDatabase": false,
+      "name": "build"
+    },
+    {
+      "command": ["pnpm", "--filter", "@alexa-control/api", "build"],
+      "exitCode": 0,
+      "durationSeconds": 1.37,
+      "disposableDatabase": false,
+      "name": "api-build"
+    },
+    {
+      "command": ["pnpm", "--filter", "@alexa-control/api", "security:check"],
+      "exitCode": 0,
+      "durationSeconds": 0.99,
+      "disposableDatabase": false,
+      "name": "security"
+    },
+    {
+      "command": ["pnpm", "verify:production-config"],
+      "exitCode": 0,
+      "durationSeconds": 1.29,
+      "disposableDatabase": false,
+      "name": "production-config"
+    },
+    {
+      "command": ["pnpm", "audit", "--json"],
+      "exitCode": 1,
+      "durationSeconds": 0.72,
+      "disposableDatabase": false,
+      "name": "dependency-audit-after"
+    },
+    {
+      "command": [
+        "pnpm",
+        "exec",
+        "prettier",
+        "--write",
+        "docs/athena-four-foundations/09_ACCEPTANCE_MATRIX.md",
+        "docs/athena-four-foundations/04_FOUNDATION_MCP.md",
+        "docs/athena-four-foundations/03_SECURITY_AND_THREAT_MODEL.md",
+        "docs/athena-four-foundations/implementation-logs/mcp-1b"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 0.87,
+      "disposableDatabase": false,
+      "name": "format-docs"
+    },
+    {
+      "name": "dependency-audit-before",
+      "command": ["pnpm", "audit", "--json"],
+      "exitCode": 1,
+      "disposableDatabase": false
+    },
+    {
+      "name": "formatting-check",
+      "command": [
+        "pnpm",
+        "exec",
+        "prettier",
+        "--check",
+        "apps/api/src/mcp/durability.integration.test.ts",
+        "docs/athena-four-foundations/implementation-logs/mcp-1b",
+        "docs/athena-four-foundations/09_ACCEPTANCE_MATRIX.md"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 0.76,
+      "disposableDatabase": false
+    },
+    {
+      "name": "artifact-validation",
+      "command": ["node", "<temporary-validator>"],
+      "exitCode": 0,
+      "disposableDatabase": false,
+      "scope": "Strict Zod register, test counts, candidate hashes and explicit historical drift/missing-reference flags."
+    },
+    {
+      "name": "git-diff-check",
+      "command": ["git", "diff", "--check"],
+      "exitCode": 0,
+      "disposableDatabase": false
+    }
+  ]
+}

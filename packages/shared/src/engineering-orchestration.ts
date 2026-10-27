@@ -31,6 +31,7 @@ export const EngineeringAgentRoleSchema = z.enum([
 ]);
 
 export const EngineeringObjectiveStatusSchema = z.enum([
+  "DRAFT",
   "PLANNING",
   "READY",
   "RUNNING",
@@ -121,6 +122,7 @@ export const AnswerEngineeringClarificationRequestSchema = z
 
 export const EngineeringObjectiveSchema = z
   .object({
+    draftOnly: z.boolean().default(false),
     schemaVersion: z.literal("1"),
     id: z.string().uuid(),
     ownerId: z.string().uuid(),
