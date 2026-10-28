@@ -26,7 +26,7 @@ export interface SecureReaderOptions {
   pool: Db;
   objects: Objects;
   renderer: PdfRenderPort;
-  mailer: Mailer;
+  mailer?: Mailer;
   adminOrigin: string;
   allowPdfProcessing: boolean;
   emergencyStopActive?: () => Promise<boolean>;
@@ -310,7 +310,7 @@ export async function registerSecureReaderRoutes(
         [b.email],
       )
     ).rows[0];
-    if (u) {
+    if (u && o.mailer) {
       const code = secret();
       await transaction(o.pool, async (c) => {
         await c.query<ReaderSqlRow>(
@@ -333,7 +333,10 @@ export async function registerSecureReaderRoutes(
     }
     return reply
       .code(202)
-      .send({ message: "If invited, a verification code has been sent." });
+      .send({
+        message:
+          "If invited, use the verification code from your administrator or email.",
+      });
   });
   app.post("/auth/finish", async (req) => {
     const b = LoginFinish.parse(req.body);
@@ -541,27 +544,42 @@ export async function registerSecureReaderRoutes(
     const result = await authorized(
       req,
       async (c, p) => {
+        if (b.delivery === "email" && !o.mailer) throw new Denied(503);
         const id = randomUUID();
         const row = (
           await c.query<ReaderSqlRow>(
-            "INSERT INTO secure_reader.users(id,email,role) VALUES($1,$2,'READER') ON CONFLICT(email) DO UPDATE SET email=excluded.email RETURNING id,enabled",
+            "INSERT INTO secure_reader.users(id,email,role) VALUES($1,$2,'READER') ON CONFLICT(email) DO UPDATE SET email=excluded.email RETURNING id,enabled,role",
             [id, b.email],
           )
         ).rows[0];
         if (!row) throw new Denied(503);
-        if (!row.enabled) throw new Denied(403);
+        if (!row.enabled || row.role !== "READER") throw new Denied(403);
         const code = secret();
+        await c.query<ReaderSqlRow>(
+          "UPDATE secure_reader.challenges SET used_at=now() WHERE user_id=$1 AND used_at IS NULL",
+          [row.id],
+        );
         await c.query<ReaderSqlRow>(
           "INSERT INTO secure_reader.challenges(hash,user_id,expires_at) VALUES($1,$2,now()+interval '10 minutes')",
           [hash(code), row.id],
         );
-        await audit(c, "RECIPIENT_INVITED", p, row.id);
+        await audit(
+          c,
+          b.delivery === "manual" ? "RECIPIENT_INVITED_MANUAL" : "RECIPIENT_INVITED",
+          p,
+          row.id,
+        );
         return { id: row.id, code };
       },
       true,
     );
+    if (b.delivery === "manual") {
+      return reply
+        .code(201)
+        .send({ id: result.id, code: result.code, expiresInSeconds: 600 });
+    }
     try {
-      await o.mailer.send(b.email, result.code);
+      await o.mailer!.send(b.email, result.code);
     } catch {
       await o.pool.query<ReaderSqlRow>(
         "DELETE FROM secure_reader.challenges WHERE hash=$1",

@@ -16,17 +16,38 @@ export const SecureReaderConfigSchema = z
     SECURE_READER_S3_BUCKET: z.string().optional(),
     SECURE_READER_S3_REGION: z.string().optional(),
     SECURE_READER_S3_ENDPOINT: z.url().optional(),
-    SECURE_READER_SMTP_HOST: z.string().min(1),
-    SECURE_READER_SMTP_PORT: z.coerce.number().int().min(1).max(65535),
-    SECURE_READER_SMTP_SECURE: bool,
+    SECURE_READER_SMTP_HOST: z.string().min(1).optional(),
+    SECURE_READER_SMTP_PORT: z.coerce.number().int().min(1).max(65535).optional(),
+    SECURE_READER_SMTP_SECURE: bool.optional(),
     SECURE_READER_SMTP_USER: z.string().optional(),
     SECURE_READER_SMTP_PASS: z.string().optional(),
-    SECURE_READER_MAIL_FROM: z.email(),
+    SECURE_READER_MAIL_FROM: z.email().optional(),
     SECURE_READER_ALLOW_UNSANDBOXED_PDF_PROCESSING: bool.default(false),
     SECURE_READER_RENDERER_URL: z.url().optional(),
     SECURE_READER_RENDERER_SHARED_SECRET_FILE: z.string().optional(),
   })
   .superRefine((config, context) => {
+    const mailConfigured = [
+      config.SECURE_READER_SMTP_HOST,
+      config.SECURE_READER_SMTP_PORT,
+      config.SECURE_READER_SMTP_SECURE,
+      config.SECURE_READER_MAIL_FROM,
+      config.SECURE_READER_SMTP_USER,
+      config.SECURE_READER_SMTP_PASS,
+    ].some((value) => value !== undefined);
+    if (
+      mailConfigured &&
+      (!config.SECURE_READER_SMTP_HOST ||
+        !config.SECURE_READER_SMTP_PORT ||
+        config.SECURE_READER_SMTP_SECURE === undefined ||
+        !config.SECURE_READER_MAIL_FROM ||
+        Boolean(config.SECURE_READER_SMTP_USER) !==
+          Boolean(config.SECURE_READER_SMTP_PASS))
+    )
+      context.addIssue({
+        code: "custom",
+        message: "Incomplete Reader mail configuration",
+      });
     if (
       config.SECURE_READER_STORAGE_MODE === "local" &&
       !config.SECURE_READER_PRIVATE_STORAGE_DIR &&
@@ -79,11 +100,12 @@ export const SecureReaderConfigSchema = z
         });
       if (
         !config.SECURE_READER_ADMIN_ORIGIN.startsWith("https://") ||
-        !config.SECURE_READER_SMTP_SECURE
+        (mailConfigured && !config.SECURE_READER_SMTP_SECURE)
       )
         context.addIssue({
           code: "custom",
-          message: "Production requires HTTPS admin origin and TLS mail",
+          message:
+            "Production requires HTTPS admin origin and TLS when mail is configured",
         });
     }
   });

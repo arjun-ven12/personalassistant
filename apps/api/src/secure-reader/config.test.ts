@@ -54,6 +54,28 @@ describe("Secure Reader activation gate", () => {
     ).toBe(false);
   });
 
+  it("permits manual preview invitations without SMTP and rejects partial mail settings", () => {
+    const noMail = {
+      ...base,
+      NODE_ENV: "production",
+      SECURE_READER_STORAGE_MODE: "local",
+      RAILWAY_VOLUME_MOUNT_PATH: "/app/api/.local",
+      SECURE_READER_RENDERER_URL: undefined,
+      SECURE_READER_RENDERER_SHARED_SECRET_FILE: undefined,
+      SECURE_READER_SMTP_HOST: undefined,
+      SECURE_READER_SMTP_PORT: undefined,
+      SECURE_READER_SMTP_SECURE: undefined,
+      SECURE_READER_MAIL_FROM: undefined,
+    };
+    expect(SecureReaderConfigSchema.safeParse(noMail).success).toBe(true);
+    expect(
+      SecureReaderConfigSchema.safeParse({
+        ...noMail,
+        SECURE_READER_SMTP_HOST: "mail.example.org",
+      }).success,
+    ).toBe(false);
+  });
+
   it("accepts an explicit non-production fixture configuration", () => {
     expect(
       SecureReaderConfigSchema.safeParse({ ...base, NODE_ENV: "test" }).success,

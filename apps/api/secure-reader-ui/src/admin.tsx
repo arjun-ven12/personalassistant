@@ -71,6 +71,10 @@ function Admin() {
     [email, setEmail] = useState(""),
     [code, setCode] = useState(""),
     [sent, setSent] = useState(false),
+    [manualCode, setManualCode] = useState<null | {
+      email: string;
+      code: string;
+    }>(null),
     [tab, setTab] = useState("Documents"),
     [receipt, setReceipt] = useState<null | {
       title: string;
@@ -100,6 +104,16 @@ function Admin() {
     document.addEventListener("visibilitychange", onHide);
     return () => document.removeEventListener("visibilitychange", onHide);
   }, [preview]);
+  useEffect(() => {
+    if (tab !== "Recipients") setManualCode(null);
+  }, [tab]);
+  useEffect(() => {
+    const clearOnHide = () => {
+      if (document.visibilityState === "hidden") setManualCode(null);
+    };
+    document.addEventListener("visibilitychange", clearOnHide);
+    return () => document.removeEventListener("visibilitychange", clearOnHide);
+  }, []);
   async function call(route: string, method = "GET", body?: unknown, session = token) {
     const r = await fetch(window.location.origin + "/api/secure-reader" + route, {
       method,
@@ -502,19 +516,52 @@ function Admin() {
                 className="inline-form"
                 onSubmit={(e) => {
                   const v = values(e);
-                  void action(() =>
-                    call("/admin/invitations", "POST", {
-                      email: v.get("email"),
-                    }),
-                  );
+                  const recipient = field(v, "email");
+                  const delivery = field(v, "delivery");
+                  setManualCode(null);
+                  void action(async () => {
+                    const result = await call("/admin/invitations", "POST", {
+                      email: recipient,
+                      delivery,
+                    });
+                    if (delivery === "manual") {
+                      const issued = z
+                        .object({ code: z.string().regex(/^[a-f0-9]{64}$/) })
+                        .parse(result);
+                      if (document.visibilityState === "visible")
+                        setManualCode({ email: recipient, code: issued.code });
+                    }
+                    return result;
+                  });
                 }}
               >
                 <label>
                   Email address
                   <input name="email" type="email" required />
                 </label>
-                <button className="primary">Send invitation</button>
+                <label>
+                  Delivery
+                  <select name="delivery" defaultValue="manual">
+                    <option value="manual">
+                      Show one-time code for private handoff
+                    </option>
+                    <option value="email">Send by email, if configured</option>
+                  </select>
+                </label>
+                <button className="primary">Create invitation</button>
               </form>
+              {manualCode && (
+                <div className="upload-receipt" role="status">
+                  <strong>Private invitation code · shown once</strong>
+                  <span>{manualCode.email} · expires in 10 minutes · single use</span>
+                  <code className="manual-code">{manualCode.code}</code>
+                  <small>
+                    Share privately with this recipient. Clear this view before leaving
+                    the device. The code is not saved to browser storage.
+                  </small>
+                  <button onClick={() => setManualCode(null)}>Clear code</button>
+                </div>
+              )}
               {state.users.map((u) => (
                 <div className="row" key={u.id}>
                   <span>

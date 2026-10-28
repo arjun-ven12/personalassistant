@@ -22,7 +22,9 @@ export const LoginFinish = z
     deviceLabel: z.string().trim().min(1).max(64),
   })
   .strict();
-export const Invite = z.object({ email: Email }).strict();
+export const Invite = z
+  .object({ email: Email, delivery: z.enum(["email", "manual"]).default("email") })
+  .strict();
 export const Grant = z
   .object({ userId: Id, documentId: Id, expiresAt: z.iso.datetime() })
   .strict();

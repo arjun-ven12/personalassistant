@@ -360,6 +360,10 @@ article small {
 .upload-receipt code {
   color: #30362e;
 }
+.manual-code {
+  user-select: text;
+  overflow-wrap: anywhere;
+}
 .version-row {
   padding: 8px 0;
   border-bottom: 1px solid #e5e6e0;

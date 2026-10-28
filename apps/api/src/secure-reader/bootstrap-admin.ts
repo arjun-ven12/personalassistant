@@ -9,31 +9,46 @@ import { Email } from "./contracts.js";
 const settings = z
   .object({
     DATABASE_URL: z.string().min(1),
-    SECURE_READER_SMTP_HOST: z.string().min(1),
-    SECURE_READER_SMTP_PORT: z.coerce.number().int().min(1).max(65535),
+    SECURE_READER_SMTP_HOST: z.string().min(1).optional(),
+    SECURE_READER_SMTP_PORT: z.coerce.number().int().min(1).max(65535).optional(),
     SECURE_READER_SMTP_USER: z.string().optional(),
     SECURE_READER_SMTP_PASS: z.string().optional(),
-    SECURE_READER_MAIL_FROM: z.email(),
+    SECURE_READER_MAIL_FROM: z.email().optional(),
   })
   .parse(process.env);
 const email = Email.parse(process.argv[2]);
+const manual = process.argv[3] === "--manual";
+if (process.argv.length > 4 || (process.argv[3] && !manual))
+  throw Error("Unknown bootstrap mode");
+if (manual && !process.stdout.isTTY)
+  throw Error("Manual bootstrap requires a private operator terminal");
+if (
+  !manual &&
+  (!settings.SECURE_READER_SMTP_HOST ||
+    !settings.SECURE_READER_SMTP_PORT ||
+    !settings.SECURE_READER_MAIL_FROM)
+)
+  throw Error("TLS mail configuration required for email bootstrap");
 const database = new PostgresDatabase(settings.DATABASE_URL);
-const mailer = nodemailer.createTransport({
-  host: settings.SECURE_READER_SMTP_HOST,
-  port: settings.SECURE_READER_SMTP_PORT,
-  secure: true,
-  connectionTimeout: 10_000,
-  greetingTimeout: 10_000,
-  socketTimeout: 15_000,
-  ...(settings.SECURE_READER_SMTP_USER
-    ? {
-        auth: {
-          user: settings.SECURE_READER_SMTP_USER,
-          pass: settings.SECURE_READER_SMTP_PASS,
-        },
-      }
-    : {}),
-});
+const mailer = !manual
+  ? nodemailer.createTransport({
+      host: settings.SECURE_READER_SMTP_HOST!,
+      port: settings.SECURE_READER_SMTP_PORT!,
+      secure: true,
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 15_000,
+      ...(settings.SECURE_READER_SMTP_USER
+        ? {
+            auth: {
+              user: settings.SECURE_READER_SMTP_USER,
+              pass: settings.SECURE_READER_SMTP_PASS,
+            },
+          }
+        : {}),
+    })
+  : undefined;
+let handoffCode: string | undefined;
 try {
   const client = await database.pool.connect();
   try {
@@ -63,13 +78,15 @@ try {
       "INSERT INTO secure_reader.audit_events(event,resource_id,outcome) VALUES('ADMIN_BOOTSTRAPPED',$1,'ALLOW')",
       [id],
     );
-    await mailer.sendMail({
-      from: settings.SECURE_READER_MAIL_FROM,
-      to: email,
-      subject: "Athena Secure Reader administrator verification",
-      text: `Your one-time Secure Reader code expires in 10 minutes:\n\n${code}`,
-    });
+    if (mailer)
+      await mailer.sendMail({
+        from: settings.SECURE_READER_MAIL_FROM,
+        to: email,
+        subject: "Athena Secure Reader administrator verification",
+        text: `Your one-time Secure Reader code expires in 10 minutes:\n\n${code}`,
+      });
     await client.query("COMMIT");
+    if (manual) handoffCode = code;
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
@@ -77,7 +94,9 @@ try {
     client.release();
   }
   process.stdout.write(
-    "Secure Reader administrator invitation sent. No code printed.\n",
+    manual
+      ? `Private one-time administrator code (10 minutes): ${handoffCode}\n`
+      : "Secure Reader administrator invitation sent. No code printed.\n",
   );
 } finally {
   await database.pool.end();

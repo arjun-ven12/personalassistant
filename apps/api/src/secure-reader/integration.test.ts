@@ -8,6 +8,7 @@ import { InMemoryGovernanceStore } from "../governance/store.js";
 import { BUILT_IN_TOOLS } from "../governance/defaults.js";
 import type { Objects } from "./storage.js";
 import type { PdfRenderPort } from "./render.js";
+import { hash } from "./routes.js";
 
 const url = process.env.ATHENA_READER_TEST_DATABASE_URL;
 const enabled = process.env.ATHENA_READER_DISPOSABLE_TEST === "1" && !!url;
@@ -107,7 +108,7 @@ describe.skipIf(!enabled)(
         ]),
       });
     }
-    function openApp() {
+    function openApp(withMailer = true) {
       return buildApi({
         corsOrigin: "http://localhost",
         privateNetworkRequired: false,
@@ -120,12 +121,16 @@ describe.skipIf(!enabled)(
           renderer,
           adminOrigin: "http://localhost",
           allowPdfProcessing: true,
-          mailer: {
-            send: (email, code) => {
-              mail.set(email, code);
-              return Promise.resolve();
-            },
-          },
+          ...(withMailer
+            ? {
+                mailer: {
+                  send: (email: string, code: string) => {
+                    mail.set(email, code);
+                    return Promise.resolve();
+                  },
+                },
+              }
+            : {}),
         },
       });
     }
@@ -323,6 +328,75 @@ describe.skipIf(!enabled)(
       expect(
         (await request("GET", "/api/secure-reader/admin/state", admin)).statusCode,
       ).toBe(200);
+    });
+
+    it("allows only an administrator to hand off a single-use manual code without SMTP", async () => {
+      await app.close();
+      app = await openApp(false);
+      const email = `manual-${randomUUID()}@example.test`;
+      const path = "/api/secure-reader/admin/invitations";
+      expect(
+        (await request("POST", path, undefined, { email, delivery: "manual" }))
+          .statusCode,
+      ).toBe(401);
+      const issued = await request("POST", path, admin, { email, delivery: "manual" });
+      expect(issued.statusCode).toBe(201);
+      const body = z
+        .object({ id: z.uuid(), code: z.string().length(64) })
+        .parse(issued.json());
+      expect(mail.has(email)).toBe(false);
+      const first = await request("POST", "/api/secure-reader/auth/finish", undefined, {
+        email,
+        code: body.code,
+        deviceLabel: "Manual handoff fixture",
+      });
+      expect(first.statusCode).toBe(200);
+      const reader = z.object({ token: z.string() }).parse(first.json()).token;
+      expect(
+        (await request("POST", path, reader, { email, delivery: "manual" })).statusCode,
+      ).toBe(403);
+      expect(
+        (
+          await request("POST", "/api/secure-reader/auth/finish", undefined, {
+            email,
+            code: body.code,
+            deviceLabel: "Replay fixture",
+          })
+        ).statusCode,
+      ).toBe(401);
+      expect(
+        (await request("POST", path, admin, { email, delivery: "email" })).statusCode,
+      ).toBe(503);
+      const next = await request("POST", path, admin, { email, delivery: "manual" });
+      const nextCode = z
+        .object({ code: z.string().length(64) })
+        .parse(next.json()).code;
+      await pool.query(
+        "UPDATE secure_reader.challenges SET expires_at=now()-interval '1 second' WHERE hash=$1",
+        [hash(nextCode)],
+      );
+      expect(
+        (
+          await request("POST", "/api/secure-reader/auth/finish", undefined, {
+            email,
+            code: nextCode,
+            deviceLabel: "Expired fixture",
+          })
+        ).statusCode,
+      ).toBe(401);
+      const before = await pool.query<{ count: string }>(
+        "SELECT count(*) FROM secure_reader.challenges WHERE user_id=$1 AND used_at IS NULL AND expires_at>now()",
+        [body.id],
+      );
+      expect(
+        (await request("POST", "/api/secure-reader/auth/start", undefined, { email }))
+          .statusCode,
+      ).toBe(202);
+      const after = await pool.query<{ count: string }>(
+        "SELECT count(*) FROM secure_reader.challenges WHERE user_id=$1 AND used_at IS NULL AND expires_at>now()",
+        [body.id],
+      );
+      expect(after.rows[0]?.count).toBe(before.rows[0]?.count);
     });
 
     it("denies Reader requests when Athena emergency stop activates", async () => {

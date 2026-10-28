@@ -42,19 +42,21 @@ export function createSecureReaderOptions(
   const secret = config.SECURE_READER_RENDERER_SHARED_SECRET_FILE
     ? readFileSync(config.SECURE_READER_RENDERER_SHARED_SECRET_FILE, "utf8").trim()
     : undefined;
-  const mail = nodemailer.createTransport({
-    host: config.SECURE_READER_SMTP_HOST,
-    port: config.SECURE_READER_SMTP_PORT,
-    secure: config.SECURE_READER_SMTP_SECURE,
-    ...(config.SECURE_READER_SMTP_USER
-      ? {
-          auth: {
-            user: config.SECURE_READER_SMTP_USER,
-            pass: config.SECURE_READER_SMTP_PASS,
-          },
-        }
-      : {}),
-  });
+  const mail = config.SECURE_READER_SMTP_HOST
+    ? nodemailer.createTransport({
+        host: config.SECURE_READER_SMTP_HOST,
+        port: config.SECURE_READER_SMTP_PORT!,
+        secure: config.SECURE_READER_SMTP_SECURE,
+        ...(config.SECURE_READER_SMTP_USER
+          ? {
+              auth: {
+                user: config.SECURE_READER_SMTP_USER,
+                pass: config.SECURE_READER_SMTP_PASS,
+              },
+            }
+          : {}),
+      })
+    : undefined;
   return {
     pool,
     objects:
@@ -74,15 +76,19 @@ export function createSecureReaderOptions(
       Boolean(config.SECURE_READER_RENDERER_URL && secret) ||
       config.NODE_ENV === "production" ||
       config.SECURE_READER_ALLOW_UNSANDBOXED_PDF_PROCESSING,
-    mailer: {
-      send: async (email, code) => {
-        await mail.sendMail({
-          from: config.SECURE_READER_MAIL_FROM,
-          to: email,
-          subject: "Athena Secure Reader · sign-in verification",
-          text: `Your one-time verification code:\n\n${code}\n\nExpires in 10 minutes. Do not forward this message.`,
-        });
-      },
-    },
+    ...(mail
+      ? {
+          mailer: {
+            send: async (email: string, code: string) => {
+              await mail.sendMail({
+                from: config.SECURE_READER_MAIL_FROM,
+                to: email,
+                subject: "Athena Secure Reader · sign-in verification",
+                text: `Your one-time verification code:\n\n${code}\n\nExpires in 10 minutes. Do not forward this message.`,
+              });
+            },
+          },
+        }
+      : {}),
   };
 }
