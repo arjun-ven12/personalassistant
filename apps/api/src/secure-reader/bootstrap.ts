@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { lstatSync, mkdirSync, readFileSync, realpathSync } from "node:fs";
+import path from "node:path";
 import type { Pool } from "pg";
 import nodemailer from "nodemailer";
 import { SecureReaderConfigSchema } from "./config.js";
@@ -7,11 +8,37 @@ import { RemotePdfRenderer } from "./remote-render.js";
 import { LocalObjects, S3Objects } from "./storage.js";
 import type { SecureReaderOptions } from "./routes.js";
 
+function privateVolumeDirectory(mount: string): string {
+  const root = path.join(mount, "secure-reader-pdfs");
+  const mounted = readFileSync("/proc/self/mountinfo", "utf8")
+    .split("\n")
+    .some((line) => line.split(" ")[4] === mount);
+  if (!mounted || realpathSync(mount) !== mount)
+    throw new Error("Secure Reader volume is not mounted");
+  mkdirSync(root, { recursive: true, mode: 0o700 });
+  const stat = lstatSync(root);
+  if (
+    !stat.isDirectory() ||
+    stat.isSymbolicLink() ||
+    (stat.mode & 0o777) !== 0o700 ||
+    stat.uid !== process.getuid?.() ||
+    realpathSync(root) !== root
+  )
+    throw new Error("Secure Reader volume directory is not private");
+  return root;
+}
+
 export function createSecureReaderOptions(
   environment: NodeJS.ProcessEnv,
   pool: Pool,
 ): SecureReaderOptions {
   const config = SecureReaderConfigSchema.parse(environment);
+  const localRoot =
+    config.SECURE_READER_STORAGE_MODE === "local"
+      ? config.NODE_ENV === "production"
+        ? privateVolumeDirectory(config.RAILWAY_VOLUME_MOUNT_PATH!)
+        : config.SECURE_READER_PRIVATE_STORAGE_DIR!
+      : undefined;
   const secret = config.SECURE_READER_RENDERER_SHARED_SECRET_FILE
     ? readFileSync(config.SECURE_READER_RENDERER_SHARED_SECRET_FILE, "utf8").trim()
     : undefined;
@@ -37,7 +64,7 @@ export function createSecureReaderOptions(
             config.SECURE_READER_S3_REGION!,
             config.SECURE_READER_S3_ENDPOINT,
           )
-        : new LocalObjects(config.SECURE_READER_PRIVATE_STORAGE_DIR!),
+        : new LocalObjects(localRoot!),
     renderer:
       config.SECURE_READER_RENDERER_URL && secret
         ? new RemotePdfRenderer(config.SECURE_READER_RENDERER_URL, secret)
@@ -45,8 +72,8 @@ export function createSecureReaderOptions(
     adminOrigin: config.SECURE_READER_ADMIN_ORIGIN,
     allowPdfProcessing:
       Boolean(config.SECURE_READER_RENDERER_URL && secret) ||
-      (config.NODE_ENV !== "production" &&
-        config.SECURE_READER_ALLOW_UNSANDBOXED_PDF_PROCESSING),
+      config.NODE_ENV === "production" ||
+      config.SECURE_READER_ALLOW_UNSANDBOXED_PDF_PROCESSING,
     mailer: {
       send: async (email, code) => {
         await mail.sendMail({

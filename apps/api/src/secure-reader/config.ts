@@ -1,4 +1,5 @@
 import { z } from "zod";
+import path from "node:path";
 
 const bool = z.enum(["true", "false"]).transform((value) => value === "true");
 
@@ -10,6 +11,7 @@ export const SecureReaderConfigSchema = z
     DATABASE_URL: z.string().min(1),
     SECURE_READER_ADMIN_ORIGIN: z.url(),
     SECURE_READER_STORAGE_MODE: z.enum(["local", "s3"]),
+    RAILWAY_VOLUME_MOUNT_PATH: z.string().optional(),
     SECURE_READER_PRIVATE_STORAGE_DIR: z.string().optional(),
     SECURE_READER_S3_BUCKET: z.string().optional(),
     SECURE_READER_S3_REGION: z.string().optional(),
@@ -27,7 +29,8 @@ export const SecureReaderConfigSchema = z
   .superRefine((config, context) => {
     if (
       config.SECURE_READER_STORAGE_MODE === "local" &&
-      !config.SECURE_READER_PRIVATE_STORAGE_DIR
+      !config.SECURE_READER_PRIVATE_STORAGE_DIR &&
+      !config.RAILWAY_VOLUME_MOUNT_PATH
     )
       context.addIssue({
         code: "custom",
@@ -42,22 +45,29 @@ export const SecureReaderConfigSchema = z
         message: "Reader renderer and secret file must be paired",
       });
     if (config.NODE_ENV === "production") {
-      if (
-        !config.SECURE_READER_RENDERER_URL ||
-        !config.SECURE_READER_RENDERER_SHARED_SECRET_FILE
-      )
+      if (config.SECURE_READER_ALLOW_UNSANDBOXED_PDF_PROCESSING)
         context.addIssue({
           code: "custom",
-          message: "Production requires isolated renderer and file-mounted secret",
+          message: "Production may use only the bounded PDF worker",
         });
-      if (
-        config.SECURE_READER_STORAGE_MODE !== "s3" ||
-        !config.SECURE_READER_S3_BUCKET ||
-        !config.SECURE_READER_S3_REGION
-      )
+      if (config.SECURE_READER_STORAGE_MODE === "local") {
+        const mount = config.RAILWAY_VOLUME_MOUNT_PATH;
+        const expected = mount ? path.join(mount, "secure-reader-pdfs") : "";
+        if (
+          !mount ||
+          !path.isAbsolute(mount) ||
+          mount === "/" ||
+          (config.SECURE_READER_PRIVATE_STORAGE_DIR &&
+            config.SECURE_READER_PRIVATE_STORAGE_DIR !== expected)
+        )
+          context.addIssue({
+            code: "custom",
+            message: "Production local storage must use the Railway volume",
+          });
+      } else if (!config.SECURE_READER_S3_BUCKET || !config.SECURE_READER_S3_REGION)
         context.addIssue({
           code: "custom",
-          message: "Production requires private persistent object storage",
+          message: "Production S3 storage requires a private bucket and region",
         });
       if (
         config.SECURE_READER_S3_ENDPOINT &&
@@ -75,12 +85,6 @@ export const SecureReaderConfigSchema = z
           code: "custom",
           message: "Production requires HTTPS admin origin and TLS mail",
         });
-      // Preserve the upstream Reader's unconditional production gate.
-      context.addIssue({
-        code: "custom",
-        message:
-          "Production gated pending independent PDF sandbox and hosted-security acceptance",
-      });
     }
   });
 

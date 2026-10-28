@@ -17,19 +17,39 @@ const base = {
 };
 
 describe("Secure Reader activation gate", () => {
-  it("retains the upstream production isolation block even with all fields supplied", () => {
+  it("accepts bounded production PDF processing with private S3 and TLS mail", () => {
     expect(
       SecureReaderConfigSchema.safeParse({ ...base, NODE_ENV: "production" }).success,
-    ).toBe(false);
+    ).toBe(true);
   });
 
-  it("rejects local storage and missing renderer credentials in production", () => {
+  it("accepts only the mounted Railway volume for production local storage", () => {
     expect(
       SecureReaderConfigSchema.safeParse({
         ...base,
         NODE_ENV: "production",
         SECURE_READER_STORAGE_MODE: "local",
+        RAILWAY_VOLUME_MOUNT_PATH: "/app/api/.local",
+        SECURE_READER_PRIVATE_STORAGE_DIR: "/app/api/.local/secure-reader-pdfs",
+        SECURE_READER_RENDERER_URL: undefined,
         SECURE_READER_RENDERER_SHARED_SECRET_FILE: undefined,
+      }).success,
+    ).toBe(true);
+    expect(
+      SecureReaderConfigSchema.safeParse({
+        ...base,
+        NODE_ENV: "production",
+        SECURE_READER_STORAGE_MODE: "local",
+        SECURE_READER_PRIVATE_STORAGE_DIR: "/tmp/pdfs",
+        SECURE_READER_RENDERER_URL: undefined,
+        SECURE_READER_RENDERER_SHARED_SECRET_FILE: undefined,
+      }).success,
+    ).toBe(false);
+    expect(
+      SecureReaderConfigSchema.safeParse({
+        ...base,
+        NODE_ENV: "production",
+        SECURE_READER_ALLOW_UNSANDBOXED_PDF_PROCESSING: "true",
       }).success,
     ).toBe(false);
   });
