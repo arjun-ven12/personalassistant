@@ -1,12 +1,12 @@
 # One-backend integration acceptance · 2026-10-28
 
-**Decision: BLOCKED for production deployment and new APK release.** Source integration is locally testable; hosted acceptance is outstanding. Nothing was pushed, deployed, migrated in Neon, imported, invited, or published during this run.
+**Decision: BLOCKED for production deployment and new APK release.** Source integration is locally testable; hosted acceptance is outstanding. The integration branch was pushed to the public Athena repository after a changed-file scan found no confidential PDFs, credentials, private keys, tokens, or secret patterns. Nothing was deployed, migrated in Neon, imported, invited, or released.
 
 ## Baselines and preservation
 
 - Athena isolated worktree: `/tmp/athena-secure-reader-one-backend`, branch `integration/secure-reader-one-backend`, based on `90c77ecceb35682e0b64bcc512b8d83ae23a78d1` (`origin/main` and latest GitHub production deployment ref at investigation time). Original `/workspace/personalassistant` stayed at `7ee28be9de093a0446dfbe95b7145278b9087ea9` with 63 pre-existing changed paths and was not overwritten.
-- Reader workspace: `/workspace/athena-secure-reader`, baseline `aa42c01cda2ac1d7bd3c94c271405fc87e8f51ff`, originally clean. Android and release workflow changes remain uncommitted there.
-- The Athena GitHub repository reported `isPrivate=false` through GitHub API, while Reader reported private. No Reader source was pushed into the public Athena repository; reconcile repository visibility and disclosure policy before pushing.
+- Reader workspace: `/workspace/athena-secure-reader`, baseline `aa42c01cda2ac1d7bd3c94c271405fc87e8f51ff`, originally clean. Android and release workflow changes are committed as `bfd3797d689c8099a49702c164d243f1d3fdcf64` on the private `integration/athena-one-backend-v0.2` branch.
+- Athena is public by explicit owner authorization; Reader remains private. The Athena integration is published only on `integration/secure-reader-one-backend`, not merged into `main`.
 
 ## Verified locally
 
@@ -41,4 +41,4 @@ Athena's `pnpm --filter @alexa-control/api security:check` wrapper could not com
 
 ## Next gate
 
-Restore authorized access to the **existing** Railway service, inspect its storage/volume and current Neon migration state, and select a persistent private PDF store plus an independently verified renderer sandbox that can run without a second public API. Test those with synthetic PDFs in a disposable environment. Reconcile the public Athena repository visibility before moving Reader code to GitHub. Only after that can the migration, module activation, admin bootstrap, signed APK workflow and deployed health/page checks be reviewed for execution.
+Restore authorized access to the **existing** Railway service, inspect its storage/volume and current Neon migration state, and select a persistent private PDF store plus an independently verified renderer sandbox that can run without a second public API. Test those with synthetic PDFs in a disposable environment. Only after that can the migration, module activation, admin bootstrap, signed APK workflow and deployed health/page checks be reviewed for execution.
