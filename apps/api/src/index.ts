@@ -4,6 +4,8 @@ import { AllowlistedGitHubCredentialResolver } from "./cloud-engineering/github.
 import { parseApiEnvironment } from "@alexa-control/config";
 
 import { buildApi, LOG_REDACTION_PATHS } from "./app.js";
+import { createSecureReaderOptions } from "./secure-reader/bootstrap.js";
+import { z } from "zod";
 import { createTelemetrySink } from "./telemetry/service.js";
 import { BUILT_IN_TOOLS } from "./governance/defaults.js";
 import { PostgresGovernanceStore } from "./governance/postgres-store.js";
@@ -43,7 +45,12 @@ import {
 import { PostgresIntegrationStore } from "./integrations/postgres-store.js";
 import { GmailBusinessProvider } from "./integrations/gmail-provider.js";
 import { StripeTestPaymentsProvider } from "./integrations/stripe-provider.js";
-import { GoogleAdsTestProvider,GoogleAnalytics4Provider,ShopifyDevelopmentStoreProvider,XeroSandboxAccountingProvider } from "./integrations/commercial-read-providers.js";
+import {
+  GoogleAdsTestProvider,
+  GoogleAnalytics4Provider,
+  ShopifyDevelopmentStoreProvider,
+  XeroSandboxAccountingProvider,
+} from "./integrations/commercial-read-providers.js";
 import { AllowlistedEnvironmentSecretResolver } from "./integrations/secret-resolver.js";
 import { InMemoryAgentStore, type AgentStore } from "./agents/store.js";
 import { PostgresAgentStore } from "./agents/postgres-store.js";
@@ -450,7 +457,22 @@ const networkVerifier =
         ? new DevelopmentLoopbackNetworkVerifier()
         : new UnknownNetworkVerifier();
 
+const secureReaderEnabled = z
+  .enum(["true", "false"])
+  .default("false")
+  .parse(process.env.SECURE_READER_ENABLED);
+if (secureReaderEnabled === "true" && (!database || !environment.DATABASE_URL))
+  throw new Error("Secure Reader requires Athena's existing PostgreSQL database");
+const secureReader =
+  secureReaderEnabled === "true"
+    ? createSecureReaderOptions(
+        { ...process.env, DATABASE_URL: environment.DATABASE_URL },
+        database!.pool,
+      )
+    : undefined;
+
 const app = await buildApi({
+  ...(secureReader ? { secureReader } : {}),
   mcpLocalFixtureEnabled: environment.MCP_LOCAL_FIXTURE_ENABLED,
   telemetry: createTelemetrySink(process.env.OTEL_EXPORTER_OTLP_ENDPOINT),
   deploymentMode: environment.DEPLOYMENT_MODE,
@@ -483,14 +505,27 @@ const app = await buildApi({
   universalMcpAllowedHosts: environment.UNIVERSAL_MCP_ALLOWED_HOSTS,
   selfImprovementRepositories: environment.ALEXA_SELF_IMPROVEMENT_REPOSITORIES,
   universalMcpSecretResolver,
-  ec2EngineeringConfigurations: parseEc2EngineeringConfiguration(environment.AWS_ENGINEERING_CONFIG),
-  ec2EngineeringCredentials: new AllowlistedGitHubCredentialResolver({"aws-engineering-primary":environment.AWS_ENGINEERING_CREDENTIAL}),
-  railwayEngineeringConfigurations: parseRailwayEngineeringConfiguration(environment.RAILWAY_ENGINEERING_CONFIG),
-  railwayEngineeringCredentials: new AllowlistedGitHubCredentialResolver({"railway-engineering-primary":environment.RAILWAY_ENGINEERING_API_TOKEN}),
+  ec2EngineeringConfigurations: parseEc2EngineeringConfiguration(
+    environment.AWS_ENGINEERING_CONFIG,
+  ),
+  ec2EngineeringCredentials: new AllowlistedGitHubCredentialResolver({
+    "aws-engineering-primary": environment.AWS_ENGINEERING_CREDENTIAL,
+  }),
+  railwayEngineeringConfigurations: parseRailwayEngineeringConfiguration(
+    environment.RAILWAY_ENGINEERING_CONFIG,
+  ),
+  railwayEngineeringCredentials: new AllowlistedGitHubCredentialResolver({
+    "railway-engineering-primary": environment.RAILWAY_ENGINEERING_API_TOKEN,
+  }),
   engineeringGitHubProviderIds: environment.GITHUB_ENGINEERING_PROVIDER_IDS,
-  engineeringGitHubCredentials: new AllowlistedGitHubCredentialResolver({ "github-primary": environment.GITHUB_ENGINEERING_ACCESS_TOKEN }),
-  universalToolManifests: environment.UNIVERSAL_MCP_ALLOWED_HOSTS.includes("mcp.deepwiki.com")
-    ? [...REVIEWED_REMOTE_MCP_MANIFESTS] : [],
+  engineeringGitHubCredentials: new AllowlistedGitHubCredentialResolver({
+    "github-primary": environment.GITHUB_ENGINEERING_ACCESS_TOKEN,
+  }),
+  universalToolManifests: environment.UNIVERSAL_MCP_ALLOWED_HOSTS.includes(
+    "mcp.deepwiki.com",
+  )
+    ? [...REVIEWED_REMOTE_MCP_MANIFESTS]
+    : [],
   trustedProxyMode: environment.TRUSTED_PROXY_MODE,
   persistenceMode:
     environment.STORE_MODE === "postgres" ? "postgresql" : "in_memory_development",
@@ -518,12 +553,22 @@ const app = await buildApi({
   integrationStore,
   integrationSecretResolver,
   businessProviders: [
-    ...(environment.GMAIL_OAUTH_CREDENTIAL_JSON?[new GmailBusinessProvider()]:[]),
-    ...(environment.STRIPE_TEST_CREDENTIAL_JSON?[new StripeTestPaymentsProvider()]:[]),
-    ...(environment.XERO_SANDBOX_CREDENTIAL_JSON?[new XeroSandboxAccountingProvider()]:[]),
-    ...(environment.GOOGLE_ADS_TEST_CREDENTIAL_JSON?[new GoogleAdsTestProvider()]:[]),
-    ...(environment.GOOGLE_ANALYTICS_CREDENTIAL_JSON?[new GoogleAnalytics4Provider()]:[]),
-    ...(environment.SHOPIFY_DEVELOPMENT_CREDENTIAL_JSON?[new ShopifyDevelopmentStoreProvider()]:[]),
+    ...(environment.GMAIL_OAUTH_CREDENTIAL_JSON ? [new GmailBusinessProvider()] : []),
+    ...(environment.STRIPE_TEST_CREDENTIAL_JSON
+      ? [new StripeTestPaymentsProvider()]
+      : []),
+    ...(environment.XERO_SANDBOX_CREDENTIAL_JSON
+      ? [new XeroSandboxAccountingProvider()]
+      : []),
+    ...(environment.GOOGLE_ADS_TEST_CREDENTIAL_JSON
+      ? [new GoogleAdsTestProvider()]
+      : []),
+    ...(environment.GOOGLE_ANALYTICS_CREDENTIAL_JSON
+      ? [new GoogleAnalytics4Provider()]
+      : []),
+    ...(environment.SHOPIFY_DEVELOPMENT_CREDENTIAL_JSON
+      ? [new ShopifyDevelopmentStoreProvider()]
+      : []),
   ],
   agentStore,
   agentOsStore,

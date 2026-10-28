@@ -1,4 +1,8 @@
 import { McpLocalService } from "./mcp/service.js";
+import {
+  registerSecureReaderRoutes,
+  type SecureReaderOptions,
+} from "./secure-reader/routes.js";
 import { McpProtocolClient } from "./mcp/protocol.js";
 import { createLocalFixtureTransport } from "./mcp/transport.js";
 import { registerMcpLocalRoutes } from "./routes/mcp.js";
@@ -665,6 +669,7 @@ export interface BuildApiOptions {
   benchmarkRunner?: AIBenchmarkRunner;
   executionLimits?: ExecutionLimits;
   mcpLocalFixtureEnabled?: boolean;
+  secureReader?: SecureReaderOptions;
 }
 
 export const buildApi = async ({
@@ -673,6 +678,7 @@ export const buildApi = async ({
   logger = true,
   nodeEnvironment = "development",
   mcpLocalFixtureEnabled = false,
+  secureReader,
   allowOwnerBootstrap = true,
   sessionCookieName = "alexa_session",
   sessionTtlSeconds = 28_800,
@@ -939,7 +945,9 @@ export const buildApi = async ({
     logController: new LogController({
       // Search text and upload grants must not enter automatic request logs.
       // Document lifecycle and denial metadata use the bounded audit/error paths.
-      disableRequestLogging: (request) => request.url.startsWith("/api/documents"),
+      disableRequestLogging: (request) =>
+        request.url.startsWith("/api/documents") ||
+        request.url.startsWith("/api/secure-reader"),
     }),
   });
   app.addHook("onClose", async () => {
@@ -979,11 +987,8 @@ export const buildApi = async ({
     global: true,
     max: 100,
     timeWindow: "1 minute",
-    errorResponseBuilder: () => new ApiSecurityError(
-      429,
-      "RATE_LIMITED",
-      "Too many requests. Try again later.",
-    ),
+    errorResponseBuilder: () =>
+      new ApiSecurityError(429, "RATE_LIMITED", "Too many requests. Try again later."),
   });
 
   app.addHook("onRequest", (request, _reply, done) => {
@@ -1063,10 +1068,20 @@ export const buildApi = async ({
     governanceAudit,
     now,
   );
-  canonicalRouter.setCompanyDataPolicyResolver(async (ownerId, companyId, sensitivity) => {
-    const policy = await companyData.resolveModelDataPolicy(ownerId, companyId, sensitivity);
-    return { sensitivity: policy.sensitivity, routing: policy.routing, approvedCloudProviderIds: policy.approvedCloudProviderIds };
-  });
+  canonicalRouter.setCompanyDataPolicyResolver(
+    async (ownerId, companyId, sensitivity) => {
+      const policy = await companyData.resolveModelDataPolicy(
+        ownerId,
+        companyId,
+        sensitivity,
+      );
+      return {
+        sensitivity: policy.sensitivity,
+        routing: policy.routing,
+        approvedCloudProviderIds: policy.approvedCloudProviderIds,
+      };
+    },
+  );
   const resolvedObservabilityStore =
     observabilityStore ??
     (database
@@ -1331,29 +1346,82 @@ export const buildApi = async ({
     cloudPreviews.push(new CloudHttpsPreviewProvider(service, provider));
   }
   for (const configuration of ec2EngineeringConfigurations) {
-    if (!serverExecutionSigner) throw Error("Cloud Engineering requires its existing signing identity.");
-    if (cloudServices.some(v=>v.config.companyId===configuration.companyId)) throw Error("Duplicate cloud company binding.");
+    if (!serverExecutionSigner)
+      throw Error("Cloud Engineering requires its existing signing identity.");
+    if (cloudServices.some((v) => v.config.companyId === configuration.companyId))
+      throw Error("Duplicate cloud company binding.");
     const authorize = async () => {
-      const reference = await resolvedCompanyDataStore.findCredentialReference(configuration.ownerId,configuration.companyId,configuration.credentialReferenceId);
-      const bindings = await resolvedCompanyDataStore.listIntegrationBindings(configuration.ownerId,configuration.companyId);
-      if (!reference || reference.provider!=="aws" || reference.status!=="READY" || reference.secretLocator!=="aws-engineering-primary" ||
-        !bindings.some(v=>v.provider==="aws" && v.credentialRef===reference.id && v.status==="READY" && v.capabilitiesExposed.includes("aws.workspace.provision")))
+      const reference = await resolvedCompanyDataStore.findCredentialReference(
+        configuration.ownerId,
+        configuration.companyId,
+        configuration.credentialReferenceId,
+      );
+      const bindings = await resolvedCompanyDataStore.listIntegrationBindings(
+        configuration.ownerId,
+        configuration.companyId,
+      );
+      if (
+        !reference ||
+        reference.provider !== "aws" ||
+        reference.status !== "READY" ||
+        reference.secretLocator !== "aws-engineering-primary" ||
+        !bindings.some(
+          (v) =>
+            v.provider === "aws" &&
+            v.credentialRef === reference.id &&
+            v.status === "READY" &&
+            v.capabilitiesExposed.includes("aws.workspace.provision"),
+        )
+      )
         throw Error("Reviewed company AWS credential binding unavailable or revoked.");
       return reference;
     };
     const reference = await authorize();
     const credential = await ec2EngineeringCredentials.resolve(reference.secretLocator);
-    const infrastructure = Ec2InfrastructureConfigurationSchema.parse(Object.fromEntries(
-      Object.keys(Ec2InfrastructureConfigurationSchema.shape).map(k=>[k,configuration[k as keyof typeof configuration]])
-    ));
-    const provider = new Ec2CloudWorkspaceProvider(infrastructure,createEc2Clients(configuration.region,credential.accessToken),now);
-    const service = new WorkspaceProvisioningService(cloudStore,provider,engineeringGitHub,resolvedEngineeringRuntimeStore,
-      governanceStore,identityStore,{ownerId:configuration.ownerId,companyId:configuration.companyId,backendOrigin:configuration.backendOrigin,
-        serverPublicKeyX:serverExecutionSigner.publicKeyX,commandProfileId:configuration.commandProfileId,
-        capabilityProfileId:configuration.capabilityProfileId,authorizedAgentIds:configuration.authorizedAgentIds},now,async()=>{await authorize();});
+    const infrastructure = Ec2InfrastructureConfigurationSchema.parse(
+      Object.fromEntries(
+        Object.keys(Ec2InfrastructureConfigurationSchema.shape).map((k) => [
+          k,
+          configuration[k as keyof typeof configuration],
+        ]),
+      ),
+    );
+    const provider = new Ec2CloudWorkspaceProvider(
+      infrastructure,
+      createEc2Clients(configuration.region, credential.accessToken),
+      now,
+    );
+    const service = new WorkspaceProvisioningService(
+      cloudStore,
+      provider,
+      engineeringGitHub,
+      resolvedEngineeringRuntimeStore,
+      governanceStore,
+      identityStore,
+      {
+        ownerId: configuration.ownerId,
+        companyId: configuration.companyId,
+        backendOrigin: configuration.backendOrigin,
+        serverPublicKeyX: serverExecutionSigner.publicKeyX,
+        commandProfileId: configuration.commandProfileId,
+        capabilityProfileId: configuration.capabilityProfileId,
+        authorizedAgentIds: configuration.authorizedAgentIds,
+      },
+      now,
+      async () => {
+        await authorize();
+      },
+    );
     cloudServices.push(service);
     if (configuration.previewEnabled && configuration.previewDomain)
-      cloudPreviews.push(new CloudHttpsPreviewProvider(service,provider,fetch,configuration.previewDomain));
+      cloudPreviews.push(
+        new CloudHttpsPreviewProvider(
+          service,
+          provider,
+          fetch,
+          configuration.previewDomain,
+        ),
+      );
   }
   if (cloudServices.length) {
     let active: Promise<void> | undefined;
@@ -1529,11 +1597,22 @@ export const buildApi = async ({
     )
       await provider.revoke(input.ownerId, input.companyId, input.repositoryId);
   });
-  const athenaCoderControl = new AthenaCoderControlService(aiRuntime, database ? new PostgresAthenaCoderControlStore(database.pool) : undefined);
+  const athenaCoderControl = new AthenaCoderControlService(
+    aiRuntime,
+    database ? new PostgresAthenaCoderControlStore(database.pool) : undefined,
+  );
   const engineeringDataset = new EngineeringDatasetService(
-    database ? new PostgresEngineeringDatasetStore(database.pool) : new InMemoryEngineeringDatasetStore(),
-    resolvedEngineeringOrchestrationStore, resolvedEngineeringIntegrationStore, resolvedEngineeringRuntimeStore, now,
-    (companyId, repositoryId) => selfImprovementRepositories.some(v => v.companyId === companyId && v.repositoryId === repositoryId),
+    database
+      ? new PostgresEngineeringDatasetStore(database.pool)
+      : new InMemoryEngineeringDatasetStore(),
+    resolvedEngineeringOrchestrationStore,
+    resolvedEngineeringIntegrationStore,
+    resolvedEngineeringRuntimeStore,
+    now,
+    (companyId, repositoryId) =>
+      selfImprovementRepositories.some(
+        (v) => v.companyId === companyId && v.repositoryId === repositoryId,
+      ),
   );
   const engineeringManager = new EngineeringManagerService(
     resolvedEngineeringOrchestrationStore,
@@ -1545,19 +1624,55 @@ export const buildApi = async ({
       new AIRouterEngineeringTaskWorker(
         canonicalRouter,
         engineeringActionGateway ?? signedEngineeringGateway,
-        experience => engineeringDataset.capture(experience),
-        input => athenaCoderControl.eligibilityForTask(input.objective.ownerId, {
-          size: input.task.estimatedDifficulty === "LOW" ? "SMALL" : "LARGE",
-          category: input.task.taskType === "TESTING" ? "TESTS" : input.task.taskType === "DOCUMENTATION" ? "DOCS" : input.task.taskType === "FRONTEND" ? "UI" : "OTHER",
-          risk: input.task.riskLevel,
-          securitySensitive: input.task.taskType === "SECURITY" || input.context.relevantFiles.some(path => /(?:auth|security|governance|approval|tenant|agent-os|self-update)/i.test(path)),
-          authenticationRelated: /auth|credential|signing|identity/i.test(`${input.task.title} ${input.task.description}`),
-          tenantIsolationRelated: /tenant|company.{0,20}isolat/i.test(`${input.task.title} ${input.task.description}`),
-          approvalRelated: /approval|permission|authority/i.test(`${input.task.title} ${input.task.description}`),
-          migrationRelated: input.task.taskType === "DATABASE" || input.context.relevantFiles.some(path => /migration/i.test(path)),
-        }, input.objective.companyId),
-        (input, outcome) => athenaCoderControl.recordTaskOutcome(input.objective.ownerId,
-          input.task.taskType === "TESTING" ? "TESTS" : input.task.taskType === "DOCUMENTATION" ? "DOCS" : input.task.taskType === "FRONTEND" ? "UI" : "OTHER", outcome),
+        (experience) => engineeringDataset.capture(experience),
+        (input) =>
+          athenaCoderControl.eligibilityForTask(
+            input.objective.ownerId,
+            {
+              size: input.task.estimatedDifficulty === "LOW" ? "SMALL" : "LARGE",
+              category:
+                input.task.taskType === "TESTING"
+                  ? "TESTS"
+                  : input.task.taskType === "DOCUMENTATION"
+                    ? "DOCS"
+                    : input.task.taskType === "FRONTEND"
+                      ? "UI"
+                      : "OTHER",
+              risk: input.task.riskLevel,
+              securitySensitive:
+                input.task.taskType === "SECURITY" ||
+                input.context.relevantFiles.some((path) =>
+                  /(?:auth|security|governance|approval|tenant|agent-os|self-update)/i.test(
+                    path,
+                  ),
+                ),
+              authenticationRelated: /auth|credential|signing|identity/i.test(
+                `${input.task.title} ${input.task.description}`,
+              ),
+              tenantIsolationRelated: /tenant|company.{0,20}isolat/i.test(
+                `${input.task.title} ${input.task.description}`,
+              ),
+              approvalRelated: /approval|permission|authority/i.test(
+                `${input.task.title} ${input.task.description}`,
+              ),
+              migrationRelated:
+                input.task.taskType === "DATABASE" ||
+                input.context.relevantFiles.some((path) => /migration/i.test(path)),
+            },
+            input.objective.companyId,
+          ),
+        (input, outcome) =>
+          athenaCoderControl.recordTaskOutcome(
+            input.objective.ownerId,
+            input.task.taskType === "TESTING"
+              ? "TESTS"
+              : input.task.taskType === "DOCUMENTATION"
+                ? "DOCS"
+                : input.task.taskType === "FRONTEND"
+                  ? "UI"
+                  : "OTHER",
+            outcome,
+          ),
       ),
     governanceAudit,
     now,
@@ -1572,8 +1687,10 @@ export const buildApi = async ({
     now,
   );
   engineeringIntegration.setDatasetHooks({
-    collect: (ownerId, companyId, runId) => engineeringDataset.collectAccepted(ownerId, companyId, runId),
-    recordDiff: (ownerId, companyId, run, head, diff) => engineeringDataset.recordDiff(ownerId, companyId, run, head, diff),
+    collect: (ownerId, companyId, runId) =>
+      engineeringDataset.collectAccepted(ownerId, companyId, runId),
+    recordDiff: (ownerId, companyId, run, head, diff) =>
+      engineeringDataset.recordDiff(ownerId, companyId, run, head, diff),
   });
   engineeringIntegration.setApprovals(approvals);
   engineeringIntegration.setConflictResolver(
@@ -2227,7 +2344,9 @@ export const buildApi = async ({
       (binding) =>
         binding.companyId === companyId && binding.repositoryId === repositoryId,
     );
-  const engineeringCoderBenchmark = new AthenaCoderEngineeringBenchmarkHarness(engineeringDelivery);
+  const engineeringCoderBenchmark = new AthenaCoderEngineeringBenchmarkHarness(
+    engineeringDelivery,
+  );
   engineeringDelivery.setSelfImprovementRepository(isSelfRepository);
   engineeringManager.setSelfImprovementRepository(isSelfRepository);
   engineeringIntegration.setSelfImprovementRepository(isSelfRepository);
@@ -2691,8 +2810,13 @@ export const buildApi = async ({
       ? new PostgresUniversalToolStore(database.pool)
       : new InMemoryUniversalToolStore());
   const universalCredentials = new UniversalCredentialScope(resolvedCompanyDataStore);
-  const marketingResearchAdapter = createMarketingResearchTool(resolvedMarketingStore, canonicalRouter, now, governanceAudit,
-    async () => (await governanceStore.getSecurityState()).emergencyStopActive);
+  const marketingResearchAdapter = createMarketingResearchTool(
+    resolvedMarketingStore,
+    canonicalRouter,
+    now,
+    governanceAudit,
+    async () => (await governanceStore.getSecurityState()).emergencyStopActive,
+  );
   const documentService = database
     ? new DocumentService(
         new DocumentStore(database),
@@ -2941,7 +3065,9 @@ export const buildApi = async ({
     resolvedWorkforceRuntimeStore,
   );
   if (database) marketing.setTransaction(database.transaction);
-  objectives.setMarketingCampaignReader((ownerId, companyId, campaignId) => resolvedMarketingStore.findCampaign(ownerId, companyId, campaignId));
+  objectives.setMarketingCampaignReader((ownerId, companyId, campaignId) =>
+    resolvedMarketingStore.findCampaign(ownerId, companyId, campaignId),
+  );
   const marketingReview = new MarketingArtifactReviewService(
     resolvedMarketingStore,
     registry,
@@ -2978,7 +3104,8 @@ export const buildApi = async ({
         remoteAddress: session.ipAddress,
       });
       const state = await governanceStore.getSecurityState();
-      if (!security.permitsTransportNetwork(network.state) || state.emergencyStopActive) return null;
+      if (!security.permitsTransportNetwork(network.state) || state.emergencyStopActive)
+        return null;
       return {
         ownerId,
         companyId,
@@ -3554,6 +3681,24 @@ export const buildApi = async ({
   registerAIEconomicsRoutes(app, context);
   registerAIContextRoutes(app, context);
   registerAIBenchmarkRoutes(app, context);
+  if (secureReader) {
+    await app.register(
+      async (scope) =>
+        registerSecureReaderRoutes(scope, {
+          ...secureReader,
+          emergencyStopActive: async () =>
+            (await governanceStore.getSecurityState()).emergencyStopActive,
+        }),
+      { prefix: "/api/secure-reader" },
+    );
+  } else {
+    app.get("/api/secure-reader/health", async (_request, reply) =>
+      reply.code(503).send({ status: "unavailable" }),
+    );
+    app.get("/api/secure-reader/ready", async (_request, reply) =>
+      reply.code(503).send({ status: "unavailable" }),
+    );
+  }
   app.get(
     "/api/ai/runtime-health",
     { preHandler: [context.security.requireAuthentication] },

@@ -16,7 +16,7 @@
     "dev:mac-agent": "pnpm --filter @alexa-control/mac-agent dev",
     "mac-agent:install": "pnpm --filter @alexa-control/mac-agent install:local",
     "typecheck": "pnpm -r typecheck",
-    "lint": "eslint packages && eslint apps/api/src apps/api/*.ts && eslint apps/mac-agent/electron apps/mac-agent/src apps/mac-agent/scripts apps/mac-agent/*.ts && eslint apps/web/src apps/web/*.ts && eslint eslint.config.js vitest.config.js prettier.config.js",
+    "lint": "eslint packages && eslint apps/api/src apps/api/*.ts apps/api/secure-reader-ui/src apps/api/secure-reader-ui/vite.config.ts && eslint apps/mac-agent/electron apps/mac-agent/src apps/mac-agent/scripts apps/mac-agent/*.ts && eslint apps/web/src apps/web/*.ts && eslint eslint.config.js vitest.config.js prettier.config.js",
     "test": "vitest run",
     "build": "pnpm -r --workspace-concurrency=1 build",
     "format": "prettier --write .",

@@ -40,6 +40,20 @@ jobs:
       - run: pnpm format:check
       - run: pnpm typecheck
       - run: pnpm lint
+      - name: Create disposable Secure Reader integration database
+        working-directory: apps/api
+        run: |
+          node --input-type=module -e '
+            import pg from "pg";
+            const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+            try { await pool.query("CREATE DATABASE reader_test_athena_ci"); }
+            finally { await pool.end(); }
+          '
+      - name: Verify Secure Reader integration and isolation
+        env:
+          ATHENA_READER_DISPOSABLE_TEST: "1"
+          ATHENA_READER_TEST_DATABASE_URL: postgresql://assistant:test-only@127.0.0.1:5432/reader_test_athena_ci
+        run: pnpm exec vitest run apps/api/src/secure-reader/config.test.ts apps/api/src/secure-reader/integration.test.ts
       - run: pnpm test
       - run: pnpm build
       - run: pnpm verify:production-config

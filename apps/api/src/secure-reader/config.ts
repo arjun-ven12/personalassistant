@@ -1,0 +1,87 @@
+import { z } from "zod";
+
+const bool = z.enum(["true", "false"]).transform((value) => value === "true");
+
+// Parsed only when SECURE_READER_ENABLED=true. DATABASE_URL is Athena's existing
+// connection string; no Reader-specific database URL is accepted.
+export const SecureReaderConfigSchema = z
+  .object({
+    NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+    DATABASE_URL: z.string().min(1),
+    SECURE_READER_ADMIN_ORIGIN: z.url(),
+    SECURE_READER_STORAGE_MODE: z.enum(["local", "s3"]),
+    SECURE_READER_PRIVATE_STORAGE_DIR: z.string().optional(),
+    SECURE_READER_S3_BUCKET: z.string().optional(),
+    SECURE_READER_S3_REGION: z.string().optional(),
+    SECURE_READER_S3_ENDPOINT: z.url().optional(),
+    SECURE_READER_SMTP_HOST: z.string().min(1),
+    SECURE_READER_SMTP_PORT: z.coerce.number().int().min(1).max(65535),
+    SECURE_READER_SMTP_SECURE: bool,
+    SECURE_READER_SMTP_USER: z.string().optional(),
+    SECURE_READER_SMTP_PASS: z.string().optional(),
+    SECURE_READER_MAIL_FROM: z.email(),
+    SECURE_READER_ALLOW_UNSANDBOXED_PDF_PROCESSING: bool.default(false),
+    SECURE_READER_RENDERER_URL: z.url().optional(),
+    SECURE_READER_RENDERER_SHARED_SECRET_FILE: z.string().optional(),
+  })
+  .superRefine((config, context) => {
+    if (
+      config.SECURE_READER_STORAGE_MODE === "local" &&
+      !config.SECURE_READER_PRIVATE_STORAGE_DIR
+    )
+      context.addIssue({
+        code: "custom",
+        message: "Reader local storage path required",
+      });
+    if (
+      Boolean(config.SECURE_READER_RENDERER_URL) !==
+      Boolean(config.SECURE_READER_RENDERER_SHARED_SECRET_FILE)
+    )
+      context.addIssue({
+        code: "custom",
+        message: "Reader renderer and secret file must be paired",
+      });
+    if (config.NODE_ENV === "production") {
+      if (
+        !config.SECURE_READER_RENDERER_URL ||
+        !config.SECURE_READER_RENDERER_SHARED_SECRET_FILE
+      )
+        context.addIssue({
+          code: "custom",
+          message: "Production requires isolated renderer and file-mounted secret",
+        });
+      if (
+        config.SECURE_READER_STORAGE_MODE !== "s3" ||
+        !config.SECURE_READER_S3_BUCKET ||
+        !config.SECURE_READER_S3_REGION
+      )
+        context.addIssue({
+          code: "custom",
+          message: "Production requires private persistent object storage",
+        });
+      if (
+        config.SECURE_READER_S3_ENDPOINT &&
+        !config.SECURE_READER_S3_ENDPOINT.startsWith("https://")
+      )
+        context.addIssue({
+          code: "custom",
+          message: "Production storage endpoint requires HTTPS",
+        });
+      if (
+        !config.SECURE_READER_ADMIN_ORIGIN.startsWith("https://") ||
+        !config.SECURE_READER_SMTP_SECURE
+      )
+        context.addIssue({
+          code: "custom",
+          message: "Production requires HTTPS admin origin and TLS mail",
+        });
+      // Preserve the upstream Reader's unconditional production gate.
+      context.addIssue({
+        code: "custom",
+        message:
+          "Production gated pending independent PDF sandbox and hosted-security acceptance",
+      });
+    }
+  });
+
+export type SecureReaderConfig = z.infer<typeof SecureReaderConfigSchema>;

@@ -5,6 +5,8 @@ export default defineConfig({
   entry: {
     index: "src/index.ts",
     "mcp-fixture": "src/mcp/fixture-server.ts",
+    "secure-reader-pdf-worker": "src/secure-reader/pdf-worker.ts",
+    "secure-reader-bootstrap-admin": "src/secure-reader/bootstrap-admin.ts",
     "engineering-worker": "src/cloud-engineering/worker-entry.ts",
     "provisioned-engineering-worker": "src/cloud-engineering/provisioned-worker.ts",
     database: "src/scripts/database.ts",
