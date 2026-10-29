@@ -314,6 +314,41 @@ describe.skipIf(!enabled)(
         .object({ id: z.string(), csrfToken: z.string() })
         .parse(session.json());
       const url = "/api/secure-reader/sessions/" + body.id;
+      const email = `cookie-grant-${randomUUID()}@example.test`;
+      const invitation = await request(
+        "POST",
+        "/api/secure-reader/admin/invitations",
+        admin,
+        { email, delivery: "manual" },
+      );
+      const recipient = z
+        .object({ id: z.uuid(), code: z.string() })
+        .parse(invitation.json());
+      const document = await upload(admin, "institutional");
+      const documentId = z.object({ id: z.uuid() }).parse(document.json()).id;
+      const granted = await app.inject({
+        method: "POST",
+        url: "/api/secure-reader/admin/grants",
+        headers: { host: "localhost", cookie, origin, "x-reader-csrf": body.csrfToken },
+        payload: {
+          userId: recipient.id,
+          documentId,
+          expiresAt: new Date(Date.now() + 86400000).toISOString(),
+        },
+      });
+      expect(granted.statusCode).toBe(201);
+      const signedIn = await request(
+        "POST",
+        "/api/secure-reader/auth/finish",
+        undefined,
+        { email, code: recipient.code, deviceLabel: "Invited member fixture" },
+      );
+      const readerToken = z.object({ token: z.string() }).parse(signedIn.json()).token;
+      expect(
+        (
+          await request("GET", "/api/secure-reader/reader/documents", readerToken)
+        ).json(),
+      ).toEqual(expect.arrayContaining([expect.objectContaining({ id: documentId })]));
       expect(
         (
           await app.inject({
@@ -393,6 +428,20 @@ describe.skipIf(!enabled)(
         expiresAt: new Date(Date.now() + 60_000).toISOString(),
       });
       expect(grant.statusCode).toBe(201);
+      const expiredGrant = await request(
+        "POST",
+        "/api/secure-reader/admin/grants",
+        admin,
+        {
+          userId: z.object({ id: z.uuid() }).parse(invited.json()).id,
+          documentId,
+          expiresAt: new Date(Date.now() - 60000).toISOString(),
+        },
+      );
+      expect(expiredGrant.statusCode).toBe(403);
+      expect(expiredGrant.json()).toEqual({
+        error: "Access expiry must be in the future.",
+      });
       expect(
         (await request("GET", "/api/secure-reader/reader/documents", reader)).json(),
       ).toHaveLength(1);
@@ -458,6 +507,10 @@ describe.skipIf(!enabled)(
         },
       );
       expect(founderGrant.statusCode).toBe(403);
+      expect(founderGrant.json()).toEqual({
+        error:
+          "Founder Governance is restricted to administrators. Choose another document for this reader.",
+      });
       const invitedId = z.object({ id: z.uuid() }).parse(invited.json()).id;
       expect(
         (

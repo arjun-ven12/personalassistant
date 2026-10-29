@@ -38,7 +38,10 @@ export const hash = (v: string | Buffer) =>
   createHash("sha256").update(v).digest("hex");
 const secret = () => randomBytes(32).toString("hex");
 class Denied extends Error {
-  constructor(readonly status = 404) {
+  constructor(
+    readonly status = 404,
+    readonly publicMessage?: string,
+  ) {
     super("Request unavailable");
   }
 }
@@ -300,7 +303,12 @@ export async function registerSecureReaderRoutes(
       status = 503;
     }
     return reply.code(status).send({
-      error: status === 429 ? "Rate limit exceeded" : "Request unavailable",
+      error:
+        status === 429
+          ? "Rate limit exceeded"
+          : error instanceof Denied && error.publicMessage
+            ? error.publicMessage
+            : "Request unavailable",
     });
   });
   app.setNotFoundHandler(async (req, reply) => {
@@ -660,13 +668,15 @@ export async function registerSecureReaderRoutes(
             [b.documentId],
           )
         ).rows[0];
-        if (
-          !u?.enabled ||
-          !d ||
-          Date.parse(b.expiresAt) <= Date.now() ||
-          (d.sector === "founder" && u.role !== "ADMIN")
-        )
-          throw new Denied(403);
+        if (!u?.enabled) throw new Denied(403, "Select an enabled recipient.");
+        if (!d) throw new Denied(403, "This document is no longer available.");
+        if (Date.parse(b.expiresAt) <= Date.now())
+          throw new Denied(403, "Access expiry must be in the future.");
+        if (d.sector === "founder" && u.role !== "ADMIN")
+          throw new Denied(
+            403,
+            "Founder Governance is restricted to administrators. Choose another document for this reader.",
+          );
         await c.query<ReaderSqlRow>(
           "INSERT INTO secure_reader.grants(user_id,document_id,expires_at) VALUES($1,$2,$3) ON CONFLICT(user_id,document_id) DO UPDATE SET expires_at=excluded.expires_at,revoked_at=NULL,version=grants.version+1",
           [b.userId, b.documentId, b.expiresAt],

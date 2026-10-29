@@ -66,6 +66,7 @@ const AdminState = z.object({
 function Admin() {
   const [token, setToken] = useState(""),
     [csrf, setCsrf] = useState(""),
+    [grantUser, setGrantUser] = useState(""),
     [state, setState] = useState<z.infer<typeof AdminState> | null>(null),
     [error, setError] = useState(""),
     [message, setMessage] = useState(""),
@@ -138,7 +139,14 @@ function Admin() {
         setToken("");
         setState(null);
       }
-      throw Error(`Request unavailable (${r.status}).`);
+      const detail = z
+        .object({ error: z.string().max(250) })
+        .safeParse(await r.json().catch(() => null));
+      throw Error(
+        detail.success && detail.data.error !== "Request unavailable"
+          ? detail.data.error
+          : `Request unavailable (${r.status}).`,
+      );
     }
     return r.json() as Promise<unknown>;
   }
@@ -649,7 +657,15 @@ function Admin() {
               >
                 <label>
                   Recipient
-                  <select name="user">
+                  <select
+                    name="user"
+                    required
+                    value={grantUser}
+                    onChange={(e) => setGrantUser(e.target.value)}
+                  >
+                    <option value="" disabled>
+                      Select a recipient
+                    </option>
                     {state.users
                       .filter((u) => u.enabled)
                       .map((u) => (
@@ -661,9 +677,18 @@ function Admin() {
                 </label>
                 <label>
                   Document
-                  <select name="document">
+                  <select name="document" required key={grantUser} defaultValue="">
+                    <option value="" disabled>
+                      Select a document
+                    </option>
                     {state.documents
-                      .filter((d) => !d.removed_at)
+                      .filter(
+                        (d) =>
+                          !d.removed_at &&
+                          (d.sector !== "founder" ||
+                            state.users.find((u) => u.id === grantUser)?.role ===
+                              "ADMIN"),
+                      )
                       .map((d) => (
                         <option value={d.id} key={d.id}>
                           {d.title}
@@ -673,7 +698,17 @@ function Admin() {
                 </label>
                 <label>
                   Expiry (local time)
-                  <input type="datetime-local" name="expiry" required />
+                  <input
+                    type="datetime-local"
+                    name="expiry"
+                    required
+                    defaultValue={(() => {
+                      const d = new Date(Date.now() + 30 * 86400000);
+                      return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+                        .toISOString()
+                        .slice(0, 16);
+                    })()}
+                  />
                 </label>
                 <button className="primary">Grant access</button>
               </form>
