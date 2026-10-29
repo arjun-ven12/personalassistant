@@ -344,16 +344,10 @@ export async function registerSecureReaderRoutes(
     ).rows[0];
     if (u && o.mailer) {
       const code = secret();
-      await transaction(o.pool, async (c) => {
-        await c.query<ReaderSqlRow>(
-          "UPDATE secure_reader.challenges SET used_at=now() WHERE user_id=$1 AND used_at IS NULL",
-          [u.id],
-        );
-        await c.query<ReaderSqlRow>(
-          "INSERT INTO secure_reader.challenges(hash,user_id,expires_at) VALUES($1,$2,now()+interval '10 minutes')",
-          [hash(code), u.id],
-        );
-      });
+      await o.pool.query<ReaderSqlRow>(
+        "INSERT INTO secure_reader.challenges(hash,user_id,expires_at) VALUES($1,$2,now()+interval '10 minutes')",
+        [hash(code), u.id],
+      );
       try {
         await o.mailer.send(b.email, code);
       } catch {
@@ -361,7 +355,15 @@ export async function registerSecureReaderRoutes(
           "DELETE FROM secure_reader.challenges WHERE hash=$1",
           [hash(code)],
         );
+        return reply.code(202).send({
+          message:
+            "If invited, use the verification code from your administrator or email.",
+        });
       }
+      await o.pool.query<ReaderSqlRow>(
+        "UPDATE secure_reader.challenges SET used_at=now() WHERE user_id=$1 AND hash<>$2 AND used_at IS NULL",
+        [u.id, hash(code)],
+      );
     }
     return reply.code(202).send({
       message:

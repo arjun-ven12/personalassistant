@@ -110,7 +110,7 @@ describe.skipIf(!enabled)(
         ]),
       });
     }
-    function openApp(withMailer = true) {
+    function openApp(withMailer: boolean | "failing" = true) {
       return buildApi({
         corsOrigin: "http://localhost",
         privateNetworkRequired: false,
@@ -131,6 +131,8 @@ describe.skipIf(!enabled)(
             ? {
                 mailer: {
                   send: (email: string, code: string) => {
+                    if (withMailer === "failing")
+                      return Promise.reject(new Error("fixture mail unavailable"));
                     mail.set(email, code);
                     return Promise.resolve();
                   },
@@ -499,6 +501,30 @@ describe.skipIf(!enabled)(
         [body.id],
       );
       expect(after.rows[0]?.count).toBe(before.rows[0]?.count);
+    });
+
+    it("preserves a manual invitation when an optional email request fails", async () => {
+      await app.close();
+      app = await openApp("failing");
+      const email = `mail-failure-${randomUUID()}@example.test`;
+      const invitation = await request(
+        "POST",
+        "/api/secure-reader/admin/invitations",
+        admin,
+        { email, delivery: "manual" },
+      );
+      expect(invitation.statusCode).toBe(201);
+      const code = z.object({ code: z.string() }).parse(invitation.json()).code;
+      expect(
+        (await request("POST", "/api/secure-reader/auth/start", undefined, { email }))
+          .statusCode,
+      ).toBe(202);
+      const login = await request("POST", "/api/secure-reader/auth/finish", undefined, {
+        email,
+        code,
+        deviceLabel: "Manual invitation after mail failure",
+      });
+      expect(login.statusCode).toBe(200);
     });
 
     it("denies Reader requests when Athena emergency stop activates", async () => {
