@@ -371,7 +371,7 @@ export async function registerSecureReaderRoutes(
         [u.id],
       );
       await c.query<ReaderSqlRow>(
-        "INSERT INTO secure_reader.sessions(id,token_hash,user_id,device_label,expires_at) VALUES($1,$2,$3,$4,now()+interval '4 hours')",
+        "INSERT INTO secure_reader.sessions(id,token_hash,user_id,device_label,expires_at) VALUES($1,$2,$3,$4,now()+interval '30 days')",
         [id, hash(token), u.id, b.deviceLabel],
       );
       await audit(c, "SESSION_CREATED", {

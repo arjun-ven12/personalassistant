@@ -169,6 +169,39 @@ describe.skipIf(!enabled)(
       await pool.end();
     });
 
+    it("issues a 30-day session and still rejects expiry and revocation", async () => {
+      const email = `session-${randomUUID()}@example.test`;
+      const userId = randomUUID();
+      await pool.query(
+        "INSERT INTO secure_reader.users(id,email,role,verified_at) VALUES($1,$2,'READER',now())",
+        [userId, email],
+      );
+      const token = await login(email);
+      const session = await pool.query<{ id: string; days: number }>(
+        "SELECT id, extract(epoch FROM (expires_at-created_at))/86400 AS days FROM secure_reader.sessions WHERE token_hash=$1",
+        [hash(token)],
+      );
+      expect(Number(session.rows[0]?.days)).toBeCloseTo(30, 2);
+      expect(
+        (await request("GET", "/api/secure-reader/session", token)).statusCode,
+      ).toBe(200);
+      await pool.query(
+        "UPDATE secure_reader.sessions SET expires_at=now()-interval '1 second' WHERE id=$1",
+        [session.rows[0]?.id],
+      );
+      expect(
+        (await request("GET", "/api/secure-reader/session", token)).statusCode,
+      ).toBe(401);
+      const next = await login(email);
+      await pool.query(
+        "UPDATE secure_reader.sessions SET revoked_at=now() WHERE token_hash=$1",
+        [hash(next)],
+      );
+      expect(
+        (await request("GET", "/api/secure-reader/session", next)).statusCode,
+      ).toBe(401);
+    });
+
     it("keeps Athena routes available and never accepts a Reader bearer as an Athena owner", async () => {
       expect((await request("GET", "/health")).statusCode).toBe(200);
       expect((await request("GET", "/api/secure-reader/health")).json()).toEqual({
