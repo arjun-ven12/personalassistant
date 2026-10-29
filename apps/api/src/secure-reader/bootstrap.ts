@@ -47,6 +47,9 @@ export function createSecureReaderOptions(
         host: config.SECURE_READER_SMTP_HOST,
         port: config.SECURE_READER_SMTP_PORT!,
         secure: config.SECURE_READER_SMTP_SECURE,
+        connectionTimeout: 8_000,
+        greetingTimeout: 8_000,
+        socketTimeout: 10_000,
         ...(config.SECURE_READER_SMTP_USER
           ? {
               auth: {
