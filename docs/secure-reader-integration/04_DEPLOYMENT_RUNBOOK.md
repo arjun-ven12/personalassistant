@@ -1,11 +1,13 @@
-# Existing Railway service deployment runbook (not executed)
+# Existing Railway service deployment runbook
 
 The only public origin is `https://personalassistant-production-269b.up.railway.app`. Secure Reader's intended health and administrator URLs are respectively:
 
 - `https://personalassistant-production-269b.up.railway.app/api/secure-reader/health`
 - `https://personalassistant-production-269b.up.railway.app/api/secure-reader/admin.html`
 
-Both currently return 404 because the module is not deployed. There is no new Railway service, public domain, or Neon database in this design. The existing `DATABASE_URL` is consumed by Athena's `PostgresDatabase` and shared pool. Never paste it into a second variable or report.
+Both endpoints are deployed on the existing Railway service. There is no new Railway service, public domain, or Neon database. The existing `DATABASE_URL` is consumed by Athena's `PostgresDatabase` and shared pool. Never paste it into a second variable or report.
+
+For SMTP-free administrator sign-in, set `SECURE_READER_ADMIN_PASSWORD_EMAIL` to the existing verified Reader administrator and `SECURE_READER_ADMIN_PASSWORD_HASH` to an Argon2id hash generated with Athena's `hashPassword`. The plaintext password must never be stored in Railway, source, logs, or audit events. The password route still checks the Reader database role and enabled state, issues the same revocable 30-day sessions, and grants no Athena owner access. The web administrator console supports password sign-in. Reader recipients continue to use single-use administrator-issued manual invitation codes; individual document grants remain required. SMTP remains optional and may be restored later.
 
 ## Required existing-service preflight
 

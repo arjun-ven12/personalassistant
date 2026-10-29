@@ -75,6 +75,15 @@ export function createSecureReaderOptions(
         ? new RemotePdfRenderer(config.SECURE_READER_RENDERER_URL, secret)
         : new PdfRenderer(),
     adminOrigin: config.SECURE_READER_ADMIN_ORIGIN,
+    ...(config.SECURE_READER_ADMIN_PASSWORD_EMAIL &&
+    config.SECURE_READER_ADMIN_PASSWORD_HASH
+      ? {
+          adminPassword: {
+            email: config.SECURE_READER_ADMIN_PASSWORD_EMAIL.toLowerCase(),
+            passwordHash: config.SECURE_READER_ADMIN_PASSWORD_HASH,
+          },
+        }
+      : {}),
     allowPdfProcessing:
       Boolean(config.SECURE_READER_RENDERER_URL && secret) ||
       config.NODE_ENV === "production" ||

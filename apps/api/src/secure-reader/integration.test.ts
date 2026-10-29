@@ -9,6 +9,7 @@ import { BUILT_IN_TOOLS } from "../governance/defaults.js";
 import type { Objects } from "./storage.js";
 import type { PdfRenderPort } from "./render.js";
 import { hash } from "./routes.js";
+import { hashPassword } from "../identity/crypto.js";
 
 const url = process.env.ATHENA_READER_TEST_DATABASE_URL;
 const enabled = process.env.ATHENA_READER_DISPOSABLE_TEST === "1" && !!url;
@@ -51,6 +52,7 @@ describe.skipIf(!enabled)(
     const governance = new InMemoryGovernanceStore(BUILT_IN_TOOLS, false);
     let admin: string;
     let revokedReader: string;
+    let adminPasswordHash: string;
     const adminEmail = `admin-${randomUUID()}@example.test`;
     const readerEmail = `reader-${randomUUID()}@example.test`;
 
@@ -121,6 +123,10 @@ describe.skipIf(!enabled)(
           renderer,
           adminOrigin: "http://localhost",
           allowPdfProcessing: true,
+          adminPassword: {
+            email: adminEmail,
+            passwordHash: adminPasswordHash,
+          },
           ...(withMailer
             ? {
                 mailer: {
@@ -137,6 +143,7 @@ describe.skipIf(!enabled)(
 
     beforeAll(async () => {
       if (!enabled) return;
+      adminPasswordHash = await hashPassword("test-only-reader-admin-password-2026");
       const exists = await pool.query<{ schema: string | null }>(
         "SELECT to_regnamespace('secure_reader') AS schema",
       );
@@ -211,6 +218,68 @@ describe.skipIf(!enabled)(
         status: "ready",
       });
       expect((await request("GET", "/api/auth/session", admin)).statusCode).toBe(401);
+    });
+
+    it("allows only the configured administrator to sign in with a password", async () => {
+      const path = "/api/secure-reader/auth/admin-password";
+      const body = {
+        email: adminEmail,
+        password: "test-only-reader-admin-password-2026",
+        deviceLabel: "Admin web fixture",
+      };
+      expect(
+        (
+          await request("POST", path, undefined, {
+            ...body,
+            password: "wrong-password-fixture-2026",
+          })
+        ).statusCode,
+      ).toBe(401);
+      expect(
+        (await request("POST", path, undefined, { ...body, email: readerEmail }))
+          .statusCode,
+      ).toBe(401);
+      const ok = await request("POST", path, undefined, body);
+      expect(ok.statusCode).toBe(200);
+      const token = z.object({ token: z.string() }).parse(ok.json()).token;
+      expect(
+        (await request("GET", "/api/secure-reader/admin/state", token)).statusCode,
+      ).toBe(200);
+      expect((await request("GET", "/api/auth/session", token)).statusCode).toBe(401);
+      await pool.query("UPDATE secure_reader.users SET enabled=false WHERE email=$1", [
+        adminEmail,
+      ]);
+      try {
+        expect((await request("POST", path, undefined, body)).statusCode).toBe(401);
+        expect(
+          (await request("GET", "/api/secure-reader/admin/state", token)).statusCode,
+        ).toBe(401);
+      } finally {
+        await pool.query("UPDATE secure_reader.users SET enabled=true WHERE email=$1", [
+          adminEmail,
+        ]);
+      }
+      await pool.query("UPDATE secure_reader.users SET role='READER' WHERE email=$1", [
+        adminEmail,
+      ]);
+      try {
+        expect((await request("POST", path, undefined, body)).statusCode).toBe(401);
+      } finally {
+        await pool.query("UPDATE secure_reader.users SET role='ADMIN' WHERE email=$1", [
+          adminEmail,
+        ]);
+      }
+      const session = await pool.query<{ id: string }>(
+        "SELECT id FROM secure_reader.sessions WHERE token_hash=$1",
+        [hash(token)],
+      );
+      await pool.query(
+        "UPDATE secure_reader.sessions SET revoked_at=now() WHERE id=$1",
+        [session.rows[0]?.id],
+      );
+      expect(
+        (await request("GET", "/api/secure-reader/admin/state", token)).statusCode,
+      ).toBe(401);
     });
 
     it("enforces independent grants, Founder restriction, one-use tickets and revocation", async () => {

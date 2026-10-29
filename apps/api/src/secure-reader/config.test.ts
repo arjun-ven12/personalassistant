@@ -82,6 +82,30 @@ describe("Secure Reader activation gate", () => {
     ).toBe(true);
   });
 
+  it("requires an administrator password to be bound to an email", () => {
+    expect(
+      SecureReaderConfigSchema.safeParse({
+        ...base,
+        SECURE_READER_ADMIN_PASSWORD_EMAIL: "admin@example.org",
+        SECURE_READER_ADMIN_PASSWORD_HASH:
+          "$argon2id$v=19$m=19456,t=2,p=1$test$safe-test",
+      }).success,
+    ).toBe(true);
+    expect(
+      SecureReaderConfigSchema.safeParse({
+        ...base,
+        SECURE_READER_ADMIN_PASSWORD_HASH:
+          "$argon2id$v=19$m=19456,t=2,p=1$test$safe-test",
+      }).success,
+    ).toBe(false);
+    expect(
+      SecureReaderConfigSchema.safeParse({
+        ...base,
+        SECURE_READER_ADMIN_PASSWORD_EMAIL: "admin@example.org",
+      }).success,
+    ).toBe(false);
+  });
+
   it("leaves Reader unavailable by default while Athena health stays available", async () => {
     const app = await buildApi({
       corsOrigin: "http://localhost",

@@ -8,6 +8,7 @@ import { z, ZodError } from "zod";
 import {
   LoginStart,
   LoginFinish,
+  AdminPasswordLogin,
   Invite,
   Grant,
   PageRequest,
@@ -16,6 +17,7 @@ import {
   Id,
   Watermark,
 } from "./contracts.js";
+import { verifyPassword } from "../identity/crypto.js";
 import { transaction, type Db } from "./db.js";
 import type { Objects } from "./storage.js";
 import type { PdfRenderPort } from "./render.js";
@@ -27,6 +29,7 @@ export interface SecureReaderOptions {
   objects: Objects;
   renderer: PdfRenderPort;
   mailer?: Mailer;
+  adminPassword?: { email: string; passwordHash: string };
   adminOrigin: string;
   allowPdfProcessing: boolean;
   emergencyStopActive?: () => Promise<boolean>;
@@ -98,6 +101,7 @@ export async function registerSecureReaderRoutes(
     limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 0, parts: 1 },
   });
   const principals = new WeakMap<FastifyRequest, Principal>();
+  const adminPasswordHash = o.adminPassword?.passwordHash;
   async function audit(
     c: PoolClient,
     event: string,
@@ -126,6 +130,34 @@ export async function registerSecureReaderRoutes(
     const count = r.rows[0]?.count;
     if (count === undefined) throw new Denied(503);
     if (Number(count) > max) throw new Denied(429);
+  }
+  async function issueSession(c: PoolClient, u: ReaderSqlRow, deviceLabel: string) {
+    const n = (
+      await c.query<ReaderSqlRow>(
+        "SELECT count(*) FROM secure_reader.sessions WHERE user_id=$1 AND revoked_at IS NULL AND expires_at>now()",
+        [u.id],
+      )
+    ).rows[0];
+    if (!n) throw new Denied(503);
+    if (Number(n.count) >= 2) throw new Denied(409);
+    const token = secret(),
+      id = randomUUID();
+    await c.query<ReaderSqlRow>(
+      "UPDATE secure_reader.users SET verified_at=coalesce(verified_at,now()) WHERE id=$1",
+      [u.id],
+    );
+    await c.query<ReaderSqlRow>(
+      "INSERT INTO secure_reader.sessions(id,token_hash,user_id,device_label,expires_at) VALUES($1,$2,$3,$4,now()+interval '30 days')",
+      [id, hash(token), u.id, deviceLabel],
+    );
+    await audit(c, "SESSION_CREATED", {
+      id: u.id,
+      sessionId: id,
+      email: u.email,
+      role: u.role,
+      expiresAt: new Date(),
+    });
+    return { token };
   }
   async function auth(c: PoolClient, req: FastifyRequest): Promise<Principal> {
     const raw = req.headers.authorization?.match(/^Bearer ([a-f0-9]{64})$/)?.[1];
@@ -331,12 +363,10 @@ export async function registerSecureReaderRoutes(
         );
       }
     }
-    return reply
-      .code(202)
-      .send({
-        message:
-          "If invited, use the verification code from your administrator or email.",
-      });
+    return reply.code(202).send({
+      message:
+        "If invited, use the verification code from your administrator or email.",
+    });
   });
   app.post("/auth/finish", async (req) => {
     const b = LoginFinish.parse(req.body);
@@ -356,32 +386,28 @@ export async function registerSecureReaderRoutes(
         )
       ).rows[0];
       if (!challenge) throw new Denied(401);
-      const n = (
+      return issueSession(c, u, b.deviceLabel);
+    });
+  });
+  app.post("/auth/admin-password", async (req) => {
+    const b = AdminPasswordLogin.parse(req.body);
+    await rate("admin-password-ip:" + hash(req.ip), 5);
+    await rate("admin-password-email:" + hash(b.email), 5);
+    if (
+      !adminPasswordHash ||
+      b.email !== o.adminPassword?.email ||
+      !(await verifyPassword(adminPasswordHash, b.password))
+    )
+      throw new Denied(401);
+    return transaction(o.pool, async (c) => {
+      const u = (
         await c.query<ReaderSqlRow>(
-          "SELECT count(*) FROM secure_reader.sessions WHERE user_id=$1 AND revoked_at IS NULL AND expires_at>now()",
-          [u.id],
+          "SELECT * FROM secure_reader.users WHERE email=$1 FOR UPDATE",
+          [b.email],
         )
       ).rows[0];
-      if (!n) throw new Denied(503);
-      if (Number(n.count) >= 2) throw new Denied(409);
-      const token = secret(),
-        id = randomUUID();
-      await c.query<ReaderSqlRow>(
-        "UPDATE secure_reader.users SET verified_at=coalesce(verified_at,now()) WHERE id=$1",
-        [u.id],
-      );
-      await c.query<ReaderSqlRow>(
-        "INSERT INTO secure_reader.sessions(id,token_hash,user_id,device_label,expires_at) VALUES($1,$2,$3,$4,now()+interval '30 days')",
-        [id, hash(token), u.id, b.deviceLabel],
-      );
-      await audit(c, "SESSION_CREATED", {
-        id: u.id,
-        sessionId: id,
-        email: u.email,
-        role: u.role,
-        expiresAt: new Date(),
-      });
-      return { token };
+      if (!u?.enabled || !u.verified_at || u.role !== "ADMIN") throw new Denied(401);
+      return issueSession(c, u, b.deviceLabel);
     });
   });
   app.get("/session", (req) =>

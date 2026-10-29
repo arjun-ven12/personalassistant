@@ -22,6 +22,13 @@ export const LoginFinish = z
     deviceLabel: z.string().trim().min(1).max(64),
   })
   .strict();
+export const AdminPasswordLogin = z
+  .object({
+    email: Email,
+    password: z.string().min(20).max(128),
+    deviceLabel: z.string().trim().min(1).max(64),
+  })
+  .strict();
 export const Invite = z
   .object({ email: Email, delivery: z.enum(["email", "manual"]).default("email") })
   .strict();

@@ -69,6 +69,8 @@ function Admin() {
     [error, setError] = useState(""),
     [message, setMessage] = useState(""),
     [email, setEmail] = useState(""),
+    [password, setPassword] = useState(""),
+    [useCode, setUseCode] = useState(false),
     [code, setCode] = useState(""),
     [sent, setSent] = useState(false),
     [manualCode, setManualCode] = useState<null | {
@@ -198,14 +200,14 @@ function Admin() {
     e.preventDefault();
     setError("");
     try {
-      if (!sent) {
+      if (useCode && !sent) {
         await call("/auth/start", "POST", { email });
         setSent(true);
       } else {
         const r = z.object({ token: z.string() }).parse(
-          await call("/auth/finish", "POST", {
+          await call(useCode ? "/auth/finish" : "/auth/admin-password", "POST", {
             email,
-            code,
+            ...(useCode ? { code } : { password }),
             deviceLabel: "Disclosure administration",
           }),
         );
@@ -215,6 +217,7 @@ function Admin() {
         if (s.role !== "ADMIN") throw Error("Administrator access required.");
         setToken(r.token);
         setCode("");
+        setPassword("");
         await refresh(r.token);
       }
     } catch (e) {
@@ -269,7 +272,21 @@ function Admin() {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </label>
-            {sent && (
+            {!useCode && (
+              <label>
+                Admin password
+                <input
+                  type="password"
+                  required
+                  minLength={20}
+                  maxLength={128}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </label>
+            )}
+            {useCode && sent && (
               <label>
                 Email verification code
                 <input
@@ -281,9 +298,22 @@ function Admin() {
               </label>
             )}
             <button className="primary">
-              {sent ? "Sign in" : "Send verification code"}
+              {useCode && !sent ? "Send verification code" : "Sign in"}
             </button>
           </form>
+          <button
+            className="text-button"
+            type="button"
+            onClick={() => {
+              setUseCode(!useCode);
+              setSent(false);
+              setCode("");
+              setPassword("");
+              setError("");
+            }}
+          >
+            {useCode ? "Use admin password" : "Use email verification code"}
+          </button>
           <p className="error">{error}</p>
         </section>
       ) : (

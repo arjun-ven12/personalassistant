@@ -10,6 +10,12 @@ export const SecureReaderConfigSchema = z
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
     DATABASE_URL: z.string().min(1),
     SECURE_READER_ADMIN_ORIGIN: z.url(),
+    SECURE_READER_ADMIN_PASSWORD_EMAIL: z.email().optional(),
+    SECURE_READER_ADMIN_PASSWORD_HASH: z
+      .string()
+      .regex(/^\$argon2id\$v=19\$/)
+      .max(256)
+      .optional(),
     SECURE_READER_STORAGE_MODE: z.enum(["local", "s3"]),
     RAILWAY_VOLUME_MOUNT_PATH: z.string().optional(),
     SECURE_READER_PRIVATE_STORAGE_DIR: z.string().optional(),
@@ -27,6 +33,14 @@ export const SecureReaderConfigSchema = z
     SECURE_READER_RENDERER_SHARED_SECRET_FILE: z.string().optional(),
   })
   .superRefine((config, context) => {
+    if (
+      Boolean(config.SECURE_READER_ADMIN_PASSWORD_EMAIL) !==
+      Boolean(config.SECURE_READER_ADMIN_PASSWORD_HASH)
+    )
+      context.addIssue({
+        code: "custom",
+        message: "Reader admin password hash requires a bound email",
+      });
     const mailConfigured = [
       config.SECURE_READER_SMTP_HOST,
       config.SECURE_READER_SMTP_PORT,
