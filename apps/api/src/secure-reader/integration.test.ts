@@ -284,6 +284,70 @@ describe.skipIf(!enabled)(
       ).toBe(401);
     });
 
+    it("restores browser cookies for 30 days and requires origin and CSRF for mutations", async () => {
+      const origin = "http://localhost";
+      await pool.query(
+        "DELETE FROM secure_reader.rate_buckets WHERE key LIKE 'admin-password-%'",
+      );
+      const login = await app.inject({
+        method: "POST",
+        url: "/api/secure-reader/auth/admin-password",
+        headers: { host: "localhost", origin },
+        payload: {
+          email: adminEmail,
+          password: "test-only-reader-admin-password-2026",
+          deviceLabel: "Browser fixture",
+        },
+      });
+      expect(login.statusCode).toBe(200);
+      const setCookie = String(login.headers["set-cookie"]);
+      expect(setCookie).toContain("Max-Age=2592000");
+      expect(setCookie).toContain("HttpOnly; Secure; SameSite=Strict");
+      const cookie = setCookie.split(";")[0]!;
+      const session = await app.inject({
+        method: "GET",
+        url: "/api/secure-reader/session",
+        headers: { host: "localhost", cookie },
+      });
+      expect(session.statusCode).toBe(200);
+      const body = z
+        .object({ id: z.string(), csrfToken: z.string() })
+        .parse(session.json());
+      const url = "/api/secure-reader/sessions/" + body.id;
+      expect(
+        (
+          await app.inject({
+            method: "DELETE",
+            url,
+            headers: { host: "localhost", cookie, origin },
+          })
+        ).statusCode,
+      ).toBe(403);
+      expect(
+        (
+          await app.inject({
+            method: "DELETE",
+            url,
+            headers: {
+              host: "localhost",
+              cookie,
+              origin,
+              "x-reader-csrf": body.csrfToken,
+            },
+          })
+        ).statusCode,
+      ).toBe(200);
+      expect(
+        (
+          await app.inject({
+            method: "GET",
+            url: "/api/secure-reader/session",
+            headers: { host: "localhost", cookie },
+          })
+        ).statusCode,
+      ).toBe(401);
+    });
+
     it("enforces independent grants, Founder restriction, one-use tickets and revocation", async () => {
       const invited = await request(
         "POST",
@@ -303,6 +367,23 @@ describe.skipIf(!enabled)(
       expect(document.statusCode).toBe(201);
       const documentBody: unknown = document.json();
       const documentId = z.object({ id: z.uuid() }).parse(documentBody).id;
+      expect(
+        (await request("GET", "/api/secure-reader/reader/documents", admin)).json(),
+      ).toEqual(expect.arrayContaining([expect.objectContaining({ id: documentId })]));
+      const adminTicket = await request(
+        "POST",
+        "/api/secure-reader/reader/tickets",
+        admin,
+        { documentId, page: 1 },
+      );
+      expect(adminTicket.statusCode).toBe(200);
+      expect(
+        (
+          await request("POST", "/api/secure-reader/reader/page", admin, {
+            ticket: z.object({ ticket: z.string() }).parse(adminTicket.json()).ticket,
+          })
+        ).statusCode,
+      ).toBe(200);
       expect(
         (await request("GET", "/api/secure-reader/reader/documents", reader)).json(),
       ).toEqual([]);

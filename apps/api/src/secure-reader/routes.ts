@@ -43,6 +43,7 @@ class Denied extends Error {
   }
 }
 interface Principal {
+  csrfToken?: string;
   id: string;
   sessionId: string;
   email: string;
@@ -139,7 +140,7 @@ export async function registerSecureReaderRoutes(
       )
     ).rows[0];
     if (!n) throw new Denied(503);
-    if (Number(n.count) >= 2) throw new Denied(409);
+    if (Number(n.count) >= 5) throw new Denied(409);
     const token = secret(),
       id = randomUUID();
     await c.query<ReaderSqlRow>(
@@ -160,8 +161,20 @@ export async function registerSecureReaderRoutes(
     return { token };
   }
   async function auth(c: PoolClient, req: FastifyRequest): Promise<Principal> {
-    const raw = req.headers.authorization?.match(/^Bearer ([a-f0-9]{64})$/)?.[1];
+    const bearer = req.headers.authorization?.match(/^Bearer ([a-f0-9]{64})$/)?.[1];
+    const cookie = req.headers.cookie?.match(
+      /(?:^|;\s*)athena_reader_admin=([a-f0-9]{64})(?:;|$)/,
+    )?.[1];
+    const raw = bearer ?? cookie;
     if (!raw) throw new Denied(401);
+    const csrfToken = hash("reader-csrf:" + raw);
+    if (
+      !bearer &&
+      !["GET", "HEAD"].includes(req.method) &&
+      (req.headers.origin !== o.adminOrigin ||
+        req.headers["x-reader-csrf"] !== csrfToken)
+    )
+      throw new Denied(403);
     const pre = await c.query<ReaderSqlRow>(
       "SELECT id,user_id FROM secure_reader.sessions WHERE token_hash=$1",
       [hash(raw)],
@@ -190,6 +203,7 @@ export async function registerSecureReaderRoutes(
     )
       throw new Denied(401);
     const p = {
+      csrfToken,
       id: u.id,
       sessionId: s.id,
       email: u.email,
@@ -391,7 +405,7 @@ export async function registerSecureReaderRoutes(
       return issueSession(c, u, b.deviceLabel);
     });
   });
-  app.post("/auth/admin-password", async (req) => {
+  app.post("/auth/admin-password", async (req, reply) => {
     const b = AdminPasswordLogin.parse(req.body);
     await rate("admin-password-ip:" + hash(req.ip), 5);
     await rate("admin-password-email:" + hash(b.email), 5);
@@ -401,7 +415,7 @@ export async function registerSecureReaderRoutes(
       !(await verifyPassword(adminPasswordHash, b.password))
     )
       throw new Denied(401);
-    return transaction(o.pool, async (c) => {
+    const session = await transaction(o.pool, async (c) => {
       const u = (
         await c.query<ReaderSqlRow>(
           "SELECT * FROM secure_reader.users WHERE email=$1 FOR UPDATE",
@@ -411,6 +425,13 @@ export async function registerSecureReaderRoutes(
       if (!u?.enabled || !u.verified_at || u.role !== "ADMIN") throw new Denied(401);
       return issueSession(c, u, b.deviceLabel);
     });
+    if (req.headers.origin === o.adminOrigin) {
+      reply.header(
+        "set-cookie",
+        `athena_reader_admin=${session.token}; Path=/api/secure-reader; Max-Age=2592000; HttpOnly; Secure; SameSite=Strict`,
+      );
+    }
+    return session;
   });
   app.get("/session", (req) =>
     authorized(req, (_c, p) =>
@@ -419,6 +440,7 @@ export async function registerSecureReaderRoutes(
         email: p.email,
         role: p.role,
         expiresAt: p.expiresAt.toISOString(),
+        csrfToken: p.csrfToken,
       }),
     ),
   );
@@ -449,7 +471,7 @@ export async function registerSecureReaderRoutes(
     authorized(req, async (c, p) => {
       const rows = (
         await c.query<ReaderSqlRow>(
-          "SELECT d.* FROM secure_reader.documents d JOIN secure_reader.grants g ON g.document_id=d.id WHERE g.user_id=$1 AND g.revoked_at IS NULL AND g.expires_at>now() AND d.removed_at IS NULL AND (d.sector<>'founder' OR $2='ADMIN') ORDER BY d.title",
+          "SELECT d.* FROM secure_reader.documents d WHERE d.removed_at IS NULL AND ($2='ADMIN' OR (d.sector<>'founder' AND EXISTS (SELECT 1 FROM secure_reader.grants g WHERE g.document_id=d.id AND g.user_id=$1 AND g.revoked_at IS NULL AND g.expires_at>now()))) ORDER BY d.title",
           [p.id, p.role],
         )
       ).rows;
@@ -461,10 +483,13 @@ export async function registerSecureReaderRoutes(
     const p = await authorized(req, (_c, p) => Promise.resolve(p));
     await rate("page:" + p.id, 40);
     return authorized(req, async (c, current) => {
-      const d = await access(c, current, b.documentId, b.page);
+      const d =
+        current.role === "ADMIN"
+          ? await previewAccess(c, current, b.documentId, b.page)
+          : await access(c, current, b.documentId, b.page);
       const ticket = secret();
       await c.query<ReaderSqlRow>(
-        "INSERT INTO secure_reader.page_tickets(hash,session_id,user_id,document_id,page,version,grant_version,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,now()+interval '30 seconds')",
+        "INSERT INTO secure_reader.page_tickets(hash,session_id,user_id,document_id,page,version,grant_version,admin_preview,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,now()+interval '30 seconds')",
         [
           hash(ticket),
           current.sessionId,
@@ -473,6 +498,7 @@ export async function registerSecureReaderRoutes(
           b.page,
           d.version,
           d.grantVersion,
+          current.role === "ADMIN",
         ],
       );
       await audit(c, "PAGE_TICKET_ISSUED", current, d.id);

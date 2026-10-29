@@ -65,6 +65,7 @@ const AdminState = z.object({
 });
 function Admin() {
   const [token, setToken] = useState(""),
+    [csrf, setCsrf] = useState(""),
     [state, setState] = useState<z.infer<typeof AdminState> | null>(null),
     [error, setError] = useState(""),
     [message, setMessage] = useState(""),
@@ -120,13 +121,14 @@ function Admin() {
     const r = await fetch(window.location.origin + "/api/secure-reader" + route, {
       method,
       headers: {
+        ...(csrf ? { "x-reader-csrf": csrf } : {}),
         ...(session ? { authorization: `Bearer ${session}` } : {}),
         ...(body && !(body instanceof FormData)
           ? { "content-type": "application/json" }
           : {}),
       },
       ...(body ? { body: body instanceof FormData ? body : JSON.stringify(body) } : {}),
-      credentials: "omit",
+      credentials: "same-origin",
       cache: "no-store",
       redirect: "error",
     });
@@ -143,6 +145,16 @@ function Admin() {
   async function refresh(t = token) {
     setState(AdminState.parse(await call("/admin/state", "GET", undefined, t)));
   }
+  useEffect(() => {
+    void call("/session")
+      .then(async (value) => {
+        const s = z.object({ role: z.string(), csrfToken: z.string() }).parse(value);
+        if (s.role !== "ADMIN") return;
+        setCsrf(s.csrfToken);
+        await refresh();
+      })
+      .catch(() => {});
+  }, []);
   async function action(fn: () => Promise<unknown>) {
     setError("");
     setMessage("");
@@ -167,11 +179,12 @@ function Admin() {
         {
           method: "POST",
           headers: {
-            authorization: `Bearer ${token}`,
+            ...(token ? { authorization: `Bearer ${token}` } : {}),
+            ...(csrf ? { "x-reader-csrf": csrf } : {}),
             "content-type": "application/json",
           },
           body: JSON.stringify({ ticket }),
-          credentials: "omit",
+          credentials: "same-origin",
           cache: "no-store",
           redirect: "error",
         },
