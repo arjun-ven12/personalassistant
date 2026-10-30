@@ -29,8 +29,8 @@ android {
     applicationId = "com.alexa.commandcenter"
     minSdk = 31
     targetSdk = 35
-    versionCode = 1
-    versionName = "0.1.0"
+    versionCode = 2
+    versionName = "0.1.1"
     buildConfigField("String", "FCM_PROJECT_ID", "\"$fcmProjectId\"")
     buildConfigField("String", "FCM_APPLICATION_ID", "\"$fcmApplicationId\"")
     buildConfigField("String", "FCM_API_KEY", "\"$fcmApiKey\"")
@@ -65,6 +65,8 @@ android {
     }
   }
 
+  testOptions { unitTests.isIncludeAndroidResources = true }
+
   buildFeatures {
     buildConfig = true
     compose = true
@@ -78,6 +80,11 @@ android {
 }
 
 dependencies {
+  implementation("com.google.mlkit:text-recognition:16.0.1")
+  implementation("com.tom-roush:pdfbox-android:2.0.27.0")
+  implementation("androidx.exifinterface:exifinterface:1.3.7")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
+  testImplementation("org.robolectric:robolectric:4.14.1")
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.lifecycle.viewmodel.ktx)

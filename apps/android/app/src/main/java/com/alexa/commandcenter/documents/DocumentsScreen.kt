@@ -16,6 +16,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.core.content.FileProvider
 import com.alexa.commandcenter.model.*
 import kotlinx.coroutines.launch
@@ -42,36 +47,90 @@ fun DocumentsScreen(actions: DocumentActions, onBack: () -> Unit, onExplain: (St
  var selected by remember(company) { mutableStateOf<AthenaDocument?>(null) }
  var query by remember { mutableStateOf("") }; var filter by remember { mutableStateOf("All") }
  var message by remember { mutableStateOf<String?>(null) }; var busy by remember { mutableStateOf(false) }
+ var draftTitle by remember(pending?.key) { mutableStateOf(pending?.title ?: "Untitled scan") }
+ var draftTags by remember(pending?.key) { mutableStateOf(pending?.tags?.joinToString(", ") ?: "") }
+ var local by remember(company) { mutableStateOf(pending?.let { store.local(it) }) }
+ var replacePage by rememberSaveable { mutableStateOf<Int?>(null) }
+ var cropPage by remember { mutableStateOf<Int?>(null) }
+ var withinQuery by remember { mutableStateOf("") }
+ var savePdfPath by rememberSaveable { mutableStateOf<String?>(null) }
+ val savePdf = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
+  val source = savePdfPath?.let { File(it) }; savePdfPath = null
+  if(uri != null && source != null && actions.company()==company) scope.launch {
+   val saved=withContext(Dispatchers.IO) { runCatching { DocumentPdfExport.uri(context,source); context.contentResolver.openOutputStream(uri,"w")!!.use { out -> source.inputStream().use { it.copyTo(out) } } }.isSuccess.also { source.delete() } }
+   message=if(saved) "PDF saved to the selected location." else "PDF export failed. The scan remains saved; retry export."
+  }
+ }
+ fun presentPdf(bytes: ByteArray, mode: String) {
+  check(actions.company() == company)
+  val file = DocumentPdfExport.file(context, bytes)
+  if(mode == "save") { savePdfPath = file.absolutePath; savePdf.launch("Athena-scan.pdf") }
+  else context.startActivity(Intent.createChooser(DocumentPdfExport.intent(context, DocumentPdfExport.uri(context,file), mode == "share"), if(mode == "share") "Share PDF" else "Open PDF"))
+ }
  var settings by remember(company) { mutableStateOf(DocumentSettings()) }
+ var captureCompany by rememberSaveable { mutableStateOf<String?>(null) }
  var captureUri by rememberSaveable { mutableStateOf<String?>(null) }
  var memories by remember { mutableStateOf<List<DocumentMemory>>(emptyList()) }
  var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
  var editTitle by remember { mutableStateOf("") }; var editTags by remember { mutableStateOf("") }
  suspend fun refresh() { docs = actions.list(query).getOrThrow(); settings = actions.settings().getOrThrow() }
- fun work(block: suspend () -> Unit) { scope.launch { busy = true; message = null; try { block() } catch (_: Exception) { message = "Could not complete this action. Your saved originals remain available; retry when connected." } finally { busy = false } } }
- fun add(source: String, uris: List<android.net.Uri>) = work { pending = withContext(Dispatchers.IO) { store.add(company, source, uris) } }
- val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok -> if (ok) captureUri?.let { add("CAMERA", listOf(android.net.Uri.parse(it))) } }
- val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris -> if (uris.isNotEmpty()) add("IMPORT", uris) }
- LaunchedEffect(company) { runCatching { refresh() }.onFailure { message = "Connect to Athena to load Documents." } }
- LaunchedEffect(selected?.id) { imageBytes = null; memories = emptyList(); selected?.let { d -> editTitle = d.title; editTags = d.tags.joinToString(", "); actions.image(d.id, 1, if(d.pages.first().cleaned != null) "cleaned" else "original").onSuccess { imageBytes = it } } }
+ fun work(block: suspend () -> Unit) { scope.launch { busy = true; message = null; try { block() } catch (_: Exception) { message = "Could not complete this action. Originals remain saved. Searchable PDFs need readable text on every page; Athena uploads require a connection." } finally { busy = false } } }
+ fun add(source: String, uris: List<android.net.Uri>) = work { check(captureCompany==company && actions.company()==company); val replace = replacePage; replacePage = null; pending = withContext(Dispatchers.IO) { store.add(company, source, uris, replace) }; local = null }
+ val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok -> if (ok) captureUri?.let { add("CAMERA", listOf(android.net.Uri.parse(it))) } else replacePage = null }
+ val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris -> if (uris.isNotEmpty()) add("IMPORT", uris) else replacePage = null }
+ LaunchedEffect(company) { DocumentPdfExport.clean(context); runCatching { refresh() }.onFailure { message = "Connect to Athena to load Documents." } }
+ LaunchedEffect(selected?.id, selected?.stage) { imageBytes = null; memories = emptyList(); selected?.let { d -> editTitle = d.title; editTags = d.tags.joinToString(", "); actions.image(d.id, 1, if(d.pages.first().cleaned != null) "cleaned" else "original").onSuccess { imageBytes = it } } }
+ cropPage?.let { index -> pending?.let { scan ->
+  var left by remember(index) { mutableStateOf((scan.edits[index].crop?.left ?: 0.0).toFloat()) }; var top by remember(index) { mutableStateOf((scan.edits[index].crop?.top ?: 0.0).toFloat()) }
+  var right by remember(index) { mutableStateOf((scan.edits[index].crop?.right ?: 1.0).toFloat()) }; var bottom by remember(index) { mutableStateOf((scan.edits[index].crop?.bottom ?: 1.0).toFloat()) }
+  val preview=remember(scan.files[index],left,top,right,bottom) { runCatching { documentPreviewBitmap(LocalDocumentProcessor.clean(store.bytes(scan,index),scan.edits[index].copy(crop=DocumentCrop(left.toDouble(),top.toDouble(),right.toDouble(),bottom.toDouble())))) }.getOrNull() }
+  AlertDialog(onDismissRequest={ cropPage=null },title={ Text("Adjust page crop") },text={ Column { preview?.let { Image(it.asImageBitmap(),"Crop preview",Modifier.height(180.dp)) }; Text("Left"); Slider(left,{ left=it },valueRange=0f..maxOf(0f,right-0.06f)); Text("Top"); Slider(top,{ top=it },valueRange=0f..maxOf(0f,bottom-0.06f)); Text("Right"); Slider(right,{ right=it },valueRange=minOf(1f,left+0.06f)..1f); Text("Bottom"); Slider(bottom,{ bottom=it },valueRange=minOf(1f,top+0.06f)..1f) } },confirmButton={ TextButton(onClick={ pending=store.update(scan.copy(edits=scan.edits.toMutableList().apply { set(index,scan.edits[index].copy(crop=DocumentCrop(left.toDouble(),top.toDouble(),right.toDouble(),bottom.toDouble()))) })); local=null; cropPage=null }) { Text("Apply crop") } },dismissButton={ TextButton(onClick={ pending=store.update(scan.copy(edits=scan.edits.toMutableList().apply { set(index,scan.edits[index].copy(crop=null)) })); local=null; cropPage=null }) { Text("Restore full page") } })
+ } }
  LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
   item { TextButton(onClick = onBack) { Text("Back to Athena") }; Text("Documents / Scans", style = MaterialTheme.typography.headlineMedium) }
   message?.let { item { Text(it, color = MaterialTheme.colorScheme.error) } }
   if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
   item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-   Button(enabled = !busy && pending?.submitted != true, onClick = { val file = File(context.filesDir, "documents/capture/${UUID.randomUUID()}.jpg"); file.parentFile?.mkdirs(); val uri = FileProvider.getUriForFile(context, context.packageName + ".documents", file); captureUri = uri.toString(); camera.launch(uri) }) { Text("Scan") }
-   OutlinedButton(enabled = !busy && pending?.submitted != true, onClick = { picker.launch(arrayOf("image/jpeg", "image/png")) }) { Text("Import image") }
+   Button(enabled = !busy && pending?.submitted != true, onClick = { val file = File(context.filesDir, "documents/capture/${UUID.randomUUID()}.jpg"); file.parentFile?.mkdirs(); val uri = FileProvider.getUriForFile(context, context.packageName + ".documents", file); captureCompany=company; captureUri = uri.toString(); camera.launch(uri) }) { Text("Scan") }
+   OutlinedButton(enabled = !busy && pending?.submitted != true, onClick = { run { captureCompany=company; picker.launch(arrayOf("image/jpeg", "image/png")) } }) { Text("Import image") }
   }; Text("JPEG/PNG · up to 5 pages · 6 MiB and 16 MP per page. Originals stay private.", style = MaterialTheme.typography.bodySmall) }
   pending?.let { scan ->
    item {
     Text("Pending scan · ${scan.files.size} page(s), in capture order")
     val preview = remember(scan.files) { runCatching { val bytes = store.bytes(scan, 0); BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = 4 }) }.getOrNull() }
     preview?.let { Image(it.asImageBitmap(), "Original page preview", Modifier.fillMaxWidth().height(220.dp)) }
+    Text("Page review: originals are preserved. Crop bounds apply after rotation.")
+    scan.files.indices.forEach { index ->
+     val edit = scan.edits.getOrElse(index) { DocumentPageEdit() }
+     val thumb = remember(scan.files,scan.edits,index) { runCatching { documentPreviewBitmap(LocalDocumentProcessor.clean(store.bytes(scan,index),edit)) }.getOrNull() }
+     thumb?.let { Image(it.asImageBitmap(),"Page ${index+1}",Modifier.fillMaxWidth().height(180.dp)) }
+     Text("Page ${index+1} · ${edit.rotation}°")
+     Row {
+      TextButton(enabled = !busy && !scan.submitted && index>0,onClick={ pending=store.move(scan,index,index-1); local=null }) { Text("Up") }
+      TextButton(enabled = !busy && !scan.submitted && index<scan.files.lastIndex,onClick={ pending=store.move(scan,index,index+1); local=null }) { Text("Down") }
+      TextButton(enabled = !busy && !scan.submitted,onClick={ pending=store.update(scan.copy(edits=scan.edits.toMutableList().apply { set(index,DocumentPageEdit((edit.rotation+90)%360)) })); local=null }) { Text("Rotate") }
+      TextButton(enabled = !busy && !scan.submitted,onClick={ cropPage=index }) { Text("Crop") }
+     }
+     Row {
+      TextButton(enabled = !busy && !scan.submitted,onClick={ pending=store.remove(scan,index); local=null }) { Text("Remove page") }
+      TextButton(enabled = !busy && !scan.submitted,onClick={ replacePage=index; run { captureCompany=company; picker.launch(arrayOf("image/jpeg","image/png")) } }) { Text("Replace image") }
+      TextButton(enabled = !busy && !scan.submitted,onClick={ replacePage=index; val file=File(context.filesDir,"documents/capture/${UUID.randomUUID()}.jpg"); file.parentFile?.mkdirs(); val uri=FileProvider.getUriForFile(context,context.packageName+".documents",file); captureCompany=company; captureUri=uri.toString(); camera.launch(uri) }) { Text("Rescan") }
+     }
+    }
+    OutlinedTextField(draftTitle,{ draftTitle=it.take(160) },enabled=!scan.submitted && !busy,label={ Text("Document title") })
+    OutlinedTextField(draftTags,{ draftTags=it.take(730) },enabled=!scan.submitted && !busy,label={ Text("Tags, comma separated") })
+    Button(enabled=!busy,onClick={ work { check(actions.company()==company); val ready=if(scan.submitted) scan else store.update(scan.copy(title=draftTitle.trim().ifBlank { "Untitled scan" },tags=draftTags.split(',').map { it.trim().take(60) }.filter { it.isNotEmpty() }.take(12))); pending=ready; local=null; local=withContext(Dispatchers.Default) { LocalDocumentProcessor(context).process(store,ready) }; message="Saved offline: searchable PDF ready. Nothing uploaded." } }) { Text("OCR and save PDF offline") }
+    local?.let { result ->
+     OutlinedTextField(withinQuery,{ withinQuery=it.take(200) },label={ Text("Search this scan") })
+     result.pages.forEachIndexed { i,p -> if(withinQuery.isBlank() || p.text.contains(withinQuery,true)) { Text("Page ${i+1}"); SelectionContainer { Text(highlightDocumentText(p.text,withinQuery)) } } }
+     Row { listOf("open","share","save").forEach { mode -> TextButton(enabled=!busy,onClick={ work { presentPdf(withContext(Dispatchers.IO) { store.localPdf(scan) },mode) } }) { Text(if(mode=="save") "Export PDF" else "${mode.replaceFirstChar { it.uppercase() }} PDF") } } }
+    }
     Text("Review before upload. Add pages with Scan or Import. Athena preserves the original and creates a separate cleaned copy.")
     Button(enabled = !busy, onClick = { work {
+     val scan = if(scan.submitted) scan else store.update(scan.copy(title=draftTitle.trim().ifBlank { "Untitled scan" },tags=draftTags.split(',').map { it.trim().take(60) }.filter { it.isNotEmpty() }.take(12)))
      pending = withContext(Dispatchers.IO) { store.seal(company) }
      message = "UPLOADING"
-     val d = actions.create(scan.key, scan.source, scan.files.size).getOrThrow(); selected = d
+     val d = actions.create(scan.key, scan.source, scan.files.size, scan.edits).getOrThrow(); selected = d
      if (d.stage == "UPLOADING") {
       val grants = actions.grants(d.id).getOrThrow()
       scan.files.indices.forEach { index ->
@@ -85,14 +144,14 @@ fun DocumentsScreen(actions: DocumentActions, onBack: () -> Unit, onExplain: (St
       check(actions.company() == company)
       val result = actions.get(d.id).getOrThrow(); selected = result; message = result.stage
       if (result.stage in listOf("COMPLETE", "FAILED", "ARCHIVED")) {
-       if (result.stage == "COMPLETE") { withContext(Dispatchers.IO) { store.clear(company) }; pending = null }
+       if (result.stage == "COMPLETE") { selected=actions.edit(d.id,scan.title,scan.tags,result.collection).getOrThrow(); withContext(Dispatchers.IO) { store.clear(company) }; pending = null }
        refresh(); return@work
       }
       delay(3000)
      }
      message = "Still processing. Reopen the document to check its durable state."
-    } }) { Text("Use scan / Retry upload") }
-    TextButton(enabled = !busy, onClick = { store.clear(company); pending = null }) { Text("Discard local draft") }
+    } }) { Text("Upload to Athena / Retry (requires internet)") }
+    TextButton(enabled = !busy, onClick = { store.clear(company); pending = null; local = null }) { Text("Discard local draft") }
    }
   }
   item { OutlinedTextField(query, { query = it.take(200) }, label = { Text("Search title, OCR text, summary or tags") }, modifier = Modifier.fillMaxWidth()); TextButton(onClick = { work { refresh() } }) { Text("Search / Refresh") } }
@@ -102,11 +161,17 @@ fun DocumentsScreen(actions: DocumentActions, onBack: () -> Unit, onExplain: (St
     HorizontalDivider(); Text(d.title, style = MaterialTheme.typography.titleLarge)
     Text("${d.stage} · ${d.documentType} · memory ${d.memoryStatus}")
     imageBytes?.let { bytes -> val bitmap = remember(bytes) { documentPreviewBitmap(bytes) }; bitmap?.let { Image(it.asImageBitmap(), "Cleaned scan", Modifier.fillMaxWidth().height(300.dp)) } }
-    d.pages.forEach { p ->
+    OutlinedTextField(withinQuery,{ withinQuery=it.take(200) },label={ Text("Search within document") })
+    d.pdfError?.let { Text("Searchable PDF unavailable: retry processing. Originals remain saved.") }
+    Row { listOf("open","share","save").forEach { mode -> TextButton(enabled=!busy && d.stage=="COMPLETE" && d.pdf!=null && !d.sensitive,onClick={ work { val bytes=actions.pdf(d.id).getOrThrow(); check(actions.company()==company); presentPdf(bytes,mode) } }) { Text(if(mode=="save") "Export PDF" else "${mode.replaceFirstChar { it.uppercase() }} PDF") } } }
+    d.pages.filter { withinQuery.isBlank() || it.ocr?.text?.contains(withinQuery,true)==true }.forEach { p ->
+     var thumbnail by remember(d.id,p.thumbnail) { mutableStateOf<ByteArray?>(null) }
+     LaunchedEffect(d.id,p.thumbnail) { val bytes=if(p.thumbnail!=null) actions.image(d.id,p.number,"thumbnail").getOrNull() else null; thumbnail=if(actions.company()==company) bytes else null }
+     thumbnail?.let { bytes -> val bitmap=remember(bytes) { documentPreviewBitmap(bytes) }; bitmap?.let { Image(it.asImageBitmap(),"Page ${p.number} thumbnail",Modifier.height(120.dp)) } }
      Text("Page ${p.number}: ${p.ocrStatus} · ${p.ocr?.provider ?: "No extraction"}")
      Row { TextButton(onClick = { work { imageBytes = actions.image(d.id, p.number, "original").getOrThrow() } }) { Text("Original") }; if(p.cleaned != null) TextButton(onClick = { work { imageBytes = actions.image(d.id, p.number, "cleaned").getOrThrow() } }) { Text("Cleaned scan") } }
      p.warnings.forEach { Text(it, color = MaterialTheme.colorScheme.tertiary) }
-     Text(p.ocr?.text ?: "No text extracted. Retry OCR if unavailable.")
+     SelectionContainer { Text(highlightDocumentText(p.ocr?.text ?: "No text extracted. Retry OCR if unavailable.",withinQuery)) }
      if(p.memoryIds.isNotEmpty()) Text("Derived memory IDs: ${p.memoryIds.joinToString()}", style = MaterialTheme.typography.bodySmall)
     }
     Text("Interpreted summary (separate from raw OCR)", style = MaterialTheme.typography.titleSmall); Text(d.summary)
@@ -171,4 +236,14 @@ private fun documentPreviewBitmap(bytes: ByteArray): android.graphics.Bitmap? {
  var sample = 1
  while(bounds.outWidth.toLong() * bounds.outHeight / (sample * sample) > 2000000) sample *= 2
  return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
+}
+
+private fun highlightDocumentText(text: String, query: String): AnnotatedString = buildAnnotatedString {
+ if(query.isBlank()) { append(text); return@buildAnnotatedString }
+ var start=0
+ while(start<text.length) {
+  val at=text.indexOf(query,start,ignoreCase=true)
+  if(at<0) { append(text.substring(start)); break }
+  append(text.substring(start,at)); withStyle(SpanStyle(background=androidx.compose.ui.graphics.Color.Yellow,color=androidx.compose.ui.graphics.Color.Black)) { append(text.substring(at,at+query.length)) }; start=at+query.length
+ }
 }

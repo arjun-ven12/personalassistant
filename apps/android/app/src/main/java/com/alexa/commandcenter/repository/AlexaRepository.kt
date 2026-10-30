@@ -94,6 +94,7 @@ class AlexaRepository(
   suspend fun documentSettings() = api.documentSettings()
   suspend fun saveDocumentSettings(settings: DocumentSettings) = engineeringMutation { csrf -> api.saveDocumentSettings(csrf, settings) }
   suspend fun documentImage(id: String, page: Int, kind: String) = api.documentImage(id, page, kind)
+  suspend fun documentPdf(id: String) = api.documentPdf(id)
   suspend fun documentExport(id: String) = api.documentExport(id)
   suspend fun engineeringInputs(id: String): Result<List<EngineeringProjectInput>> = api.engineeringInputs(id).mapCatching { response ->
     check(response.inputs.size <= 12 && response.inputs.all { it.objectiveId == id && EngineeringSafety.validId(it.id) && it.provenance == "OWNER_UPLOADED_UNTRUSTED" && it.byteLength in 1..262144 && it.sha256.matches(Regex("[a-f0-9]{64}")) })

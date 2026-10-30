@@ -1,1 +1,1 @@
-<paths xmlns:android="http://schemas.android.com/apk/res/android"><files-path name="document_capture" path="documents/capture/" /><files-path name="document_export" path="documents/exports/" /></paths>
+<paths xmlns:android="http://schemas.android.com/apk/res/android"><files-path name="document_capture" path="documents/capture/" /><files-path name="document_export" path="documents/exports/" /><cache-path name="document_pdf_export" path="document-pdf-exports/" /></paths>

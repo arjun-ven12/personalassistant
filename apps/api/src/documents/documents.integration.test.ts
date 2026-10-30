@@ -9,6 +9,7 @@ import {
   safeTestDatabaseUrl,
   provisionTestDefaultCompany,
 } from "../persistence/test-database.js";
+import { PostgresDatabase } from "../persistence/database.js";
 import { DocumentStore } from "./store.js";
 import { FileDocumentAssets } from "./assets.js";
 import { DocumentService } from "./service.js";
@@ -37,7 +38,22 @@ describe.skipIf(!connection)("private document vault PostgreSQL authority", () =
   const within = <T>(work: () => T) =>
     companyScope.run({ ...scope, role: "OWNER", requestId: "document-test" }, work);
   beforeAll(async () => {
-    isolated = await createIsolatedTestDatabase(connection!, "documents");
+    // This suite owns a schema, not a database. Reader migration 0119 creates
+    // a fixed global namespace, so it cannot run in schema-isolated fixtures.
+    // Exercise the real document migrations through 0118; production is unchanged.
+    const migrationFiles = PostgresDatabase.prototype.migrationFiles.bind(
+      PostgresDatabase.prototype,
+    );
+    const fixtureMigrations = vi
+      .spyOn(PostgresDatabase.prototype, "migrationFiles")
+      .mockImplementation(async function (this: PostgresDatabase) {
+        return (await migrationFiles()).filter((f) => f.version < "0119");
+      });
+    try {
+      isolated = await createIsolatedTestDatabase(connection!, "documents");
+    } finally {
+      fixtureMigrations.mockRestore();
+    }
     const ownerId = crypto.randomUUID();
     await isolated.database.pool.query(
       "INSERT INTO owners(id,email,password_hash,record,created_at,updated_at) VALUES($1,$2,'fixture','{}',now(),now())",
@@ -84,6 +100,19 @@ describe.skipIf(!connection)("private document vault PostgreSQL authority", () =
             ? Promise.reject(Error("OCR_PROVIDER_TIMEOUT"))
             : Promise.resolve({
                 text: "Gradient descent improves learning. A study concept.",
+                layout: {
+                  width: 600,
+                  height: 800,
+                  words: [
+                    {
+                      text: "Gradient descent improves learning. A study concept.",
+                      left: 0.1,
+                      top: 0.1,
+                      right: 0.9,
+                      bottom: 0.15,
+                    },
+                  ],
+                },
                 confidence: 0.95,
                 language: "en",
                 provider: "fixture",
@@ -253,6 +282,33 @@ describe.skipIf(!connection)("private document vault PostgreSQL authority", () =
     expect(result.pages[0]?.original).toBeTruthy();
     service.gateway = gateway;
     expect((await service.process(scope, d.id, ctx)).stage).toBe("COMPLETE");
+  });
+  it("persists searchable PDF in the canonical record, searches body/title/tags, and denies other scopes or archived export", async () => {
+    const d = await uploaded();
+    const processed = await service.process(scope, d.id, ctx);
+    expect(processed.pdf).toBeTruthy();
+    expect(processed.pdfError).toBeNull();
+    expect((await service.pdf(scope, d.id)).subarray(0, 5).toString()).toBe("%PDF-");
+    expect(
+      (await service.store.list(scope, "Gradient descent")).some((v) => v.id === d.id),
+    ).toBe(true);
+    await service.store.atomic(scope, d.id, (record) => {
+      record.title = "Paper filename.pdf";
+      record.tags = ["my-scans"];
+    });
+    for (const query of ["Paper filename", "my-scans"])
+      expect((await service.store.list(scope, query)).some((v) => v.id === d.id)).toBe(
+        true,
+      );
+    await expect(service.pdf(other, d.id)).rejects.toThrow("NOT_FOUND");
+    await service.store.atomic(scope, d.id, (record) => {
+      record.sensitive = true;
+    });
+    await expect(service.pdf(scope, d.id)).rejects.toThrow("EXPORT_DENIED");
+    await service.store.atomic(scope, d.id, (record) => {
+      record.stage = "ARCHIVED";
+    });
+    await expect(service.pdf(scope, d.id)).rejects.toThrow("NOT_FOUND");
   });
   it("sensitive text can remain in vault but never enters long-term memory", async () =>
     within(async () => {

@@ -86,6 +86,7 @@ export function documentTools(
                   cleaned: await cleanDocumentImage(
                     await service.assets.read(scope, p.original),
                     (await service.store.settings(scope)).autoClean,
+                    p.edit,
                   ),
                 }
               : name === "document.ocr"

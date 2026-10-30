@@ -54,7 +54,7 @@ export class DocumentStore {
   }
   async list(s: DocumentScope, q: string, collection?: string) {
     const r = await this.database.pool.query<{ record: unknown }>(
-      `SELECT record FROM athena_documents WHERE owner_id=$1 AND company_id=$2 AND record->>'stage'<>'ARCHIVED' AND ($4::text IS NULL OR record->>'collection'=$4) AND ($3='' OR concat_ws(' ',record->>'title',record->>'summary',(record->'tags')::text,(record->'pages')::text) ILIKE '%'||$3||'%') ORDER BY record->>'updatedAt' DESC LIMIT 100`,
+      `SELECT record FROM athena_documents WHERE owner_id=$1 AND company_id=$2 AND record->>'stage'<>'ARCHIVED' AND ($4::text IS NULL OR record->>'collection'=$4) AND ($3='' OR concat_ws(' ',record->>'title',record->>'summary',(record->'tags')::text,(SELECT string_agg(page->'ocr'->>'text',' ') FROM jsonb_array_elements(record->'pages') AS page)) ILIKE '%'||$3||'%') ORDER BY record->>'updatedAt' DESC LIMIT 100`,
       [s.ownerId, s.companyId, q.replace(/[%_\\]/g, "\\$&"), collection ?? null],
     );
     return r.rows.map((r) => DocumentRecordSchema.parse(r.record));

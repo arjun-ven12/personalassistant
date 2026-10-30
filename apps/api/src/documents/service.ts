@@ -16,6 +16,7 @@ import { companyScope } from "../companies/scope.js";
 import type { DocumentStore } from "./store.js";
 import type { PrivateDocumentAssets } from "./assets.js";
 import { validateDocumentImage } from "./providers.js";
+import { searchableDocumentPdf } from "./pdf.js";
 import { sensitiveDocument } from "./privacy.js";
 export const sha = (bytes: Buffer | string) =>
   createHash("sha256").update(bytes).digest("hex");
@@ -104,6 +105,9 @@ export class DocumentService {
           if (
             d.pages.length !== input.pageCount ||
             d.sourceType !== input.sourceType ||
+            (input.pageEdits &&
+              JSON.stringify(d.pages.map((p) => p.edit ?? { rotation: 0, crop: null })) !==
+                JSON.stringify(input.pageEdits)) ||
             d.stage === "ARCHIVED"
           )
             throw deny("DOCUMENT_IDEMPOTENCY_CONFLICT");
@@ -115,6 +119,8 @@ export class DocumentService {
         );
         if (Number(quota.rows[0]?.count) >= 100)
           throw deny("DOCUMENT_COMPANY_QUOTA", 429);
+        if (input.pageEdits && input.pageEdits.length !== input.pageCount)
+          throw deny("DOCUMENT_PAGE_EDITS_INVALID", 400);
         const d = DocumentRecordSchema.parse({
           ...s,
           id: crypto.randomUUID(),
@@ -128,6 +134,7 @@ export class DocumentService {
           stage: "UPLOADING",
           pages: Array.from({ length: input.pageCount }, (_, i) => ({
             number: i + 1,
+            edit: input.pageEdits?.[i],
             original: null,
             originalDigest: null,
             cleaned: null,
@@ -214,6 +221,23 @@ export class DocumentService {
     const ref = d.pages[page - 1]?.[kind];
     if (!ref) throw deny("DOCUMENT_ASSET_NOT_FOUND", 404);
     return this.assets.read(s, ref);
+  }
+  async pdf(s: DocumentScope, id: string) {
+    const d = await this.require(s, id);
+    if (d.stage !== "COMPLETE" || !d.pdf) throw deny("PDF_NOT_READY");
+    // Preserve the existing conservative sensitive-export policy.
+    if (
+      d.sensitive ||
+      sensitiveDocument(d.pages.map((p) => p.ocr?.text ?? "").join("\n"))
+    )
+      throw deny("DOCUMENT_EXPORT_DENIED", 403);
+    const bytes = await this.assets.read(s, d.pdf, "pdf");
+    // Recheck archival and generation changes after the asset read.
+    const current = await this.require(s, id);
+    if (current.pdf !== d.pdf || current.stage !== "COMPLETE")
+      throw deny("PDF_NOT_READY");
+    await this.event(s, id, "PDF_EXPORTED");
+    return bytes;
   }
   async linkedMemories(s: DocumentScope, id: string) {
     if (companyScope.companyId(s.ownerId) !== s.companyId)
@@ -411,6 +435,23 @@ export class DocumentService {
             ? "OFF"
             : "SUGGESTED";
       });
+      const pdfSource = await this.require(s, id);
+      try {
+        const images = await Promise.all(
+          pdfSource.pages.map((p) => this.assets.read(s, p.cleaned!)),
+        );
+        const bytes = await searchableDocumentPdf(pdfSource, images);
+        const ref = await this.assets.put(s, bytes, "pdf");
+        await update((d) => {
+          d.pdf = ref;
+          d.pdfError = null;
+        });
+      } catch {
+        await update((d) => {
+          d.pdf = null;
+          d.pdfError = "PDF_OCR_LAYOUT_OR_GENERATION_FAILED";
+        });
+      }
       const saved = await this.require(s, id);
       if (
         settings.autoMemory === "AUTO_FOR_APPROVED_CATEGORIES" &&
@@ -450,6 +491,7 @@ export class DocumentService {
       if (d.pages.some((p) => p.memoryIds.length))
         throw deny("REMOVE_MEMORIES_BEFORE_REPROCESS");
       d.stage = "FAILED";
+      d.pdf = null;
     });
   }
   async ingest(s: DocumentScope, id: string) {

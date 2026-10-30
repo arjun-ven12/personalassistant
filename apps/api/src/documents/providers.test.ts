@@ -117,6 +117,10 @@ describe("document decoder, local OCR and private asset boundaries", () => {
     const result = await new TesseractDocumentOcr().extract(printed);
     expect(result.text.toLowerCase()).toContain("gradient");
     expect(result.provider).toBe("tesseract.local");
+    expect(
+      result.layout?.words.some((w) => w.text.toLowerCase().includes("gradient")),
+    ).toBe(true);
+    expect(result.layout?.width).toBe(1000);
     expect(result.version).toContain("7.0.0");
     expect(result.confidence).toBeGreaterThan(0.65);
   }, 60000);

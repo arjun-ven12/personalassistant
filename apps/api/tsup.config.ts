@@ -1,3 +1,4 @@
+import { cp } from "node:fs/promises";
 import { defineConfig } from "tsup";
 import { fileURLToPath } from "node:url";
 
@@ -20,6 +21,9 @@ export default defineConfig({
   target: "es2022",
   bundle: true,
   clean: true,
+  async onSuccess() {
+    await cp("assets/documents", "dist/assets/documents", { recursive: true });
+  },
   outDir: "dist",
   noExternal: ["@alexa-control/config", "@alexa-control/shared"],
   // Reviewed runtime sources are copied without installing the Mac application.

@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { createWorker } from "tesseract.js";
 import type { z } from "zod";
-import { DocumentOcrSchema } from "@alexa-control/shared";
+import { DocumentOcrSchema, DocumentPageEditSchema } from "@alexa-control/shared";
 const require = createRequire(import.meta.url);
 export interface OcrProvider {
   readonly id: string;
@@ -110,7 +110,29 @@ export async function pageBounds(bytes: Buffer) {
     bottom: Math.min(1, (y1 + 4) / h),
   };
 }
-export async function cleanDocumentImage(bytes: Buffer, enabled: boolean) {
+export async function cleanDocumentImage(
+  bytes: Buffer,
+  enabled: boolean,
+  rawEdit?: unknown,
+) {
+  const edit = DocumentPageEditSchema.parse(rawEdit ?? {});
+  const source = await sharp(bytes, { limitInputPixels: 16_000_000 })
+    .rotate()
+    .toBuffer();
+  const rotated = await sharp(source).rotate(edit.rotation).toBuffer();
+  const dimensions = await sharp(rotated).metadata();
+  let prepared = sharp(rotated);
+  if (edit.crop && dimensions.width && dimensions.height) {
+    const left = Math.floor(edit.crop.left * dimensions.width),
+      top = Math.floor(edit.crop.top * dimensions.height);
+    prepared = prepared.extract({
+      left,
+      top,
+      width: Math.max(1, Math.floor(edit.crop.right * dimensions.width) - left),
+      height: Math.max(1, Math.floor(edit.crop.bottom * dimensions.height) - top),
+    });
+  }
+  bytes = await prepared.toBuffer();
   const oriented = await sharp(bytes, {
     limitInputPixels: 16_000_000,
     failOn: "warning",
@@ -118,7 +140,7 @@ export async function cleanDocumentImage(bytes: Buffer, enabled: boolean) {
     .rotate()
     .toBuffer();
   const meta = await sharp(oriented).metadata();
-  const bounds = enabled ? await pageBounds(oriented) : null;
+  const bounds = enabled && !edit.crop ? await pageBounds(oriented) : null;
   let image = sharp(oriented, { limitInputPixels: 16_000_000 });
   if (bounds && meta.width && meta.height) {
     const left = Math.floor(bounds.left * meta.width),
@@ -229,9 +251,26 @@ export class TesseractDocumentOcr implements OcrProvider {
           await worker.terminate();
           throw Error("OCR_TIMEOUT");
         }
-        const result = await worker.recognize(bytes, { rotateAuto: true });
+        const dimensions = await sharp(bytes).metadata();
+        // No hidden OCR rotation: boxes must match the retained cleaned image.
+        const result = await worker.recognize(bytes, {}, { blocks: true, text: true });
+        const words = (result.data.blocks ?? [])
+          .flatMap((b) => b.paragraphs.flatMap((p) => p.lines.flatMap((l) => l.words)))
+          .map((w) => ({
+            text: w.text,
+            left: Math.max(0, w.bbox.x0 / dimensions.width),
+            top: Math.max(0, w.bbox.y0 / dimensions.height),
+            right: Math.min(1, w.bbox.x1 / dimensions.width),
+            bottom: Math.min(1, w.bbox.y1 / dimensions.height),
+          }))
+          .filter(
+            (w) =>
+              w.text && w.text.length <= 1000 && w.right > w.left && w.bottom > w.top,
+          )
+          .slice(0, 10000);
         return DocumentOcrSchema.parse({
           text: result.data.text.slice(0, 50_000),
+          layout: { width: dimensions.width, height: dimensions.height, words },
           confidence: result.data.confidence / 100,
           language: "en",
           provider: this.id,

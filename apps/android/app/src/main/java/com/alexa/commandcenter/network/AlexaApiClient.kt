@@ -54,6 +54,7 @@ interface AlexaApiService {
   @PATCH("api/documents/{id}") suspend fun editDocument(@Path("id") id: String, @Header("X-CSRF-Token") csrf: String, @Body body: Map<String,@JvmSuppressWildcards Any>): Response<AthenaDocument>
   @HTTP(method="DELETE", path="api/documents/{id}", hasBody=true) suspend fun archiveDocument(@Path("id") id: String, @Header("X-CSRF-Token") csrf: String, @Body body: Map<String,String> = emptyMap()): Response<AthenaDocument>
   @GET("api/documents/{id}/pages/{page}/{kind}") suspend fun documentImage(@Path("id") id: String, @Path("page") page: Int, @Path("kind") kind: String): Response<ResponseBody>
+  @GET("api/documents/{id}/pdf") suspend fun documentPdf(@Path("id") id: String): Response<ResponseBody>
   @GET("api/documents/{id}/export") suspend fun documentExport(@Path("id") id: String): Response<ResponseBody>
 
   @GET("api/engineering-objectives/{id}/inputs") suspend fun engineeringInputs(@Path("id") id: String): Response<EngineeringProjectInputs>
@@ -170,6 +171,7 @@ class AlexaApiClient private constructor(
   suspend fun editDocument(id: String, csrf: String, body: Map<String,Any>) = call { service.editDocument(id, csrf, body) }
   suspend fun archiveDocument(id: String, csrf: String) = call { service.archiveDocument(id, csrf) }
   suspend fun documentImage(id: String, page: Int, kind: String) = call { service.documentImage(id, page, kind) }.mapCatching { it.use { response -> check((response.contentLength()) in 0..6291456); response.bytes() } }
+  suspend fun documentPdf(id: String) = call { service.documentPdf(id) }.mapCatching { it.use { response -> check(response.contentLength() in 1..33554432); response.bytes().also { b -> check(b.take(5).toByteArray().toString(Charsets.US_ASCII) == "%PDF-") } } }
   suspend fun documentExport(id: String) = call { service.documentExport(id) }.mapCatching { it.use { response -> check(response.contentLength() in 0..1048576); response.bytes() } }
   suspend fun csrf() = call { service.csrf() }
   suspend fun companies() = call { service.companies() }.onSuccess { activeCompanyId.set(it.currentCompany.id) }

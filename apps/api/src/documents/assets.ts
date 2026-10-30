@@ -5,8 +5,8 @@ import path from "node:path";
 import { z } from "zod";
 import type { DocumentScope } from "@alexa-control/shared";
 export interface PrivateDocumentAssets {
-  put(s: DocumentScope, bytes: Buffer): Promise<string>;
-  read(s: DocumentScope, id: string): Promise<Buffer>;
+  put(s: DocumentScope, bytes: Buffer, kind?: "image" | "pdf"): Promise<string>;
+  read(s: DocumentScope, id: string, kind?: "image" | "pdf"): Promise<Buffer>;
 }
 /** Server-owned root only; all paths derive from hashed tenant IDs and UUIDs. No public URLs. */
 export class FileDocumentAssets implements PrivateDocumentAssets {
@@ -27,8 +27,9 @@ export class FileDocumentAssets implements PrivateDocumentAssets {
     if ((await lstat(dir)).isSymbolicLink()) throw Error("ASSET_SCOPE_DENIED");
     return dir;
   }
-  async put(s: DocumentScope, bytes: Buffer) {
-    if (bytes.length > 6 * 1024 * 1024) throw Error("ASSET_QUOTA");
+  async put(s: DocumentScope, bytes: Buffer, kind: "image" | "pdf" = "image") {
+    if (bytes.length > (kind === "pdf" ? 32 : 6) * 1024 * 1024)
+      throw Error("ASSET_QUOTA");
     const dir = await this.directory(s);
     const names = await readdir(dir);
     if (names.length >= 2000) throw Error("ASSET_SCOPE_QUOTA");
@@ -57,7 +58,7 @@ export class FileDocumentAssets implements PrivateDocumentAssets {
     }
     return id;
   }
-  async read(s: DocumentScope, id: string) {
+  async read(s: DocumentScope, id: string, kind: "image" | "pdf" = "image") {
     z.string().uuid().parse(id);
     const file = await open(
       path.join(await this.directory(s), id),
@@ -65,7 +66,8 @@ export class FileDocumentAssets implements PrivateDocumentAssets {
     );
     try {
       const stat = await file.stat();
-      if (!stat.isFile() || stat.size > 6 * 1024 * 1024) throw Error("ASSET_QUOTA");
+      if (!stat.isFile() || stat.size > (kind === "pdf" ? 32 : 6) * 1024 * 1024)
+        throw Error("ASSET_QUOTA");
       return await file.readFile();
     } finally {
       await file.close();

@@ -1,14 +1,18 @@
 package com.alexa.commandcenter.model
 
-data class DocumentOcr(val text: String = "", val confidence: Double? = null, val language: String? = null, val provider: String = "", val version: String = "", val timestamp: String = "")
+data class DocumentTextBox(val text: String, val left: Double, val top: Double, val right: Double, val bottom: Double)
+data class DocumentLayout(val width: Int, val height: Int, val words: List<DocumentTextBox>)
+data class DocumentCrop(val left: Double, val top: Double, val right: Double, val bottom: Double)
+data class DocumentPageEdit(val rotation: Int = 0, val crop: DocumentCrop? = null)
+data class DocumentOcr(val text: String = "", val confidence: Double? = null, val language: String? = null, val provider: String = "", val version: String = "", val timestamp: String = "", val layout: DocumentLayout? = null)
 data class DocumentPage(val number: Int, val original: String? = null, val cleaned: String? = null, val thumbnail: String? = null, val ocr: DocumentOcr? = null, val ocrStatus: String = "PENDING", val warnings: List<String> = emptyList(), val memoryIds: List<String> = emptyList())
 data class DocumentUnderstanding(val version: String = "", val dates: List<String> = emptyList(), val entities: List<String> = emptyList(), val actionItems: List<String> = emptyList(), val memoryCandidate: Boolean = false, val ownerReviewRequired: Boolean = true)
-data class AthenaDocument(val id: String, val ownerId: String, val companyId: String, val title: String, val documentType: String, val collection: String, val stage: String, val pages: List<DocumentPage>, val understanding: DocumentUnderstanding? = null, val summary: String = "", val tags: List<String> = emptyList(), val memoryStatus: String = "OFF", val sensitive: Boolean = false, val neverMemory: Boolean = false, val errorCode: String? = null, val createdAt: String = "")
+data class AthenaDocument(val id: String, val ownerId: String, val companyId: String, val title: String, val documentType: String, val collection: String, val stage: String, val pages: List<DocumentPage>, val understanding: DocumentUnderstanding? = null, val summary: String = "", val tags: List<String> = emptyList(), val memoryStatus: String = "OFF", val sensitive: Boolean = false, val neverMemory: Boolean = false, val errorCode: String? = null, val createdAt: String = "", val pdf: String? = null, val pdfError: String? = null)
 data class DocumentMemory(val id: String, val title: String, val summary: String, val page: Int)
 data class DocumentMemories(val documentId: String, val memories: List<DocumentMemory>)
 data class DocumentList(val documents: List<AthenaDocument>)
 data class DocumentSettings(val autoClean: Boolean = true, val autoOcr: Boolean = true, val autoMemory: String = "SUGGEST", val approvedCategories: List<String> = emptyList())
-data class DocumentCreate(val idempotencyKey: String, val sourceType: String, val pageCount: Int)
+data class DocumentCreate(val idempotencyKey: String, val sourceType: String, val pageCount: Int, val pageEdits: List<DocumentPageEdit>? = null)
 data class DocumentGrant(val documentId: String, val page: Int, val token: String, val expiresAt: String)
 data class DocumentUpload(val token: String, val mimeType: String, val base64: String)
 object DocumentSafety {

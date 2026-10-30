@@ -145,6 +145,23 @@ export function registerDocumentRoutes(
       if (d.stage === "ARCHIVED")
         throw Object.assign(Error("Archived document"), { statusCode: 409 });
       Object.assign(d, edit);
+      if ((edit.title || edit.tags) && d.stage === "COMPLETE") {
+        try {
+          const { searchableDocumentPdf } = await import("../documents/pdf.js");
+          const images = await Promise.all(
+            d.pages.map((p) => runtime().assets.read(scope(r), p.cleaned!)),
+          );
+          d.pdf = await runtime().assets.put(
+            scope(r),
+            await searchableDocumentPdf(d, images),
+            "pdf",
+          );
+          d.pdfError = null;
+        } catch {
+          d.pdf = null;
+          d.pdfError = "PDF_OCR_LAYOUT_OR_GENERATION_FAILED";
+        }
+      }
       await runtime().event(scope(r), id, "METADATA_UPDATED");
     });
     return runtime().require(scope(r), id);
@@ -201,6 +218,15 @@ export function registerDocumentRoutes(
   app.delete("/api/documents/:id", { preHandler: mutate }, (r) =>
     runtime().exclude(scope(r), Params.parse(r.params).id, true, true),
   );
+  app.get("/api/documents/:id/pdf", { preHandler: read }, async (r, reply) => {
+    const { id } = Params.parse(r.params);
+    return reply
+      .header("Cache-Control", "private, no-store")
+      .header("X-Content-Type-Options", "nosniff")
+      .header("Content-Disposition", `attachment; filename="athena-${id}.pdf"`)
+      .type("application/pdf")
+      .send(await runtime().pdf(scope(r), id));
+  });
   app.get("/api/documents/:id/export", { preHandler: read }, async (r, reply) => {
     const { id } = Params.parse(r.params);
     const d = await runtime().require(scope(r), id);
