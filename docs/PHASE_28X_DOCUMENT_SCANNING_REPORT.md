@@ -1,6 +1,6 @@
 # Athena Android document scanning and searchable PDF
 
-Updated 2026-10-30. Status: **CONDITIONALLY COMPLETE — real-phone acceptance and backend deployment outstanding.**
+Updated 2026-11-01. Status: **BACKEND DEPLOYED — real-phone owner acceptance outstanding.**
 
 ## IMPLEMENTED
 
@@ -98,6 +98,34 @@ fixture OCR are identified explicitly; they are not phone acceptance evidence.
   were selected for this change. Existing unrelated workspace edits are excluded
   from the release source commit.
 
+## Hosted deployment — 2026-11-01
+
+Deployment `3c9bbd90-7591-4666-bafa-ed96eb9a02ec` reports SUCCESS on the existing
+API service. Source `21ed805f65c0c2e7fd2c517f097ae1e6e9e70a91` was uploaded from
+an isolated git archive. Unrelated marketing/web edits were checked against the
+previous production revision and excluded; the frontend was not deployed.
+
+The existing migration pre-deploy command and `/app/api/.local` volume mount are
+preserved. Production reports 121 applied ledger entries, no pending migrations,
+no integrity issues. No new SQL migration is introduced. Production configuration
+validation passed. Startup now prepares only the fixed private document asset
+directory through the existing container entrypoint pattern, then verifies its
+owner/mode, write/read/fsync and probe cleanup as the unprivileged API account.
+The new deployment emitted the successful storage-verification message.
+
+Hosted health/readiness return 200; unauthenticated document-list/PDF requests
+return 401. Authenticated owner upload, search, PDF download and persistence across
+a later restart have NOT been exercised on this production deployment. Provider
+approval was not changed. Existing SSH keys and secrets were not changed.
+New PDF JSON fields require a schema-compatible rollback; do not blindly revert
+to an older strict document schema after new records have been written.
+
+Additional deployment-fix validation: 12 document/PDF/OCR/storage tests and 11
+browser-security/Reader configuration tests passed; API typecheck, targeted lint,
+build and shell syntax validation passed. Dependency audit reports the existing
+10 non-PDF dependency advisories; none is in the added PDF dependencies. These
+unrelated dependencies were not changed in this bounded deployment.
+
 ## LIVE VERIFIED
 
 No real-phone acceptance is claimed. No Android device/emulator was connected.
@@ -107,14 +135,15 @@ tests. These are local runtime results, not camera or external-viewer acceptance
 
 ## NOT VERIFIED
 
-Production deployment/provider activation, production private-volume durability,
+Owner-scoped provider activation, production restart persistence of a new scan,
 Android camera/picker permission behavior, native ML Kit recognition quality,
 connectivity loss during upload, and external-viewer search/select/copy on a phone
 remain unverified. The APK is a debug-signed Android 12+ preview, not a
 production-signing release. The existing HTTPS API/origin configuration is reused.
-The updated backend must be deployed before synced page edits and PDF downloads
-work. This APK release does not deploy or migrate the backend. Offline PDF
-creation/export does not require that deployment.
+The backend is deployed on the existing Railway API service and is compatible
+with the published APK. The owner must review/enable the finite local scanning
+provider for the intended company if not already enabled. Offline PDF
+creation/export remains available separately from explicit upload.
 
 ## LIMITATIONS
 

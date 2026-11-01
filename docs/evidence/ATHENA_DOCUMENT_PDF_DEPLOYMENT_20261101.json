@@ -1,0 +1,48 @@
+{
+  "recordedDate": "2026-11-01",
+  "status": "DEPLOYED_AND_PUBLIC_READINESS_VERIFIED",
+  "sourceCommit": "21ed805f65c0c2e7fd2c517f097ae1e6e9e70a91",
+  "serviceId": "b258a862-9a6e-4356-89ae-7a1d6eacbeee",
+  "deploymentId": "3c9bbd90-7591-4666-bafa-ed96eb9a02ec",
+  "imageDigest": "sha256:9cede31192fb5a686924b337ad881dbdb6c031d47d9893bdbc507dfb0b49c5a3",
+  "origin": "https://personalassistant-production-269b.up.railway.app",
+  "isolatedCommittedSource": true,
+  "unrelatedChangesIncluded": false,
+  "frontendDeployed": false,
+  "preDeployCommand": [
+    "node dist/database.js deploy"
+  ],
+  "migrationState": "current",
+  "appliedLedgerEntries": 121,
+  "pendingMigrations": [],
+  "migrationIssues": [],
+  "volumeMount": "/app/api/.local",
+  "privateStorageWriteReadFsyncVerified": true,
+  "storageVerificationLogAt": "2026-11-01T04:55:20.227586872Z",
+  "http": {
+    "health": 200,
+    "ready": 200,
+    "unauthenticatedDocumentList": 401,
+    "unauthenticatedPdf": 401
+  },
+  "productionConfigurationValidation": "PASS",
+  "tests": {
+    "documentPdfOcrStorage": 12,
+    "browserSecurityAndReaderConfig": 11,
+    "earlierPostgresDocuments": 11
+  },
+  "apiTypecheck": "PASS",
+  "targetedLint": "PASS",
+  "apiBuild": "PASS",
+  "entrypointShellSyntax": "PASS",
+  "providerApprovalChanged": false,
+  "sshKeysChanged": false,
+  "authenticatedOwnerSaveSearchPdfVerified": false,
+  "newScanRestartPersistenceVerified": false,
+  "limitations": [
+    "Owner/company provider review must remain explicit.",
+    "Real phone upload/search/export acceptance remains outstanding.",
+    "Existing non-PDF dependency advisories remain unchanged.",
+    "Rollback after new JSON fields are persisted requires a compatible document schema."
+  ]
+}
