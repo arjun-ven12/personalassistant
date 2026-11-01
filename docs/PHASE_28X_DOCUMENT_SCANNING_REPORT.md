@@ -93,10 +93,46 @@ fixture OCR are identified explicitly; they are not phone acceptance evidence.
   app and **FAILS on three pre-existing no-empty-object-type errors** in the
   unrelated untracked apps/web/src/three-jsx.d.ts. The existing fast-refresh
   warning remains. That file is untouched and excluded from the source commit.
-- Android lint and assembleDebug: **PASS**; 0 lint errors (63 warnings). APK signature verification passes; package com.alexa.commandcenter.debug, version 0.1.1-debug (code 2), minimum Android 12.
+- Android lint and assembleDebug: **PASS**; 0 lint errors (63 warnings). APK signature verification passes; package com.alexa.commandcenter.debug, version 0.1.2-debug (code 3), minimum Android 12.
 - Whole-repository test suite was not rerun; focused affected-area tests above
   were selected for this change. Existing unrelated workspace edits are excluded
   from the release source commit.
+
+## Android scan experience — 0.1.2
+
+The Android flow now separates the document library, capture/import sheet, focused
+page review, name/save destination, PDF result and saved-document detail. Review
+uses a large page preview, numbered thumbnail strip, accessible reorder arrows,
+rotate/crop toolbar and a page menu for retake, replace and confirmed removal.
+The crop editor has draggable normalized corners plus labelled precise sliders;
+originals remain unchanged. Primary actions stay at the bottom above the keyboard.
+
+Phone-only PDF is the default save destination. Athena upload remains a separate
+explicit choice. Real per-page OCR/upload progress and server stages replace raw
+status codes. Work can be paused on the phone; the UI explains that already
+accepted server work may continue. Sealed upload drafts preserve retries, and
+can still create a phone PDF. Retry and export actions retain their intended
+canonical document/draft, including when navigating during an asynchronous task.
+No provider is automatically enabled. Provider review, cloud settings, memory,
+retention and JSON export move outside the main capture path.
+
+Library search debounces input and cancels stale results. Empty/offline states,
+collection filters and resumable drafts are visible. Saved documents separate
+Pages, selectable/searchable Text and Details. Text matches link to their page;
+PDF open/share/save are prominent. Archive is labelled honestly. Preview cleanup
+and decoding run off the UI thread, with bounded concurrency and display memory.
+Cancelled captures clean only their generated temporary capture file.
+
+Validation: 45 Android tests pass (existing PDF/privacy tests, four finite UI-state
+and bounds tests, seven Compose interaction/render checks). Android lint, APK build
+and instrumentation-test APK compilation pass. Native Robolectric renders at
+360 × 800 were inspected using synthetic content; this is not device acceptance.
+Repository typecheck and build pass. Full lint still fails only on the unrelated
+pre-existing web typings errors described below; those files remain untouched.
+No backend/API/schema or Android permission changes are part of this UI update.
+The OCR change adds only an optional progress callback. Physical camera, crop touch
+feel, accessibility services, large-font/landscape behavior and owner upload/search
+still need real-device acceptance. The published APK remains a debug preview.
 
 ## Hosted deployment — 2026-11-01
 

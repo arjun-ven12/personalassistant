@@ -24,14 +24,30 @@ inbox refreshes normally in the foreground.
 
 ## Document scans and searchable PDF preview
 
-In Athena → Documents, capture/import up to five JPEG/PNG pages. Review pages,
-reorder, rotate, remove, replace/rescan, or adjust rectangular crop bounds.
-Originals are retained; restore full page to undo cropping. Enter title and tags,
-then choose **OCR and save PDF offline**. The bundled Latin ML Kit engine runs
-on-device and the PDF embeds cleaned page images plus invisible Unicode OCR text.
-Every page needs text/layout; blank or unsupported pages fail rather than produce
-an image-only PDF labelled searchable. Search the saved draft, open the PDF in an
-installed viewer, share a read-only content URI, or export using the system picker.
+In Athena → Documents, choose **Scan a document**, then take a photo or import
+JPEG/PNG images. The focused review screen shows one page at a time with a
+numbered thumbnail strip. Rotate, visually crop, move earlier/later, or use the
+page menu to retake, replace or remove a page. Crop corners are draggable, with
+labelled sliders available for precise and accessible adjustment. Originals stay
+untouched. Continue to **Name & save**, enter a name/tags, and explicitly choose
+**On this phone** (offline PDF) or **In Athena** (private upload and indexing).
+
+The result screen offers Open PDF, Share PDF and Save to files. A phone-only PDF
+can be uploaded to Athena later. Saving/uploading shows actual page progress and
+server stages, with pause/resume and distinct recoverable errors. Pausing on the
+phone does not cancel processing already accepted by Athena. Uploaded draft pages
+remain locked for safe retry. Successful server saving is only reported after
+Athena confirms a stored PDF. Failed generation keeps the original pages.
+
+Library search runs after typing, with collection filters and clear empty/offline
+states. Saved documents have separate Pages / Text / Details views, within-document
+search, direct links from text matches to their page, and original comparison.
+Memory, retention, provider review and cloud-processing settings are kept outside
+the capture flow. Enabling a provider still requires its explicit review dialog.
+
+Bundled Latin ML Kit OCR runs on-device for phone PDFs. Every page needs usable
+text/layout; blank or unsupported pages do not become an image-only PDF labelled
+searchable. Sharing uses read-only content URIs; export uses the system picker.
 One company-scoped offline draft is supported at a time and survives app restart.
 
 **Upload to Athena** is a separate explicit network action. It uses the existing

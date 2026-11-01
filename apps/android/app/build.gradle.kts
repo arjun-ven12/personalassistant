@@ -29,8 +29,8 @@ android {
     applicationId = "com.alexa.commandcenter"
     minSdk = 31
     targetSdk = 35
-    versionCode = 2
-    versionName = "0.1.1"
+    versionCode = 3
+    versionName = "0.1.2"
     buildConfigField("String", "FCM_PROJECT_ID", "\"$fcmProjectId\"")
     buildConfigField("String", "FCM_APPLICATION_ID", "\"$fcmApplicationId\"")
     buildConfigField("String", "FCM_API_KEY", "\"$fcmApiKey\"")
@@ -106,6 +106,8 @@ dependencies {
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.firebase.messaging)
 
+  testImplementation(platform(libs.compose.bom))
+  testImplementation(libs.compose.ui.test.junit4)
   testImplementation(libs.junit)
   androidTestImplementation(libs.androidx.test.ext.junit)
   androidTestImplementation(libs.androidx.test.espresso)

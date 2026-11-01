@@ -23,7 +23,7 @@ data class LocalScanResult(val pages: List<DocumentOcr>, val title: String, val 
 
 /** Bundled Latin OCR; called only by explicit owner action. No network or model calls. */
 class LocalDocumentProcessor(private val context: Context) {
- suspend fun process(store: PendingScanStore, scan: PendingScan): LocalScanResult {
+ suspend fun process(store: PendingScanStore, scan: PendingScan, onProgress: suspend (Int, Int) -> Unit = { _, _ -> }): LocalScanResult {
   val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
   try {
    val pages = scan.files.indices.map { i ->
@@ -38,7 +38,7 @@ class LocalDocumentProcessor(private val context: Context) {
       }
      }.filter { it.right > it.left && it.bottom > it.top }.take(10000)
      store.saveCleaned(scan, i, bytes)
-     DocumentOcr(text = text.text.take(50000), language = "en", provider = "mlkit.bundled.latin", version = "16.0.1", timestamp = java.time.Instant.now().toString(), layout = DocumentLayout(bitmap.width, bitmap.height, boxes))
+     DocumentOcr(text = text.text.take(50000), language = "en", provider = "mlkit.bundled.latin", version = "16.0.1", timestamp = java.time.Instant.now().toString(), layout = DocumentLayout(bitmap.width, bitmap.height, boxes)).also { onProgress(i + 1, scan.files.size) }
     } finally { bitmap.recycle() }
    }
    val result = LocalScanResult(pages, scan.title, scan.tags)

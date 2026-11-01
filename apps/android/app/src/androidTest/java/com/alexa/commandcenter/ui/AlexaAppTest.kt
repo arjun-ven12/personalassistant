@@ -121,8 +121,8 @@ class AlexaAppTest {
     composeRule.setContent { shell() }
     composeRule.onNodeWithText("Athena").performClick()
     composeRule.onNodeWithText("Scan / Documents").performClick()
-    composeRule.onNodeWithText("Select a company before scanning documents.").assertIsDisplayed()
-    composeRule.onNodeWithText("Back to Athena").performClick()
+    composeRule.onNodeWithText("Choose a company first").assertIsDisplayed()
+    composeRule.onNodeWithContentDescription("Back").performClick()
     composeRule.onNodeWithText("Scan / Documents").assertIsDisplayed()
   }
 
