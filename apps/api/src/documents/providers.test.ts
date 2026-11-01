@@ -9,7 +9,7 @@ import {
 } from "./providers.js";
 import { classifyDocument, sensitiveDocument } from "./privacy.js";
 import { FileDocumentAssets } from "./assets.js";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, chmod, symlink, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 const image = () =>
@@ -150,6 +150,25 @@ describe("document decoder, local OCR and private asset boundaries", () => {
     expect(
       classifyDocument("password: fixture-only").understanding.memoryCandidate,
     ).toBe(false);
+  });
+  it("startup storage probe verifies private writable storage, cleans its fixture, and denies public or symlink roots", async () => {
+    const root = await mkdtemp(join(tmpdir(), "document-storage-probe-"));
+    const linked = root + "-link";
+    try {
+      const store = new FileDocumentAssets(root);
+      await store.verifyPrivateStorage();
+      expect(await readdir(root)).toEqual([]);
+      await chmod(root, 0o755);
+      await expect(store.verifyPrivateStorage()).rejects.toThrow("STORAGE_DENIED");
+      await chmod(root, 0o700);
+      await symlink(root, linked);
+      await expect(
+        new FileDocumentAssets(linked).verifyPrivateStorage(),
+      ).rejects.toThrow();
+    } finally {
+      await rm(linked, { force: true });
+      await rm(root, { recursive: true, force: true });
+    }
   });
   it("opaque tenant asset reads cannot cross company or accept traversal/symlink paths", async () => {
     const root = await mkdtemp(join(tmpdir(), "document-assets-"));

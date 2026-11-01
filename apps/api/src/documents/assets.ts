@@ -1,5 +1,13 @@
 import { createHash } from "node:crypto";
-import { mkdir, open, lstat, realpath, readdir, statfs } from "node:fs/promises";
+import {
+  mkdir,
+  open,
+  lstat,
+  realpath,
+  readdir,
+  statfs,
+  unlink,
+} from "node:fs/promises";
 import { constants } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
@@ -11,6 +19,36 @@ export interface PrivateDocumentAssets {
 /** Server-owned root only; all paths derive from hashed tenant IDs and UUIDs. No public URLs. */
 export class FileDocumentAssets implements PrivateDocumentAssets {
   constructor(readonly root = path.resolve(".local/document-assets")) {}
+  /** Fixed startup probe contains no user content and is removed after verification. */
+  async verifyPrivateStorage() {
+    await mkdir(this.root, { recursive: true, mode: 0o700 });
+    const stat = await lstat(this.root);
+    if (
+      !stat.isDirectory() ||
+      stat.isSymbolicLink() ||
+      (stat.mode & 0o077) !== 0 ||
+      (process.getuid && stat.uid !== process.getuid())
+    )
+      throw Error("DOCUMENT_PRIVATE_STORAGE_DENIED");
+    const filename = path.join(this.root, `.readiness-${crypto.randomUUID()}`);
+    const probe = Buffer.from("athena-document-storage-probe-v1");
+    const file = await open(
+      filename,
+      constants.O_CREAT | constants.O_EXCL | constants.O_RDWR | constants.O_NOFOLLOW,
+      0o600,
+    );
+    try {
+      await file.writeFile(probe);
+      await file.sync();
+      const check = Buffer.alloc(probe.length);
+      const read = await file.read(check, 0, check.length, 0);
+      if (read.bytesRead !== probe.length || !check.equals(probe))
+        throw Error("DOCUMENT_PRIVATE_STORAGE_UNVERIFIED");
+    } finally {
+      await file.close();
+      await unlink(filename);
+    }
+  }
   private async directory(s: DocumentScope) {
     z.string().uuid().parse(s.ownerId);
     z.string().uuid().parse(s.companyId);

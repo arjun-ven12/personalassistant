@@ -2817,10 +2817,15 @@ export const buildApi = async ({
     governanceAudit,
     async () => (await governanceStore.getSecurityState()).emergencyStopActive,
   );
+  const documentAssets = new FileDocumentAssets();
+  if (database && nodeEnvironment === "production") {
+    await documentAssets.verifyPrivateStorage();
+    app.log.info("Document private asset storage verified");
+  }
   const documentService = database
     ? new DocumentService(
         new DocumentStore(database),
-        new FileDocumentAssets(),
+        documentAssets,
         memory,
         governanceAudit,
       )
