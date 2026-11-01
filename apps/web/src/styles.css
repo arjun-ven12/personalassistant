@@ -1893,6 +1893,7 @@ kbd {
 
 .content {
   grid-area: content;
+  min-width: 0;
   overflow-y: auto;
   padding: 24px;
   scroll-behavior: smooth;
@@ -3895,9 +3896,15 @@ pre {
       "topbar" auto
       "sidebar" auto
       "content" auto
-      "telemetry" auto / 1fr;
+      "telemetry" auto / minmax(0, 1fr);
     min-height: 100vh;
     height: auto;
+  }
+
+  .topbar,
+  .sidebar,
+  .telemetry-bar {
+    min-width: 0;
   }
 
   .topbar {
@@ -11697,7 +11704,7 @@ pre {
 @media (max-width: 980px) {
   .marketing-workspace,
   .marketing-lower-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .marketing-summary {
     grid-template-columns: repeat(2, 1fr);

@@ -5,8 +5,8 @@ import {
 } from "@alexa-control/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { PostgresDatabase } from "../persistence/database.js";
-import { safeTestDatabaseUrl } from "../persistence/test-database.js";
+import type { PostgresDatabase } from "../persistence/database.js";
+import { createIsolatedTestDatabase, safeTestDatabaseUrl } from "../persistence/test-database.js";
 import { PostgresCompanyDataStore } from "./postgres-store.js";
 import { PostgresMemoryStore } from "../memory/postgres-store.js";
 import { companyScope } from "../companies/scope.js";
@@ -16,26 +16,17 @@ const connectionString = safeTestDatabaseUrl();
 describe.skipIf(!connectionString)(
   "Phase 25.4 PostgreSQL company data isolation",
   () => {
-    let administration: PostgresDatabase;
+    let cleanup: (() => Promise<void>) | undefined;
     let database: PostgresDatabase;
     let store: PostgresCompanyDataStore;
-    let schema: string;
+
     const ownerId = crypto.randomUUID();
     const nova = crypto.randomUUID();
     const atlas = crypto.randomUUID();
     const at = "2026-09-01T00:00:00.000Z";
 
     beforeAll(async () => {
-      administration = new PostgresDatabase(connectionString!);
-      schema = `phase254_${crypto.randomUUID().replaceAll("-", "")}`;
-      await administration.pool.query(`CREATE SCHEMA "${schema}"`);
-      const isolated = new URL(connectionString!);
-      isolated.hostname = isolated.hostname.replace("-pooler.", ".");
-      if (isolated.searchParams.get("sslmode") !== "disable")
-        isolated.searchParams.set("sslmode", "verify-full");
-      isolated.searchParams.set("options", `-c search_path=${schema}`);
-      database = new PostgresDatabase(isolated.toString());
-      await database.migrate();
+      ({ database, cleanup } = await createIsolatedTestDatabase(connectionString!, "phase254"));
       await database.pool.query(
         "INSERT INTO owners(id,email,password_hash,record,created_at,updated_at) VALUES($1,$2,'test-only',$3,$4,$4)",
         [ownerId, `phase254-${ownerId}@example.test`, { id: ownerId }, at],
@@ -53,11 +44,7 @@ describe.skipIf(!connectionString)(
     }, 60_000);
 
     afterAll(async () => {
-      await database?.close();
-      if (administration && schema) {
-        await administration.pool.query(`DROP SCHEMA "${schema}" CASCADE`);
-        await administration.close();
-      }
+      await cleanup?.();
     });
 
     it("persists company-scoped catalog data and filters vector candidates before ranking", async () => {

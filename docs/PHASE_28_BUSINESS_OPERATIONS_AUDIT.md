@@ -5,6 +5,16 @@ Audit began 2026-10-19. One real market-research campaign reached PACKAGE_READY 
 Fixtures, passing unit tests and configured credentials are not live acceptance.
 Prior Phase 28.4/28.5 conditional verdicts remain conditional.
 
+## Current continuation — 2026-11-01
+
+The expired-review renewal repair is in committed source but was absent from the separately staged PDF API deployment snapshot; a new reviewed rollout is required. Hosted resume still reaches BLOCKED with the same saved social artifact. No approval was bypassed.
+
+Current validation exposed two infrastructure defects: schema-only fixtures collide with the deliberately fixed secure_reader migration namespace, and Vitest discovers duplicated source in private deployment snapshots. Full-migration fixtures now use fresh named test databases on the exact registered test target; nine older fixtures share the same helper. Only generated fixture databases are cleaned up. Migration 0119 and production schema collision denial remain unchanged. Private .local/.cache copies are excluded from discovery, while all canonical source tests remain included. This test role needs CREATE DATABASE only in the isolated test cluster; no production/IAM permission was added.
+
+A complete serial run reached 1,602 passes, one failure and 13 intentional skips. The failure was an already-active economics fixture using host-now as its activation instant, racing PostgreSQL NOW; the fixture now starts one minute earlier. The unchanged production future-policy denial remains in place. Focused economics rerun: 11 tests PASS; focused PostgreSQL/review set: 21 tests PASS. Final clean full-suite and build gates remain pending at this checkpoint.
+
+Growth final records are retained in docs/evidence/PHASE_28_LIVE_GROWTH_20261101.json: BLOCKED v12, three attempts, zero artifacts, 110,430 tokens, USD 0.17100900 known model cost. Search cost and detailed final handler cause remain UNKNOWN. Do not reset the exhausted retry cap.
+
 ## Current continuation — 2026-10-30
 
 Historical checkpoints below retain their original observations. Current source was
@@ -820,3 +830,62 @@ API `01aa9391-2aab-4c9c-98e0-e178bc73e2a8` FAILED with no associated build; only
 then retried. New API `3d4efce2-3bc9-4b86-8cba-660e63cd0637` BUILDING; web
 `d228ae8a-9ba3-47d8-948d-40e494afb016` SUCCESS. Do not run recovery until the
 new API succeeds. Prior successful API still serves. No duplicate web deployment.
+
+### 2026-11-01 successful repair release and social review
+
+API `1d24e4dd-2f8c-4afe-b6f7-194daf8c6f7b` and web
+`7bc555c3-0adb-49e6-a779-ec7526deb899` SUCCESS. Health 200; unauthenticated
+session/campaign reads 401. Current production migration preflight: 121 entries,
+current, no pending migrations. Typecheck PASS; lint PASS with one existing warning;
+full serial suite 265 files / 1,603 tests PASS, 5 files / 13 tests skipped, 228.25s.
+Separate explicitly gated synthetic Reader integration: 9/9 PASS. Four live-provider
+skips remain unverified. Workspace build PASS with existing bundle warnings.
+Sixteen generated outputs archived and restored by pre-build hashes; diff check PASS.
+No Android source changed in this continuation; earlier Android changes are retained.
+
+Live renewal verified: same social artifact/version/digest, fresh approval
+`43f731e3-2698-4c14-9e74-587bc5727343`, same canonical action digest. Applied
+the owner's existing exact approval through Approvals UI; artifact APPROVED.
+Calendar generated and persisted through real Luna call
+`65c2b936-3abf-4bf1-a259-e70f4c51a80e`: 7,092 tokens, USD 0.01368900, 9.712s.
+Calendar artifact `56308ad7-9036-4eb8-9fb7-6670b81eda86` v1, digest
+`86d0455767a556f6630f212e96fa7e8fdaaa9024c8a9abb3a5232bcbcda9c01a`; exact
+owner review requested, not yet approved. Seven WEB drafts, UTC, days 0–12;
+publishing false and all entries require approval. Social total: 19,782 tokens,
+USD 0.02922300 known model cost; package not complete. Full review copy:
+`docs/evidence/PHASE_28_SOCIAL_CALENDAR_OWNER_REVIEW_20261101.md`.
+
+Phone-width observation confirmed artifact columns stack after the first release,
+but app-shell grid auto minimum still overflows at 394px. Follow-up CSS adds
+content min-width:0 and minmax(0,1fr) mobile campaign grids; web build PASS.
+Follow-up web deployment/visual verification pending. Browser control became
+disabled in Work settings; enabling requested. Do not claim visual pass or complete
+calendar/package while that checkpoint is pending. No publication, secrets, IAM,
+runtime permissions or preview activated. Overall verdict remains
+BUSINESS_OPERATIONS_NOT_READY — IMPLEMENTATION DEFECTS REMAIN.
+
+Responsive follow-up web `0ec2b6f4-b7c7-4eb4-90a6-24b64259c77c` SUCCESS. Visual verification remains pending browser availability.
+
+### 2026-11-01 social package LIVE VERIFIED (internal drafts only)
+
+Owner explicitly approved exact calendar v1/digest 86d0455767a556f6630f212e96fa7e8fdaaa9024c8a9abb3a5232bcbcda9c01a. Applied via authenticated Approvals UI; request f95720a0-62a1-4824-ac3a-787e29aa056a matched canonical digest be5fe1a7b076513388f7fbcde2c5520f4c9f09d46eac3163f75af917328245dd. Both social post and calendar now APPROVED. Campaign c8a34f70-c50a-4741-a85a-50bbe204add5 reached PACKAGE_READY v18, 2026-11-01T10:06:57.303Z, 100%, zero pending approvals. Package artifact 16fbaf91-5b02-442d-a77e-f21b2eb0b21b, digest a92085e351b1fad732826ce12be7c692d12321237c6978b0e451e1f4f4b583b5. No additional model call to package: still three settled Luna calls, 19,782 tokens, USD 0.02922300. Review finalization to package: 30.004 seconds, excluding owner waiting. No publication authorized or performed. A concurrent pause attempt was rejected after package completion; refreshed UI and durable records confirm package ready, not paused.
+
+Final shell CSS web deployment 6b17d788-9c89-4888-81a3-9614aa26cff1 SUCCESS. Web build/typecheck and diff check PASS. Real browser at 394px: content x0–394, artifact inspector x55–339; phone-width containment PASS. Final screenshot docs/evidence/PHASE_28_SOCIAL_PACKAGE_COMPLETE_20261101.png. This is browser responsive verification, not physical Android acceptance. Previous browser-disabled/pending-calendar checkpoints are superseded.
+
+Remaining full-audit work: diagnose retained launch/growth research failure evidence without resetting three-attempt caps; exercise primary multi-department scenario; close actual creative-provider implementation/readiness and campaign budget findings; finish GA4, trusted worker/AMI/HTTPS and physical Android live prerequisites. Full business readiness is still NOT_READY; social draft package acceptance does not imply those paths passed.
+
+## 2026-11-01 cross-subsystem verification and dependency security repair
+
+Owner requested testing across Athena. Report: docs/ATHENA_SYSTEM_VERIFICATION_20261101.md; machine evidence docs/evidence/ATHENA_SYSTEM_VERIFICATION_20261101.json. Fresh Android forced rerun: 45 tests / 17 suites PASS, no skips. assembleDebug and assembleDebugAndroidTest PASS; lintDebug zero errors / 63 warnings. No connected adb device; physical camera/biometric/navigation acceptance NOT RUN.
+
+Repository security invariants PASS. Authenticated read-only tour of 20 hosted screens: no page crashes; Engineering exposes DEVICE OFFLINE on an existing task, Skills reuses Executive panels/heading (UI organization issue). This is rendering evidence, not end-to-end execution. Unauthenticated GETs to 10 canonical owner APIs deny with 401; public health 200.
+
+Dependency audit found 10 production advisories (one high Zod issue, four moderate, five low). Updated only affected package minimums/overrides: lockfile Zod 4.6.7, Fastify 5.12.7, fast-uri 3.1.9/4.2.3. Post-update audit zero known advisories. All workspace typechecks PASS; lint PASS with existing Fast Refresh warning; full serial suite 266 files / 1,612 tests PASS, four real-provider tests skipped, 221.28s. Reader tests explicitly enabled against a separate local fixture database and included in that count. Workspace build PASS; 16 generated outputs restored by hashes; diff check PASS. Existing reviewed research-tool schema digest unchanged (02c35661a266a30216794295a6bb38c1740da3e382f6118bbed88c67c0a3d75d). No governance or IAM weakening. Production migration preflight current, 121 entries, no pending. API/web security deployment in progress; reconcile statuses before claiming completion.
+
+Local disk briefly fell to 158 MiB during memory pressure. Stopped heavy processes; macOS reclaimed space; completed validation sequentially. No user files or preserved databases deleted. Docker used only for isolated local tests, never as cloud acceptance evidence.
+
+Remaining: real provider/GA4/creative access and actual governed calls; trusted EC2 image/worker plus phone-only Engineering; deferred HTTPS preview; real AthenaCoder benchmark; physical Android hardware checks; multi-department objective acceptance; retained launch/growth failures with cap intact. No global readiness claim.
+
+### Cross-subsystem security release complete — 2026-11-01
+
+API 76b0fae4-648f-4063-a0a8-df15da1def0f SUCCESS; web a56ab17f-dbf2-4236-ab69-70572c4b9460 SUCCESS. Post-deployment health 200 and ten owner APIs return 401 without authentication. Authenticated Default Company campaign/package reads pass, reviewed research adapter remains ENABLED/HEALTHY, no page alerts. Dependency audit zero known production advisories after the narrow updates; full 1,612-test suite, 45 fresh Android tests, typecheck/lint/build/security invariants passed. Four live-provider tests remain skipped. Report docs/ATHENA_SYSTEM_VERIFICATION_20261101.md lists remaining real-device/provider/cloud tests and UI organization issue. No global READY claim. No new permissions, paid runs, publishing or cloud provisioning.

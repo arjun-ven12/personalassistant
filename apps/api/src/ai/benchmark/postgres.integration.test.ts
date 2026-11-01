@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { PostgresDatabase } from "../../persistence/database.js";
-import { safeTestDatabaseUrl } from "../../persistence/test-database.js";
+import type { PostgresDatabase } from "../../persistence/database.js";
+import { createIsolatedTestDatabase, safeTestDatabaseUrl } from "../../persistence/test-database.js";
 import { PostgresAIBenchmarkStore } from "./postgres-store.js";
 import { AIBenchmarkRunner } from "./service.js";
 
@@ -11,21 +11,12 @@ const ownerB = crypto.randomUUID();
 describe.skipIf(!connectionString)(
   "Phase 20R-E PostgreSQL benchmark persistence",
   () => {
-    let administration: PostgresDatabase;
+    let cleanup: (() => Promise<void>) | undefined;
     let database: PostgresDatabase;
-    let schema: string;
+
 
     beforeAll(async () => {
-      administration = new PostgresDatabase(connectionString!);
-      schema = `phase20re_${crypto.randomUUID().replaceAll("-", "")}`;
-      await administration.pool.query(`CREATE SCHEMA "${schema}"`);
-      const isolated = new URL(connectionString!);
-      isolated.hostname = isolated.hostname.replace("-pooler.", ".");
-      if (isolated.searchParams.get("sslmode") !== "disable")
-        isolated.searchParams.set("sslmode", "verify-full");
-      isolated.searchParams.set("options", `-c search_path=${schema}`);
-      database = new PostgresDatabase(isolated.toString());
-      await database.migrate();
+      ({ database, cleanup } = await createIsolatedTestDatabase(connectionString!, "phase20re"));
       for (const [id, email] of [
         [ownerA, `benchmark-${ownerA}@example.test`],
         [ownerB, `benchmark-${ownerB}@example.test`],
@@ -38,11 +29,7 @@ describe.skipIf(!connectionString)(
         );
     }, 60_000);
     afterAll(async () => {
-      await database?.close();
-      if (administration && schema) {
-        await administration.pool.query(`DROP SCHEMA "${schema}" CASCADE`);
-        await administration.close();
-      }
+      await cleanup?.();
     });
 
     it("persists runs, exact colon model profiles, baselines, results, and owner isolation across runner reconstruction", async () => {

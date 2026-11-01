@@ -4,8 +4,8 @@ import { InMemoryDesktopSkillStore } from "../desktop-skills/store.js";
 import type { GovernanceAuditWriter } from "../governance/approval-service.js";
 import { InMemoryIntentRecordingStore } from "../intent-recording/store.js";
 import { InMemoryLearningEngineStore } from "../learning-engine/store.js";
-import { PostgresDatabase } from "../persistence/database.js";
-import { safeTestDatabaseUrl } from "../persistence/test-database.js";
+import type { PostgresDatabase } from "../persistence/database.js";
+import { createIsolatedTestDatabase, safeTestDatabaseUrl } from "../persistence/test-database.js";
 import { InMemoryReflectionStore } from "../reflection/store.js";
 import { PostgresSkillEvolutionStore } from "./postgres-store.js";
 import { SkillEvolutionService } from "./service.js";
@@ -17,22 +17,13 @@ const ownerB = crypto.randomUUID();
 describe.skipIf(!connectionString)(
   "Phase 21D PostgreSQL skill evolution persistence",
   () => {
-    let administration: PostgresDatabase;
+    let cleanup: (() => Promise<void>) | undefined;
     let database: PostgresDatabase;
-    let schema: string;
+
     const audit: GovernanceAuditWriter = () => {};
 
     beforeAll(async () => {
-      administration = new PostgresDatabase(connectionString!);
-      schema = `phase21d_${crypto.randomUUID().replaceAll("-", "")}`;
-      await administration.pool.query(`CREATE SCHEMA "${schema}"`);
-      const isolated = new URL(connectionString!);
-      isolated.hostname = isolated.hostname.replace("-pooler.", ".");
-      if (isolated.searchParams.get("sslmode") !== "disable")
-        isolated.searchParams.set("sslmode", "verify-full");
-      isolated.searchParams.set("options", `-c search_path=${schema}`);
-      database = new PostgresDatabase(isolated.toString());
-      await database.migrate();
+      ({ database, cleanup } = await createIsolatedTestDatabase(connectionString!, "phase21d"));
       await database.pool.query(`
       CREATE TABLE IF NOT EXISTS skill_evolution_artifacts(
        id uuid PRIMARY KEY,
@@ -59,11 +50,7 @@ describe.skipIf(!connectionString)(
     }, 60_000);
 
     afterAll(async () => {
-      await database?.close();
-      if (administration && schema) {
-        await administration.pool.query(`DROP SCHEMA "${schema}" CASCADE`);
-        await administration.close();
-      }
+      await cleanup?.();
     });
 
     it("survives service reconstruction with owner isolation and active pointer intact", async () => {

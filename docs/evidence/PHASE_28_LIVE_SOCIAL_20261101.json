@@ -1,0 +1,117 @@
+{
+  "recordedOn": "2026-11-01",
+  "campaign": {
+    "id": "c8a34f70-c50a-4741-a85a-50bbe204add5",
+    "objective_id": "b1f65950-8831-43cf-bb5c-e7a93f440a2e",
+    "status": "PACKAGE_READY",
+    "version": 18,
+    "updated_at": "2026-11-01T10:06:57.303Z"
+  },
+  "artifactApprovals": [
+    {
+      "id": "43f731e3-2698-4c14-9e74-587bc5727343",
+      "status": "EXPIRED",
+      "action_digest": "83710afdc64a835021512dae7b671653aaa57b141255268c2853a9a392eeeec3",
+      "tool_name": "marketing.review_artifact"
+    },
+    {
+      "id": "f95720a0-62a1-4824-ac3a-787e29aa056a",
+      "status": "APPROVED",
+      "action_digest": "be5fe1a7b076513388f7fbcde2c5520f4c9f09d46eac3163f75af917328245dd",
+      "tool_name": "marketing.review_artifact"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "86ddf9ad-d65b-4c03-9873-1dce448db874",
+      "type": "MESSAGING",
+      "version": 1,
+      "status": "DRAFT",
+      "content_digest": "06ed4c3d51ee628551eb7f01d1bffa4ec9699c9b0bd9b166828412b3a7ec7525",
+      "approval_request_id": null,
+      "created_at": "2026-10-24T10:14:15.842Z"
+    },
+    {
+      "id": "42d3d002-991c-4f52-bb51-aaa8dcead215",
+      "type": "SOCIAL_POST",
+      "version": 1,
+      "status": "APPROVED",
+      "content_digest": "cb25059c0766574e296de85cef0778b21f34cb9f27d3e7fab024bd530c51ceab",
+      "approval_request_id": "43f731e3-2698-4c14-9e74-587bc5727343",
+      "created_at": "2026-10-24T10:14:20.453Z"
+    },
+    {
+      "id": "56308ad7-9036-4eb8-9fb7-6670b81eda86",
+      "type": "CAMPAIGN_CALENDAR",
+      "version": 1,
+      "status": "APPROVED",
+      "content_digest": "86d0455767a556f6630f212e96fa7e8fdaaa9024c8a9abb3a5232bcbcda9c01a",
+      "approval_request_id": "f95720a0-62a1-4824-ac3a-787e29aa056a",
+      "created_at": "2026-11-01T08:52:00.514Z"
+    },
+    {
+      "id": "16fbaf91-5b02-442d-a77e-f21b2eb0b21b",
+      "type": "LAUNCH_PACKAGE",
+      "version": 1,
+      "status": "DRAFT",
+      "content_digest": "a92085e351b1fad732826ce12be7c692d12321237c6978b0e451e1f4f4b583b5",
+      "approval_request_id": null,
+      "created_at": "2026-11-01T10:06:57.292Z"
+    }
+  ],
+  "ledger": [
+    {
+      "request_id": "65c2b936-3abf-4bf1-a259-e70f4c51a80e",
+      "provider_key": "openai",
+      "model_key": "gpt-5.6-luna",
+      "status": "SETTLED",
+      "input_tokens": 6359,
+      "output_tokens": 733,
+      "total_tokens": 7092,
+      "usage_source": "PROVIDER_REPORTED",
+      "estimated_cost_usd": "0.02776900",
+      "actual_cost_usd": "0.01368900",
+      "started_at": "2026-11-01T08:51:50.744Z",
+      "completed_at": "2026-11-01T08:52:00.456Z"
+    },
+    {
+      "request_id": "287fcc32-c4e0-4ff7-b7c1-2a4531cf6bdc",
+      "provider_key": "openai",
+      "model_key": "gpt-5.6-luna",
+      "status": "SETTLED",
+      "input_tokens": 6262,
+      "output_tokens": 155,
+      "total_tokens": 6417,
+      "usage_source": "PROVIDER_REPORTED",
+      "estimated_cost_usd": "0.02771500",
+      "actual_cost_usd": "0.00781200",
+      "started_at": "2026-10-24T10:14:17.574Z",
+      "completed_at": "2026-10-24T10:14:20.405Z"
+    },
+    {
+      "request_id": "dc59cc4b-f274-4784-803c-411dbf7044b2",
+      "provider_key": "openai",
+      "model_key": "gpt-5.6-luna",
+      "status": "SETTLED",
+      "input_tokens": 6112,
+      "output_tokens": 161,
+      "total_tokens": 6273,
+      "usage_source": "PROVIDER_REPORTED",
+      "estimated_cost_usd": "0.02753200",
+      "actual_cost_usd": "0.00772200",
+      "started_at": "2026-10-24T10:14:12.290Z",
+      "completed_at": "2026-10-24T10:14:15.789Z"
+    }
+  ],
+  "totalTokens": 19782,
+  "knownModelCostUsd": "0.02922300",
+  "calendarCallDurationSeconds": 9.712,
+  "calendarApprovalPending": false,
+  "publishingEnabled": false,
+  "result": "PACKAGE_READY_INTERNAL_DRAFT_ONLY",
+  "calendarApprovedRequestId": "f95720a0-62a1-4824-ac3a-787e29aa056a",
+  "ownerCalendarDecision": "APPROVE_EXACT_INTERNAL_CALENDAR",
+  "publicationAuthorized": false,
+  "additionalModelCallsForPackaging": 0,
+  "approvalFinalizedToPackageSeconds": 30.004
+}

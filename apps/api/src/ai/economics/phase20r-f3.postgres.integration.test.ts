@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { PostgresDatabase } from "../../persistence/database.js";
-import { provisionTestDefaultCompany, safeTestDatabaseUrl } from "../../persistence/test-database.js";
+import type { PostgresDatabase } from "../../persistence/database.js";
+import { createIsolatedTestDatabase, provisionTestDefaultCompany, safeTestDatabaseUrl } from "../../persistence/test-database.js";
 import { PostgresAIEconomicsStore } from "./postgres-store.js";
 import { digestEconomicOverride } from "./override-digest.js";
 
@@ -22,21 +22,12 @@ const context = {
 describe.skipIf(!connectionString)(
   "Phase 20R-F3 transactional economic overrides",
   () => {
-    let administration: PostgresDatabase;
+    let cleanup: (() => Promise<void>) | undefined;
     let database: PostgresDatabase;
-    let schema: string;
+
 
     beforeAll(async () => {
-      administration = new PostgresDatabase(connectionString!);
-      schema = `phase20rf3_${crypto.randomUUID().replaceAll("-", "")}`;
-      await administration.pool.query(`CREATE SCHEMA "${schema}"`);
-      const isolated = new URL(connectionString!);
-      isolated.hostname = isolated.hostname.replace("-pooler.", ".");
-      if (isolated.searchParams.get("sslmode") !== "disable")
-        isolated.searchParams.set("sslmode", "verify-full");
-      isolated.searchParams.set("options", `-c search_path=${schema}`);
-      database = new PostgresDatabase(isolated.toString());
-      await database.migrate();
+      ({ database, cleanup } = await createIsolatedTestDatabase(connectionString!, "phase20rf3"));
       await database.pool.query(
         `INSERT INTO owners(id,email,password_hash,record,created_at,updated_at)
        VALUES ($1,$2,'test-only',$3,NOW(),NOW()),($4,$5,'test-only',$6,NOW(),NOW())
@@ -55,11 +46,7 @@ describe.skipIf(!connectionString)(
     }, 60_000);
 
     afterAll(async () => {
-      await database?.close();
-      if (administration && schema) {
-        await administration.pool.query(`DROP SCHEMA "${schema}" CASCADE`);
-        await administration.close();
-      }
+      await cleanup?.();
     });
 
     it("locks one grant across independent connections and preserves rollback", async () => {

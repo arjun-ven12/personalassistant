@@ -21,8 +21,8 @@ import { PostgresValidationStore } from "../validation/postgres-store.js";
 import { PostgresNativeProviderStore } from "../native-providers/postgres-store.js";
 import { NativeProviderRuntime } from "../native-providers/service.js";
 import { InMemoryApplicationAdapterStore } from "../application-adapters/store.js";
-import { PostgresDatabase } from "./database.js";
-import { safeTestDatabaseUrl } from "./test-database.js";
+import type { PostgresDatabase } from "./database.js";
+import { createIsolatedTestDatabase, safeTestDatabaseUrl } from "./test-database.js";
 import { PostgresCompanyStore } from "../companies/store.js";
 import { CompanyService } from "../companies/service.js";
 import { companyScope } from "../companies/scope.js";
@@ -31,8 +31,8 @@ const connectionString = safeTestDatabaseUrl();
 
 describe.skipIf(!connectionString)("PostgreSQL store adapters", () => {
   let database: PostgresDatabase;
-  let administrationDatabase: PostgresDatabase;
-  let testSchema: string;
+  let cleanup: (() => Promise<void>) | undefined;
+
   let identity: PostgresIdentityStore;
   let governance: PostgresGovernanceStore;
   let security: PostgresSecurityStateStore;
@@ -40,16 +40,7 @@ describe.skipIf(!connectionString)("PostgreSQL store adapters", () => {
   let ownerId: string;
 
   beforeAll(async () => {
-    administrationDatabase = new PostgresDatabase(connectionString!);
-    testSchema = `phase23_${crypto.randomUUID().replaceAll("-", "")}`;
-    await administrationDatabase.pool.query(`CREATE SCHEMA "${testSchema}"`);
-    const isolatedUrl = new URL(connectionString!);
-    isolatedUrl.hostname = isolatedUrl.hostname.replace("-pooler.", ".");
-    if (isolatedUrl.searchParams.get("sslmode") !== "disable")
-      isolatedUrl.searchParams.set("sslmode", "verify-full");
-    isolatedUrl.searchParams.set("options", `-c search_path=${testSchema}`);
-    database = new PostgresDatabase(isolatedUrl.toString());
-    await database.migrate();
+    ({ database, cleanup } = await createIsolatedTestDatabase(connectionString!, "phase23"));
     ownerId = crypto.randomUUID();
     identity = new PostgresIdentityStore(database.pool);
     governance = new PostgresGovernanceStore(database.pool, BUILT_IN_TOOLS);
@@ -59,11 +50,7 @@ describe.skipIf(!connectionString)("PostgreSQL store adapters", () => {
   }, 60_000);
 
   afterAll(async () => {
-    await database?.close();
-    if (administrationDatabase && testSchema) {
-      await administrationDatabase.pool.query(`DROP SCHEMA "${testSchema}" CASCADE`);
-      await administrationDatabase.close();
-    }
+    await cleanup?.();
   });
 
   it("persists identity, hashed sessions, replay nonces, governance, and security state", async () => {

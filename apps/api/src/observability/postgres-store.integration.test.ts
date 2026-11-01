@@ -7,8 +7,8 @@ import {
 } from "@alexa-control/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { PostgresDatabase } from "../persistence/database.js";
-import { safeTestDatabaseUrl } from "../persistence/test-database.js";
+import type { PostgresDatabase } from "../persistence/database.js";
+import { createIsolatedTestDatabase, safeTestDatabaseUrl } from "../persistence/test-database.js";
 import { PostgresObservabilityStore } from "./store.js";
 import { OwnerPortfolioObservabilityService } from "./service.js";
 import { InMemoryCompanyStore } from "../companies/store.js";
@@ -19,25 +19,16 @@ const connectionString = safeTestDatabaseUrl();
 describe.skipIf(!connectionString)(
   "Phase 25.5 PostgreSQL observability persistence",
   () => {
-    let administration: PostgresDatabase;
+    let cleanup: (() => Promise<void>) | undefined;
     let database: PostgresDatabase;
     let store: PostgresObservabilityStore;
-    let schema: string;
+
     const ownerId = crypto.randomUUID(),
       otherOwner = crypto.randomUUID(),
       companyId = crypto.randomUUID();
     const at = "2026-09-01T00:00:00.000Z";
     beforeAll(async () => {
-      administration = new PostgresDatabase(connectionString!);
-      schema = `phase255_${crypto.randomUUID().replaceAll("-", "")}`;
-      await administration.pool.query(`CREATE SCHEMA "${schema}"`);
-      const isolated = new URL(connectionString!);
-      isolated.hostname = isolated.hostname.replace("-pooler.", ".");
-      if (isolated.searchParams.get("sslmode") !== "disable")
-        isolated.searchParams.set("sslmode", "verify-full");
-      isolated.searchParams.set("options", `-c search_path=${schema}`);
-      database = new PostgresDatabase(isolated.toString());
-      await database.migrate();
+      ({ database, cleanup } = await createIsolatedTestDatabase(connectionString!, "phase255"));
       for (const owner of [ownerId, otherOwner])
         await database.pool.query(
           "INSERT INTO owners(id,email,password_hash,record,created_at,updated_at) VALUES($1,$2,'test-only',$3,$4,$4)",
@@ -50,11 +41,7 @@ describe.skipIf(!connectionString)(
       store = new PostgresObservabilityStore(database.pool);
     }, 60_000);
     afterAll(async () => {
-      await database?.close();
-      if (administration && schema) {
-        await administration.pool.query(`DROP SCHEMA "${schema}" CASCADE`);
-        await administration.close();
-      }
+      await cleanup?.();
     });
     it("persists correlated evidence and keeps owner/company indexes isolated", async () => {
       const span = SystemTelemetrySpanSchema.parse({

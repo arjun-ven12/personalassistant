@@ -10,8 +10,9 @@ import {
 } from "@alexa-control/shared";
 import { z } from "zod";
 import { buildApi } from "../app.js";
-import { PostgresDatabase } from "../persistence/database.js";
+import type { PostgresDatabase } from "../persistence/database.js";
 import {
+  createIsolatedTestDatabase,
   provisionTestDefaultCompany,
   safeTestDatabaseUrl,
 } from "../persistence/test-database.js";
@@ -216,25 +217,12 @@ const request = (
 });
 
 describe.skipIf(!connectionString)("Phase 20R-F4 closure gates", () => {
-  let administration: PostgresDatabase;
+  let cleanup: (() => Promise<void>) | undefined;
   let database: PostgresDatabase;
-  let schema: string;
+
 
   beforeAll(async () => {
-    administration = new PostgresDatabase(connectionString!, {
-      connectionTimeoutMillis: 60_000,
-    });
-    schema = `phase20rf4_${crypto.randomUUID().replaceAll("-", "")}`;
-    await administration.pool.query(`CREATE SCHEMA "${schema}"`);
-    const isolated = new URL(connectionString!);
-    isolated.hostname = isolated.hostname.replace("-pooler.", ".");
-    if (isolated.searchParams.get("sslmode") !== "disable")
-      isolated.searchParams.set("sslmode", "verify-full");
-    isolated.searchParams.set("options", `-c search_path=${schema}`);
-    database = new PostgresDatabase(isolated.toString(), {
-      connectionTimeoutMillis: 60_000,
-    });
-    await database.migrate();
+    ({ database, cleanup } = await createIsolatedTestDatabase(connectionString!, "phase20rf4"));
     await database.pool.query(
       `INSERT INTO owners(id,email,password_hash,record,created_at,updated_at)
        VALUES($1,$2,'test-only',$3,NOW(),NOW()),($4,$5,'test-only',$6,NOW(),NOW())
@@ -253,14 +241,13 @@ describe.skipIf(!connectionString)("Phase 20R-F4 closure gates", () => {
   }, 60_000);
 
   afterAll(async () => {
-    await database?.close();
-    if (administration && schema) {
-      await administration.pool.query(`DROP SCHEMA "${schema}" CASCADE`);
-      await administration.close();
-    }
+    await cleanup?.();
   }, 90_000);
 
   const makePath = async (limitUsd = "10") => {
+    // These fixtures are already-active policies, not activation-boundary tests.
+    // Avoid depending on sub-millisecond host/PostgreSQL clock agreement.
+    const effectiveFrom = new Date(Date.now() - 60_000).toISOString();
     const store = new PostgresAIEconomicsStore(database.pool);
     const economics = new AIEconomicsService(store);
     await economics.initialise();
@@ -280,7 +267,7 @@ describe.skipIf(!connectionString)("Phase 20R-F4 closure gates", () => {
       currency: "USD",
       inputPerMillionTokens: "1",
       outputPerMillionTokens: "1",
-      effectiveFrom: new Date().toISOString(),
+      effectiveFrom,
       version: crypto.randomUUID(),
       status: "ACTIVE",
     });
@@ -296,7 +283,7 @@ describe.skipIf(!connectionString)("Phase 20R-F4 closure gates", () => {
         hardStopThresholdPct: 100,
         overflowBehavior: "REQUIRE_APPROVAL",
         enabled: true,
-        effectiveFrom: new Date().toISOString(),
+        effectiveFrom,
       });
     const cloud = new ControllableProvider(cloudProviderId, cloudModelId, "REMOTE");
     const local = new ControllableProvider(localProviderId, localModelId, "LOCAL");

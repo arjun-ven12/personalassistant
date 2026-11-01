@@ -59,19 +59,24 @@ export const provisionTestDefaultCompany = async (pool: Pool, ownerId: string) =
 
 export const createIsolatedTestDatabase = async (connectionString: string, prefix: string) => {
   if (!/^[a-z][a-z0-9_]{1,24}$/.test(prefix)) throw new Error("Invalid test schema prefix.");
+  if (connectionString !== safeTestDatabaseUrl()) throw new Error("Unregistered test database target.");
+  // A schema cannot isolate migrations which intentionally own a fixed namespace
+  // (secure_reader). Use a fresh test database, retaining the real migration SQL.
+  const name = `at_test_${prefix}_${crypto.randomUUID().replaceAll("-", "").slice(0, 24)}`;
   const administration = new PostgresDatabase(connectionString, { connectionTimeoutMillis: 60_000 });
-  const schema = `${prefix}_${crypto.randomUUID().replaceAll("-", "")}`;
-  await administration.pool.query(`CREATE SCHEMA "${schema}"`);
+  try { await administration.pool.query(`CREATE DATABASE "${name}"`); }
+  catch (error) { await administration.close(); throw error; }
   const isolated = new URL(connectionString);
   isolated.hostname = isolated.hostname.replace("-pooler.", ".");
   if (isolated.searchParams.get("sslmode") !== "disable") isolated.searchParams.set("sslmode", "verify-full");
-  isolated.searchParams.set("options", `-c search_path=${schema}`);
+  isolated.pathname = `/${name}`;
+  isolated.searchParams.delete("options");
   const database = new PostgresDatabase(isolated.toString(), { connectionTimeoutMillis: 60_000 });
   try {
     await database.migrate();
   } catch (error) {
     await database.close();
-    await administration.pool.query(`DROP SCHEMA "${schema}" CASCADE`);
+    await administration.pool.query(`DROP DATABASE "${name}"`);
     await administration.close();
     throw error;
   }
@@ -79,7 +84,7 @@ export const createIsolatedTestDatabase = async (connectionString: string, prefi
     database,
     cleanup: async () => {
       await database.close();
-      await administration.pool.query(`DROP SCHEMA "${schema}" CASCADE`);
+      await administration.pool.query(`DROP DATABASE "${name}"`);
       await administration.close();
     },
   };

@@ -1,0 +1,73 @@
+{
+  "date": "2026-11-01",
+  "sourceBase": "db31a28",
+  "typecheck": "PASS",
+  "lint": "PASS_ONE_EXISTING_WARNING",
+  "finalFixtureLint": "PASS",
+  "serialSuite": {
+    "passedFiles": 265,
+    "passedTests": 1603,
+    "skippedFiles": 5,
+    "skippedTests": 13,
+    "durationSeconds": 228.25
+  },
+  "separateReaderIntegration": {
+    "passedFiles": 1,
+    "passedTests": 9,
+    "syntheticOnly": true
+  },
+  "focusedIsolationReview": {
+    "passedFiles": 4,
+    "passedTests": 21
+  },
+  "focusedEconomics": {
+    "passedFiles": 1,
+    "passedTests": 11
+  },
+  "build": "PASS_EXISTING_BUNDLE_WARNINGS",
+  "generatedOutputsRestored": 16,
+  "diffCheck": "PASS",
+  "migrationPreflight": {
+    "state": "current",
+    "pending": 0,
+    "ledgerEntries": 121
+  },
+  "sourceSha256": {
+    "apps/api/src/marketing/review.ts": "9dc31bfcfde1a1569cb22c9cfe88b34f29c62630eef98dca45f83aadd6ec3d3d",
+    "apps/api/src/marketing/store.ts": "7814f97af9a0bb80d54fb921be5868b9f92b8d1985bd9bda6fbb32f46ef60c88",
+    "apps/api/src/marketing/postgres-store.ts": "abdf4f1ec9729d20a177d1a6bf13e0696020a91453627277b41c1e36cd46634d",
+    "apps/api/src/persistence/test-database.ts": "5603df53deb11dda45dc713831d83c772f6ddcab286f67eae7553cb057c64705",
+    "apps/web/src/three-jsx.d.ts": "ef1c44ef4b7de8beb53f95c1c5c27dfcd9ae4292af3f38305fa0bd6870378ea0",
+    "apps/web/src/styles.css": "fe0c567bffe73d98299670c6f9470e74fbb910decbfbf2766bbc017312d65fc8",
+    "vitest.config.js": "d13aaf10020864825455ac9658bc262a2afcdd219803490d9fbee566f12a6e6b"
+  },
+  "apiDeploymentId": "1d24e4dd-2f8c-4afe-b6f7-194daf8c6f7b",
+  "apiStatus": "SUCCESS",
+  "webStatus": "SUCCESS",
+  "overallVerdict": "BUSINESS_OPERATIONS_NOT_READY \u2014 IMPLEMENTATION DEFECTS REMAIN",
+  "webDeploymentId": "7bc555c3-0adb-49e6-a779-ec7526deb899",
+  "hostedSmoke": {
+    "health": 200,
+    "unauthenticatedSession": 401,
+    "unauthenticatedCampaigns": 401
+  },
+  "socialReviewRenewal": "LIVE_VERIFIED",
+  "socialReviewRequestId": "43f731e3-2698-4c14-9e74-587bc5727343",
+  "socialArtifactStatus": "APPROVED",
+  "calendarArtifactId": "56308ad7-9036-4eb8-9fb7-6670b81eda86",
+  "calendarReview": "APPROVED_EXACT_OWNER_DECISION",
+  "responsiveFollowup": {
+    "change": "content min-width:0; mobile grids minmax(0,1fr)",
+    "webBuild": "PASS",
+    "visualVerification": "PASS_PHONE_WIDTH_394",
+    "deploymentStatus": "SUCCESS",
+    "deploymentId": "6b17d788-9c89-4888-81a3-9614aa26cff1",
+    "bounds": {
+      "viewportWidth": 394,
+      "contentRight": 394,
+      "artifactLeft": 55,
+      "artifactRight": 339
+    }
+  },
+  "socialCampaignStatus": "PACKAGE_READY"
+}

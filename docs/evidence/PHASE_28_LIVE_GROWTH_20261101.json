@@ -1,0 +1,120 @@
+{
+  "recordedOn": "2026-11-01",
+  "campaign": {
+    "id": "6f9ab9f2-4613-4d4f-9d19-36a555fb53c0",
+    "objective_id": "f1f629e7-e5a4-47bd-8596-f922fdfecd07",
+    "status": "BLOCKED",
+    "version": 12,
+    "updated_at": "2026-10-30T13:14:30.597Z"
+  },
+  "deliverables": [
+    {
+      "id": "d92e87b5-b109-4e30-a5dc-829a33c87f29",
+      "type": "RESEARCH",
+      "status": "BLOCKED",
+      "blocker_code": "RESEARCH_FAILED_REVIEW_RETRY",
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": [
+        "007e4230-0a2d-4bdd-a93f-d984ee302dd3",
+        "47b47669-382e-4e02-a85b-33fe0b887a54",
+        "9523725a-b627-4531-ab47-42ddd47e35a6"
+      ]
+    },
+    {
+      "id": "5fa5f648-c244-4068-958c-947bcdc4a2af",
+      "type": "GROWTH_STRATEGY",
+      "status": "PLANNED",
+      "blocker_code": null,
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": []
+    },
+    {
+      "id": "08c17f82-861f-46a4-8ecb-b36e2a89856c",
+      "type": "LAUNCH_PACKAGE",
+      "status": "PLANNED",
+      "blocker_code": null,
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": []
+    }
+  ],
+  "receipts": [
+    {
+      "invocation_id": "9523725a-b627-4531-ab47-42ddd47e35a6",
+      "status": "INDETERMINATE",
+      "result_status": "INDETERMINATE",
+      "failure_code": "PROVIDER_OUTCOME_UNKNOWN",
+      "external_operation_id": null,
+      "started_at": "2026-10-30T13:13:53.253Z",
+      "completed_at": "2026-10-30T13:14:30.581Z"
+    },
+    {
+      "invocation_id": "007e4230-0a2d-4bdd-a93f-d984ee302dd3",
+      "status": "INDETERMINATE",
+      "result_status": "INDETERMINATE",
+      "failure_code": "PROVIDER_OUTCOME_UNKNOWN",
+      "external_operation_id": null,
+      "started_at": "2026-10-24T09:23:48.719Z",
+      "completed_at": "2026-10-24T09:24:23.611Z"
+    },
+    {
+      "invocation_id": "47b47669-382e-4e02-a85b-33fe0b887a54",
+      "status": "INDETERMINATE",
+      "result_status": "INDETERMINATE",
+      "failure_code": "PROVIDER_OUTCOME_UNKNOWN",
+      "external_operation_id": null,
+      "started_at": "2026-10-24T10:07:52.847Z",
+      "completed_at": "2026-10-24T10:08:24.961Z"
+    }
+  ],
+  "modelLedger": [
+    {
+      "request_id": "e14ca4b8-431d-4645-aeb2-ca6cacfd2a75",
+      "provider_key": "openai",
+      "model_key": "gpt-5.6-luna",
+      "status": "SETTLED",
+      "input_tokens": 34253,
+      "output_tokens": 2361,
+      "total_tokens": 36614,
+      "usage_source": "PROVIDER_REPORTED",
+      "estimated_cost_usd": "0.04109600",
+      "actual_cost_usd": "0.05786300",
+      "started_at": "2026-10-30T13:13:54.903Z",
+      "completed_at": "2026-10-30T13:14:29.537Z"
+    },
+    {
+      "request_id": "b55cc67c-f7b1-40ba-8074-00ecaa77c2c3",
+      "provider_key": "openai",
+      "model_key": "gpt-5.6-luna",
+      "status": "SETTLED",
+      "input_tokens": 34509,
+      "output_tokens": 2126,
+      "total_tokens": 36635,
+      "usage_source": "PROVIDER_REPORTED",
+      "estimated_cost_usd": "0.04104700",
+      "actual_cost_usd": "0.05576900",
+      "started_at": "2026-10-24T10:07:54.396Z",
+      "completed_at": "2026-10-24T10:08:24.918Z"
+    },
+    {
+      "request_id": "d9729be6-acad-4c4e-b7b2-c0be19732402",
+      "provider_key": "openai",
+      "model_key": "gpt-5.6-luna",
+      "status": "SETTLED",
+      "input_tokens": 34937,
+      "output_tokens": 2244,
+      "total_tokens": 37181,
+      "usage_source": "PROVIDER_REPORTED",
+      "estimated_cost_usd": "0.04104700",
+      "actual_cost_usd": "0.05737700",
+      "started_at": "2026-10-24T09:23:50.094Z",
+      "completed_at": "2026-10-24T09:24:23.580Z"
+    }
+  ],
+  "knownModelCostUsd": "0.17100900",
+  "totalTokens": 110430,
+  "searchCost": "UNKNOWN",
+  "result": "BLOCKED_THREE_RESEARCH_ATTEMPTS_EXHAUSTED",
+  "detailedFinalHandlerCause": "UNKNOWN_NOT_RETAINED_IN_RECEIPT",
+  "artifacts": 0,
+  "retryLimitPreserved": true
+}

@@ -1,0 +1,370 @@
+{
+  "date": "2026-11-01",
+  "scope": "cross-subsystem verification; no global readiness claim",
+  "sourceBase": "db31a28 plus preserved pending repairs",
+  "android": {
+    "freshRerun": true,
+    "suites": 17,
+    "tests": 45,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "assembleDebug": "PASS",
+    "assembleDebugAndroidTest": "PASS_COMPILE_ONLY",
+    "lintDebug": {
+      "errors": 0,
+      "warnings": 63
+    },
+    "connectedDeviceCount": 0,
+    "physicalDeviceAcceptance": "NOT_RUN"
+  },
+  "securityInvariants": "PASS",
+  "productionConfig": {
+    "configurationValid": true,
+    "deploymentMode": "cloud",
+    "storeMode": "postgres",
+    "logRedactionEnabled": true,
+    "privilegedExecutionEnabled": false
+  },
+  "dependencyAudit": {
+    "before": {
+      "info": 0,
+      "low": 5,
+      "moderate": 4,
+      "high": 1,
+      "critical": 0
+    },
+    "after": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0
+    },
+    "changes": {
+      "zod": "4.4.3 \u2192 4.6.7",
+      "fastify": "5.12.5 \u2192 5.12.7",
+      "fast-uri3": "3.1.8 \u2192 3.1.9",
+      "fast-uri4": "4.1.5 \u2192 4.2.3"
+    },
+    "typecheck": "PASS",
+    "fullLint": "PASS_ONE_EXISTING_WARNING",
+    "fullSuite": {
+      "passedFiles": 266,
+      "passedTests": 1612,
+      "skippedFiles": 4,
+      "skippedTests": 4,
+      "durationSeconds": 221.28,
+      "readerChecksIncluded": true
+    },
+    "build": "PASS_EXISTING_WARNINGS",
+    "productionDeployment": {
+      "apiId": "76b0fae4-648f-4063-a0a8-df15da1def0f",
+      "apiStatus": "SUCCESS",
+      "webId": "a56ab17f-dbf2-4236-ab69-70572c4b9460",
+      "webStatus": "SUCCESS"
+    },
+    "generatedOutputsRestored": 16,
+    "schemaDigestUnchanged": "02c35661a266a30216794295a6bb38c1740da3e382f6118bbed88c67c0a3d75d"
+  },
+  "previousFullSuite": {
+    "passedTests": 1603,
+    "passedFiles": 265,
+    "skippedTests": 13,
+    "skippedFiles": 5,
+    "readerSeparatePassedTests": 9,
+    "appliesTo": "BEFORE_DEPENDENCY_UPDATE"
+  },
+  "hostedUnauthenticatedGet": {
+    "/": 200,
+    "/health": 200,
+    "/api/auth/session": 401,
+    "/api/companies": 401,
+    "/api/marketing-campaigns": 401,
+    "/api/objectives": 401,
+    "/api/documents": 401,
+    "/api/engineering-objectives": 401,
+    "/api/workforce-runtime": 401,
+    "/api/memory/center": 401,
+    "/api/devices": 401,
+    "/api/ai/router/events": 401
+  },
+  "browserAuthenticatedSmoke": {
+    "status": "READ_ONLY_ROUTE_RENDER_VERIFIED",
+    "screens": [
+      {
+        "crash": false,
+        "hasMain": true,
+        "headings": [
+          "Athena Command Center"
+        ],
+        "path": "/"
+      },
+      {
+        "alerts": [],
+        "crash": false,
+        "hasMain": true,
+        "headings": [
+          "Memory"
+        ],
+        "path": "/memory"
+      },
+      {
+        "alerts": [],
+        "crash": false,
+        "hasMain": true,
+        "headings": [
+          "Conversation"
+        ],
+        "path": "/conversation"
+      },
+      {
+        "alerts": [],
+        "crash": false,
+        "hasMain": true,
+        "headings": [
+          "Objectives"
+        ],
+        "path": "/objectives"
+      },
+      {
+        "alerts": [],
+        "crash": false,
+        "hasMain": true,
+        "headings": [
+          "Athena Workforce"
+        ],
+        "path": "/agents"
+      },
+      {
+        "alerts": [
+          "Blocked \u00b7 DEVICE OFFLINEThe trusted engineering environment could not complete the task.Check Mac Agent connectivity and"
+        ],
+        "crash": false,
+        "hasMain": true,
+        "headings": [],
+        "path": "/engineering"
+      },
+      {
+        "alerts": [],
+        "crash": false,
+        "hasMain": true,
+        "headings": [
+          "Companies"
+        ],
+        "path": "/companies"
+      },
+      {
+        "alerts": [],
+        "crash": false,
+        "hasMain": true,
+        "headings": [
+          "AI Runtime Studio"
+        ],
+        "path": "/ai"
+      },
+      {
+        "alerts": [],
+        "crash": false,
+        "hasMain": true,
+        "headings": [
+          "Security"
+        ],
+        "path": "/security"
+      },
+      {
+        "alerts": [],
+        "crash": false,
+        "hasMain": true,
+        "headings": [
+          "Cross-company services"
+        ],
+        "path": "/services"
+      },
+      {
+        "alerts": [],
+        "crash": false,
+        "hasMain": true,
+        "headings": [
+          "Devices"
+        ],
+        "path": "/devices"
+      },
+      {
+        "alerts": [],
+        "crash": false,
+        "hasMain": true,
+        "headings": [],
+        "path": "/voice"
+      },
+      {
+        "alerts": [],
+        "crash": false,
+        "hasMain": true,
+        "headings": [
+          "Spatial Interaction System",
+          " Spatial UI framework",
+          " Native Spatial Runtime"
+        ],
+        "path": "/spatial"
+      },
+      {
+        "alerts": [],
+        "crash": false,
+        "hasMain": true,
+        "headings": [
+          "Automation",
+          "Task Center",
+          " Create scheduled task"
+        ],
+        "path": "/automation"
+      },
+      {
+        "alerts": [],
+        "crash": false,
+        "hasMain": true,
+        "headings": [
+          "Workflows",
+          "Workflows",
+          "What Athena is running"
+        ],
+        "path": "/workflows"
+      },
+      {
+        "alerts": [],
+        "crash": false,
+        "hasMain": true,
+        "headings": [
+          "Skills",
+          "Executive",
+          "Priority stack"
+        ],
+        "path": "/skills"
+      },
+      {
+        "alerts": [],
+        "crash": false,
+        "hasMain": true,
+        "headings": [
+          "Applications",
+          "Applications",
+          "Operational integrations"
+        ],
+        "path": "/applications"
+      },
+      {
+        "alerts": [],
+        "crash": false,
+        "hasMain": true,
+        "headings": [
+          "Workspace",
+          "Workspaces",
+          "personal assistant"
+        ],
+        "path": "/workspace"
+      },
+      {
+        "alerts": [],
+        "crash": false,
+        "hasMain": true,
+        "headings": [
+          "Portfolio",
+          "Default Company",
+          "DisplayZen"
+        ],
+        "path": "/portfolio"
+      },
+      {
+        "alerts": [],
+        "crash": false,
+        "hasMain": true,
+        "headings": [
+          "Approvals",
+          "Approvals",
+          "marketing.review_artifact"
+        ],
+        "path": "/approvals"
+      }
+    ],
+    "limitations": [
+      "render/navigation only; not proof of each capability execution",
+      "Engineering existing task shows DEVICE OFFLINE",
+      "Skills includes Executive panels under Skills heading"
+    ]
+  },
+  "externalPrerequisites": [
+    "physical Android device or emulator for instrumentation/camera/biometric checks",
+    "company-scoped GA4 credential/source",
+    "reviewed creative provider/adapter acceptance",
+    "reviewed EC2 AMI and trusted READY cloud worker; HTTPS preview remains deferred",
+    "real model/runtime baseline for AthenaCoder comparisons"
+  ],
+  "verdict": "NOT_FULLY_VERIFIED",
+  "resourceIncident": {
+    "diskFreeMinimumMiB": 158,
+    "action": "Stopped heavy processes; macOS recovered space. No user files deleted.",
+    "validationResumed": true
+  },
+  "postDeploymentSmoke": [
+    {
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "path": "/api/auth/session",
+      "status": 401
+    },
+    {
+      "path": "/api/companies",
+      "status": 401
+    },
+    {
+      "path": "/api/marketing-campaigns",
+      "status": 401
+    },
+    {
+      "path": "/api/objectives",
+      "status": 401
+    },
+    {
+      "path": "/api/documents",
+      "status": 401
+    },
+    {
+      "path": "/api/engineering-objectives",
+      "status": 401
+    },
+    {
+      "path": "/api/workforce-runtime",
+      "status": 401
+    },
+    {
+      "path": "/api/memory/center",
+      "status": 401
+    },
+    {
+      "path": "/api/devices",
+      "status": 401
+    },
+    {
+      "path": "/api/ai/router/events",
+      "status": 401
+    }
+  ],
+  "postDeploymentAuthenticatedCampaign": {
+    "company": "Default Company",
+    "packageReady": true,
+    "researchProviderEnabledHealthy": true,
+    "alerts": 0
+  },
+  "finalDiffCheck": "PASS",
+  "sourceSha256": {
+    "pnpm-lock.yaml": "f0750f686f6e3a379cf630cd17947508b882b4f50b04ad103e3f91318a2338a1",
+    "pnpm-workspace.yaml": "9ea78d062af5928607276474e3f170c745caefc9f13a0a1cc1b555a1c3f35d1a",
+    "apps/api/package.json": "c7a8fb9758df7cb854d2d522f7724c3dd7ea054f0248d5720b205d924f0f6b17",
+    "apps/web/package.json": "6637b5004c272046f9ac3a1c429b784193a85062538c01179f72f75c2c942388",
+    "apps/mac-agent/package.json": "3ec383e864db5521973c6f453be20f6b305588e3daa95a99c56debfb3b038db2",
+    "packages/config/package.json": "69a3bda9e5b11fbfa0c8bd00be7aedd22206a82bf485023935fe5e257db46d67",
+    "packages/shared/package.json": "5663fc6e7dc8c9afe476cd036ed9eaf06da98b3e6d1764c13dd5c1f6bc5de17c"
+  }
+}

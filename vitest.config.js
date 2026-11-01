@@ -10,7 +10,9 @@ export default defineConfig({
     // External research and local voice dependencies are not Alexa test workspaces.
     exclude: [
       "external-research/**",
-      "apps/mac-agent/.local/**",
+      // Private deployment snapshots/caches are copies, never source test roots.
+      "**/.local/**",
+      "**/.cache/**",
       "**/node_modules/**",
       "**/dist/**",
     ],
