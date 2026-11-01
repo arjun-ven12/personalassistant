@@ -16,6 +16,8 @@ export interface MarketingStore {
   updateArtifactStatus(ownerId: string, companyId: string, campaignId: string, artifactId: string,
     expectedStatus: MarketingArtifact["status"], status: MarketingArtifact["status"], approvalRequestId: string | null): Promise<MarketingArtifact | null>;
   listArtifacts(ownerId: string, companyId: string, campaignId: string): Promise<MarketingArtifact[]>;
+  renewArtifactReview(ownerId: string, companyId: string, campaignId: string, artifactId: string,
+    contentDigest: string, previousApprovalId: string, approvalRequestId: string): Promise<MarketingArtifact | null>;
 }
 
 export const validMarketingArtifactTransition = (from: MarketingArtifact["status"], to: MarketingArtifact["status"]) =>
@@ -75,6 +77,16 @@ export class InMemoryMarketingStore implements MarketingStore {
     if (!current || current.campaignId !== campaignId || current.status !== expectedStatus) return Promise.resolve(null);
     if (expectedStatus !== "DRAFT" && current.approvalRequestId !== approvalRequestId) return Promise.resolve(null);
     const updated = MarketingArtifactSchema.parse({ ...current, status, approvalRequestId });
+    this.#artifacts.set(key, structuredClone(updated));
+    return Promise.resolve(structuredClone(updated));
+  }
+  renewArtifactReview(ownerId: string, companyId: string, campaignId: string, artifactId: string,
+    contentDigest: string, previousApprovalId: string, approvalRequestId: string) {
+    const key = this.key(ownerId, companyId, artifactId);
+    const current = this.#artifacts.get(key);
+    if (!current || current.campaignId !== campaignId || current.status !== "IN_REVIEW" ||
+        current.contentDigest !== contentDigest || current.approvalRequestId !== previousApprovalId) return Promise.resolve(null);
+    const updated = MarketingArtifactSchema.parse({ ...current, approvalRequestId });
     this.#artifacts.set(key, structuredClone(updated));
     return Promise.resolve(structuredClone(updated));
   }

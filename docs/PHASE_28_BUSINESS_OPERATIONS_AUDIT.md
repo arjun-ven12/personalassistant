@@ -5,6 +5,41 @@ Audit began 2026-10-19. One real market-research campaign reached PACKAGE_READY 
 Fixtures, passing unit tests and configured credentials are not live acceptance.
 Prior Phase 28.4/28.5 conditional verdicts remain conditional.
 
+## Current continuation — 2026-10-30
+
+Historical checkpoints below retain their original observations. Current source was
+fast-forwarded from `7e46410` to deployed `87f2c19` before release work, preserving
+the subsequent Reader/MCP changes. Existing API deployment
+`85ca4fa8-4229-419a-aad9-5a247797043b` is SUCCESS. Its research handler already
+contains the credential false-positive repair (source SHA-256
+`966ae2ee192c8162e3b9bfaf787d53a38c4752d9d4799c3928ca0c1bdf53debe`);
+an additional API deployment is unnecessary for that repair. Read-only production
+migration preflight reports current, 121 ledger entries and no pending migrations.
+Configuration validation passes: PostgreSQL, cloud mode, log redaction enabled,
+privileged execution disabled. No production database mutation was performed.
+
+Read-only live records still show social campaign
+`c8a34f70-c50a-4741-a85a-50bbe204add5` BLOCKED v7: exact social artifact
+`42d3d002-991c-4f52-bb51-aaa8dcead215` v1 remains saved; approval
+`42d4ff78-ec4d-4122-8773-fbe256848023` expired. The owner's exact draft approval
+is recorded in this conversation, but has not been applied by bypassing the
+expired server request. Renew through authenticated owner UI, verify unchanged
+digest, then resume; the unseen calendar still needs its own review. Evidence:
+`docs/evidence/PHASE_28_LIVE_SOCIAL_20261030.json`. Two settled Luna calls used
+12,690 provider-reported tokens, USD 0.01553400. No publication authorized.
+
+Growth campaign `6f9ab9f2-4613-4d4f-9d19-36a555fb53c0` remains BLOCKED v8
+with two model calls, 73,816 tokens, known model cost USD 0.11314600 and zero
+artifacts. Its one remaining permitted research recovery has not yet run on the
+repaired API. Launch campaign's exhausted retry cap remains intact. Brand memory
+and package completion retain their earlier separate live evidence.
+
+Pending release work repairs narrow-screen artifact clipping and binds the existing
+Fiber element types to the web app's React JSX type instance after reconciliation
+exposed differing workspace React type versions. No runtime authority changes.
+Full current-source validation and authenticated visual/live checks are pending;
+earlier validation counts do not attest to this reconciled revision.
+
 ## Live environment observations
 
 - Railway project `modest-clarity`, production environment: existing API and web retained.

@@ -166,8 +166,21 @@ describe.skipIf(!connectionString)("marketing PostgreSQL scope and restart", () 
       "DRAFT", "IN_REVIEW", approvalRequestId)).toMatchObject({ status: "IN_REVIEW", approvalRequestId });
     expect(await restored.updateArtifactStatus(ownerId, companyId, campaign.id, artifact.id,
       "DRAFT", "IN_REVIEW", approvalRequestId)).toBeNull();
+    const renewedApprovalId = crypto.randomUUID();
+    expect(await restored.renewArtifactReview(ownerId, otherCompanyId, campaign.id, artifact.id,
+      artifact.contentDigest, approvalRequestId, renewedApprovalId)).toBeNull();
+    expect(await restored.renewArtifactReview(ownerId, companyId, campaign.id, artifact.id,
+      "b".repeat(64), approvalRequestId, renewedApprovalId)).toBeNull();
+    expect(await restored.renewArtifactReview(ownerId, companyId, campaign.id, artifact.id,
+      artifact.contentDigest, crypto.randomUUID(), renewedApprovalId)).toBeNull();
+    expect(await restored.renewArtifactReview(ownerId, companyId, campaign.id, artifact.id,
+      artifact.contentDigest, approvalRequestId, renewedApprovalId)).toMatchObject({ status: "IN_REVIEW", approvalRequestId: renewedApprovalId });
+    expect(await restored.renewArtifactReview(ownerId, companyId, campaign.id, artifact.id,
+      artifact.contentDigest, approvalRequestId, crypto.randomUUID())).toBeNull();
     expect(await restored.updateArtifactStatus(ownerId, companyId, campaign.id, artifact.id,
-      "IN_REVIEW", "APPROVED", approvalRequestId)).toMatchObject({ status: "APPROVED" });
+      "IN_REVIEW", "APPROVED", approvalRequestId)).toBeNull();
+    expect(await restored.updateArtifactStatus(ownerId, companyId, campaign.id, artifact.id,
+      "IN_REVIEW", "APPROVED", renewedApprovalId)).toMatchObject({ status: "APPROVED" });
     expect(await restored.listActiveCampaigns(50)).toEqual([]);
     const automated = MarketingCampaignSchema.parse({ ...updated, version: 3, status: "ACTIVE",
       automationContext: { sessionId: crypto.randomUUID(), startedAt: at } });

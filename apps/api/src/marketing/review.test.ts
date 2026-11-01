@@ -45,6 +45,38 @@ const setup = async (privateNetworkRequired = true) => {
 };
 
 describe("MarketingArtifactReviewService", () => {
+  it("renews only an expired exact request, retains the draft and requires a new owner decision", async () => {
+    vi.useFakeTimers();
+    try {
+      const { store, approvals, review, campaign, artifact, events } = await setup();
+      const first = await review.request(context, campaign.id, artifact.id);
+      vi.setSystemTime(Date.now() + 901_000);
+      const renewed = await review.request(context, campaign.id, artifact.id);
+      expect((await approvals.get(ownerId, first.approvalRequestId)).status).toBe("EXPIRED");
+      expect(renewed.approvalRequestId).not.toBe(first.approvalRequestId);
+      expect(renewed.artifact.contentDigest).toBe(artifact.contentDigest);
+      expect(renewed.artifact.content).toEqual(artifact.content);
+      expect(renewed.artifact.status).toBe("IN_REVIEW");
+      expect((await review.request(context, campaign.id, artifact.id)).approvalRequestId).toBe(renewed.approvalRequestId);
+      await expect(review.finalize(context, campaign.id, artifact.id)).rejects.toThrow("no final owner decision");
+      await expect(approvals.approve(ownerId, first.approvalRequestId, context.sessionId,
+        { ipAddress: context.ipAddress, requestId: context.requestId })).rejects.toThrow();
+      await approvals.approve(ownerId, renewed.approvalRequestId, context.sessionId,
+        { ipAddress: context.ipAddress, requestId: context.requestId });
+      expect((await review.finalize(context, campaign.id, artifact.id)).status).toBe("APPROVED");
+      expect((await store.listArtifacts(ownerId, companyId, campaign.id))).toHaveLength(2);
+      expect(events.some(event => event.metadata?.previousApprovalRequestId === first.approvalRequestId)).toBe(true);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it("denies renewal when the prior request has another action binding", async () => {
+    const { approvals, review, campaign, artifact } = await setup();
+    await review.request(context, campaign.id, artifact.id);
+    const get = approvals.get.bind(approvals);
+    vi.spyOn(approvals, "get").mockImplementation(async (...args) => ({ ...await get(...args), actionDigest: "0".repeat(64), status: "EXPIRED" }));
+    await expect(review.request(context, campaign.id, artifact.id)).rejects.toThrow("not bound");
+  });
+
   it("denies stored content tampering even when version and digest metadata are unchanged", async () => {
     const { store, review, campaign, artifact } = await setup();
     const original = store.listArtifacts.bind(store);

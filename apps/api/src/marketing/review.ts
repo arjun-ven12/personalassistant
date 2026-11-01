@@ -84,12 +84,28 @@ export class MarketingArtifactReviewService {
     if (!["DRAFT", "IN_REVIEW"].includes(artifact.status)) throw new Error("Artifact cannot enter review from its current status.");
     if (hasSensitiveClaim(artifact))
       throw new Error("Sensitive claims require a separately registered high-risk recent-authentication review path.");
+    const previous = artifact.status === "IN_REVIEW" && artifact.approvalRequestId
+      ? await this.approvals.get(context.ownerId, artifact.approvalRequestId) : null;
+    if (artifact.status === "IN_REVIEW" && (!previous ||
+        previous.actionDigest !== digestProposedAction(this.action(campaign, artifact)) ||
+        previous.actionId !== artifact.id || previous.toolName !== "marketing.review_artifact"))
+      throw new Error("Approval is not bound to this exact artifact version.");
     const decision = await this.evaluate(context, campaign, artifact);
     if (decision.decision !== "require_approval" || !decision.approvalRequestId)
       throw new Error("Exact artifact approval was not requested by policy.");
     if (artifact.status === "IN_REVIEW") {
-      if (artifact.approvalRequestId !== decision.approvalRequestId) throw new Error("Artifact review binding changed.");
-      return { artifact, approvalRequestId: decision.approvalRequestId };
+      if (artifact.approvalRequestId === decision.approvalRequestId)
+        return { artifact, approvalRequestId: decision.approvalRequestId };
+      if (previous?.status !== "EXPIRED") throw new Error("Artifact review binding changed.");
+      const renewed = await this.store.renewArtifactReview(context.ownerId, context.companyId, campaignId, artifactId,
+        artifact.contentDigest, previous.id, decision.approvalRequestId);
+      if (!renewed) throw new Error("Artifact review changed concurrently; retry safely.");
+      await this.audit({ eventType: "OBJECTIVE_STATE_CHANGED", ownerId: context.ownerId, companyId: context.companyId,
+        outcome: "SUCCESS", reason: "Expired exact artifact review renewed without granting approval.",
+        requestId: context.requestId, ipAddress: context.ipAddress,
+        metadata: { campaignId, artifactId, version: artifact.version, contentDigest: artifact.contentDigest,
+          previousApprovalRequestId: previous.id, approvalRequestId: decision.approvalRequestId } });
+      return { artifact: renewed, approvalRequestId: decision.approvalRequestId };
     }
     const updated = await this.store.updateArtifactStatus(context.ownerId, context.companyId, campaignId, artifactId,
       "DRAFT", "IN_REVIEW", decision.approvalRequestId);

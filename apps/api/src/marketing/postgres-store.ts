@@ -90,6 +90,16 @@ export class PostgresMarketingStore implements MarketingStore {
     );
     return result.rows[0] ? MarketingArtifactSchema.parse(result.rows[0].record) : null;
   }
+  async renewArtifactReview(ownerId: string, companyId: string, campaignId: string, artifactId: string,
+    contentDigest: string, previousApprovalId: string, approvalRequestId: string) {
+    const result = await this.pool.query<{ record: unknown }>(
+      `UPDATE marketing_artifacts SET record=jsonb_set(record,'{approvalRequestId}',to_jsonb($7::text))
+       WHERE owner_id=$1 AND company_id=$2 AND campaign_id=$3 AND id=$4 AND status='IN_REVIEW'
+         AND content_digest=$5 AND record->>'approvalRequestId'=$6 RETURNING record`,
+      [ownerId, companyId, campaignId, artifactId, contentDigest, previousApprovalId, approvalRequestId],
+    );
+    return result.rows[0] ? MarketingArtifactSchema.parse(result.rows[0].record) : null;
+  }
   async listArtifacts(ownerId: string, companyId: string, campaignId: string) {
     const result = await this.pool.query<{ record: unknown }>(
       `SELECT a.record FROM marketing_artifacts a JOIN marketing_campaigns c

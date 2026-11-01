@@ -1,0 +1,116 @@
+{
+  "recordedOn": "2026-10-30",
+  "scenario": "SOCIAL_CAMPAIGN_DRAFT_ONLY",
+  "companyId": "c2ac447f-0747-4b78-80f1-2cc4fff8d82f",
+  "campaign": {
+    "id": "c8a34f70-c50a-4741-a85a-50bbe204add5",
+    "objective_id": "b1f65950-8831-43cf-bb5c-e7a93f440a2e",
+    "status": "BLOCKED",
+    "version": 7,
+    "updated_at": "2026-10-24T10:29:43.618Z"
+  },
+  "artifacts": [
+    {
+      "id": "86ddf9ad-d65b-4c03-9873-1dce448db874",
+      "version": 1,
+      "status": "DRAFT",
+      "content_digest": "06ed4c3d51ee628551eb7f01d1bffa4ec9699c9b0bd9b166828412b3a7ec7525",
+      "type": "MESSAGING",
+      "created_at": "2026-10-24T10:14:15.842Z",
+      "approval_request_id": null
+    },
+    {
+      "id": "42d3d002-991c-4f52-bb51-aaa8dcead215",
+      "version": 1,
+      "status": "IN_REVIEW",
+      "content_digest": "cb25059c0766574e296de85cef0778b21f34cb9f27d3e7fab024bd530c51ceab",
+      "type": "SOCIAL_POST",
+      "created_at": "2026-10-24T10:14:20.453Z",
+      "approval_request_id": "42d4ff78-ec4d-4122-8773-fbe256848023"
+    }
+  ],
+  "deliverables": [
+    {
+      "id": "283cc57f-09d2-4a52-bcf5-5e63e53f98e7",
+      "type": "MESSAGING",
+      "status": "DRAFT_READY",
+      "blocker_code": null,
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": []
+    },
+    {
+      "id": "5e3eb7c9-251d-460a-9ea1-14cf95770e46",
+      "type": "SOCIAL_POST",
+      "status": "DRAFT_READY",
+      "blocker_code": null,
+      "approval_state": "REQUIRED",
+      "invocation_ids": []
+    },
+    {
+      "id": "a9fa3bfc-aeea-46c9-94d7-bad3d5531e28",
+      "type": "CAMPAIGN_CALENDAR",
+      "status": "READY",
+      "blocker_code": "COORDINATION_REVIEW_REQUIRED",
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": []
+    },
+    {
+      "id": "22ce6762-28ba-4e0b-b8f3-ba9aacfd9f47",
+      "type": "LAUNCH_PACKAGE",
+      "status": "PLANNED",
+      "blocker_code": null,
+      "approval_state": "NOT_REQUIRED",
+      "invocation_ids": []
+    }
+  ],
+  "approvalRequests": [
+    {
+      "id": "42d4ff78-ec4d-4122-8773-fbe256848023",
+      "status": "EXPIRED",
+      "action_digest": "83710afdc64a835021512dae7b671653aaa57b141255268c2853a9a392eeeec3",
+      "tool_name": "marketing.review_artifact"
+    }
+  ],
+  "ownerDecision": {
+    "decision": "APPROVE_EXACT_SOCIAL_DRAFT",
+    "artifactId": "42d3d002-991c-4f52-bb51-aaa8dcead215",
+    "version": 1,
+    "sha256": "cb25059c0766574e296de85cef0778b21f34cb9f27d3e7fab024bd530c51ceab",
+    "applicationStatus": "PENDING_AUTHENTICATED_UI_RENEWAL_OF_EXPIRED_REQUEST",
+    "publicationAuthorized": false
+  },
+  "modelLedger": [
+    {
+      "request_id": "287fcc32-c4e0-4ff7-b7c1-2a4531cf6bdc",
+      "provider_key": "openai",
+      "model_key": "gpt-5.6-luna",
+      "status": "SETTLED",
+      "input_tokens": 6262,
+      "output_tokens": 155,
+      "total_tokens": 6417,
+      "usage_source": "PROVIDER_REPORTED",
+      "estimated_cost_usd": "0.02771500",
+      "actual_cost_usd": "0.00781200",
+      "started_at": "2026-10-24T10:14:17.574Z",
+      "completed_at": "2026-10-24T10:14:20.405Z"
+    },
+    {
+      "request_id": "dc59cc4b-f274-4784-803c-411dbf7044b2",
+      "provider_key": "openai",
+      "model_key": "gpt-5.6-luna",
+      "status": "SETTLED",
+      "input_tokens": 6112,
+      "output_tokens": 161,
+      "total_tokens": 6273,
+      "usage_source": "PROVIDER_REPORTED",
+      "estimated_cost_usd": "0.02753200",
+      "actual_cost_usd": "0.00772200",
+      "started_at": "2026-10-24T10:14:12.290Z",
+      "completed_at": "2026-10-24T10:14:15.789Z"
+    }
+  ],
+  "totalTokens": 12690,
+  "actualModelCostUsd": "0.01553400",
+  "actualWorkforceAgents": 0,
+  "result": "BLOCKED_EXPIRED_APPROVAL_NOT_PACKAGE_COMPLETE"
+}
