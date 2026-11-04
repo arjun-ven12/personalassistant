@@ -29,8 +29,8 @@ android {
     applicationId = "com.alexa.commandcenter"
     minSdk = 31
     targetSdk = 35
-    versionCode = 3
-    versionName = "0.1.2"
+    versionCode = 4
+    versionName = "0.1.3"
     buildConfigField("String", "FCM_PROJECT_ID", "\"$fcmProjectId\"")
     buildConfigField("String", "FCM_APPLICATION_ID", "\"$fcmApplicationId\"")
     buildConfigField("String", "FCM_API_KEY", "\"$fcmApiKey\"")
@@ -40,7 +40,7 @@ android {
 
   buildTypes {
     debug {
-      applicationIdSuffix = ".debug"
+      applicationIdSuffix = ".mondaypreview"
       versionNameSuffix = "-debug"
       buildConfigField("String", "API_BASE_URL", "\"$debugApiBaseUrl\"")
       buildConfigField("String", "WEB_ORIGIN", "\"$debugWebOrigin\"")
