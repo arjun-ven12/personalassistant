@@ -1,0 +1,19 @@
+{
+  "status": "PASS_WITH_EXPLICIT_ACCEPTANCE_GAPS",
+  "documentationFiles": 12,
+  "transitions": 16,
+  "mermaidSourceBlocks": 2,
+  "mermaidRendering": "NOT_RUN",
+  "capabilityIdsPreserved": 112,
+  "strictZodRegister": "PASS",
+  "candidateSourceHashes": "PASS",
+  "historicalEvidenceReferencesFlagged": 129,
+  "unavailableHistoricalPaths": [
+    "apps/api/src/launch-workflow/service.ts",
+    "docs/phase-28-acceptance-matrix-2026-10-14.md"
+  ],
+  "criticalAdvisoriesBefore": 3,
+  "criticalAdvisoriesAfter": 0,
+  "realAndroidMacAcceptance": "NOT_RUN",
+  "overallGate": "BLOCKED"
+}

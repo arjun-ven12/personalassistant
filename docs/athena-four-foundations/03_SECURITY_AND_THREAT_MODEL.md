@@ -48,7 +48,7 @@ MCP-1A reads only static fixture diagnostics; no repository contents, native eff
 
 ## Persistence, audit and revocation
 
-Reuse existing PostgreSQL-backed audit, policy, integration permissions and workspace/device/session records. No new MCP persistence adapter is introduced for the fixed fixture. The additive provider CHECK migration 0111 is required; no existing allowed provider or security check is removed. Ephemeral sessions contain only request linkage and controllers, not approval authority. After restart a fresh call rechecks persistent grants and rediscovers; no stale discovery or response cache is trusted.
+Reuse existing PostgreSQL-backed audit, policy, integration permissions and workspace/device/session records. No new MCP persistence adapter is introduced for the fixed fixture. The additive provider CHECK migration 0118 is required; no existing allowed provider or security check is removed. Ephemeral sessions contain only request linkage and controllers, not approval authority. After restart a fresh call rechecks persistent grants and rediscovers; no stale discovery or response cache is trusted.
 
 Existing PostgreSQL acceptance must use an explicit disposable test database. MCP-1A tests need no external effects; add a gated DB integration test for permission/audit persistence where practical. Do not migrate or inspect production as acceptance.
 
@@ -57,3 +57,11 @@ Existing PostgreSQL acceptance must use an explicit disposable test database. MC
 Feature defaults disabled and is rejected in production. Disable configuration or revoke company integration/workspace/device permission to deny future calls. Stop/cancel closes active read-only sessions; there are no remote writes to reconcile in this phase. Rolling back code preserves existing audit records; no permanent delete or privilege escalation.
 
 Outstanding: arbitrary third-party local MCP code cannot be assumed safe merely because its tools claim read-only. Future local registration requires reviewed launch profiles and OS containment; remote registration requires SSRF/auth/credential review. MCP-1A's trust is limited to its source-owned fixture, not all local processes.
+
+## MCP-1B acceptance increment — 2026-10-26
+
+The existing merged MCP implementation is present at `90c77ecceb35682e0b64bcc512b8d83ae23a78d1`. The original pre-MCP implementation map above is historical. MCP-1B adds durable acceptance tests and scoped dependency patches; it adds no runtime tool, transport, server registration, approval bypass or production enablement. Migration `0118_mcp_local_fixture_provider.sql` remains unchanged. See [the current acceptance report](implementation-logs/mcp-1b/ACCEPTANCE_REPORT.md) and [reproduction instructions](implementation-logs/mcp-1b/REPRODUCING_ACCEPTANCE.md).
+
+PostgreSQL-backed API/pool reconstruction, company isolation, persisted replay and duplicate races, approval digest/expiry, revocation, and bounded in-flight stop/cancellation are exercised against a newly created local disposable cluster and the actual local SDK fixture. Scripted protocol-poisoning cases remain fault-injection evidence. No remote/live provider acceptance or host-power-loss guarantee is inferred.
+
+The previously reported ten Zod/Fastify/fast-uri advisory entries are removed by tested same-major updates. The whole dependency audit still fails on additional inherited packages. Production remains prohibited.

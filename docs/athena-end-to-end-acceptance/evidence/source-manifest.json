@@ -1,0 +1,28 @@
+{
+  "baseRevision": "90c77ecceb35682e0b64bcc512b8d83ae23a78d1",
+  "state": "Uncommitted candidate; base HEAD alone is not the implementation identity.",
+  "inheritedMcp1bSourceSnapshot": "dcbd5fe99b8f617e840bd2f3ee7f0fe9ecad5d3c8a86fb0dc96c5b4bdf04727d",
+  "candidateSourceSha256": "1ccd2d88bffd5d43a07f8737aaefbca8269412b4455793f5a2a3cd98ef80710d",
+  "files": {
+    "apps/api/package.json": "9332ab726b7b4326e7e5fdd0adbab88d1ec1a2a0ba68e062c6ff5a4a6103c7ae",
+    "apps/api/src/durable-execution/service.test.ts": "1381720bfcd4973f1bdedd7fda42c304f37d5607b870873b5929fc03b9510568",
+    "apps/api/src/engineering-delivery/service.test.ts": "9b61cb257b1eb8400ef9584241191084d58ecf2a633e3c39be4912312cf8b938",
+    "apps/api/src/mcp/durability.integration.test.ts": "827a68f1e8f2f05c1b9c047eac6153bd53feb3c718c107499e3903584721ffee",
+    "apps/mac-agent/electron/toolchain-security.test.ts": "75729e6c00ac77ed75914cf54b832e51e00a5dd8cfc27d4a57cdacc498e72284",
+    "apps/mac-agent/package.json": "3ec383e864db5521973c6f453be20f6b305588e3daa95a99c56debfb3b038db2",
+    "apps/web/package.json": "6637b5004c272046f9ac3a1c429b784193a85062538c01179f72f75c2c942388",
+    "package.json": "7eb8fd1e3e4e7543c144778cafea3a5366b556e7e387d6587af83d121c3f74ad",
+    "packages/config/package.json": "69a3bda9e5b11fbfa0c8bd00be7aedd22206a82bf485023935fe5e257db46d67",
+    "packages/shared/package.json": "5663fc6e7dc8c9afe476cd036ed9eaf06da98b3e6d1764c13dd5c1f6bc5de17c",
+    "pnpm-lock.yaml": "303c42ab6981276ee32fe86f719c979ffed842366442b47d7293a1b9c4685a32",
+    "pnpm-workspace.yaml": "0bf1dc742107127f5ca9868494d1532259d91410695ffbfd1bd35881832e9a05"
+  },
+  "newPrerequisiteDeltaRelativeToInheritedMcp1b": [
+    "apps/api/src/durable-execution/service.test.ts",
+    "apps/api/src/engineering-delivery/service.test.ts",
+    "apps/mac-agent/electron/toolchain-security.test.ts",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml"
+  ]
+}

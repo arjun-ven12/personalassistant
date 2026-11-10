@@ -37,7 +37,7 @@ describe("Phase 25.6 durable cross-company execution", () => {
   let approvals: ApprovalService;
   let now: Date;
   let activity: CrossCompanyActivityExecutor;
-  let execute: ReturnType<typeof vi.fn>;
+  let execute: ReturnType<typeof vi.fn<CrossCompanyActivityExecutor["execute"]>>;
   let service: CrossCompanyExecutionService;
 
   beforeEach(async () => {

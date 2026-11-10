@@ -1,32 +1,35 @@
-# MCP-1A and program acceptance matrix
+# MCP-1A / MCP-1B acceptance matrix
 
-> Program v0.1 · 2026-10-26 · Scope: local development/test read-only fixture only.
+2026-10-26 · Candidate based on `90c77ecceb35682e0b64bcc512b8d83ae23a78d1` · Local development/test read-only fixture only.
 
-| Gate                           | Actual evidence                                                                                                                         | Status                                       |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| Pinned handshake               | SDK 1.32.2 client/server, exact 2025-11-25 negotiation; older revision rejected                                                         | LOCAL_PASS                                   |
-| Discovery                      | Exactly one reviewed tool and exact input/output schemas; extra/unknown tools, refs, weakening and paging denied                        | LOCAL_PASS                                   |
-| Invocation                     | Real stdio child and signed API exchange return independently validated static structured health                                        | LOCAL_PASS                                   |
-| Authority                      | Existing session/company/workspace/integration/device/signature/origin/CSRF/network gates; missing/foreign/revoked/expired state denied | LOCAL_PASS                                   |
-| Policy and approval            | Existing persisted evaluations; stronger permission/approval requirements are not weakened                                              | LOCAL_PASS                                   |
-| Stop/revocation                | Mid-flight stop suppresses success; permission revocation cancels bounded active work; each protocol step rechecks authority            | LOCAL_PASS                                   |
-| Budgets/lifecycle              | Frame/aggregate/message/depth limits, per-process concurrency/rate, deadlines, cancel/shutdown and awaited process cleanup              | LOCAL_PASS                                   |
-| Adversarial data               | Descriptions never authority; injected/unstructured/malformed content and server authority/change notifications denied                  | LOCAL_PASS                                   |
-| Audit                          | Attributable start/policy/outcome; audit persistence failure prevents operation/success; sensitive payloads omitted                     | LOCAL_PASS                                   |
-| PostgreSQL                     | Provider CHECK migration 0111 and gated store isolation/revocation/audit reconstruction test exist                                      | NOT_RUN                                      |
-| Focused tests                  | 47 passed, 0 failed, 1 PostgreSQL test skipped across six files                                                                         | PASS_WITH_EXCLUSION                          |
-| Full suite                     | 1,139 passed, 0 failed, 59 skipped across 203 files                                                                                     | PASS_WITH_EXCLUSIONS                         |
-| Typecheck/lint/build           | All pass on supported Node/pnpm; Linux native helper build explicitly skips macOS                                                       | PORTABLE_PASS                                |
-| API security/config invariants | Selected repository scanner and private/cloud example config checks pass                                                                | LOCAL_PASS                                   |
-| Dependency audit               | 1 high, 4 moderate, 5 low advisory entries in inherited package versions; SDK adds paths to some                                        | FAIL_OPEN_GATE                               |
-| Formatting                     | Targeted new/clean files checked; repository-wide pre-existing gate recorded separately                                                 | TARGETED_PASS / 445_EXISTING_FORMAT_FAILURES |
+| Gate                           | Current evidence                                                                                                                                                | Status                        |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| Pinned handshake/discovery     | SDK 1.32.2, exact 2025-11-25, actual child plus strict poisoning/downgrade/schema fault tests                                                                   | PASS_WITHIN_SCOPE             |
+| Read-only execution            | Real SDK stdio through signed finite API; no arbitrary registration or invocation surface                                                                       | PASS_WITHIN_SCOPE             |
+| Identity and scope             | PostgreSQL-backed owner/session/device/company/workspace/grant checks; two legitimate same-owner companies isolated                                             | PASS_WITHIN_SCOPE             |
+| Approval integrity             | Canonical action digest, wrong-workspace mismatch, durable expiry; stronger explicit approval remains denied by this slice                                      | PASS_WITHIN_SCOPE             |
+| Replay and duplicate races     | Atomic stored nonce checks; API/pool reconstruction and two API instances racing same envelope or operation ID                                                  | PASS_WITHIN_SCOPE             |
+| Stop and revocation            | Persisted session/device/permission revocation; actual child paused before call, then stopped/revoked/cancelled/timed out, with child exit and no success audit | PASS_WITHIN_SCOPE             |
+| Audit                          | Persisted attributable policy and start/outcome records; isolated company views; bounded metadata without signature/input/output payloads                       | PASS_WITHIN_SCOPE             |
+| Migrations                     | All 119 migration files digest-current on fresh synthetic schema; chronological pre-0118 → 0118 with preserved existing data and unknown-provider rejection     | DISPOSABLE_POSTGRES_PASS      |
+| Durable MCP tests              | 16 PostgreSQL assertions, including 15 new durable cases and existing store test; PostgreSQL 18.6 / pgvector 0.8.7                                              | PASS                          |
+| Focused MCP/config tests       | 63 passed, zero failed, zero skipped across seven files                                                                                                         | PASS                          |
+| Full regression                | 1,499 passed, six failed, 104 skipped; all six failures reproduced on unchanged base source with same patched dependencies                                      | PRE_EXISTING_FAILURES         |
+| Typecheck/lint                 | Supported Node 22.16.0 / pnpm 11.17.0; whole-workspace checks pass                                                                                              | PASS                          |
+| Build                          | API build including fixture passes; root build reaches existing Mac native step and fails because Swift/macOS frameworks are unavailable                        | API_PASS / FULL_BUILD_BLOCKED |
+| Security/configuration         | API invariant scanner and example production-config checks pass; no deployed configuration accepted                                                             | LOCAL_PASS                    |
+| Historical dependency findings | Ten Zod/Fastify/fast-uri entries removed through compatible same-major updates                                                                                  | RESOLVED_TARGETED_FINDINGS    |
+| Whole dependency audit         | 82 entries remain: 3 critical, 37 high, 32 moderate, 10 low; no suppressions                                                                                    | FAIL_OPEN_GATE                |
+| Remote/third-party/production  | Not connected, enabled or tested; production flag remains prohibited                                                                                            | NOT_ACCEPTED                  |
 
-## Other foundations
-
-AthenaCoder and model lifecycle have architecture/phased plans only. No ingestion, training, artifact registry, simulated deployment or promotion was implemented. Quantum runtime has a bounded classical design/conversion convention, but no solver, experiment or quantum result was run. Distillation remains a separate future research capability. Their acceptance gates are not satisfied by MCP tests.
+The whole-suite regression command intentionally omits database URLs; database skips there are covered only where the separate focused disposable-PostgreSQL command actually ran. No skip is counted as verified. Protocol mocks inject errors; they are not live external provider acceptance.
 
 ## Release decision
 
-**REQUIRES_ADDITIONAL_VALIDATION.** MCP-1A has actual local compatibility and security-regression evidence, but no PostgreSQL acceptance or passing dependency-security gate. Keep production enablement prohibited. No merge/publication/deployment/promotion is authorized.
+**REQUIRES_ADDITIONAL_VALIDATION.** Durable local-fixture acceptance is established within the exact scope above. The dependency, whole-regression and full native-build gates remain non-green. Do not broaden MCP authority or enable production from these results.
 
-See `implementation-logs/acceptance-results.json`, `dependency-audit.json` and `03_COMPLETION_REPORT.md`.
+See [the acceptance report](implementation-logs/mcp-1b/ACCEPTANCE_REPORT.md), [commands and exit codes](implementation-logs/mcp-1b/commands.json), [test evidence](implementation-logs/mcp-1b/mcp-test-results.json), and [dependency assessment](implementation-logs/mcp-1b/DEPENDENCY_ASSESSMENT.md). Historical MCP-1A records remain in the implementation logs; their older counts are not current results.
+
+## Other foundations
+
+This increment implements no AthenaCoder ingestion/training, model promotion, solver, quantum execution, remote transport or side-effect tool. Earlier program designs remain proposals against their recorded baseline. GitHub has newer adjacent engineering/dataset/model-control modules; their existence does not satisfy these program gates and should be investigated before subsequent implementation.
