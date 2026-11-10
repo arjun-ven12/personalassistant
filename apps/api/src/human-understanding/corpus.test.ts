@@ -9,8 +9,7 @@ import {
 } from "./corpus.js";
 import { InMemoryHumanUnderstandingStore } from "./store.js";
 
-const corpusPath =
-  "/Users/arjunaravapalli/Downloads/Alexa_Personality_Seed_Corpus_v4_coverage_safety.md";
+const corpusPath = new URL("./fixtures/personality-corpus.md", import.meta.url).pathname;
 
 describe("Personality seed corpus", () => {
   it("normalizes filler while preserving negation", () => {

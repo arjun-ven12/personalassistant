@@ -1,0 +1,234 @@
+{
+  "baselineScope": "Current pre-existing dirty workspace; not merely HEAD",
+  "intentionalModifiedFiles": [
+    {
+      "path": "docs/athena-institutional-audit/02_CAPABILITY_REGISTER.json",
+      "beforeSha256": "fb69d1f00ac3fdb287b229314d2531333e9410a2e7c2e46130db8b4222bb759c",
+      "afterSha256": "b15e4cc9526e52c962439491e65b80770d76894f523d1f7f0c502820d7fc043a"
+    },
+    {
+      "path": "apps/api/package.json",
+      "beforeSha256": "ac9ccbebfe25f3b5251a4a01652f18dfb0d5790da0b5db59ff2607d58503af52",
+      "afterSha256": "641640af91d75866db0d9cac3e73887c392578f6a29de3222f735ea91100e224"
+    },
+    {
+      "path": "apps/api/src/app.ts",
+      "beforeSha256": "a6d9720cf8957e9ca01171dbdccdee44109ff58b7d7f47cc99117e42a5d83190",
+      "afterSha256": "546b42619ec9efcbb56791fabfc710920a3a9f6b5fe58383921448ea0554ea42"
+    },
+    {
+      "path": "apps/api/src/governance/defaults.ts",
+      "beforeSha256": "4d3eb0e4b37dcca3ba9d5c8f1df4d0f69fe65031287c5b498132d85c594335ef",
+      "afterSha256": "0557f0594c76279769ebf654e09d03ec36ab61ef85c24da914bb92a8d52200b8"
+    },
+    {
+      "path": "apps/api/src/index.ts",
+      "beforeSha256": "b89d1d17d7601c820d8eee63553ecbd0ca711d30152ca97fc7909fefb9ba70a0",
+      "afterSha256": "dc68bd3a83d15959f9787d909b7dace76ea8a0b81dca370f562ff66e791e7707"
+    },
+    {
+      "path": "apps/api/src/integrations/builtins.ts",
+      "beforeSha256": "7b0715efdf1afa8b70dc0b1207c70eebe54d1f38248bdbca0e279834ac7562d0",
+      "afterSha256": "6b640282ff340ba48c7b70833e67ad2422de655bed54d7f394c80e5ccd69d89d"
+    },
+    {
+      "path": "apps/api/src/routes/context.ts",
+      "beforeSha256": "872291b0ed900eb3ad760da0846672fa70e194e3e5ebb678fc0e8d3870e60e11",
+      "afterSha256": "359208df87807f72c63f9f2029ca8b9c61fe8e9d9d2249ef2aba5aeb9be68e55"
+    },
+    {
+      "path": "apps/api/tsup.config.ts",
+      "beforeSha256": "bfaf0a13a50fe5e1be39097847bc3b27851ce970995a46a8bd6edb85eb915a92",
+      "afterSha256": "32ed3dcc0b9b6903679a13386d37cf5784d778f83cf3cc8bab1b33a3532260a6"
+    },
+    {
+      "path": "packages/config/src/index.ts",
+      "beforeSha256": "ff380bc6e76d588547e23dfe9633ee013d2b7f8fc48306bc8fdaee0b73fe3ff5",
+      "afterSha256": "a9e28bfedc5945894ffb7f2e1d35b8dc8c9ba7f1793f97a8b93fa4d104b3d117"
+    },
+    {
+      "path": "packages/shared/src/index.ts",
+      "beforeSha256": "e1da4122377b865cf3070248bfee7778c96e8f033b3dd23ca1ced2567691d9da",
+      "afterSha256": "4805610ccd1fd78892300b7077cfe1a8a7d1fd587f9ff710629495b3f8f859b8"
+    },
+    {
+      "path": "packages/shared/src/integrations.ts",
+      "beforeSha256": "c5dca716533bdcfabc39e06d1d1f169306662474634772f0de3f27249e1d3331",
+      "afterSha256": "a77b60c8c43546e7517a978c93678def33149e7bdf8c0095454a9c89af7c7b8a"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "beforeSha256": "c32b8dad9b14d2b6a83e9f1a7be87b4c26727f3fdf748d7008d1ef1fbb182d25",
+      "afterSha256": "862fddd181dc68b524c0e64b264f23e61260507e55744c1c437d4ea52c59c5c1"
+    }
+  ],
+  "newWorkFiles": [
+    "apps/api/migrations/0111_mcp_local_fixture_provider.sql",
+    "apps/api/src/mcp/api.test.ts",
+    "apps/api/src/mcp/errors.ts",
+    "apps/api/src/mcp/fixture-server.ts",
+    "apps/api/src/mcp/postgres.integration.test.ts",
+    "apps/api/src/mcp/protocol.test.ts",
+    "apps/api/src/mcp/protocol.ts",
+    "apps/api/src/mcp/service.test.ts",
+    "apps/api/src/mcp/service.ts",
+    "apps/api/src/mcp/transport.test.ts",
+    "apps/api/src/mcp/transport.ts",
+    "apps/api/src/routes/mcp.ts",
+    "docs/athena-four-foundations/00_PROGRAM_OVERVIEW.md",
+    "docs/athena-four-foundations/01_REPOSITORY_BASELINE.md",
+    "docs/athena-four-foundations/02_CROSS_FOUNDATION_ARCHITECTURE.md",
+    "docs/athena-four-foundations/03_SECURITY_AND_THREAT_MODEL.md",
+    "docs/athena-four-foundations/04_FOUNDATION_MCP.md",
+    "docs/athena-four-foundations/05_FOUNDATION_ATHENACODER.md",
+    "docs/athena-four-foundations/06_FOUNDATION_MODEL_LIFECYCLE.md",
+    "docs/athena-four-foundations/07_FOUNDATION_QUANTUM_RUNTIME.md",
+    "docs/athena-four-foundations/08_IMPLEMENTATION_ROADMAP.md",
+    "docs/athena-four-foundations/09_ACCEPTANCE_MATRIX.md",
+    "docs/athena-four-foundations/10_INTEGRATION_DEPENDENCIES.md",
+    "docs/athena-four-foundations/11_CAPABILITY_EVIDENCE.md",
+    "docs/athena-four-foundations/12_RISK_REGISTER.md",
+    "docs/athena-four-foundations/implementation-logs/01_TEST_FIRST.md",
+    "docs/athena-four-foundations/implementation-logs/03_COMPLETION_REPORT.md",
+    "docs/athena-four-foundations/implementation-logs/acceptance-results.json",
+    "docs/athena-four-foundations/implementation-logs/artifact-validation.json",
+    "docs/athena-four-foundations/implementation-logs/baseline-files.json",
+    "docs/athena-four-foundations/implementation-logs/baseline-status.txt",
+    "docs/athena-four-foundations/implementation-logs/baseline-validation.json",
+    "docs/athena-four-foundations/implementation-logs/dependency-audit.json",
+    "docs/athena-four-foundations/implementation-logs/final-review-checks.json",
+    "docs/athena-four-foundations/implementation-logs/source-change-summary.json",
+    "packages/config/src/mcp.test.ts",
+    "packages/shared/src/mcp.ts"
+  ],
+  "unrelatedPreExistingFilesChanged": [],
+  "minimalOriginalSourceComparisons": [
+    {
+      "path": "apps/api/tsup.config.ts",
+      "lineChanges": [
+        {
+          "kind": "insert",
+          "beforeLines": 0,
+          "afterLines": 1
+        }
+      ]
+    },
+    {
+      "path": "apps/api/src/app.ts",
+      "lineChanges": [
+        {
+          "kind": "insert",
+          "beforeLines": 0,
+          "afterLines": 4
+        },
+        {
+          "kind": "insert",
+          "beforeLines": 0,
+          "afterLines": 1
+        },
+        {
+          "kind": "insert",
+          "beforeLines": 0,
+          "afterLines": 1
+        },
+        {
+          "kind": "insert",
+          "beforeLines": 0,
+          "afterLines": 12
+        },
+        {
+          "kind": "insert",
+          "beforeLines": 0,
+          "afterLines": 1
+        },
+        {
+          "kind": "insert",
+          "beforeLines": 0,
+          "afterLines": 1
+        }
+      ]
+    },
+    {
+      "path": "apps/api/src/index.ts",
+      "lineChanges": [
+        {
+          "kind": "insert",
+          "beforeLines": 0,
+          "afterLines": 1
+        }
+      ]
+    },
+    {
+      "path": "apps/api/src/governance/defaults.ts",
+      "lineChanges": [
+        {
+          "kind": "insert",
+          "beforeLines": 0,
+          "afterLines": 13
+        }
+      ]
+    },
+    {
+      "path": "apps/api/src/integrations/builtins.ts",
+      "lineChanges": [
+        {
+          "kind": "insert",
+          "beforeLines": 0,
+          "afterLines": 12
+        }
+      ]
+    },
+    {
+      "path": "apps/api/src/routes/context.ts",
+      "lineChanges": [
+        {
+          "kind": "insert",
+          "beforeLines": 0,
+          "afterLines": 1
+        },
+        {
+          "kind": "insert",
+          "beforeLines": 0,
+          "afterLines": 1
+        }
+      ]
+    },
+    {
+      "path": "packages/config/src/index.ts",
+      "lineChanges": [
+        {
+          "kind": "insert",
+          "beforeLines": 0,
+          "afterLines": 1
+        },
+        {
+          "kind": "insert",
+          "beforeLines": 0,
+          "afterLines": 10
+        }
+      ]
+    },
+    {
+      "path": "packages/shared/src/index.ts",
+      "lineChanges": [
+        {
+          "kind": "insert",
+          "beforeLines": 0,
+          "afterLines": 2
+        }
+      ]
+    },
+    {
+      "path": "packages/shared/src/integrations.ts",
+      "lineChanges": [
+        {
+          "kind": "insert",
+          "beforeLines": 0,
+          "afterLines": 1
+        }
+      ]
+    }
+  ],
+  "trackedGeneratedMacBundles": "Restored to exact pre-change bytes after build",
+  "warning": "git diff includes unrelated pre-existing work; use this inventory and baseline hashes for scope."
+}

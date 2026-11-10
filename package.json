@@ -25,6 +25,7 @@
     "db:migrate": "pnpm --filter @alexa-control/api db:migrate",
     "db:migrate:deploy": "pnpm --filter @alexa-control/api db:migrate:deploy",
     "db:status": "pnpm --filter @alexa-control/api db:status",
+    "phase28:postgres:acceptance": "tsx apps/api/src/scripts/phase28-postgres-acceptance.ts",
     "verify:production-config": "pnpm --filter @alexa-control/api verify:production-config",
     "audit:dependencies": "pnpm audit --prod",
     "security:check": "pnpm --filter @alexa-control/api security:check && pnpm verify:production-config && pnpm audit:dependencies",

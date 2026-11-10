@@ -53,6 +53,7 @@ export * from "./infrastructure.js";
 export * from "./intent.js";
 export * from "./intent-recording.js";
 export * from "./learning-engine.js";
+export * from "./launch-workflow.js";
 export * from "./local-ai.js";
 export * from "./ai.js";
 export * from "./ai-router.js";
@@ -82,3 +83,5 @@ export * from "./skill-evolution.js";
 export * from "./tools.js";
 export * from "./voice.js";
 export * from "./workspaces.js";
+
+export * from "./mcp.js";

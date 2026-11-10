@@ -1,3 +1,7 @@
+import { McpLocalService } from "./mcp/service.js";
+import { McpProtocolClient } from "./mcp/protocol.js";
+import { createLocalFixtureTransport } from "./mcp/transport.js";
+import { registerMcpLocalRoutes } from "./routes/mcp.js";
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
@@ -320,6 +324,9 @@ import { ActiveContextService } from "./active-context/service.js";
 import { registerActiveContextRoutes } from "./routes/active-context.js";
 import { registerExecutiveRoutes } from "./routes/executive.js";
 import { registerObjectiveRoutes } from "./routes/objectives.js";
+import { registerLaunchWorkflowRoutes } from "./routes/launch-workflow.js";
+import { LaunchWorkflowService } from "./launch-workflow/service.js";
+import { InMemoryLaunchPackageStore, PostgresLaunchPackageStore } from "./launch-workflow/store.js";
 import { ExecutiveBrainService } from "./executive/service.js";
 import { ObjectiveEngineService } from "./objectives/service.js";
 import { ExperimentService } from "./experiments/service.js";
@@ -552,6 +559,7 @@ export interface BuildApiOptions {
   cognitiveContext?: CognitiveContextService;
   benchmarkRunner?: AIBenchmarkRunner;
   executionLimits?: ExecutionLimits;
+  mcpLocalFixtureEnabled?: boolean;
 }
 
 export const buildApi = async ({
@@ -559,6 +567,7 @@ export const buildApi = async ({
   privateNetworkRequired,
   logger = true,
   nodeEnvironment = "development",
+  mcpLocalFixtureEnabled = false,
   allowOwnerBootstrap = true,
   sessionCookieName = "alexa_session",
   sessionTtlSeconds = 28_800,
@@ -1962,6 +1971,13 @@ export const buildApi = async ({
     crossApplicationWorkflows,
     capabilityStudio,
   );
+  const launchWorkflow = new LaunchWorkflowService(
+    database ? new PostgresLaunchPackageStore(database.pool) : new InMemoryLaunchPackageStore(),
+    executiveStore,
+    {createTask:(input)=>workforceRuntime.createTask(input),findTask:(ownerId,taskId)=>Promise.resolve(resolvedWorkforceRuntimeStore.findTask(ownerId,taskId))},
+    governanceAudit,
+    now,
+  );
   if (database) objectives.setTransaction(database.transaction);
   portfolio.setCompanyObjectiveProvider(
     async ({
@@ -2193,6 +2209,18 @@ export const buildApi = async ({
   });
   workforceRuntime.setLifecycleSink(objectives);
   crossApplicationWorkflows.setLifecycleSink(objectives);
+  const mcpLocal = new McpLocalService({
+    enabled: mcpLocalFixtureEnabled,
+    nodeEnvironment,
+    identity: identityStore,
+    companies,
+    governance: governanceStore,
+    policy: policyEngine,
+    integrations,
+    audit: governanceAudit,
+    factory: () => new McpProtocolClient(createLocalFixtureTransport()),
+  });
+  app.addHook("onClose", async () => mcpLocal.close());
   const context: ApiRouteContext = {
     deploymentMode,
     identity,
@@ -2250,6 +2278,7 @@ export const buildApi = async ({
     validationStore,
     workflows,
     workflowStore,
+    mcpLocal,
     integrations,
     integrationStore,
     agents,
@@ -2317,6 +2346,7 @@ export const buildApi = async ({
     executive,
     executiveStore,
     objectives,
+    launchWorkflow,
     companyManagement,
     experiments,
     businessOS,
@@ -2472,6 +2502,7 @@ export const buildApi = async ({
     });
   });
 
+  registerMcpLocalRoutes(app, context);
   registerAuthRoutes(app, context);
   registerCompanyRoutes(app, context);
   registerCompanyDataRoutes(app, context);
@@ -2529,6 +2560,7 @@ export const buildApi = async ({
   registerActiveContextRoutes(app, context);
   registerExecutiveRoutes(app, context);
   registerObjectiveRoutes(app, context);
+  registerLaunchWorkflowRoutes(app, context);
   registerExperimentRoutes(app, context);
   registerBusinessOSRoutes(app, context);
   registerMobileExecutiveRoutes(app, context);

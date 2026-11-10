@@ -1,0 +1,168 @@
+{
+  "programVersion": "0.1",
+  "date": "2026-10-26",
+  "baseHead": "7ee28be9de093a0446dfbe95b7145278b9087ea9",
+  "toolchain": {
+    "node": "22.16.0",
+    "pnpm": "11.17.0",
+    "sdk": "1.32.2",
+    "mcpProtocol": "2025-11-25"
+  },
+  "checks": [
+    {
+      "check": "typecheck",
+      "command": "pnpm typecheck",
+      "exitCode": 0,
+      "durationSeconds": 18.9
+    },
+    {
+      "check": "lint",
+      "command": "pnpm lint",
+      "exitCode": 0,
+      "durationSeconds": 65.7
+    },
+    {
+      "check": "test",
+      "command": "pnpm test --reporter=json --outputFile=/tmp/athena-foundations-accepted/vitest.json",
+      "exitCode": 0,
+      "durationSeconds": 225.2
+    },
+    {
+      "check": "build",
+      "command": "pnpm build",
+      "exitCode": 0,
+      "durationSeconds": 47.8
+    },
+    {
+      "check": "security",
+      "command": "pnpm --filter @alexa-control/api security:check",
+      "exitCode": 0,
+      "durationSeconds": 0.9
+    },
+    {
+      "check": "production-config",
+      "command": "pnpm verify:production-config",
+      "exitCode": 0,
+      "durationSeconds": 1.4
+    }
+  ],
+  "fullSuite": {
+    "passed": 1139,
+    "failed": 0,
+    "skipped": 59,
+    "files": 203
+  },
+  "focusedMcp": {
+    "passed": 47,
+    "failed": 0,
+    "skipped": 1,
+    "files": 6
+  },
+  "focusedTestFiles": [
+    {
+      "path": "packages/config/src/mcp.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "acceptedAssertions": [
+        "defaults disabled and permits explicit test/development enablement",
+        "rejects production enablement independently of other production constraints"
+      ]
+    },
+    {
+      "path": "apps/api/src/mcp/api.test.ts",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "acceptedAssertions": [
+        "executes through actual API composition and real stdio, then rejects replay",
+        "denies absent identity, CSRF, wrong origin and revoked device",
+        "denies foreign company, unknown tool, arbitrary process fields and expired signature",
+        "does not expose registration or arbitrary invocation routes"
+      ]
+    },
+    {
+      "path": "apps/api/src/mcp/postgres.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 1,
+      "acceptedAssertions": []
+    },
+    {
+      "path": "apps/api/src/mcp/protocol.test.ts",
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0,
+      "acceptedAssertions": [
+        "initializes, discovers and invokes only the reviewed read-only tool",
+        "denies version downgrade before tool invocation",
+        "denies unknown tool before tool invocation",
+        "denies extra tool before tool invocation",
+        "denies external schema reference before tool invocation",
+        "denies schema weakening before tool invocation",
+        "denies pagination before tool invocation",
+        "does not trust descriptions or arbitrary output instructions",
+        "rejects malformed structured content and explicit tool errors",
+        "cancels a hanging handshake and closes transport",
+        "normalizes transport errors without exposing payloads",
+        "cancels a hanging tools/list",
+        "cancels a hanging tools/call",
+        "rechecks authority after discovery and before dispatch",
+        "rejects changed tool notifications and server-initiated authority requests"
+      ]
+    },
+    {
+      "path": "apps/api/src/mcp/service.test.ts",
+      "passed": 21,
+      "failed": 0,
+      "skipped": 0,
+      "acceptedAssertions": [
+        "uses existing policy and company permission and emits safe attributable events",
+        "denies revoked/disabled permission before starting transport",
+        "denies revoked/disabled device before starting transport",
+        "denies revoked/disabled session before starting transport",
+        "denies revoked/disabled workspace before starting transport",
+        "denies revoked/disabled company before starting transport",
+        "denies revoked/disabled tool before starting transport",
+        "denies revoked/disabled stop before starting transport",
+        "rejects foreign company, missing context, unknown tool and caller authorization fields",
+        "does not weaken a stronger permission or policy approval requirement",
+        "denies duplicate operation IDs using the existing persistent nonce boundary",
+        "suppresses success when stop is asserted during exchange",
+        "times out a non-cooperating transport and releases its concurrency slot",
+        "cancels a non-cooperating exchange and supports service shutdown",
+        "fails closed on missing security state or audit persistence",
+        "denies disabled fixture and prohibits production enablement",
+        "denies expired authorization, unknown network and unavailable workspace",
+        "retains stronger policy approval and denies disabled integration",
+        "rejects competing operations and cancels active work on permission revocation",
+        "enforces the configured resource rate ceiling without a second transport",
+        "does not return success when completion audit persistence fails"
+      ]
+    },
+    {
+      "path": "apps/api/src/mcp/transport.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "acceptedAssertions": [
+        "runs an actual SDK server child through initialization, discovery and read",
+        "discovers real tools without invoking a tool",
+        "closes a real child on cancellation",
+        "rejects oversized unterminated lines, aggregate flooding and invalid UTF-8 before SDK parsing",
+        "handles split UTF-8 and rejects malformed complete JSON"
+      ]
+    }
+  ],
+  "exclusions": [
+    "No disposable TEST_DATABASE_URL; new migration/DB acceptance NOT_RUN.",
+    "No real third-party/remote MCP server or credentials.",
+    "No production, macOS native, Android/device, training, model hosting, quantum or paid compute acceptance."
+  ],
+  "releaseDecision": "REQUIRES_ADDITIONAL_VALIDATION",
+  "openGates": [
+    "Inherited dependency audit findings",
+    "Disposable PostgreSQL migration/isolation/reconstruction acceptance",
+    "Pre-existing repository formatting gate"
+  ]
+}

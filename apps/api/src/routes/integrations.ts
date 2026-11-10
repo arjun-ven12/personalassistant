@@ -10,6 +10,7 @@ import {
   BusinessExecutionRecordSchema,
   BusinessExternalEventInputSchema,
   BusinessOperationsDashboardSchema,
+  BusinessProviderReadinessListSchema,
 } from "@alexa-control/shared";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
@@ -49,6 +50,13 @@ export const registerIntegrationRoutes = (
       const identity = context.security.getIdentity(request);
       return BusinessOperationsDashboardSchema.parse(await context.integrations.businessDashboard(identity.user.id));
     },
+  );
+  app.get(
+    "/api/integrations/business/provider-readiness",
+    { preHandler: [context.security.requireAuthentication] },
+    async (request) => BusinessProviderReadinessListSchema.parse(
+      await context.integrations.businessProviderReadiness(context.security.getIdentity(request).user.id),
+    ),
   );
 
   app.post(

@@ -137,9 +137,17 @@ describe("credential-gated representative commercial read adapters", () => {
       { ...base, credential },
     );
     expect(result).toMatchObject({
-      outcome: "VERIFIED",
+      outcome: "EXTERNAL_RESULT_UNCERTAIN",
       externalReferenceId: "ga4:123456789:conversions",
     });
+    expect(result).not.toHaveProperty("metric");
+  });
+  it("records one unsegmented GA4 metric with source period evidence", async () => {
+    const fetcher=vi.fn<typeof fetch>().mockImplementation(()=>Promise.resolve(Response.json({metricHeaders:[{name:"conversions",type:"TYPE_INTEGER"}],dimensionHeaders:[],rowCount:1,rows:[{metricValues:[{value:"42"}]}]})));
+    const provider=new GoogleAnalytics4Provider(fetcher);
+    const action=BusinessActionRequestSchema.parse({capability:"analytics.query_metric",idempotencyKey:"ga4-unsegmented-1",reason:"Read one canonical metric.",references:{},metricId:"conversions",dimensions:[],periodStart:"2026-09-01T00:00:00.000Z",periodEnd:"2026-09-04T00:00:00.000Z"});
+    const result=await provider.execute(action,{...base,credential:{accessToken:"ga4-test-token-long-enough",propertyId:"123456789"}});
+    expect(result).toMatchObject({outcome:"VERIFIED",metric:{metricId:"conversions",value:42,unit:"TYPE_INTEGER",observedAt:"2026-09-04T00:00:00.000Z"}});
   });
   it("restricts Shopify requests to a validated development-store host", async () => {
     const fetcher = vi.fn<typeof fetch>().mockImplementation(ok),

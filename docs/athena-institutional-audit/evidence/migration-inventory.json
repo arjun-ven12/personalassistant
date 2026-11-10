@@ -1,0 +1,1364 @@
+[
+  {
+    "path": "apps/api/migrations/0001_phase_2_3_security.sql",
+    "sha256": "1982f6b392447bd459063a74a8051b0cb888eead258c47c8f445c5106e9c7c98",
+    "createdTables": [
+      "schema_migrations",
+      "owners",
+      "sessions",
+      "pairing_intents",
+      "devices",
+      "used_nonces",
+      "audit_events",
+      "applications",
+      "workspaces",
+      "tool_registry",
+      "approval_requests",
+      "policy_evaluations",
+      "security_state",
+      "csrf_tokens",
+      "recent_auth_challenges",
+      "recent_auth_grants",
+      "recovery_codes"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0002_phase_3_1_read_only_execution.sql",
+    "sha256": "ded7c6034b4a48a654e060fbb2f6c3320ff97837b55a6e99a47b1dae8b434e2f",
+    "createdTables": ["execution_requests", "execution_results"],
+    "alteredTables": ["security_state"]
+  },
+  {
+    "path": "apps/api/migrations/0003_phase_3_2_read_only_hardening.sql",
+    "sha256": "568fc410cad01ef665f7f1a5c49868fd4d282d2d4d20fe83ba00407a542662d3",
+    "createdTables": ["server_execution_keys"],
+    "alteredTables": ["execution_requests"]
+  },
+  {
+    "path": "apps/api/migrations/0004_phase_4_1_repository_intelligence.sql",
+    "sha256": "0a46ebee2b9762bda86fea2e4ef534a4bda81cc54654d0127433f937371fd9e3",
+    "createdTables": [
+      "repositories",
+      "repository_index_jobs",
+      "repository_generations",
+      "file_inventory",
+      "directory_nodes"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0005_phase_4_2_semantic_code_intelligence.sql",
+    "sha256": "743ba111c2fecfc32baa7f91eb2d98ab4317762188f41cdf536dfdfa4e3694ce",
+    "createdTables": [
+      "semantic_symbols",
+      "semantic_imports",
+      "semantic_exports",
+      "semantic_dependencies",
+      "semantic_references",
+      "semantic_relations",
+      "api_routes",
+      "database_models",
+      "architecture_nodes",
+      "architecture_edges",
+      "repository_insights"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0006_phase_5_1_human_in_loop_patches.sql",
+    "sha256": "202774ffb24f779f155200132bf6d76032fc30c1b47a61f101c7a5e596d769c6",
+    "createdTables": [
+      "patches",
+      "patch_reviews",
+      "rollback_snapshots",
+      "patch_execution_history"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0007_phase_5_2_verified_validation.sql",
+    "sha256": "6d04d34701c88ca0c8786e4264868543bd4fcc4ed5e7ee08e30246782143fa3b",
+    "createdTables": [
+      "execution_profiles",
+      "validation_runs",
+      "validation_steps",
+      "execution_logs",
+      "execution_artifacts",
+      "validation_results",
+      "coverage_reports",
+      "resource_usage",
+      "execution_metrics"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0008_phase_5_3_autonomous_workflows.sql",
+    "sha256": "f97da322d7cf66eb10aafa64ad633d9049854f2c8422524fac721f6a4f7beff2",
+    "createdTables": [
+      "workflows",
+      "workflow_tasks",
+      "workflow_dependencies",
+      "workflow_checkpoints",
+      "workflow_events",
+      "workflow_progress",
+      "workflow_reports",
+      "workflow_metrics",
+      "workflow_history",
+      "workflow_artifacts"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0009_phase_6_engineering_integrations.sql",
+    "sha256": "152824ee5e1787c7b72d62a3d6991ba4d29f1d5603dd8445e6bb6f524f373a44",
+    "createdTables": [
+      "integrations",
+      "integration_credentials",
+      "integration_capabilities",
+      "integration_permissions",
+      "integration_health",
+      "integration_usage",
+      "integration_events"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0010_phase_7_multi_agent_engineering.sql",
+    "sha256": "f6b31e60972f1ffa8a14668e1c068623b978fb1fa0bc75ceb3c9f9fb7246e94c",
+    "createdTables": [
+      "agents",
+      "agent_sessions",
+      "agent_tasks",
+      "agent_messages",
+      "agent_context",
+      "agent_consensus",
+      "agent_conflicts",
+      "agent_health",
+      "agent_metrics",
+      "agent_history",
+      "delegations"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0011_phase_8_cognitive_memory.sql",
+    "sha256": "36d8b15b3dbf83e89826c364dc7df53039cf19d380496108747133154f80d907",
+    "createdTables": [
+      "memories",
+      "memory_embeddings",
+      "knowledge_nodes",
+      "knowledge_edges",
+      "engineering_decisions",
+      "repository_memory",
+      "agent_memory",
+      "learning_events",
+      "memory_confidence",
+      "memory_clusters",
+      "memory_suggestions",
+      "memory_timeline"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0012_phase_9_intelligence_infrastructure.sql",
+    "sha256": "1d09733bb0639cc9f9f23aa5e1f39b823adcbfa5d8976e72ad3f185cdfd6ccfc",
+    "createdTables": [
+      "embedding_jobs",
+      "cache_metrics",
+      "retrieval_logs",
+      "worker_jobs",
+      "worker_history",
+      "semantic_queries",
+      "cache_events",
+      "queue_events",
+      "infrastructure_metrics"
+    ],
+    "alteredTables": ["memory_embeddings"]
+  },
+  {
+    "path": "apps/api/migrations/0013_phase_10_engineering_advisor.sql",
+    "sha256": "1dd716d4117701171392a56e6a6e94a111a1d6272763ef164a4c1446d48a0170",
+    "createdTables": [
+      "engineering_goals",
+      "goal_dependencies",
+      "goal_progress",
+      "strategic_plans",
+      "technical_debt",
+      "engineering_risks",
+      "repository_health",
+      "architecture_health",
+      "recommendations",
+      "opportunities",
+      "roadmaps",
+      "roadmap_items",
+      "release_assessments",
+      "simulation_runs",
+      "engineering_metrics"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0014_phase_10_5_dynamic_agent_workforce.sql",
+    "sha256": "d02f5c010d7c85430305ff9b8fa0af0f7baf6b6d356394a7a80250e4089c70b2",
+    "createdTables": [
+      "agent_templates",
+      "capability_registry",
+      "agent_capabilities",
+      "dynamic_agents",
+      "agent_lifecycle",
+      "agent_performance",
+      "agent_usage",
+      "agent_promotions",
+      "capability_history",
+      "team_compositions",
+      "dynamic_agent_memory"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0015_phase_10_6_agent_os.sql",
+    "sha256": "c326f03372368806c495914a5fff093e757620e3e54020770722b353495b1dec",
+    "createdTables": [
+      "agent_manifests",
+      "agent_packages",
+      "agent_os_sessions",
+      "agent_runtime_events",
+      "agent_configurations",
+      "agent_os_tool_registry",
+      "agent_os_permission_profiles",
+      "agent_os_knowledge_sources",
+      "agent_os_versions",
+      "agent_os_health",
+      "agent_os_metrics",
+      "agent_os_context_packages"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0016_phase_10_7_agent_cognition.sql",
+    "sha256": "5491d886c50ad316c243044fc316f775d1cd85121c2f9629845b449cfe170390",
+    "createdTables": [
+      "working_memory",
+      "episodic_memory",
+      "semantic_memory",
+      "procedural_memory",
+      "memory_relationships",
+      "experience_store",
+      "decision_log",
+      "agent_specializations",
+      "reflection_reports",
+      "confidence_history",
+      "goal_tracking",
+      "agent_cognitive_states",
+      "agent_learning_events",
+      "memory_consolidation",
+      "cognitive_metrics"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0017_phase_10_8_agent_evolution.sql",
+    "sha256": "d60bc7bf33544c81cd828304f0033253e4a061c8d6ade4855608a2f591291b5a",
+    "createdTables": [
+      "agent_expertise",
+      "expertise_history",
+      "evolution_proposals",
+      "capability_versions",
+      "prompt_versions",
+      "reasoning_versions",
+      "workflow_improvements",
+      "knowledge_improvements",
+      "failure_history",
+      "success_history",
+      "benchmark_results",
+      "evolution_timeline",
+      "self_evaluations",
+      "capability_marketplace"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0018_phase_10_9_agent_society.sql",
+    "sha256": "8086bd94700818db469fea0b189bccee71e01d00c579592168712fb3d74d533b",
+    "createdTables": [
+      "organizations",
+      "departments",
+      "organizational_roles",
+      "teams",
+      "team_members",
+      "agent_society_delegations",
+      "debates",
+      "debate_arguments",
+      "consensus_sessions",
+      "peer_reviews",
+      "mentorships",
+      "conflicts",
+      "meetings",
+      "meeting_minutes",
+      "communications",
+      "reputation_scores",
+      "collaboration_edges",
+      "organizational_metrics",
+      "organizational_memory"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0019_phase_11_intent_execution_engine.sql",
+    "sha256": "fefb71409751f1730fa3604149186e2d407a9d60c38f6ea253ca253c8f788ade",
+    "createdTables": [
+      "commands",
+      "intent_analysis",
+      "execution_plans",
+      "execution_steps",
+      "command_history",
+      "macros",
+      "saved_commands",
+      "clarification_sessions",
+      "command_templates",
+      "command_metrics",
+      "command_suggestions"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0020_phase_12_autonomous_task_engine.sql",
+    "sha256": "a70a1ff0fa701887bf1e296c325bef0ec1ffa5d11225790374c00098ba010a07",
+    "createdTables": [
+      "tasks",
+      "task_runs",
+      "task_schedules",
+      "task_conditions",
+      "task_dependencies",
+      "task_triggers",
+      "task_notifications",
+      "goals",
+      "task_goal_progress",
+      "checklists",
+      "checklist_items",
+      "routines",
+      "routine_steps",
+      "background_monitors",
+      "task_metrics",
+      "task_suggestions"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0021_phase_13_desktop_capability_layer.sql",
+    "sha256": "f46af35a52628fd09b13501f12125af3accf40fa1fdc71b35904031369933da2",
+    "createdTables": [
+      "desktop_capabilities",
+      "capability_providers",
+      "desktop_context",
+      "application_registry",
+      "window_layouts",
+      "clipboard_history",
+      "desktop_actions",
+      "capability_metrics",
+      "provider_health",
+      "desktop_preferences"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0022_phase_14_spatial_interaction_system.sql",
+    "sha256": "8e5b3cd039a6308d3658e15022a11a3ea087a2ae7dbd0576f77994e7e2b3c958",
+    "createdTables": [
+      "camera_devices",
+      "vision_sessions",
+      "gesture_profiles",
+      "gesture_mappings",
+      "gesture_history",
+      "gesture_calibration",
+      "gesture_macros",
+      "gesture_metrics",
+      "custom_gestures",
+      "gesture_versions",
+      "tracking_metrics"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0023_phase_14b_native_spatial_runtime.sql",
+    "sha256": "4739322e6c636406c91d640b22b6c7a87d9daa6a6df347f410e1c01c48e1449d",
+    "createdTables": [
+      "native_gesture_sessions",
+      "runtime_profiles",
+      "camera_providers",
+      "monitor_layouts",
+      "desktop_context_history",
+      "native_runtime_metrics",
+      "spatial_overlays",
+      "runtime_sync"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0024_phase_14c_spatial_ui_framework.sql",
+    "sha256": "72b1b1e36b38b8485e72edf111d14bab57507a15735202f0df9164a2b66a049f",
+    "createdTables": [
+      "spatial_components",
+      "interaction_profiles",
+      "animation_profiles",
+      "spatial_preferences",
+      "interaction_sessions",
+      "interaction_metrics"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0025_phase_14d_spatial_interaction_engine.sql",
+    "sha256": "b8a73fabb08ca672f8f5ab6eab000a507e4c2fed74230b1c30dfb68d8247a464",
+    "createdTables": [
+      "gesture_sequences",
+      "interaction_predictions",
+      "cursor_metrics",
+      "ray_sessions",
+      "physics_profiles",
+      "spatial_navigation_history"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0026_phase_14e_spatial_desktop_layer.sql",
+    "sha256": "ba6013c0ba1f400a26d87a6ba8019096ebd27b2f407b24a675964bcaeb03dc42",
+    "createdTables": [
+      "desktop_objects",
+      "desktop_interaction_history",
+      "desktop_profiles",
+      "desktop_overlay_settings",
+      "monitor_profiles",
+      "dock_items",
+      "desktop_panels",
+      "desktop_navigation_history",
+      "desktop_metrics"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0027_phase_14f_spatial_command_space.sql",
+    "sha256": "78eefbec5a00f9beeac9d113ff11160ee0d82094819bfb338824d1381a68e829",
+    "createdTables": [
+      "spatial_scenes",
+      "scene_preferences",
+      "theme_profiles",
+      "visualization_layers",
+      "particle_profiles",
+      "agent_visual_positions",
+      "workflow_visualizations",
+      "memory_visualizations",
+      "scene_layouts",
+      "spatial_mode_sessions"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0028_phase_15a_voice_operating_system.sql",
+    "sha256": "0efbc8573a4fc02a02ec9b9a172c2c328676929ae91c53f3232fc28abb481ee9",
+    "createdTables": [
+      "voice_sessions",
+      "voice_profiles",
+      "voice_shortcuts",
+      "conversation_history",
+      "voice_metrics",
+      "microphone_preferences",
+      "wake_word_settings",
+      "tts_profiles",
+      "stt_provider_metrics"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0029_phase_15b_conversational_intelligence.sql",
+    "sha256": "ddf69f38ded501d19f5c2795db054485861fd15cbc78df72610ac110e2c4f531",
+    "createdTables": [
+      "conversation_sessions",
+      "conversation_topics",
+      "conversation_goals",
+      "conversation_summaries",
+      "conversation_personas",
+      "clarification_history",
+      "conversation_context",
+      "conversation_analytics",
+      "conversation_bookmarks"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0030_phase_16_intent_recording.sql",
+    "sha256": "f443517c7fb964c639521b01b3183b654baface8cb404e4722d664c25b1a8f32",
+    "createdTables": [
+      "intent_recordings",
+      "recorded_events",
+      "workflow_templates",
+      "generated_commands",
+      "command_parameters",
+      "command_versions",
+      "workflow_analytics",
+      "demonstration_sessions",
+      "optimization_suggestions",
+      "command_dependencies"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0031_phase_16b_semantic_retrieval.sql",
+    "sha256": "b61868cdd07996f6d5f669c4bfd269a8a7c5e286916440a75ec46a24946b0fac",
+    "createdTables": [
+      "semantic_registry",
+      "semantic_aliases",
+      "semantic_embeddings",
+      "embedding_versions",
+      "semantic_categories",
+      "semantic_tags",
+      "semantic_usage",
+      "retrieval_history",
+      "retrieval_metrics",
+      "confidence_models",
+      "synonym_dictionary",
+      "context_ranking",
+      "semantic_permissions"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0032_phase_17a_semantic_desktop_model.sql",
+    "sha256": "564796cd27dcbb00478ccee9093a3632b857c178939cceef622c913fa07f3eae",
+    "createdTables": [
+      "desktop_applications",
+      "desktop_windows",
+      "semantic_objects",
+      "semantic_relationships",
+      "desktop_registry",
+      "desktop_events",
+      "desktop_semantic_context",
+      "accessibility_snapshots",
+      "semantic_versions",
+      "window_history"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0033_phase_17b_semantic_desktop_navigation.sql",
+    "sha256": "51f7f0b2e95cc33384537c28fef607a35c1ee0a4545ebd1fde54f0f3f04b7fa6",
+    "createdTables": [
+      "navigation_graph",
+      "focus_history",
+      "navigation_history",
+      "navigation_sessions",
+      "navigation_targets",
+      "highlight_profiles",
+      "navigation_metrics",
+      "window_navigation"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0034_phase_17c_semantic_interaction_engine.sql",
+    "sha256": "4d6f5d8313973231da25bd0a2318b2b691efb14eaef134bcce6752ce0b65fc72",
+    "createdTables": [
+      "semantic_interactions",
+      "interaction_history",
+      "interaction_verification",
+      "field_mappings",
+      "interaction_failures",
+      "desktop_interaction_profiles",
+      "desktop_interaction_metrics",
+      "semantic_actions",
+      "target_resolution"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0035_phase_17d_demonstration_learning.sql",
+    "sha256": "b6beb755960882e8bf4b5167c17f837842ea49de6765dfa34e16c354062f94bf",
+    "createdTables": [
+      "semantic_recordings",
+      "workflow_timelines",
+      "generated_skills",
+      "skill_parameters",
+      "skill_versions",
+      "skill_usage",
+      "workflow_validation",
+      "demonstration_workflow_conditions",
+      "demonstration_workflow_dependencies"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0036_phase_17e_universal_application_adapters.sql",
+    "sha256": "3d2b4970f6e8b9abd9626ec40cbc717637feef9d54246315874cddec95773a2e",
+    "createdTables": [
+      "trusted_applications",
+      "application_profiles",
+      "application_capabilities",
+      "adapter_instances",
+      "adapter_plugins",
+      "application_permissions",
+      "application_context",
+      "application_events",
+      "adapter_metrics",
+      "adapter_versions",
+      "application_health"
+    ],
+    "alteredTables": ["adapter_metrics"]
+  },
+  {
+    "path": "apps/api/migrations/0037_phase_17f_autonomous_desktop_skills.sql",
+    "sha256": "4f11b90005b8f335188cf6e3754ca4f6ce6c52648f84ab2855cdc0b0f74a8069",
+    "createdTables": [
+      "desktop_skills",
+      "skill_execution",
+      "desktop_execution_steps",
+      "execution_graphs",
+      "execution_context",
+      "execution_conditions",
+      "execution_dependencies",
+      "approval_checkpoints",
+      "workflow_failures",
+      "workflow_recovery",
+      "desktop_workflow_metrics"
+    ],
+    "alteredTables": ["desktop_workflow_metrics"]
+  },
+  {
+    "path": "apps/api/migrations/0038_phase_17g_reviewed_native_provider_runtime.sql",
+    "sha256": "99b7033592a5d626c99077d3a425654a7eaa724fe9c5b8c1c965d9339d7cd486",
+    "createdTables": [
+      "native_providers",
+      "provider_capabilities",
+      "provider_health",
+      "provider_validation",
+      "provider_versions",
+      "provider_permissions",
+      "provider_execution",
+      "provider_metrics",
+      "provider_diagnostics",
+      "approved_terminal_commands"
+    ],
+    "alteredTables": ["provider_health", "provider_metrics"]
+  },
+  {
+    "path": "apps/api/migrations/0039_phase_17g_provider_schema_compatibility.sql",
+    "sha256": "e2b8788a769f8d4aca40f53bb5e112feeeeeead3c0a738ffa34b675231ba73c2",
+    "createdTables": [],
+    "alteredTables": ["provider_health", "provider_metrics"]
+  },
+  {
+    "path": "apps/api/migrations/0040_phase_17i_native_execution_request_compatibility.sql",
+    "sha256": "250e2cda0c3de1c47aa72688f7f8168eabb115f1c236210fa6e608bbda3d067d",
+    "createdTables": [],
+    "alteredTables": ["execution_requests"]
+  },
+  {
+    "path": "apps/api/migrations/0041_phase_18a_application_intelligence.sql",
+    "sha256": "f2cdbdda5f624eeb3f6c6004a71ac4e602b4018c92c4c88a1df4ca8cf3d350a7",
+    "createdTables": [
+      "application_domains",
+      "semantic_application_capabilities",
+      "semantic_provider_capabilities",
+      "application_sessions",
+      "application_memory",
+      "provider_selection_history",
+      "cross_application_workflows",
+      "application_semantic_objects"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0042_phase_18b_workspace_intelligence.sql",
+    "sha256": "5d21c371158a46a142298201a2f4ef52630d868ca55935e622c62a59c6f07780",
+    "createdTables": [
+      "semantic_workspaces",
+      "workspace_semantic_objects",
+      "workspace_semantic_relationships",
+      "workspace_semantic_context",
+      "workspace_semantic_indexes",
+      "workspace_semantic_navigation",
+      "semantic_history",
+      "workspace_memory",
+      "object_metadata",
+      "object_search_index"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0043_phase_18c_deep_semantic_indexers.sql",
+    "sha256": "bd2432c18802fb8cf631ec61d48a227db5101cca23e0f8aa118bb83201fa0a09",
+    "createdTables": [
+      "semantic_provider_indexers",
+      "semantic_index_sessions",
+      "semantic_index_events",
+      "semantic_index_versions",
+      "semantic_fingerprints",
+      "semantic_event_log",
+      "semantic_relationship_updates",
+      "semantic_index_health",
+      "semantic_search_statistics"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0044_phase_18d_adapter_sdk.sql",
+    "sha256": "bfbc574cdbd978713abbe94c93f0850fc324281a3e4246b43ee27df443e78ddc",
+    "createdTables": [
+      "adapter_sdk_contracts",
+      "adapter_lifecycle",
+      "adapter_sandboxes",
+      "adapter_dependencies",
+      "adapter_usage",
+      "adapter_compatibility",
+      "adapter_domains"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0045_phase_18e_core_adapter_suite.sql",
+    "sha256": "83312d450ac08377da43b6677e6862769b1bd954a58138e329266141cd8521ff",
+    "createdTables": [
+      "core_application_sessions",
+      "application_context_snapshots",
+      "adapter_action_history",
+      "adapter_health_metrics",
+      "adapter_permission_status",
+      "semantic_action_history",
+      "application_usage"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0046_phase_18f_cross_application_workflows.sql",
+    "sha256": "408c65612217db536b4da7cecc2fc9bc76faeef3a9aa2ea85caedfaa51d4f49d",
+    "createdTables": [
+      "workflow_graphs",
+      "workflow_nodes",
+      "cross_application_workflow_templates",
+      "cross_application_workflow_variables",
+      "workflow_execution_history",
+      "cross_application_workflow_metrics",
+      "cross_application_workflow_failures",
+      "cross_application_workflow_recovery",
+      "cross_application_workflow_checkpoints",
+      "cross_application_workflow_context"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0047_phase_19a_personality_human_understanding.sql",
+    "sha256": "748f995d63780f113cf2f6afc46d9444ebcd098c0263040e82f83da97e83b7dd",
+    "createdTables": [
+      "personality_profiles",
+      "personality_states",
+      "behaviour_rules",
+      "behaviour_traits",
+      "conversation_states",
+      "human_understanding_history",
+      "conversation_examples",
+      "interaction_statistics",
+      "preference_learning",
+      "preference_evidence",
+      "alias_dictionary",
+      "vocabulary_entries",
+      "pattern_library",
+      "intent_examples",
+      "intent_statistics",
+      "personality_clarification_history",
+      "confidence_history",
+      "personality_retrieval_history",
+      "behaviour_examples",
+      "response_templates",
+      "social_rules",
+      "communication_profiles",
+      "working_profiles",
+      "decision_profiles",
+      "personality_versions",
+      "bootstrap_profiles",
+      "personality_synonym_dictionary"
+    ],
+    "alteredTables": [
+      "alias_dictionary",
+      "behaviour_examples",
+      "behaviour_rules",
+      "behaviour_traits",
+      "bootstrap_profiles",
+      "communication_profiles",
+      "confidence_history",
+      "conversation_examples",
+      "conversation_states",
+      "decision_profiles",
+      "human_understanding_history",
+      "intent_examples",
+      "intent_statistics",
+      "interaction_statistics",
+      "pattern_library",
+      "personality_clarification_history",
+      "personality_profiles",
+      "personality_retrieval_history",
+      "personality_states",
+      "personality_synonym_dictionary",
+      "personality_versions",
+      "preference_evidence",
+      "preference_learning",
+      "response_templates",
+      "social_rules",
+      "vocabulary_entries",
+      "working_profiles"
+    ]
+  },
+  {
+    "path": "apps/api/migrations/0048_phase_19a_part2_personality_core.sql",
+    "sha256": "dd053b8ff7676a52d4c62db36a19d12d8d8f8f0542ff831893ace8096fe60545",
+    "createdTables": [
+      "personality_identity",
+      "personality_behaviours",
+      "communication_rules",
+      "interaction_policies",
+      "decision_preferences",
+      "working_styles",
+      "personality_learning_events",
+      "preference_confidence",
+      "personality_simulations",
+      "personality_state_history",
+      "response_explanations"
+    ],
+    "alteredTables": [
+      "behaviour_examples",
+      "behaviour_traits",
+      "personality_profiles",
+      "personality_versions",
+      "social_rules"
+    ]
+  },
+  {
+    "path": "apps/api/migrations/0049_phase_19a_part3_personality_corpus.sql",
+    "sha256": "2b72b22d18e7a5e02825a110cb8bedaa6e07ce5ece637aaf823b4b7f06a41920",
+    "createdTables": [
+      "personality_corpora",
+      "personality_corpus_versions",
+      "personality_corpus_entries",
+      "personality_corpus_imports",
+      "personality_corpus_validation_results"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0050_phase_19b_personal_knowledge_graph.sql",
+    "sha256": "534d2606de0e91f84a92f9deeba217fdba25ade87f431552bc192cbeb760e35b",
+    "createdTables": [
+      "knowledge_entities",
+      "knowledge_entity_aliases",
+      "knowledge_relationships",
+      "knowledge_facts",
+      "knowledge_evidence",
+      "knowledge_conflicts",
+      "knowledge_entity_versions",
+      "knowledge_relationship_versions",
+      "knowledge_sources",
+      "knowledge_promotions",
+      "knowledge_graph_events",
+      "knowledge_entity_embeddings"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0051_phase_19c_learning_engine.sql",
+    "sha256": "20962af41d87646d47c1936eb05b5fcec494154e16b9457d97b653aa79c2c6fb",
+    "createdTables": [
+      "learning_engine_events",
+      "learning_candidates",
+      "learned_preferences",
+      "learning_sequences",
+      "learning_habits",
+      "learning_suggestions",
+      "learning_conflicts",
+      "learning_timeline"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0052_phase_19d_memory_studio.sql",
+    "sha256": "7b954f4088744203f010fe6133b45df6b570628698a561f94499226026c3cc65",
+    "createdTables": [
+      "cognitive_item_controls",
+      "cognitive_item_usage",
+      "cognitive_item_versions",
+      "cognitive_item_audit_links"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0053_phase_20b_ai_provider_registry.sql",
+    "sha256": "3ad1448bca8ca1dcd48fa22a1b9887ca19afe3f23943c315bfd1de230c5c0e07",
+    "createdTables": [
+      "ai_providers",
+      "ai_models",
+      "ai_model_roles",
+      "ai_provider_health_events",
+      "ai_runtime_events"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0054_phase_20d_ai_economics.sql",
+    "sha256": "d2205dfe0878356311d1acc8ff8967a5f60e6cb3b274da3a150893cac4a27b22",
+    "createdTables": [
+      "ai_pricing_versions",
+      "ai_budget_policies",
+      "ai_budget_reservations",
+      "ai_usage_ledger"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0055_phase_20f_ai_benchmarks.sql",
+    "sha256": "d1eabfef6ed25682c1795a4602829bcd89c4d4533da108b1edc21c7c813a8233",
+    "createdTables": [
+      "ai_benchmark_suites",
+      "ai_benchmark_runs",
+      "ai_benchmark_case_results",
+      "ai_benchmark_profiles"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0056_phase_20r_b_durable_ai_economics.sql",
+    "sha256": "37423bcf7645a89081a8226ed80a6fde6b9f641d8087518d39da1eae16e35b28",
+    "createdTables": ["ai_budget_override_grants", "ai_economic_anomalies"],
+    "alteredTables": ["ai_budget_policies", "ai_budget_reservations", "ai_usage_ledger"]
+  },
+  {
+    "path": "apps/api/migrations/0057_phase_20r_e_durable_ai_benchmarks.sql",
+    "sha256": "f631898adc1c49b30731f69512f46a1db906a4a2921dee873b386185fb04aa1d",
+    "createdTables": ["ai_benchmark_regressions"],
+    "alteredTables": ["ai_benchmark_runs"]
+  },
+  {
+    "path": "apps/api/migrations/0058_phase_20r_f3_transactional_override_grants.sql",
+    "sha256": "a8d5e7c27f75a511dbb459232be0d4c56cb3f57452738f4af2ea0122e6ea2f57",
+    "createdTables": [],
+    "alteredTables": ["ai_budget_override_grants"]
+  },
+  {
+    "path": "apps/api/migrations/0059_application_discovery_installations.sql",
+    "sha256": "7f7cc4fcbbb73b90f31e6796448a229f4726ccd4829a9c9acbbb56810d895ae5",
+    "createdTables": ["application_installations"],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0060_phase_21a_conversation_feedback.sql",
+    "sha256": "0b9d61aba633896817683598f77222cd88963a4d2ae806c3f947f88497f01405",
+    "createdTables": ["conversation_turn_feedback"],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0061_phase_21b_executive.sql",
+    "sha256": "67d20b8bb1aebdf1b0dad55ad993607db8f14b3420e6677039ac2d1dcaa0120a",
+    "createdTables": ["executive_records"],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0062_phase_21b_objectives_risks.sql",
+    "sha256": "085f53e64d34840cdaf58bc2cff6777a9c3a42c05512f2d39f7ba3e53f1ec892",
+    "createdTables": [],
+    "alteredTables": ["executive_records"]
+  },
+  {
+    "path": "apps/api/migrations/0063_phase_21b_history_alerts.sql",
+    "sha256": "395887fca9cd2cbee1458b341206a2c7fb77823bce51eb7c7dba01dc85980a60",
+    "createdTables": [],
+    "alteredTables": ["executive_records"]
+  },
+  {
+    "path": "apps/api/migrations/0064_phase_21c_reflection.sql",
+    "sha256": "793980b4bd3937a3a9a3d13f0a8f047f2fc3ce78463e9d22b0c57903e9ff94c0",
+    "createdTables": ["reflection_artifacts"],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0065_phase_21d_skill_evolution.sql",
+    "sha256": "90c5b3ea93b6510f7bf9283df151b4632db4cc1ca54f6fff35d8975959df4fa7",
+    "createdTables": ["skill_evolution_artifacts"],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0066_phase_22_3_conversation_continuity.sql",
+    "sha256": "3c49370c1e880168525b769e77a47fba409cfca665dbee6bfbadff942472ea81",
+    "createdTables": ["conversation_continuity"],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0067_phase_22_3_continuity_turn_claims.sql",
+    "sha256": "a7e241171da103937a6705cf50bd2ae51102e562aa56b69f657dadfec3aeea7f",
+    "createdTables": ["conversation_continuity", "conversation_continuity_turn_claims"],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0068_phase_22_3_continuity_upgrade_repair.sql",
+    "sha256": "a7e241171da103937a6705cf50bd2ae51102e562aa56b69f657dadfec3aeea7f",
+    "createdTables": ["conversation_continuity", "conversation_continuity_turn_claims"],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0069_phase_22_5_capability_studio.sql",
+    "sha256": "83fbd44ef290afaab39c28a259a2e0168653f27c4931b2ea7a015539373efc1d",
+    "createdTables": ["capability_studio_artifacts"],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0070_phase_23_1_agent_economy.sql",
+    "sha256": "970dba20114ab9c5b5b27fdf2877d28018f5eb62f9a9e8638cf74d5f5a247bbe",
+    "createdTables": [
+      "agent_economy_accounts",
+      "agent_economy_ledger",
+      "agent_economy_reservations",
+      "agent_economy_performance"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0071_phase_23_2_agent_workforce.sql",
+    "sha256": "b6a841a94c091feccf68e7ee3a1bb9a3459b3c6326fec7cd52edd678dba555d6",
+    "createdTables": ["agent_workforce_events"],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0072_phase_23_3_workforce_runtime.sql",
+    "sha256": "5fd52ed71f9932ae98dc24f7adc20d7d879325a8208981f43eba941d25ac9c2c",
+    "createdTables": [
+      "workforce_runtime_tasks",
+      "workforce_runtime_messages",
+      "workforce_runtime_reviews"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0073_phase_23_4_objective_engine.sql",
+    "sha256": "583034873f2815d94de59d4b0eed14a3098349572b4cb783ae13eff3c7730d47",
+    "createdTables": [],
+    "alteredTables": ["executive_records"]
+  },
+  {
+    "path": "apps/api/migrations/0074_phase_23_5_experiments.sql",
+    "sha256": "4dc25c2341d3b73f41442ef964af03980018b82fc750fc13c4b02e00da50c77c",
+    "createdTables": [],
+    "alteredTables": ["executive_records"]
+  },
+  {
+    "path": "apps/api/migrations/0075_phase_23_6_business_operations.sql",
+    "sha256": "9bf9919cb849db052e1f8de5f2d218fb46d5e36a1ec191c24fb791d291230421",
+    "createdTables": [
+      "business_execution_records",
+      "business_external_events",
+      "external_metric_observations",
+      "outcome_attributions",
+      "business_entity_mappings",
+      "integration_sync_checkpoints"
+    ],
+    "alteredTables": ["integrations"]
+  },
+  {
+    "path": "apps/api/migrations/0076_phase_24_5_notifications.sql",
+    "sha256": "7a8607392d3d1c2ec761c38eb298d4244bbc40db88ab93335ae6eaa1dbd826d5",
+    "createdTables": [
+      "notification_subscriptions",
+      "notification_preferences",
+      "notification_deliveries"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0077_phase_24_6_cross_device_execution.sql",
+    "sha256": "59771fbe73ceec6adf854943a6b6d405137df171bac002eba050aee42182e916",
+    "createdTables": ["cross_device_clients", "cross_device_commands"],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0077a_repair_cross_device_execution_tables.sql",
+    "sha256": "35d68f7aa22f1610cbe07fa144fe835bd5b51738835e8c6d61df27bc660f2a6e",
+    "createdTables": ["cross_device_clients", "cross_device_commands"],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0078_phase_25_1_multi_company_tenancy.sql",
+    "sha256": "9dbd917ebb8f066a7fe0bf8c3a067cbdaa157870d5abf2203120500a3bbf0735",
+    "createdTables": ["companies", "company_memberships"],
+    "alteredTables": [
+      "ai_budget_override_grants",
+      "audit_events",
+      "business_entity_mappings",
+      "business_execution_records",
+      "business_external_events",
+      "conversation_continuity",
+      "conversation_continuity_turn_claims",
+      "cross_device_commands",
+      "integration_credentials",
+      "integration_events",
+      "integration_health",
+      "integration_permissions",
+      "integration_sync_checkpoints",
+      "integration_usage",
+      "integrations",
+      "notification_deliveries",
+      "owners",
+      "repositories",
+      "sessions"
+    ]
+  },
+  {
+    "path": "apps/api/migrations/0079_phase_25_2_dynamic_specialist_lifecycle.sql",
+    "sha256": "d7d3a11cf2264131c6125671590dc73fbf95cfa557bb7fa107d52e3b039c0854",
+    "createdTables": [],
+    "alteredTables": ["agent_lifecycle", "dynamic_agents"]
+  },
+  {
+    "path": "apps/api/migrations/0080_bound_persisted_dynamic_agent_capabilities.sql",
+    "sha256": "f1b269e87e4deced089d98c918dd7171b6cf0d36cae2cf46db42ca288ff82be0",
+    "createdTables": [],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0081_repair_adapter_sdk_capability_duplicates.sql",
+    "sha256": "4d20f718a31cf0a975b6e6fa7f7b30a5f040796aa7815f21cca6fe5e933e9b61",
+    "createdTables": [],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0082_phase_25_2_company_lifecycle.sql",
+    "sha256": "a13537201bec37ae39968fa9da077a83ddd6c49368a3718f315e503e7e7fb41c",
+    "createdTables": ["company_provisioning", "owner_company_limits"],
+    "alteredTables": ["companies"]
+  },
+  {
+    "path": "apps/api/migrations/0083_phase_25_3_reusable_agent_catalog.sql",
+    "sha256": "7300f440f6de50464fdf061e09b732518d5254b918ad94e6f267edc936365416",
+    "createdTables": ["agent_catalog_migration_audit", "company_agent_assignments"],
+    "alteredTables": ["agents"]
+  },
+  {
+    "path": "apps/api/migrations/0084_phase_25_3_organizational_workforce_completion.sql",
+    "sha256": "323636de03126cdffa379c3ba378e5d65da590676781bee2e78ca7ea809e701e",
+    "createdTables": [],
+    "alteredTables": ["departments"]
+  },
+  {
+    "path": "apps/api/migrations/0085_phase_25_3_company_scoped_agent_economy.sql",
+    "sha256": "e7f0df9fa29371edb27bf4c7c37dfb679d44ecdeb0d2e055786bf022e8fe5beb",
+    "createdTables": [],
+    "alteredTables": [
+      "agent_economy_accounts",
+      "agent_economy_ledger",
+      "agent_economy_performance",
+      "agent_economy_reservations"
+    ]
+  },
+  {
+    "path": "apps/api/migrations/0086_phase_25_4_company_information_plane.sql",
+    "sha256": "f4733f144b6b2ac1b62dd7f35a0045af06d75c2c7127dd100be790ffff924092",
+    "createdTables": [
+      "company_data_sources",
+      "company_datasets",
+      "company_data_pipelines",
+      "company_pipeline_runs",
+      "company_dataset_records",
+      "company_metadata_entities",
+      "company_metadata_lineage",
+      "company_glossary_terms",
+      "company_semantic_metrics",
+      "company_metric_observations",
+      "company_credential_references",
+      "company_integration_bindings",
+      "company_data_policies",
+      "company_semantic_documents"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0087_phase_25_5_owner_portfolio_observability.sql",
+    "sha256": "fb80767b6925102ac307cb9c2fc4eb063196a672308cb01096138a25e9c6a01c",
+    "createdTables": [
+      "owner_system_telemetry_spans",
+      "owner_ai_observability_traces",
+      "owner_portfolio_alert_states"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0088_phase_25_6_durable_cross_company_execution.sql",
+    "sha256": "650c6a9216e9f0f57df4b509b04381ec0e2c14f6eb63334de5e11004b69692d5",
+    "createdTables": [
+      "cross_company_collaboration_policies",
+      "cross_company_service_requests",
+      "durable_workflow_executions",
+      "durable_workflow_events",
+      "durable_activity_receipts",
+      "sandbox_execution_results"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0089_phase_25_6_production_acceptance.sql",
+    "sha256": "c7bfff6db293f800516026cef8deb4da222fec4814a645d3adfda38a624f4484",
+    "createdTables": [],
+    "alteredTables": [
+      "agent_economy_reservations",
+      "cross_company_service_requests",
+      "durable_activity_receipts",
+      "durable_workflow_executions"
+    ]
+  },
+  {
+    "path": "apps/api/migrations/0090_phase_25_8_portfolio_intelligence.sql",
+    "sha256": "5f83d90dafbaa69a43968f31446f672329d0f8c373acc67ae733b8f72df38582",
+    "createdTables": ["owner_portfolio_objectives"],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0091_phase_25_8h_portfolio_orchestration.sql",
+    "sha256": "69ac4ce20c81233729596260e45035338d7df8a2c2ebcc00be2ee8caae3574ac",
+    "createdTables": [
+      "agent_economy_scope_accounts",
+      "agent_economy_scope_transfers",
+      "agent_economy_scope_funding",
+      "owner_governor_proposals"
+    ],
+    "alteredTables": ["owner_portfolio_objectives"]
+  },
+  {
+    "path": "apps/api/migrations/0092_phase_25_8hf_orchestration_closure.sql",
+    "sha256": "7431c49a3ba3567f1fe3b391baa60284e873fb73c25800a8c589272d4018b1ac",
+    "createdTables": [],
+    "alteredTables": ["agent_economy_scope_funding", "owner_governor_proposals"]
+  },
+  {
+    "path": "apps/api/migrations/0093_phase_26_1_customer_operations_integrations.sql",
+    "sha256": "01704bb2f7652dacce81c412ac902bcc44bf555e98b27f3c143073e889b1e663",
+    "createdTables": [],
+    "alteredTables": ["integrations"]
+  },
+  {
+    "path": "apps/api/migrations/0094_phase_26_2_commercial_integrations.sql",
+    "sha256": "1c464adedceb7bdfb30a09639285e2a2527257f71070e567899a32f5967fb647",
+    "createdTables": ["commercial_facts"],
+    "alteredTables": ["integrations"]
+  },
+  {
+    "path": "apps/api/migrations/0095_phase_26_2b_commercial_hardening.sql",
+    "sha256": "8647c7d53869bb6f4af909a06b0fd0fc4d1fc55f2607a56354cd76c0914248fe",
+    "createdTables": [
+      "commercial_mutation_leases",
+      "commercial_mutation_history",
+      "commercial_aggregate_buckets",
+      "commercial_aggregate_reservations",
+      "commercial_workflow_runs"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0096_phase_27_1_engineering_runtime.sql",
+    "sha256": "0677372d4ce449b54420fa2ecacad1a4eb3696f51c6c94a47db05bfca017f45b",
+    "createdTables": [
+      "engineering_repositories",
+      "engineering_command_profiles",
+      "engineering_workspaces",
+      "engineering_executions",
+      "engineering_validation_reports"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0097_phase_27_2_engineering_orchestration.sql",
+    "sha256": "14c8e7f7753b86ff3260f59590c31de2546c580cd0cb1ba01c8469a78a4f073f",
+    "createdTables": [
+      "engineering_objectives",
+      "engineering_objective_tasks",
+      "engineering_task_results",
+      "engineering_task_artifacts",
+      "engineering_orchestration_events"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0098_phase_27_3_engineering_integration.sql",
+    "sha256": "30d1d64ae57ba04c11a6dbcc1fe59cf003656af573b972d94197170302dc7b07",
+    "createdTables": [
+      "engineering_integration_runs",
+      "engineering_merge_candidates",
+      "engineering_integration_reviews"
+    ],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0099_phase_27_4_engineering_delivery.sql",
+    "sha256": "59ed2f79cb6d8bf8f7732dedcbf4dc732f6f63f4e5bf9a169ca768df96acde2b",
+    "createdTables": ["engineering_deliveries"],
+    "alteredTables": ["engineering_repositories"]
+  },
+  {
+    "path": "apps/api/migrations/0100_backfill_workspace_external_research_pattern.sql",
+    "sha256": "1d8217dfab39aab4331b6fa29100dd93195e10e0a3435d3644b9a4f5d4a64348",
+    "createdTables": [],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0101_engineering_execution_request_compatibility.sql",
+    "sha256": "e76540a08584d303e524c77e30c0fbf75a6d7d72e54d0adb213c1cfb81be12eb",
+    "createdTables": [],
+    "alteredTables": ["execution_requests"]
+  },
+  {
+    "path": "apps/api/migrations/0102_agent_os_delegation_event_compatibility.sql",
+    "sha256": "837798a694567566873c7def052dd20562327bfe1726d0175cfe5c9c79b3e23d",
+    "createdTables": [],
+    "alteredTables": ["agent_runtime_events"]
+  },
+  {
+    "path": "apps/api/migrations/0103_engineering_project_sessions.sql",
+    "sha256": "f8b4abd9c069a8ed7ba957acc61c8abdb00f4bc46a25ec41d64bd1be3a0d8724",
+    "createdTables": ["engineering_project_sessions"],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0104_workforce_execution_leases.sql",
+    "sha256": "feb95238ed825134abfd29dd56522651edffec70c82ca79371a6c3ecfd8ae7d6",
+    "createdTables": [],
+    "alteredTables": ["workforce_runtime_tasks"]
+  },
+  {
+    "path": "apps/api/migrations/0105_engineering_delivery_recovery_scan.sql",
+    "sha256": "afc3f0839f0e1cbff4441577cc26539798892af29a6116d60bd4d4635c009ff4",
+    "createdTables": [],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0106_engineering_delivery_integration_recovery_scan.sql",
+    "sha256": "02ce7693e9a6c22527e2b24f89d445bea8c49b0ea6b4d0b9a28438c7cd9eb678",
+    "createdTables": [],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0107_engineering_delivery_preview_recovery_scan.sql",
+    "sha256": "d950e669bc5ba9c294012863cbd7bc187b9762436d45407a590ae44ce9ae4f4d",
+    "createdTables": [],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0108_execution_request_timestamp_repair.sql",
+    "sha256": "b2e2582599561dcf7ec8fad9af4eb35a3581a332c9a63ddbb8ed24c0fd9ca42f",
+    "createdTables": [],
+    "alteredTables": []
+  },
+  {
+    "path": "apps/api/migrations/0109_bind_execution_result_nonces.sql",
+    "sha256": "a79ebe30931a72dbf709e829b894c28c4a060e85985c0ae0d6053ef9d1b5263d",
+    "createdTables": [],
+    "alteredTables": ["used_nonces"]
+  },
+  {
+    "path": "apps/api/migrations/0110_phase_28_launch_review_packages.sql",
+    "sha256": "eb1704e39484e05c870cfbdf4197b2a907f78bb0cd39b1ae19834532cc84deba",
+    "createdTables": ["launch_review_packages", "launch_review_package_versions"],
+    "alteredTables": []
+  }
+]

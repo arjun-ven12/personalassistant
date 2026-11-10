@@ -1,0 +1,105 @@
+{
+  "check": "pnpm audit --prod --json",
+  "exitCode": 1,
+  "scope": "Current dependency graph after SDK installation",
+  "counts": {
+    "info": 0,
+    "low": 5,
+    "moderate": 4,
+    "high": 1,
+    "critical": 0
+  },
+  "baselineComparison": "Zod 4.4.3, Fastify 5.12.5 and fast-uri 3.1.8/4.1.5 are also present in HEAD lockfile; SDK adds dependency paths to inherited Zod/fast-uri versions. Baseline package overrides preserved.",
+  "advisories": [
+    {
+      "id": 1242860,
+      "module_name": "fastify",
+      "severity": "low",
+      "title": "fastify is vulnerable to header validation bypass via case-sensitive propertyNames",
+      "vulnerable_versions": ">=5.12.2 <5.12.6",
+      "patched_versions": ">=5.12.6",
+      "url": "https://github.com/advisories/GHSA-389g-gv7q-r4x8"
+    },
+    {
+      "id": 1243066,
+      "module_name": "zod",
+      "severity": "high",
+      "title": "Zod can exhaust memory while validating oversized constrained collections",
+      "vulnerable_versions": "<4.6.6",
+      "patched_versions": ">=4.6.6",
+      "url": "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5"
+    },
+    {
+      "id": 1243097,
+      "module_name": "fast-uri",
+      "severity": "moderate",
+      "title": "fast-uri vulnerable to URI scheme spoofing via percent-encoded scheme decoding",
+      "vulnerable_versions": ">=4.0.0 <4.2.3",
+      "patched_versions": ">=4.2.3",
+      "url": "https://github.com/advisories/GHSA-w74x-v6f9-j3xg"
+    },
+    {
+      "id": 1243098,
+      "module_name": "fast-uri",
+      "severity": "moderate",
+      "title": "fast-uri vulnerable to URI scheme spoofing via percent-encoded scheme decoding",
+      "vulnerable_versions": ">=3.0.0 <3.1.9",
+      "patched_versions": ">=3.1.9",
+      "url": "https://github.com/advisories/GHSA-w74x-v6f9-j3xg"
+    },
+    {
+      "id": 1243100,
+      "module_name": "fast-uri",
+      "severity": "low",
+      "title": "fast-uri vulnerable to improper path equivalence in relative reference normalization",
+      "vulnerable_versions": ">=4.0.0 <4.2.3",
+      "patched_versions": ">=4.2.3",
+      "url": "https://github.com/advisories/GHSA-xhq7-xmqj-769h"
+    },
+    {
+      "id": 1243101,
+      "module_name": "fast-uri",
+      "severity": "low",
+      "title": "fast-uri vulnerable to improper path equivalence in relative reference normalization",
+      "vulnerable_versions": ">=3.0.0 <3.1.9",
+      "patched_versions": ">=3.1.9",
+      "url": "https://github.com/advisories/GHSA-xhq7-xmqj-769h"
+    },
+    {
+      "id": 1243103,
+      "module_name": "fast-uri",
+      "severity": "moderate",
+      "title": "fast-uri vulnerable to host confusion via unchecked WHATWG host canonicalization",
+      "vulnerable_versions": ">=4.0.1 <4.2.3",
+      "patched_versions": ">=4.2.3",
+      "url": "https://github.com/advisories/GHSA-wjr9-j795-jxcr"
+    },
+    {
+      "id": 1243104,
+      "module_name": "fast-uri",
+      "severity": "moderate",
+      "title": "fast-uri vulnerable to host confusion via unchecked WHATWG host canonicalization",
+      "vulnerable_versions": ">=3.1.3 <3.1.9",
+      "patched_versions": ">=3.1.9",
+      "url": "https://github.com/advisories/GHSA-wjr9-j795-jxcr"
+    },
+    {
+      "id": 1243106,
+      "module_name": "fast-uri",
+      "severity": "low",
+      "title": "fast-uri vulnerable to scheme injection via an unescaped first-segment colon in suffix references",
+      "vulnerable_versions": ">=4.0.0 <4.2.3",
+      "patched_versions": ">=4.2.3",
+      "url": "https://github.com/advisories/GHSA-333x-w4r6-6crp"
+    },
+    {
+      "id": 1243107,
+      "module_name": "fast-uri",
+      "severity": "low",
+      "title": "fast-uri vulnerable to scheme injection via an unescaped first-segment colon in suffix references",
+      "vulnerable_versions": ">=3.0.0 <3.1.9",
+      "patched_versions": ">=3.1.9",
+      "url": "https://github.com/advisories/GHSA-333x-w4r6-6crp"
+    }
+  ]
+}

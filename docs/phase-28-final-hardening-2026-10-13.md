@@ -1,0 +1,29 @@
+# Phase 28 final hardening continuation
+
+Assessment date: 2026-10-13. This continues the [readiness repair](phase-28-readiness-repair-2026-10-13.md). Scores use the same 30/20/20/10/10/10 implementation weights. A passing fixture does not count as live acceptance.
+
+## Implemented in this continuation
+
+- A blocked launch stage has an owner-only, CSRF-protected retry route. It requires the inspected package version, verifies the old task belongs to the same objective and company, clears only the blocked task reference, persists a new version, and audits the retry. A new version-bound workforce idempotency key prevents a retry from returning the failed task. Concurrent or stale retry requests fail closed.
+- Launch-stage workforce task keys are now queried without the prior 500-task window. Migration `0110` adds a company-scoped unique index for these keys, so concurrent API workers cannot persist two stage tasks for one attempt. A unique-key loser recovers the exact stored task only when its objective and inputs match. Queue attachment checks the returned task's company, objective, package, and key before updating the package. Deployment of this migration remains unverified.
+- Branding receives bounded verified research context; marketing receives bounded brand and research context; social receives bounded campaign and brand context. Prior artifact text is explicitly treated as data. The launch remains a review package with no publisher or spend route.
+- An interrupted external email draft now becomes `EXTERNAL_RESULT_UNCERTAIN`, rather than a false denial that might invite duplicate creation. The stored record is returned on replay without another provider call.
+- A real PostgreSQL-only launch store case was added for concurrent objective claims, compare-and-swap version updates, version reconstruction, duplicate task prevention, and sibling-company isolation. It is gated by `TEST_DATABASE_URL` and was **not executed** here; it supplies no PostgreSQL acceptance evidence.
+
+## Acceptance results
+
+| Area | Status | Evidence / exact blocker |
+| --- | --- | --- |
+| Local TypeScript, lint, unit suite, build | IMPLEMENTED | Node 22 and pnpm 11 were provisioned under `/tmp`; no system installation was changed. Final clean run: 1,090 passed, 0 failed, 56 skipped across 196 files. `pnpm typecheck`, `pnpm lint`, `pnpm build`, repository security invariants, production config invariants, `git diff --check`, and `pnpm audit --prod --json` passed. The audit reported zero advisories. Skips include real PostgreSQL, live accounts, and macOS-only checks. |
+| PostgreSQL concurrency, restart, audit durability | BLOCKED_INFRASTRUCTURE | No `TEST_DATABASE_URL`, PostgreSQL server, or container runtime is available. Migration `0110` and the new integration case remain unexecuted against PostgreSQL. A disposable, test-named PostgreSQL database URL with schema creation rights is required. A separate API process restart run is still required. |
+| Business provider acceptance | BLOCKED_EXTERNAL | Bootstrap conditionally registers Gmail OAuth, Stripe test, Xero sandbox, Google Ads test, GA4, and Shopify development providers. This environment has none of their credential variables or company bindings. The owner must supply reviewed credentials through the deployment secret manager, enable company integration bindings and finite permissions, then run read-only health and harmless test-account actions with receipts. The existing Gmail live acceptance test sends an email after a fixture approval and must not be used as the harmless acceptance step or as proof of production recent authentication. |
+| CRM, support, documents, projects, GitHub production breadth | NOT RUN | The inspected production bootstrap has no reviewed live provider registration for these business capabilities. This is an implementation blocker; deterministic fixtures cannot establish operation. |
+| Social publication and spending | NOT RUN | Launch posts keep `publishStatus: BLOCKED_PROVIDER`; there is no registered social account/provider, governed publishing candidate, scheduler, execution receipt, or independent terminal verification. This is an implementation blocker; publishing and spend remain disabled. |
+| Android unit/build and state acceptance | BLOCKED_INFRASTRUCTURE | `./gradlew testDebugUnitTest assembleDebug --no-daemon` stops before compilation because `JAVA_HOME` and `java` are absent. Android SDK is also absent. Install JDK 17 and Android SDK platform 35 plus build tools/platform tools, set `JAVA_HOME` and `ANDROID_HOME`, then rerun the command and state/reconnect acceptance. No Android PASS is claimed. |
+| Live API/web and migrations | UNKNOWN | No current Athena production API/web URL or read-only deployment access is configured here. The Railway variables describe this Codex workspace service, not Athena's API. Current health, migrations, runtime bindings, and deployed secret exposure were not verified. Owner must provide deployment endpoints or read-only access. No redeploy occurred. |
+
+## Readiness decision
+
+Autonomous engineering 7/10; research 7/10; business operations 5/10; branding 4/10; marketing 4/10; social media 3/10. Weighted implementation readiness remains **56/100**. The narrow retry, context, and uncertain-draft fixes improve safety and recovery but do not close provider breadth, social execution, PostgreSQL acceptance, Android acceptance, or live deployment. There is no score increase without those outcomes.
+
+Phase 28 remains incomplete because reviewed live CRM/support/documents/projects/GitHub providers and a governed social execution path are implementation blockers. PostgreSQL, Android, provider accounts, and deployment evidence are additional acceptance blockers. No live deployment, publication, spend, or external provider success is asserted.

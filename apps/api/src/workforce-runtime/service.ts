@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { AsyncLocalStorage } from "node:async_hooks";
+import { isDeepStrictEqual } from "node:util";
 
 import {
   CompleteWorkforceTaskRequestSchema,
@@ -293,12 +294,13 @@ export class WorkforceRuntimeService {
   }) {
     const body = CreateWorkforceTaskRequestSchema.parse(input.body);
     if (body.idempotencyKey) {
-      const duplicate = (await this.store.listTasks(input.ownerId, 500)).find(
-        (task) =>
-          task.idempotencyKey === body.idempotencyKey &&
-          task.createdByAgentId === body.createdByAgentId,
-      );
-      if (duplicate) return { task: duplicate };
+      const duplicate = await this.store.findTaskByIdempotency(input.ownerId, body.idempotencyKey);
+      if (duplicate && duplicate.createdByAgentId === body.createdByAgentId) {
+        if (body.idempotencyKey.startsWith("launch:") &&
+          (duplicate.objective !== body.objective || !isDeepStrictEqual(duplicate.inputs, body.inputs)))
+          throw new ExecutionError(409, "WORKFORCE_IDEMPOTENCY_CONFLICT", "The launch task key is bound to a different bounded task.");
+        return { task: duplicate };
+      }
     }
     const parent = body.parentTaskId
       ? await this.requireTask(input.ownerId, body.parentTaskId)
@@ -402,7 +404,19 @@ export class WorkforceRuntimeService {
       completedAt: null,
       expiresAt: body.expiresAt,
     });
-    await this.store.saveTask(task);
+    try {
+      await this.store.saveTask(task);
+    } catch (error) {
+      if (body.idempotencyKey?.startsWith("launch:") &&
+        (error as { code?: string }).code === "23505") {
+        const duplicate = await this.store.findTaskByIdempotency(input.ownerId, body.idempotencyKey);
+        if (duplicate && duplicate.createdByAgentId === body.createdByAgentId &&
+          duplicate.objective === body.objective && isDeepStrictEqual(duplicate.inputs, body.inputs))
+          return { task: duplicate };
+        throw new ExecutionError(409, "WORKFORCE_IDEMPOTENCY_CONFLICT", "The launch task key is bound to a different bounded task.");
+      }
+      throw error;
+    }
     await this.lifecycleSink?.handleWorkforceTaskChanged(task);
     if (creator)
       await this.message(

@@ -8,7 +8,7 @@
   "type": "module",
   "main": "dist-electron/main.cjs",
   "scripts": {
-    "build": "tsc -p tsconfig.json --noEmit && vite build && tsup --config tsup.config.ts && pnpm run build:native",
+    "build": "tsc -p tsconfig.json --noEmit && vite build && tsup --config tsup.config.ts && node scripts/build-native-if-darwin.mjs",
     "build:icons": "node scripts/build-icons.mjs",
     "package:mac": "pnpm run build:icons && pnpm run build && electron-builder --config electron-builder.config.cjs --mac dir dmg zip --arm64 --publish never",
     "install:local": "pnpm run package:mac && node scripts/install-local.mjs",

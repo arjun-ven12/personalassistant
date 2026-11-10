@@ -1,0 +1,25 @@
+{
+  "auditDate": "2026-10-26",
+  "scope": "CURRENT_WORKSPACE_INCLUDING_PRE_EXISTING_UNCOMMITTED_CHANGES",
+  "head": "7ee28be9de093a0446dfbe95b7145278b9087ea9",
+  "cachedOriginMain": "dc43276f4ba83b57f32d00cb765248824c7fb78a",
+  "remoteMainObservedEarlier": "7e4641012f8e307d96b8a53cafbe0ca3f51b60ea",
+  "sourceInventoryFiles": 1206,
+  "apiDomains": 68,
+  "routeExpressions": 594,
+  "migrations": 111,
+  "agentCounts": {
+    "builtins": 8,
+    "externalCatalog": 64,
+    "nativeCatalog": 40,
+    "departmentTemplates": 13
+  },
+  "reviewStatus": "DRAFT_REQUIRES_FOUNDER_AND_SECURITY_REVIEW",
+  "classification": "CONFIDENTIAL_INTERNAL",
+  "sourceCodeModifiedByAudit": false,
+  "notes": [
+    "Literal route inventory is structural; loops and computed expressions are not expanded.",
+    "File hashes identify audited workspace content; a hash alone is not a behavioral review.",
+    "No production, provider, sensor or privileged OS acceptance performed."
+  ]
+}

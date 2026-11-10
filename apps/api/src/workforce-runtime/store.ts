@@ -35,6 +35,7 @@ export interface WorkforceRuntimeStore {
   pendingLifecycleTasks(ownerId: string): Awaitable<WorkforceRuntimeTask[]>;
   acknowledgeLifecycle(task: WorkforceRuntimeTask): Awaitable<void>;
   findTask(ownerId: string, taskId: string): Awaitable<WorkforceRuntimeTask | undefined>;
+  findTaskByIdempotency(ownerId: string, idempotencyKey: string): Awaitable<WorkforceRuntimeTask | undefined>;
   listTasks(ownerId: string, limit: number): Awaitable<WorkforceRuntimeTask[]>;
   saveMessage(message: WorkforceRuntimeMessage): Awaitable<void>;
   listMessages(ownerId: string, limit: number): Awaitable<WorkforceRuntimeMessage[]>;
@@ -99,6 +100,9 @@ export class InMemoryWorkforceRuntimeStore implements WorkforceRuntimeStore {
   findTask(ownerId: string, taskId: string) {
     const task = this.#tasks.get(key(ownerId, taskId));
     return task?.ownerId === ownerId ? structuredClone(task) : undefined;
+  }
+  findTaskByIdempotency(ownerId: string, idempotencyKey: string) {
+    return values(this.#tasks, ownerId).find((task) => task.idempotencyKey === idempotencyKey);
   }
   listTasks(ownerId: string, limit: number) {
     return values(this.#tasks, ownerId)

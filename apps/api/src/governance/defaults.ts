@@ -44,6 +44,19 @@ const defineTool = (
   });
 
 export const BUILT_IN_TOOLS: ToolDefinition[] = [
+  {
+    ...defineTool(
+      "mcp.local_fixture.read_status",
+      "read_only",
+      "session",
+      ["workspace.read"],
+      "workspace",
+      true,
+      true,
+    ),
+    supportsCancellation: true,
+    supportsDryRun: false,
+  },
   defineTool(
     "repository.initialize_project",
     "medium",

@@ -97,6 +97,13 @@ export class PostgresWorkforceRuntimeStore implements WorkforceRuntimeStore {
     const result = await this.pool.query<{record: unknown}>("SELECT record FROM workforce_runtime_tasks WHERE owner_id=$1 AND id=$2 AND company_id=COALESCE($3::uuid,(SELECT default_company_id FROM owners WHERE id=$1))",[ownerId,taskId,companyScope.companyId(ownerId)??null]);
     return result.rows[0] ? WorkforceRuntimeTaskSchema.parse(result.rows[0].record) : undefined;
   }
+  async findTaskByIdempotency(ownerId: string, idempotencyKey: string) {
+    const result = await this.pool.query<{record: unknown}>(
+      "SELECT record FROM workforce_runtime_tasks WHERE owner_id=$1 AND company_id=COALESCE($2::uuid,(SELECT default_company_id FROM owners WHERE id=$1)) AND record->>'idempotencyKey'=$3 LIMIT 1",
+      [ownerId, companyScope.companyId(ownerId) ?? null, idempotencyKey],
+    );
+    return result.rows[0] ? WorkforceRuntimeTaskSchema.parse(result.rows[0].record) : undefined;
+  }
   async listTasks(ownerId: string, limit: number) {
     const result = await this.pool.query<{record: unknown}>("SELECT record FROM workforce_runtime_tasks WHERE owner_id=$1 AND company_id=COALESCE($3::uuid,(SELECT default_company_id FROM owners WHERE id=$1)) ORDER BY created_at DESC LIMIT $2",[ownerId,limit,companyScope.companyId(ownerId)??null]);
     return result.rows.map((row) => WorkforceRuntimeTaskSchema.parse(row.record));

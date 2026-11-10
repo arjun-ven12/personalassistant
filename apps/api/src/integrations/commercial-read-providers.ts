@@ -323,7 +323,12 @@ export class GoogleAnalytics4Provider
       const rowCount = z.number().int().nonnegative().parse(body.rowCount ?? (rows.length === 0 ? 0 : undefined));
       if (rowCount !== rows.length || rows.some((row) => row.dimensionValues.length !== dimensionHeaders.length || !/^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(row.metricValues[0]!.value) || !Number.isFinite(Number(row.metricValues[0]!.value))))
         throw new ProviderHttpError("INVALID_RECORD", false);
-      return result("Google Analytics 4", `ga4:${propertyId}:${action.metricId}`);
+      const verified=result("Google Analytics 4", `ga4:${propertyId}:${action.metricId}`);
+      if(action.capability==="analytics.query_metric"){
+        if(action.dimensions.length!==0||rows.length!==1)return {outcome:"EXTERNAL_RESULT_UNCERTAIN" as const,externalReferenceId:verified.externalReferenceId,summary:"The GA4 metric query did not return one unsegmented value; no canonical metric was recorded."};
+        return {...verified,metric:{metricId:action.metricId,value:Number(rows[0]!.metricValues[0]!.value),unit:metricHeaders[0]!.type,observedAt:action.periodEnd}};
+      }
+      return verified;
     } catch (error) {
       return failure(error, "Google Analytics 4");
     }

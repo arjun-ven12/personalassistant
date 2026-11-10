@@ -1,16 +1,19 @@
 import type { BusinessActionRequest, BusinessProvider } from "@alexa-control/shared";
+import { z } from "zod";
 import type { ResolvedProviderSecret } from "./secret-resolver.js";
 
 export type ProviderHealthState = "HEALTHY" | "DEGRADED" | "REAUTH_REQUIRED" | "UNAVAILABLE";
-export interface BusinessProviderResult {
-  outcome: "VERIFIED" | "EXTERNAL_RESULT_UNCERTAIN" | "FAILED";
-  externalReferenceId: string | null;
-  summary: string;
-  failureKind?: "TIMEOUT" | "RATE_LIMIT" | "OUTAGE" | "EXPIRED_CREDENTIAL" | "PERMISSION_DENIED" | "INVALID_RECORD" | null;
-  retryable?: boolean;
-  metric?: { metricId: string; value: number; unit: string; observedAt: string };
-  mapping?: { entityType: "LEAD" | "CONTACT" | "EMAIL_THREAD" | "ISSUE" | "SUPPORT_TICKET" | "DOCUMENT" | "PROJECT_TASK" | "CRM_FOLLOW_UP" | "CUSTOMER" | "ORDER" | "PAYMENT" | "INVOICE" | "CAMPAIGN" | "PRODUCT" | "REFUND"; externalId: string; internalEntityId: string; externalVersion: string | null };
-}
+export const BusinessProviderHealthSchema=z.object({state:z.enum(["HEALTHY","DEGRADED","REAUTH_REQUIRED","UNAVAILABLE"]),reasonCode:z.string().min(1).max(120),rateLimitRemaining:z.number().int().nonnegative().nullable()}).strict();
+export const BusinessProviderResultSchema = z.object({
+  outcome:z.enum(["VERIFIED","EXTERNAL_RESULT_UNCERTAIN","FAILED"]),
+  externalReferenceId:z.string().min(1).max(512).nullable(),
+  summary:z.string().min(1).max(1_000),
+  failureKind:z.enum(["TIMEOUT","RATE_LIMIT","OUTAGE","EXPIRED_CREDENTIAL","PERMISSION_DENIED","INVALID_RECORD"]).nullable().optional(),
+  retryable:z.boolean().optional(),
+  metric:z.object({metricId:z.string().min(1).max(120),value:z.number().finite(),unit:z.string().min(1).max(80),observedAt:z.iso.datetime()}).strict().optional(),
+  mapping:z.object({entityType:z.enum(["LEAD","CONTACT","EMAIL_THREAD","ISSUE","SUPPORT_TICKET","DOCUMENT","PROJECT_TASK","CRM_FOLLOW_UP","CUSTOMER","ORDER","PAYMENT","INVOICE","CAMPAIGN","PRODUCT","REFUND"]),externalId:z.string().min(1).max(512),internalEntityId:z.string().min(1).max(512),externalVersion:z.string().max(512).nullable()}).strict().optional(),
+}).strict();
+export type BusinessProviderResult = z.infer<typeof BusinessProviderResultSchema>;
 export interface ReviewedBusinessProvider {
   readonly providerId: BusinessProvider;
   readonly capabilities: ReadonlySet<BusinessActionRequest["capability"]>;

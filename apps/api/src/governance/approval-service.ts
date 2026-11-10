@@ -214,8 +214,16 @@ export class ApprovalService {
     sessionId: string,
     auditContext: { ipAddress: string; requestId: string },
   ) {
+    const approval = await this.store.findApprovalById(id);
+    if (!approval || approval.ownerId !== ownerId || approval.companyId !== (companyScope.companyId(ownerId) ?? null)) {
+      throw new GovernanceError(404, "APPROVAL_NOT_FOUND", "Approval request was not found.");
+    }
+    const current = await this.expireIfNeeded(approval);
+    if (current.status !== "PENDING" && current.status !== "APPROVED") {
+      throw new GovernanceError(409, "APPROVAL_ALREADY_DECIDED", "Approval request can no longer be cancelled.");
+    }
     return this.transition(
-      await this.requirePending(ownerId, id),
+      current,
       "CANCELLED",
       sessionId,
       null,
@@ -224,12 +232,15 @@ export class ApprovalService {
   }
 
   async findMatchingApproved(ownerId: string, action: ProposedAction) {
+    const digest = digestProposedAction(action);
     const approval = await this.store.findApprovalByDigest(
       ownerId,
-      digestProposedAction(action),
+      digest,
       ["APPROVED"],
     );
-    return approval ? this.expireIfNeeded(approval) : undefined;
+    if (!approval || approval.ownerId !== ownerId || approval.companyId !== (companyScope.companyId(ownerId) ?? null) || approval.actionDigest !== digest || digestProposedAction(approval.action) !== digest) return undefined;
+    const current = await this.expireIfNeeded(approval);
+    return current.status === "APPROVED" ? current : undefined;
   }
 
   private async requirePending(ownerId: string, id: string) {

@@ -7,6 +7,7 @@ import type {
   BusinessProviderResult,
   EmailProvider,
 } from "./business-providers.js";
+import { providerActionIdentity } from "./provider-cache.js";
 
 const IdentifierSchema=z.object({id:z.string().min(1).max(500)}).passthrough();
 const SearchSchema=z.object({messages:z.array(IdentifierSchema).max(100).optional(),resultSizeEstimate:z.number().int().nonnegative().optional()}).passthrough();
@@ -26,7 +27,7 @@ export class GmailBusinessProvider implements EmailProvider {
     "email.search","email.read_thread","email.list_attachments","email.create_draft","email.send_draft",
   ]);
   readonly #tokens=new Map<string,{value:string;expiresAt:number}>();
-  readonly #results=new Map<string,BusinessProviderResult>();
+  readonly #results=new Map<string,{digest:string;result:BusinessProviderResult}>();
   readonly #reauthAttempted=new Set<string>();
   constructor(readonly fetcher:Fetcher=fetch,readonly now:()=>Date=()=>new Date()){}
 
@@ -41,7 +42,10 @@ export class GmailBusinessProvider implements EmailProvider {
 
   async execute(action:BusinessActionRequest,context?:BusinessProviderExecutionContext):Promise<BusinessProviderResult>{
     if(!this.capabilities.has(action.capability))return {outcome:"FAILED",externalReferenceId:null,summary:"The reviewed Gmail adapter does not expose this capability.",failureKind:"PERMISSION_DENIED",retryable:false};
-    const existing=this.#results.get(action.idempotencyKey);if(existing)return structuredClone(existing);
+    const identity=providerActionIdentity(this.providerId,action,context);
+    if(!identity)return {outcome:"FAILED",externalReferenceId:null,summary:"A company-scoped credential binding is required.",failureKind:"PERMISSION_DENIED",retryable:false};
+    const existing=this.#results.get(identity.scope);
+    if(existing)return existing.digest===identity.digest?structuredClone(existing.result):{outcome:"FAILED",externalReferenceId:null,summary:"The provider idempotency key is bound to another action.",failureKind:"INVALID_RECORD",retryable:false};
     let uncertainReference:string|null=null;
     try{
       const token=await this.token(context);
@@ -60,7 +64,7 @@ export class GmailBusinessProvider implements EmailProvider {
           result={outcome:"VERIFIED",externalReferenceId:`gmail:thread:${response.id}`,summary:"Gmail verified the bounded thread attachment metadata."};break;
         }
         case "email.create_draft": {
-          const boundaryId=messageId(action.idempotencyKey);
+          const boundaryId=messageId(identity.externalIdempotencyKey);
           const headers=[`To: ${action.to.map(cleanHeader).join(", ")}`,action.cc.length?`Cc: ${action.cc.map(cleanHeader).join(", ")}`:null,`Subject: ${cleanHeader(action.subject)}`,`Message-ID: ${boundaryId}`,"MIME-Version: 1.0","Content-Type: text/plain; charset=UTF-8",action.threadId?`In-Reply-To: ${cleanHeader(action.threadId)}`:null].filter(Boolean).join("\r\n");
           const response=IdentifierSchema.parse(await this.request("/drafts",token,{method:"POST",body:JSON.stringify({message:{raw:base64url(`${headers}\r\n\r\n${action.body}`),...(action.threadId?{threadId:action.threadId}:{})}})}));
           result={outcome:"VERIFIED",externalReferenceId:`gmail:draft:${response.id}`,summary:"Gmail acknowledged the reviewed draft."};break;
@@ -75,11 +79,11 @@ export class GmailBusinessProvider implements EmailProvider {
         }
         default:return {outcome:"FAILED",externalReferenceId:null,summary:"The Gmail capability is not implemented.",failureKind:"PERMISSION_DENIED",retryable:false};
       }
-      this.#results.set(action.idempotencyKey,result);return structuredClone(result);
+      this.#results.set(identity.scope,{digest:identity.digest,result});return structuredClone(result);
     }catch(error){
       const credential=context?.credential;
-      if(error instanceof GmailProviderError&&error.kind==="EXPIRED_CREDENTIAL"&&context&&credential?.refreshToken&&credential.clientId&&credential.clientSecret&&!this.#reauthAttempted.has(action.idempotencyKey)){
-        this.#reauthAttempted.add(action.idempotencyKey);if(context.credentialBindingId)this.#tokens.delete(context.credentialBindingId);
+      if(error instanceof GmailProviderError&&error.kind==="EXPIRED_CREDENTIAL"&&context&&credential?.refreshToken&&credential.clientId&&credential.clientSecret&&!this.#reauthAttempted.has(identity.scope)){
+        this.#reauthAttempted.add(identity.scope);if(context.credentialBindingId)this.#tokens.delete(context.credentialBindingId);
         return this.execute(action,{...context,credential:{refreshToken:credential.refreshToken,clientId:credential.clientId,clientSecret:credential.clientSecret}});
       }
       return this.failure(error,action,uncertainReference);
@@ -102,7 +106,9 @@ export class GmailBusinessProvider implements EmailProvider {
 
   private async token(context?:BusinessProviderExecutionContext){
     const credential=context?.credential;if(!credential)throw new GmailProviderError("EXPIRED_CREDENTIAL",false);
-    const cacheKey=context?.credentialBindingId??"unbound",cached=this.#tokens.get(cacheKey);
+    const cacheKey=context?.companyId&&context.credentialBindingId?`${context.companyId}:${context.credentialBindingId}`:null;
+    if(!cacheKey)throw new GmailProviderError("PERMISSION_DENIED",false);
+    const cached=this.#tokens.get(cacheKey);
     if(cached&&cached.expiresAt>this.now().getTime()+30_000)return cached.value;
     if(credential.accessToken&&(!credential.expiresAt||Date.parse(credential.expiresAt)>this.now().getTime()+30_000))return credential.accessToken;
     if(!credential.refreshToken||!credential.clientId||!credential.clientSecret)throw new GmailProviderError("EXPIRED_CREDENTIAL",false);

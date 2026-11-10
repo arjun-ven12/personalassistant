@@ -3,6 +3,7 @@ import { defineConfig } from "tsup";
 export default defineConfig({
   entry: {
     index: "src/index.ts",
+    "mcp-fixture": "src/mcp/fixture-server.ts",
     database: "src/scripts/database.ts",
     "validate-environment": "src/scripts/validate-environment.ts",
   },

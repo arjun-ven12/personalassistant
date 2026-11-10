@@ -67,6 +67,8 @@ export interface IntegrationStore {
   }): Awaitable<void>;
   listUsage(ownerId: string): Awaitable<IntegrationUsage[]>;
   saveBusinessExecution(record: BusinessExecutionRecord): Awaitable<void>;
+  saveWaitingBusinessExecution(record: BusinessExecutionRecord): Awaitable<boolean>;
+  claimBusinessExecution(record: BusinessExecutionRecord): Awaitable<boolean>;
   findBusinessExecution(ownerId: string, integrationId: string, idempotencyKey: string): Awaitable<BusinessExecutionRecord | undefined>;
   listBusinessExecutions(ownerId: string, limit: number): Awaitable<BusinessExecutionRecord[]>;
   saveExternalEvent(event: BusinessExternalEvent): Awaitable<boolean>;
@@ -230,6 +232,23 @@ export class InMemoryIntegrationStore implements IntegrationStore {
   saveBusinessExecution(record: BusinessExecutionRecord) {
     const parsed = BusinessExecutionRecordSchema.parse(record);
     this.#businessExecutions.set(scopeKey(parsed.ownerId, `${parsed.integrationId}:${parsed.idempotencyKey}`), structuredClone(parsed));
+  }
+  saveWaitingBusinessExecution(record: BusinessExecutionRecord) {
+    const parsed=BusinessExecutionRecordSchema.parse(record);
+    if(parsed.status!=="WAITING_APPROVAL")return false;
+    const key=scopeKey(parsed.ownerId,`${parsed.integrationId}:${parsed.idempotencyKey}`);
+    const current=this.#businessExecutions.get(key);
+    if(current&&!(current.status==="WAITING_APPROVAL"&&current.id===parsed.id&&current.actionDigest===parsed.actionDigest))return false;
+    this.#businessExecutions.set(key,structuredClone(parsed));
+    return true;
+  }
+  claimBusinessExecution(record: BusinessExecutionRecord) {
+    const parsed=BusinessExecutionRecordSchema.parse(record);
+    const key=scopeKey(parsed.ownerId,`${parsed.integrationId}:${parsed.idempotencyKey}`);
+    const current=this.#businessExecutions.get(key);
+    if(current&&!(current.status==="WAITING_APPROVAL"&&current.id===parsed.id&&current.actionDigest===parsed.actionDigest))return false;
+    this.#businessExecutions.set(key,structuredClone(parsed));
+    return true;
   }
   findBusinessExecution(ownerId: string, integrationId: string, idempotencyKey: string) {
     const value = this.#businessExecutions.get(scopeKey(ownerId, `${integrationId}:${idempotencyKey}`));

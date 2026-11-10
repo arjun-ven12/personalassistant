@@ -4,6 +4,18 @@ export const BusinessProviderSchema = z.enum([
   "gmail", "crm", "support", "documents", "projects", "analytics", "github",
   "accounting", "payments", "ads", "commerce",
 ]);
+export const BusinessProviderReadinessSchema = z.object({
+  providerId: BusinessProviderSchema,
+  state: z.enum(["IMPLEMENTATION_REQUIRED", "BLOCKED_EXTERNAL", "BLOCKED_POLICY", "UNVERIFIED", "CONFIGURED_UNVERIFIED", "UNKNOWN"]),
+  reasonCode: z.string().min(1).max(120),
+  adapterRegistered: z.boolean(),
+  declaredCapabilityCount: z.number().int().nonnegative(),
+  bindingId: z.string().uuid().nullable(),
+  credentialStatus: z.enum(["READY", "MISSING", "EXPIRED", "REVOKED", "UNKNOWN"]),
+  healthState: z.enum(["healthy", "degraded", "unhealthy", "unknown"]),
+  liveVerified: z.literal(false),
+}).strict();
+export const BusinessProviderReadinessListSchema = z.array(BusinessProviderReadinessSchema).max(20);
 export const CommercialCapabilitySchema = z.enum([
   "accounting.list_accounts", "accounting.read_account", "accounting.search_transactions", "accounting.read_transaction", "accounting.list_invoices", "accounting.read_invoice", "accounting.list_bills", "accounting.read_bill", "accounting.read_pnl", "accounting.read_balance_sheet", "accounting.read_cashflow", "accounting.read_ar_aging", "accounting.read_ap_aging", "accounting.create_draft_invoice", "accounting.update_draft_invoice", "accounting.add_transaction_note", "accounting.create_draft_expense", "accounting.mark_for_review",
   "payments.search", "payments.read", "payments.list_payouts", "payments.read_subscription", "payments.read_dispute", "payments.prepare_charge", "payments.prepare_refund", "payments.prepare_subscription_change", "payments.execute_charge", "payments.execute_refund", "payments.cancel_subscription",

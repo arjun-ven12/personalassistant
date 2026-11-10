@@ -9,6 +9,21 @@ const response=(value:unknown,status=200)=>new Response(JSON.stringify(value),{s
 const requestUrl=(input:RequestInfo|URL)=>input instanceof URL?input.href:typeof input==="string"?input:input.url;
 
 describe("reviewed Gmail provider",()=>{
+  it("isolates cached send receipts by company and credential binding",async()=>{
+    let sends=0;
+    const fetcher=vi.fn((input:RequestInfo|URL):Promise<Response>=>{
+      const url=requestUrl(input);
+      if(url.includes("/drafts/draft-shared"))return Promise.resolve(response({id:"draft-shared",message:{raw:Buffer.from("Message-ID: <shared@alexa.invalid>\r\n\r\nBody").toString("base64url")}}));
+      if(url.endsWith("/drafts/send"))return Promise.resolve(response({id:`sent-${++sends}`}));
+      return Promise.resolve(response({},404));
+    });
+    const provider=new GmailBusinessProvider(fetcher);
+    const action={capability:"email.send_draft" as const,idempotencyKey:"same-idempotency-key",reason:"Reviewed send.",references:refs,draftId:"draft-shared",recipientCount:1};
+    const companyB={...context,companyId:"20000000-0000-4000-8000-000000000002",credentialBindingId:"30000000-0000-4000-8000-000000000002",credential:{accessToken:"company-b-test-token-long-enough"}};
+    const first=await provider.execute(action,context),second=await provider.execute(action,companyB);
+    expect(first.externalReferenceId).not.toBe(second.externalReferenceId);
+    expect(sends).toBe(2);
+  });
   it("resolves only allowlisted validated secrets without returning them in provider results",async()=>{
     const resolver=new AllowlistedEnvironmentSecretResolver({"gmail:gmail-primary":JSON.stringify(context.credential)});
     expect(await resolver.resolve({provider:"gmail",secretLocator:"gmail-primary"})).toEqual(context.credential);

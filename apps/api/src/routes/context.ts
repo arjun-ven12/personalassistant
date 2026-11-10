@@ -1,3 +1,4 @@
+import type { McpLocalService } from "../mcp/service.js";
 import type { NetworkVerifier } from "@alexa-control/shared";
 
 import type { IdentityService } from "../identity/service.js";
@@ -108,6 +109,7 @@ import type { AIBenchmarkRunner } from "../ai/benchmark/service.js";
 import type { ExecutiveBrainService } from "../executive/service.js";
 import type { ExecutiveStore } from "../executive/store.js";
 import type { ObjectiveEngineService } from "../objectives/service.js";
+import type { LaunchWorkflowService } from "../launch-workflow/service.js";
 import type { ExperimentService } from "../experiments/service.js";
 import type { ReflectionEngineService } from "../reflection/service.js";
 import type { ReflectionStore } from "../reflection/store.js";
@@ -189,6 +191,7 @@ export interface ApiRouteContext {
   validationStore: ValidationStore;
   workflows: WorkflowEngineService;
   workflowStore: WorkflowStore;
+  mcpLocal: McpLocalService;
   integrations: IntegrationRegistryService;
   integrationStore: IntegrationStore;
   agents: AgentRegistryService;
@@ -274,6 +277,7 @@ export interface ApiRouteContext {
   executive: ExecutiveBrainService;
   executiveStore: ExecutiveStore;
   objectives: ObjectiveEngineService;
+  launchWorkflow: LaunchWorkflowService;
   experiments: ExperimentService;
   businessOS: BusinessOSService;
   notifications: ExecutiveNotificationService;

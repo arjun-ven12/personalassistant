@@ -193,7 +193,7 @@ export class InMemoryGovernanceStore implements GovernanceStore {
       current.status === "PENDING"
         ? ["APPROVED", "REJECTED", "EXPIRED", "CANCELLED"].includes(approval.status)
         : current.status === "APPROVED"
-          ? ["EXPIRED", "CONSUMED"].includes(approval.status)
+          ? ["EXPIRED", "CONSUMED", "CANCELLED"].includes(approval.status)
           : false;
     if (current.status !== approval.status && !allowedTransition) {
       throw new Error("Approval transition is not allowed.");

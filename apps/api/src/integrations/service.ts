@@ -36,6 +36,7 @@ export class IntegrationRegistryService {
   setBusinessOutcomeSinks(sinks:BusinessOutcomeSinks){this.requireBusiness().setOutcomeSinks(sinks);}
   setAgentBusinessAuthorityVerifier(verifier:AgentBusinessAuthorityVerifier){this.requireBusiness().setAgentAuthorityVerifier(verifier);}
   async businessDashboard(ownerId:string){await this.ensureBuiltIns(ownerId);return this.requireBusiness().dashboard(ownerId);}
+  async businessProviderReadiness(ownerId:string){await this.ensureBuiltIns(ownerId);return this.requireBusiness().providerReadiness(ownerId);}
   async requestBusinessAction(input:{ownerId:string;body:unknown;requestId:string;ipAddress:string}){await this.ensureBuiltIns(input.ownerId,input.requestId);return this.requireBusiness().request(input);}
   async reconcileBusinessAction(input:{ownerId:string;executionId:string;requestId:string;ipAddress:string}){return this.requireBusiness().reconcile(input);}
   async ingestBusinessWebhook(input:{ownerId:string;body:unknown;signature:string;timestamp:string;secret:string;requestId:string;ipAddress:string}){await this.ensureBuiltIns(input.ownerId,input.requestId);return this.requireBusiness().ingestWebhook(input);}

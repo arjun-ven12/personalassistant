@@ -55,4 +55,18 @@ describe("CacheService degradation", () => {
     expect(set.mock.calls[1]?.[0]).toContain(`company:${companyB}`);
     expect(set.mock.calls[0]?.[0]).not.toBe(set.mock.calls[1]?.[0]);
   });
+  it("never stores or reads private results without an owner/company scope",async()=>{
+    const {redis,cache}=createCache(),values=new Map<string,string>();
+    vi.spyOn(redis,"set").mockImplementation((key,value)=>{values.set(key,value);return Promise.resolve();});
+    vi.spyOn(redis,"get").mockImplementation((key)=>Promise.resolve(values.get(key)??null));
+    const ownerId="10000000-0000-4000-8000-000000000001",companyA="20000000-0000-4000-8000-000000000001",companyB="20000000-0000-4000-8000-000000000002";
+    await cache.setJson("private-result",{value:"UNSCOPED"});
+    await companyScope.run({ownerId,companyId:companyA,role:"OWNER",requestId:"a"},()=>cache.setJson("private-result",{value:"A"}));
+    await companyScope.run({ownerId,companyId:companyB,role:"OWNER",requestId:"b"},()=>cache.setJson("private-result",{value:"B"}));
+    const schema=z.object({value:z.string()});
+    expect(await cache.getJson("private-result",schema)).toBeNull();
+    expect(await companyScope.run({ownerId,companyId:companyA,role:"OWNER",requestId:"a"},()=>cache.getJson("private-result",schema))).toEqual({value:"A"});
+    expect(await companyScope.run({ownerId,companyId:companyB,role:"OWNER",requestId:"b"},()=>cache.getJson("private-result",schema))).toEqual({value:"B"});
+    expect(values.size).toBe(2);
+  });
 });

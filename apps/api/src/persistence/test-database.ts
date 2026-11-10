@@ -64,7 +64,8 @@ export const createIsolatedTestDatabase = async (connectionString: string, prefi
   await administration.pool.query(`CREATE SCHEMA "${schema}"`);
   const isolated = new URL(connectionString);
   isolated.hostname = isolated.hostname.replace("-pooler.", ".");
-  if (isolated.searchParams.get("sslmode") !== "disable") isolated.searchParams.set("sslmode", "verify-full");
+  const loopback = ["localhost", "127.0.0.1", "[::1]", "::1"].includes(isolated.hostname);
+  if (!loopback && isolated.searchParams.get("sslmode") !== "disable") isolated.searchParams.set("sslmode", "verify-full");
   isolated.searchParams.set("options", `-c search_path=${schema}`);
   const database = new PostgresDatabase(isolated.toString(), { connectionTimeoutMillis: 60_000 });
   try {
@@ -77,6 +78,7 @@ export const createIsolatedTestDatabase = async (connectionString: string, prefi
   }
   return {
     database,
+    connectionString: isolated.toString(),
     cleanup: async () => {
       await database.close();
       await administration.pool.query(`DROP SCHEMA "${schema}" CASCADE`);

@@ -1,0 +1,1258 @@
+{
+  "auditDate": "2026-10-26",
+  "environment": {
+    "os": "Linux",
+    "node": "22.16.0",
+    "pnpm": "11.17.0",
+    "defaultNode": "20.20.2 (outside repository engine range)",
+    "java": "OpenJDK 21 present; Android SDK 35 not established"
+  },
+  "controls": [
+    "Subprocess environment allowlisted; no provider/database credentials inherited.",
+    "GMAIL_LIVE_ACCEPTANCE and STRIPE_LIVE_ACCEPTANCE disabled.",
+    "process.loadEnvFile disabled for test subprocesses via temporary preload to prevent ambient .env loading.",
+    "No migrations, production mutations, external provider acceptance or sensor access.",
+    "Pre-existing tracked build artifact bytes restored after build."
+  ],
+  "checks": [
+    {
+      "check": "typecheck",
+      "command": "pnpm typecheck",
+      "exitCode": 0,
+      "durationSeconds": 19.9
+    },
+    {
+      "check": "lint",
+      "command": "pnpm lint",
+      "exitCode": 0,
+      "durationSeconds": 78.7
+    },
+    {
+      "check": "test",
+      "command": "pnpm test --reporter=json --outputFile=/tmp/athena-institutional-work/vitest.json",
+      "exitCode": 0,
+      "durationSeconds": 197.1
+    },
+    {
+      "check": "build",
+      "command": "pnpm build",
+      "exitCode": 0,
+      "durationSeconds": 36.1
+    },
+    {
+      "check": "security",
+      "command": "pnpm --filter @alexa-control/api security:check",
+      "exitCode": 0,
+      "durationSeconds": 0.7
+    },
+    {
+      "check": "production-config",
+      "command": "pnpm verify:production-config",
+      "exitCode": 0,
+      "durationSeconds": 1.0
+    },
+    {
+      "check": "repository-format",
+      "command": "pnpm format:check",
+      "exitCode": 1,
+      "result": "445 pre-existing files have formatting differences; audit directory formatted separately."
+    },
+    {
+      "check": "audit-format",
+      "command": "pnpm exec prettier --check docs/athena-institutional-audit",
+      "exitCode": 0,
+      "result": "Final targeted check recorded after all artifact updates."
+    }
+  ],
+  "vitest": {
+    "files": 197,
+    "passed": 1092,
+    "failed": 0,
+    "skipped": 58,
+    "note": "Vitest numTotalTestSuites includes nested suites and is not the test-file count."
+  },
+  "testFiles": [
+    {
+      "path": "apps/api/src/app.test.ts",
+      "passed": 22,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/cross-device-api.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/governance-api.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/security-api.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/scripts/install-local-lib.test.mjs",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/electron/application-discovery.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 1
+    },
+    {
+      "path": "apps/mac-agent/electron/code-signing.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/electron/configuration.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/electron/contracts.test.ts",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/electron/device-key-store.test.ts",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/electron/native-active-context.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/electron/native-providers.test.ts",
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/electron/native-semantic-interaction.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/electron/native-whisper.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/electron/operational-log.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/electron/product-runtime.test.ts",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/electron/services.test.ts",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/electron/update-runtime.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/src/nativeSpatialRuntime.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/src/voiceEcho.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/src/voiceProviders.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "packages/config/src/index.test.ts",
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/web/src/CrossCompanyServicesPage.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/web/src/CrossDeviceRuntime.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/web/src/PersistentVoiceRuntime.test.ts",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/web/src/PortfolioPage.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/web/src/agentWorkforceLayout.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/web/src/api.test.ts",
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/web/src/appRouting.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/web/src/browserSpatialRuntime.test.ts",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/web/src/companyQueryCache.test.ts",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/web/src/engineeringControlCenterState.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/web/src/sessionQueryCache.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/web/src/voiceNavigation.test.ts",
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/web/src/workflowOperations.test.ts",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "packages/shared/src/execution.test.ts",
+      "passed": 11,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "packages/shared/src/objectives.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "packages/shared/src/portfolio-observability.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "packages/shared/src/schemas.test.ts",
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/active-context/service.test.ts",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/adapter-sdk/service.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/advisor/service.test.ts",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/agent-cognition/service.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/agent-economy/portfolio-postgres-store.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 3
+    },
+    {
+      "path": "apps/api/src/agent-economy/portfolio-store.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/agent-economy/postgres-store.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/agent-economy/service.test.ts",
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/agent-evolution/service.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/agent-society/service.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/agent-workforce/service.test.ts",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/agents/catalog-store.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/agents/factory.test.ts",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/agents/os-service.test.ts",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/agents/service.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/ai/phase20r-a.integration.test.ts",
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/ai/phase20r-c.integration.test.ts",
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/ai/phase20r-c.production-sources.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/ai/phase20r-e.load.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/ai/phase20r-f4.postgres.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 11
+    },
+    {
+      "path": "apps/api/src/ai/provider.test.ts",
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/application-adapters/service.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/application-discovery/service.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/application-intelligence/service.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/application-interactions/benchmark.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/application-interactions/service.test.ts",
+      "passed": 21,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/business-os/service.test.ts",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/capability-studio/service.test.ts",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/companies/isolation.test.ts",
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/companies/lifecycle.test.ts",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/companies/service.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/companies/store.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/company-data/postgres-store.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 2
+    },
+    {
+      "path": "apps/api/src/company-data/service.test.ts",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/company-management/service.test.ts",
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/conversation/benchmark.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/conversation-continuity/benchmark.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/conversation-continuity/service.test.ts",
+      "passed": 30,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/core-adapters/service.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/cross-application-workflows/service.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/cross-device/service.test.ts",
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/deep-indexers/service.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/desktop/service.test.ts",
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/desktop-skills/service.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/durable-execution/e2e.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/durable-execution/postgres-store.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 2
+    },
+    {
+      "path": "apps/api/src/durable-execution/production.test.ts",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/durable-execution/sandbox.test.ts",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/durable-execution/scheduler.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/durable-execution/service.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/engineering-delivery/service.test.ts",
+      "passed": 34,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/engineering-delivery/session-service.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/engineering-delivery/session-store.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/engineering-integration/ai-reviewer.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/engineering-integration/evidence.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/engineering-integration/postgres-store.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 1
+    },
+    {
+      "path": "apps/api/src/engineering-integration/service.test.ts",
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/engineering-orchestration/agent-os-gateway.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/engineering-orchestration/ai-worker.test.ts",
+      "passed": 21,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/engineering-orchestration/postgres-store.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 1
+    },
+    {
+      "path": "apps/api/src/engineering-orchestration/service.test.ts",
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/engineering-orchestration/signed-gateway.test.ts",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/engineering-runtime/postgres-store.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 1
+    },
+    {
+      "path": "apps/api/src/engineering-runtime/service.test.ts",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/engineering-runtime/transport.e2e.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/execution/postgres-store.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/execution/service.test.ts",
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/execution/store.test.ts",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/executive/ai-integration.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/executive/benchmark.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/executive/postgres-scenarios.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 1
+    },
+    {
+      "path": "apps/api/src/executive/postgres-store.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 2
+    },
+    {
+      "path": "apps/api/src/executive/scenarios.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/executive/service.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/experiments/service.test.ts",
+      "passed": 11,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/external-harvest/docker-sandbox.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/external-harvest/service.test.ts",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/human-understanding/corpus.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/human-understanding/service.test.ts",
+      "passed": 22,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/identity/network.test.ts",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/governance/governance.test.ts",
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/governance/postgres-store.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/intelligence/cache-service.test.ts",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/intelligence/infrastructure-service.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/intelligence/redis-service.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/intelligence/retrieval-service.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/integrations/business-runtime.test.ts",
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/integrations/commercial-read-providers.test.ts",
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/integrations/commercial-workflows.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/integrations/gmail-live.acceptance.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 1
+    },
+    {
+      "path": "apps/api/src/integrations/gmail-provider.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/integrations/phase26-1.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/integrations/phase26-2.postgres.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 4
+    },
+    {
+      "path": "apps/api/src/integrations/phase26-2.test.ts",
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/integrations/service.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/integrations/stripe-live.acceptance.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 1
+    },
+    {
+      "path": "apps/api/src/integrations/stripe-provider.test.ts",
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/intent/service.test.ts",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/intent-recording/service.test.ts",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/launch-workflow/phase28-postgres-acceptance.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 2
+    },
+    {
+      "path": "apps/api/src/launch-workflow/postgres-store.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 2
+    },
+    {
+      "path": "apps/api/src/launch-workflow/service.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/learning-engine/service.test.ts",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/local-ai/runtime.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/local-ai/service.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/knowledge-graph/service.test.ts",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/memory/explicit-teaching-service.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/memory/service.test.ts",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/memory-studio/service.test.ts",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/objectives/service.test.ts",
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/native-providers/service.test.ts",
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/notifications/service.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/patches/service.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/observability/governor-proposal-worker.test.ts",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/observability/postgres-store.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 3
+    },
+    {
+      "path": "apps/api/src/observability/service.test.ts",
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/persistence/agent-os-delegation-migration.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 1
+    },
+    {
+      "path": "apps/api/src/persistence/database.test.ts",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/persistence/engineering-execution-migration.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 1
+    },
+    {
+      "path": "apps/api/src/persistence/postgres.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 1
+    },
+    {
+      "path": "apps/api/src/persistence/unit-of-work.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 2
+    },
+    {
+      "path": "apps/api/src/persistence/workspace-backfill-migration.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 1
+    },
+    {
+      "path": "apps/api/src/repositories/service.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/reflection/benchmark.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/reflection/closure.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/reflection/postgres-store.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 2
+    },
+    {
+      "path": "apps/api/src/reflection/service.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/semantic/service.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/skill-evolution/postgres-store.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 1
+    },
+    {
+      "path": "apps/api/src/skill-evolution/service.test.ts",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/tasks/service.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/spatial/service.test.ts",
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/validation/service.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/workflows/service.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/voice/capture-lease.test.ts",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/voice/postgres-store.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 3
+    },
+    {
+      "path": "apps/api/src/voice/service.test.ts",
+      "passed": 30,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/workforce-runtime/postgres-store.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 1
+    },
+    {
+      "path": "apps/api/src/workforce-runtime/service.test.ts",
+      "passed": 35,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/workspace-intelligence/service.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/electron/engineering-runtime/runtime.test.ts",
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/electron/execution/execution-client.test.ts",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/electron/execution/git-inspector.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/electron/execution/patch-applier.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/electron/execution/path-policy.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/electron/execution/repository-scanner.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/electron/execution/result-outbox.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/mac-agent/electron/execution/validation-runner.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/web/src/spatial-ui/SpatialInteractionEngine.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/ai/context/service.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/ai/benchmark/postgres.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 1
+    },
+    {
+      "path": "apps/api/src/ai/benchmark/service.test.ts",
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/ai/economics/phase20r-b.postgres.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 4
+    },
+    {
+      "path": "apps/api/src/ai/economics/phase20r-f3.postgres.integration.test.ts",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 2
+    },
+    {
+      "path": "apps/api/src/ai/economics/service.test.ts",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/ai/embeddings/runtime.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/ai/providers/litellm.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "path": "apps/api/src/ai/router/service.test.ts",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0
+    }
+  ]
+}

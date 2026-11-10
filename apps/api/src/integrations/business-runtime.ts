@@ -2,7 +2,9 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import {
   BusinessActionRequestSchema, BusinessEntityMappingSchema, BusinessExecutionRecordSchema,
   BusinessExternalEventInputSchema, BusinessExternalEventSchema, BusinessOperationsDashboardSchema,
-  CommercialCapabilitySchema, CommercialFactSchema, ExternalMetricObservationSchema, IntegrationSyncCheckpointSchema, OutcomeAttributionSchema, ProposedActionSchema,
+  CommercialCapabilitySchema, CommercialFactSchema, ExternalMetricObservationSchema, IntegrationSyncCheckpointSchema, OutcomeAttributionSchema, PolicyEvaluationSchema, ProposedActionSchema,
+  BusinessProviderReadinessListSchema, BusinessProviderSchema,
+  BusinessCapabilitySchema,
   type BusinessActionRequest, type BusinessCapability, type BusinessProvider,
 } from "@alexa-control/shared";
 import type { ApprovalService, GovernanceAuditWriter } from "../governance/approval-service.js";
@@ -10,8 +12,8 @@ import { ExecutionError } from "../execution/errors.js";
 import type { CommercialActionClass,CommercialAggregateReservation,IntegrationStore } from "./store.js";
 import type { CompanyDataStore } from "../company-data/store.js";
 import { companyScope } from "../companies/scope.js";
-import type { BusinessProviderResult,ReviewedBusinessProvider } from "./business-providers.js";
-import { UnavailableBusinessProvider } from "./business-providers.js";
+import type { BusinessProviderExecutionContext,BusinessProviderResult,ReviewedBusinessProvider } from "./business-providers.js";
+import { BusinessProviderHealthSchema,BusinessProviderResultSchema,UnavailableBusinessProvider } from "./business-providers.js";
 import type { ReviewedSecretResolver } from "./secret-resolver.js";
 
 const PROVIDER_BY_CAPABILITY:Record<BusinessCapability,BusinessProvider>={
@@ -39,9 +41,10 @@ const INTEGRATION_CAPABILITY:Record<BusinessCapability,string>={
 };
 const COMMERCIAL_WRITES=CommercialCapabilitySchema.options.filter((capability)=>!INTEGRATION_CAPABILITY[capability].endsWith(".read"));
 const SIDE_EFFECTS=new Set<BusinessCapability>(["email.send_draft","email.reply","email.forward","crm.create_lead","crm.update_stage","crm.add_note","crm.create_follow_up","support.reply","support.change_status","support.assign","support.add_note","support.escalate","documents.create","documents.update","documents.attach_reference","projects.create_task","projects.update_task","projects.assign_task","projects.change_status","projects.comment","projects.set_due_date","projects.set_priority","github.create_issue",...COMMERCIAL_WRITES]);
+const EXTERNAL_WRITES=new Set<BusinessCapability>([...SIDE_EFFECTS,"email.create_draft","support.create_draft"]);
 const APPROVALS=new Set<BusinessCapability>(SIDE_EFFECTS);
 const HIGH_RISK=new Set<BusinessCapability>(["email.send_draft","email.reply","email.forward","support.reply","payments.execute_charge","payments.execute_refund","payments.cancel_subscription","ads.adjust_budget","ads.resume_campaign","commerce.update_product","commerce.update_inventory","commerce.create_draft_discount","commerce.cancel_order"]);
-const STEP_UP_REQUIRED=new Set<BusinessCapability>(["payments.execute_charge","payments.execute_refund","payments.cancel_subscription","ads.adjust_budget","ads.resume_campaign","commerce.update_product","commerce.update_inventory","commerce.create_draft_discount","commerce.cancel_order"]);
+const STEP_UP_REQUIRED=HIGH_RISK;
 const capabilityAuthority=(capability:BusinessCapability)=>capability.startsWith("email.")?(capability==="email.send_draft"?"email.send":capability==="email.create_draft"?"email.draft":"email.read"):undefined;
 const digest=(value:unknown)=>createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const summary=(action:BusinessActionRequest)=>{
@@ -85,9 +88,92 @@ export class BusinessOperationsRuntime {
   constructor(readonly store:IntegrationStore,readonly approvals:ApprovalService,readonly audit:GovernanceAuditWriter,readonly now:()=>Date=()=>new Date(),readonly companyData?:Pick<CompanyDataStore,"listIntegrationBindings"|"findCredentialReference">,readonly secrets?:ReviewedSecretResolver){
     for(const id of ["gmail","crm","support","documents","projects","analytics","github","accounting","payments","ads","commerce"] as const)this.#providers.set(id,new UnavailableBusinessProvider(id));
   }
-  setProvider(provider:ReviewedBusinessProvider){this.#providers.set(provider.providerId,provider);}
+  setProvider(provider:ReviewedBusinessProvider){
+    const providerId=BusinessProviderSchema.parse(provider.providerId);
+    if(provider.capabilities.size===0)throw new ExecutionError(400,"PROVIDER_CAPABILITY_EMPTY","A reviewed provider must declare finite capabilities.");
+    for(const candidate of provider.capabilities){
+      const capability=BusinessCapabilitySchema.parse(candidate);
+      if(PROVIDER_BY_CAPABILITY[capability]!==providerId)
+        throw new ExecutionError(400,"PROVIDER_CAPABILITY_MISMATCH","The reviewed provider declared another provider's capability.");
+    }
+    this.#providers.set(providerId,provider);
+  }
   setOutcomeSinks(sinks:BusinessOutcomeSinks){this.#sinks=sinks;}
   setAgentAuthorityVerifier(verifier:AgentBusinessAuthorityVerifier){this.#agentAuthority=verifier;}
+
+  async providerReadiness(ownerId:string){
+    const companyId=companyScope.companyId(ownerId);
+    if(!companyId)throw new ExecutionError(403,"COMPANY_CONTEXT_REQUIRED","Provider readiness requires a registered company context.");
+    const [bindings,permissions,health]=await Promise.all([
+      this.companyData?.listIntegrationBindings(ownerId,companyId),
+      this.store.listPermissions(ownerId),
+      this.store.listHealth(ownerId),
+    ]);
+    const reviewedImplementations=new Set<BusinessProvider>(["gmail","payments","accounting","ads","analytics","commerce"]);
+    const records=await Promise.all(BusinessProviderSchema.options.map(async(providerId)=>{
+      const provider=this.#providers.get(providerId)!;
+      const adapterRegistered=!(provider instanceof UnavailableBusinessProvider);
+      const binding=bindings?.find((item)=>item.integrationId===providerId&&item.provider===providerId&&item.status==="READY");
+      const credential=binding&&this.companyData?await this.companyData.findCredentialReference(ownerId,companyId,binding.credentialRef):undefined;
+      const latestHealth=health.find((item)=>item.integrationId===providerId);
+      const granted=permissions.some((item)=>item.integrationId===providerId&&item.state==="granted");
+      let state:"IMPLEMENTATION_REQUIRED"|"BLOCKED_EXTERNAL"|"BLOCKED_POLICY"|"UNVERIFIED"|"CONFIGURED_UNVERIFIED"|"UNKNOWN";
+      let reasonCode:string;
+      if(!adapterRegistered&&!reviewedImplementations.has(providerId)){state="IMPLEMENTATION_REQUIRED";reasonCode="REVIEWED_ADAPTER_MISSING";}
+      else if(!bindings){state="UNKNOWN";reasonCode="COMPANY_BINDING_STORE_UNAVAILABLE";}
+      else if(!binding){state="BLOCKED_EXTERNAL";reasonCode="COMPANY_BINDING_MISSING";}
+      else if(!credential||credential.provider!==providerId||credential.status!=="READY"){state="BLOCKED_EXTERNAL";reasonCode=credential?.status==="EXPIRED"?"CREDENTIAL_EXPIRED":credential?.status==="REVOKED"?"CREDENTIAL_REVOKED":"CREDENTIAL_NOT_READY";}
+      else if(!adapterRegistered){state="BLOCKED_EXTERNAL";reasonCode="SERVER_CREDENTIAL_NOT_CONFIGURED";}
+      else if(!granted){state="BLOCKED_POLICY";reasonCode="FINITE_PERMISSION_NOT_GRANTED";}
+      else if(latestHealth?.state!=="healthy"){state="UNVERIFIED";reasonCode="READ_ONLY_PROVIDER_HEALTH_NOT_VERIFIED";}
+      else{state="CONFIGURED_UNVERIFIED";reasonCode="EXECUTION_RECEIPT_NOT_LIVE_VERIFIED";}
+      return {providerId,state,reasonCode,adapterRegistered,declaredCapabilityCount:provider.capabilities.size,bindingId:binding?.id??null,credentialStatus:credential?.status??"MISSING",healthState:latestHealth?.state??"unknown",liveVerified:false};
+    }));
+    return BusinessProviderReadinessListSchema.parse(records);
+  }
+
+  private async assertWriteExecutionAllowed(ownerId:string,requestId:string,ipAddress:string,capability:BusinessCapability){
+    if(!EXTERNAL_WRITES.has(capability))return;
+    let stopped:boolean;
+    try{stopped=(await this.approvals.store.getSecurityState()).emergencyStopActive;}catch{throw new ExecutionError(503,"SECURITY_STATE_UNAVAILABLE","Business execution security state is unavailable.");}
+    if(stopped){await this.audit({eventType:"INTEGRATION_OPERATION_FAILED",ownerId,outcome:"DENIED",reason:"Emergency stop blocked external business dispatch.",requestId,ipAddress,metadata:{capability}});throw new ExecutionError(403,"EMERGENCY_STOP_ACTIVE","Emergency stop blocks external business actions.");}
+  }
+
+  private async assertCurrentApproval(ownerId:string,action:BusinessActionRequest,proposed:ReturnType<BusinessOperationsRuntime["approvalAction"]>,approvalId:string|null){
+    if(!APPROVALS.has(action.capability))return;
+    const approved=await this.approvals.findMatchingApproved(ownerId,proposed);
+    if(!approved||approved.id!==approvalId||approved.status!=="APPROVED"||(HIGH_RISK.has(action.capability)&&approved.approvalRequirement!=="recent_authentication"))throw new ExecutionError(403,"APPROVAL_NOT_CURRENT","The exact company-scoped business approval is missing, expired, changed, or insufficient.");
+  }
+
+  private async authorizeDispatch(input:{ownerId:string;requestId:string;ipAddress:string},action:BusinessActionRequest,proposed:ReturnType<BusinessOperationsRuntime["approvalAction"]>,approvalId:string|null,integrationId:string,capabilityId:string,provider:ReviewedBusinessProvider,providerContext:BusinessProviderExecutionContext){
+    const riskLevel=HIGH_RISK.has(action.capability)?"high":SIDE_EFFECTS.has(action.capability)?"medium":EXTERNAL_WRITES.has(action.capability)?"low":"read_only";
+    const approvalRequirement=HIGH_RISK.has(action.capability)?"recent_authentication":APPROVALS.has(action.capability)?"explicit":EXTERNAL_WRITES.has(action.capability)?"session":"none";
+    let reasonCode="BUSINESS_POLICY_ALLOWED";
+    try{
+      const integration=await this.store.findIntegration(input.ownerId,integrationId);
+      const permission=await this.store.findPermission(input.ownerId,integrationId,capabilityId);
+      if(!integration||integration.status==="disabled"||!permission||permission.state!=="granted")throw new ExecutionError(403,"CAPABILITY_DENIED","The reviewed business capability was revoked before dispatch.");
+      if(this.companyData&&providerContext.companyId){
+        const bindings=await this.companyData.listIntegrationBindings(input.ownerId,providerContext.companyId);
+        const binding=bindings.find((item)=>item.id===providerContext.credentialBindingId&&item.integrationId===integrationId&&item.status==="READY"&&(item.capabilitiesExposed.includes(action.capability)||item.capabilitiesExposed.includes(capabilityId)));
+        if(!binding)throw new ExecutionError(403,"INTEGRATION_BINDING_DENIED","The company integration binding was revoked before dispatch.");
+        const credential=await this.companyData.findCredentialReference(input.ownerId,providerContext.companyId,binding.credentialRef);
+        if(!credential||credential.status!=="READY"||credential.provider!==binding.provider)throw new ExecutionError(403,"CREDENTIAL_BINDING_DENIED","The company credential reference was revoked before dispatch.");
+      }
+      const health=BusinessProviderHealthSchema.parse(await provider.health(providerContext));
+      if(health.state==="UNAVAILABLE"||health.state==="REAUTH_REQUIRED")throw new ExecutionError(503,"PROVIDER_UNAVAILABLE","The reviewed provider is unavailable at dispatch.");
+      if(health.rateLimitRemaining===0)throw new ExecutionError(429,"PROVIDER_RATE_LIMITED","The reviewed provider has no remaining rate-limit capacity.");
+      await this.assertCurrentApproval(input.ownerId,action,proposed,approvalId);
+      await this.assertWriteExecutionAllowed(input.ownerId,input.requestId,input.ipAddress,action.capability);
+    }catch(error){
+      reasonCode=error instanceof ExecutionError?error.code:"BUSINESS_POLICY_STATE_UNAVAILABLE";
+    }
+    const allowed=reasonCode==="BUSINESS_POLICY_ALLOWED";
+    const evaluation=PolicyEvaluationSchema.parse({id:crypto.randomUUID(),actionId:proposed.actionId,ownerId:input.ownerId,decision:allowed?"allow":"deny",reasonCode,humanReadableReason:allowed?"The current registered business permission, approval, and security state permit this bounded dispatch.":"A current business execution boundary requirement was not met.",matchedRules:["business.registered_integration","business.current_permission","business.exact_approval","business.emergency_stop_current"],riskLevel,approvalRequirement,...(approvalId?{approvalRequestId:approvalId}:{}),executionAllowed:false,evaluatedAt:this.now().toISOString()});
+    await this.approvals.store.appendPolicyEvaluation(evaluation);
+    await this.audit({eventType:"POLICY_EVALUATED",ownerId:input.ownerId,outcome:allowed?"SUCCESS":"DENIED",reason:evaluation.humanReadableReason,requestId:input.requestId,ipAddress:input.ipAddress,metadata:{policyEvaluationId:evaluation.id,actionId:proposed.actionId,capability:action.capability,decision:evaluation.decision,reasonCode}});
+    if(!allowed)throw new ExecutionError(403,reasonCode,"Business dispatch was denied by current policy.");
+  }
 
   async dashboard(ownerId:string){
     const [executions,events,metrics,attributions,mappings,checkpoints,commercialFacts]=await Promise.all([this.store.listBusinessExecutions(ownerId,500),this.store.listExternalEvents(ownerId,500),this.store.listExternalMetrics(ownerId,500),this.store.listAttributions(ownerId,500),this.store.listEntityMappings(ownerId),this.store.listSyncCheckpoints(ownerId),this.store.listCommercialFacts(ownerId,500)]);
@@ -97,6 +183,7 @@ export class BusinessOperationsRuntime {
 
   async request(input:{ownerId:string;body:unknown;requestId:string;ipAddress:string}){
     const action=BusinessActionRequestSchema.parse(input.body);const providerId=PROVIDER_BY_CAPABILITY[action.capability];const integrationId=providerId;
+    await this.assertWriteExecutionAllowed(input.ownerId,input.requestId,input.ipAddress,action.capability);
     if(action.references.agentId&&(!this.#agentAuthority||!await this.#agentAuthority({ownerId:input.ownerId,agentId:action.references.agentId,organizationId:action.references.organizationId,capability:action.capability})))throw new ExecutionError(403,"AGENT_CAPABILITY_DENIED","The receiving agent is not independently eligible for this external capability.");
     const actionDigest=digest(action);const existing=await this.store.findBusinessExecution(input.ownerId,integrationId,action.idempotencyKey);
     if(existing&&existing.actionDigest!==actionDigest)throw new ExecutionError(409,"IDEMPOTENCY_KEY_CONFLICT","The idempotency key is already bound to a different reviewed action.");
@@ -107,27 +194,34 @@ export class BusinessOperationsRuntime {
     if(!permission||permission.state!=="granted")throw new ExecutionError(403,"CAPABILITY_DENIED","The finite integration capability is not granted.");
     const provider=this.#providers.get(providerId)!;if(!provider.capabilities.has(action.capability))throw new ExecutionError(409,"PROVIDER_CAPABILITY_UNAVAILABLE","The reviewed provider does not expose this capability.");
     const providerContext={companyId:binding.companyId,credentialBindingId:binding.id,credential:binding.credential};
-    const health=await provider.health(providerContext);await this.store.saveHealth(input.ownerId,{integrationId,state:health.state==="HEALTHY"?"healthy":health.state==="DEGRADED"?"degraded":"unhealthy",checkedAt:this.now().toISOString(),latencyMs:null,reasonCode:health.reasonCode,credentialStatus:health.state==="REAUTH_REQUIRED"?"expired":"configured",rateLimitRemaining:health.rateLimitRemaining});
+    const health=BusinessProviderHealthSchema.parse(await provider.health(providerContext));await this.store.saveHealth(input.ownerId,{integrationId,state:health.state==="HEALTHY"?"healthy":health.state==="DEGRADED"?"degraded":"unhealthy",checkedAt:this.now().toISOString(),latencyMs:null,reasonCode:health.reasonCode,credentialStatus:health.state==="REAUTH_REQUIRED"?"expired":"configured",rateLimitRemaining:health.rateLimitRemaining});
     if(health.state==="REAUTH_REQUIRED")throw new ExecutionError(409,"PROVIDER_AUTH_FAILED","The provider requires owner reauthentication.");
+    if(health.rateLimitRemaining===0)throw new ExecutionError(429,"PROVIDER_RATE_LIMITED","The reviewed provider has no remaining rate-limit capacity.");
     const providerScopeKey=`${input.ownerId}:${binding.companyId??"owner-default"}:${providerId}`;if(health.state==="UNAVAILABLE"||this.#failures.get(providerScopeKey)!>=3)throw new ExecutionError(503,"PROVIDER_UNAVAILABLE","The reviewed provider is unavailable or its circuit is open.");
     const id=existing?.id??crypto.randomUUID();const at=this.now().toISOString();const proposed=this.approvalAction(id,providerId,action);
+    let matchedApprovalId:string|null=null;
     if(APPROVALS.has(action.capability)){
       const approved=await this.approvals.findMatchingApproved(input.ownerId,proposed);
-      if(!approved){const highRisk=HIGH_RISK.has(action.capability),stepUp=STEP_UP_REQUIRED.has(action.capability)||("cooldownOverride" in action&&action.cooldownOverride);const approval=await this.approvals.create({ownerId:input.ownerId,action:proposed,riskLevel:highRisk||stepUp?"high":"medium",approvalRequirement:stepUp?"recent_authentication":"explicit",ipAddress:input.ipAddress,requestId:input.requestId});const waiting=BusinessExecutionRecordSchema.parse({id,ownerId:input.ownerId,companyId:binding.companyId,credentialBindingId:binding.id,provider:providerId,integrationId,capability:action.capability,idempotencyKey:action.idempotencyKey,actionDigest,status:"WAITING_APPROVAL",approvalId:approval.id,externalReferenceId:null,actionSummary:summary(action),resultSummary:`The bounded external action is waiting for ${stepUp?"recent-authenticated ":""}exact-action approval.`,references:action.references,verification:"PENDING",attemptCount:0,requestedAt:existing?.requestedAt??at,updatedAt:at,commercialControl:null});await this.store.saveBusinessExecution(waiting);return waiting;}
+      if(approved&&(!existing||approved.id===existing.approvalId)&&(!HIGH_RISK.has(action.capability)||approved.approvalRequirement==="recent_authentication"))matchedApprovalId=approved.id;
+      if(!matchedApprovalId){const highRisk=HIGH_RISK.has(action.capability),stepUp=STEP_UP_REQUIRED.has(action.capability)||("cooldownOverride" in action&&action.cooldownOverride);const approval=await this.approvals.create({ownerId:input.ownerId,action:proposed,riskLevel:highRisk||stepUp?"high":"medium",approvalRequirement:stepUp?"recent_authentication":"explicit",ipAddress:input.ipAddress,requestId:input.requestId});const waiting=BusinessExecutionRecordSchema.parse({id,ownerId:input.ownerId,companyId:binding.companyId,credentialBindingId:binding.id,provider:providerId,integrationId,capability:action.capability,idempotencyKey:action.idempotencyKey,actionDigest,status:"WAITING_APPROVAL",approvalId:approval.id,externalReferenceId:null,actionSummary:summary(action),resultSummary:`The bounded external action is waiting for ${stepUp?"recent-authenticated ":""}exact-action approval.`,references:action.references,verification:"PENDING",attemptCount:0,requestedAt:existing?.requestedAt??at,updatedAt:at,commercialControl:null});if(await this.store.saveWaitingBusinessExecution(waiting))return waiting;const current=await this.store.findBusinessExecution(input.ownerId,integrationId,action.idempotencyKey);if(current?.actionDigest===actionDigest)return current;throw new ExecutionError(409,"IDEMPOTENCY_KEY_CONFLICT","Another worker claimed the reviewed action while approval was prepared.");}
     }
     this.guardRateAndConcurrency(input.ownerId,integrationId,permission.rateLimitPerMinute);
     const commercialControl=await this.beginCommercialControl(input.ownerId,providerId,action,binding.metadata,id);const executionContext={...providerContext,...(commercialControl?{mutationFence:commercialControl.lease.fence}:{})};
-    const executing=BusinessExecutionRecordSchema.parse({id,ownerId:input.ownerId,companyId:binding.companyId,credentialBindingId:binding.id,provider:providerId,integrationId,capability:action.capability,idempotencyKey:action.idempotencyKey,actionDigest,status:"EXECUTING",approvalId:existing?.approvalId??null,externalReferenceId:existing?.externalReferenceId??null,actionSummary:summary(action),resultSummary:"Execution dispatched through the reviewed provider.",references:action.references,verification:SIDE_EFFECTS.has(action.capability)?"PENDING":"NOT_REQUIRED",attemptCount:(existing?.attemptCount??0)+1,requestedAt:existing?.requestedAt??at,updatedAt:at,commercialControl:commercialControl?{resourceType:commercialControl.resourceType,resourceId:commercialControl.resourceId,leaseFence:commercialControl.lease.fence,reservationId:commercialControl.reservation?.id??null,actionClass:commercialControl.reservation?.actionClass??null,amountMinor:commercialControl.reservation?.amountMinor??null,currency:commercialControl.reservation?.currency??null}:null});await this.store.saveBusinessExecution(executing);
+    const executing=BusinessExecutionRecordSchema.parse({id,ownerId:input.ownerId,companyId:binding.companyId,credentialBindingId:binding.id,provider:providerId,integrationId,capability:action.capability,idempotencyKey:action.idempotencyKey,actionDigest,status:"EXECUTING",approvalId:matchedApprovalId,externalReferenceId:existing?.externalReferenceId??null,actionSummary:summary(action),resultSummary:"Execution dispatched through the reviewed provider.",references:action.references,verification:SIDE_EFFECTS.has(action.capability)?"PENDING":"NOT_REQUIRED",attemptCount:(existing?.attemptCount??0)+1,requestedAt:existing?.requestedAt??at,updatedAt:at,commercialControl:commercialControl?{resourceType:commercialControl.resourceType,resourceId:commercialControl.resourceId,leaseFence:commercialControl.lease.fence,reservationId:commercialControl.reservation?.id??null,actionClass:commercialControl.reservation?.actionClass??null,amountMinor:commercialControl.reservation?.amountMinor??null,currency:commercialControl.reservation?.currency??null}:null});if(!await this.store.claimBusinessExecution(executing)){if(commercialControl){if(commercialControl.reservation)await this.store.settleCommercialAggregate(commercialControl.reservation.id,"RELEASED");await this.store.releaseCommercialMutationLease({ownerId:input.ownerId,companyId:commercialControl.companyId,provider:providerId,resourceType:commercialControl.resourceType,resourceId:commercialControl.resourceId,token:commercialControl.lease.token,fence:commercialControl.lease.fence});}throw new ExecutionError(409,"BUSINESS_EXECUTION_ALREADY_CLAIMED","Another worker already claimed this exact business execution.");}
     const key=providerScopeKey;const resourceId="externalResourceId" in action?action.externalResourceId:null;const mutationKey=!commercialControl&&SIDE_EFFECTS.has(action.capability)?`${key}:${resourceId??action.idempotencyKey}`:null;if(mutationKey&&this.#resourceMutations.has(mutationKey))throw new ExecutionError(409,"EXTERNAL_RESOURCE_CONFLICT","Another reviewed mutation is already in flight for this external resource.");if(mutationKey)this.#resourceMutations.add(mutationKey);this.#inFlight.set(key,(this.#inFlight.get(key)??0)+1);
+    let providerCallStarted=false;
     try{
       let result:BusinessProviderResult;
-      try{result=await provider.execute(action,executionContext);}
+      await this.authorizeDispatch(input,action,proposed,matchedApprovalId,integrationId,capabilityId,provider,providerContext);
+      await this.assertCurrentApproval(input.ownerId,action,proposed,matchedApprovalId);
+      await this.assertWriteExecutionAllowed(input.ownerId,input.requestId,input.ipAddress,action.capability);
+      try{providerCallStarted=true;result=BusinessProviderResultSchema.parse(await provider.execute(action,executionContext));}
       catch(error){
         if(!commercialControl)throw error;
         result={outcome:"EXTERNAL_RESULT_UNCERTAIN" as const,externalReferenceId:`${providerId}:reconcile:${action.idempotencyKey}`,summary:"The provider response was interrupted after dispatch; reconciliation is required before any retry."};
       }
       let attempts=1;
-      while(result.outcome==="FAILED"&&result.retryable&&result.failureKind!=="RATE_LIMIT"&&provider.supportsIdempotentWrites&&attempts<3&&!commercialControl){attempts+=1;result=await provider.execute(action,executionContext);}
+      while(result.outcome==="FAILED"&&result.retryable&&result.failureKind!=="RATE_LIMIT"&&provider.supportsIdempotentWrites&&attempts<3&&!commercialControl){await this.authorizeDispatch(input,action,proposed,matchedApprovalId,integrationId,capabilityId,provider,providerContext);await this.assertCurrentApproval(input.ownerId,action,proposed,matchedApprovalId);await this.assertWriteExecutionAllowed(input.ownerId,input.requestId,input.ipAddress,action.capability);attempts+=1;providerCallStarted=true;result=BusinessProviderResultSchema.parse(await provider.execute(action,executionContext));}
       if(commercialControl&&result.outcome==="FAILED"&&result.retryable)result={outcome:"EXTERNAL_RESULT_UNCERTAIN",externalReferenceId:result.externalReferenceId??`${providerId}:reconcile:${action.idempotencyKey}`,summary:"The provider returned an indeterminate retryable failure after dispatch; reconciliation is required before any retry."};
       if(commercialControl&&result.outcome==="VERIFIED"&&!await this.store.validateCommercialMutationLease({ownerId:input.ownerId,companyId:commercialControl.companyId,provider:providerId,resourceType:commercialControl.resourceType,resourceId:commercialControl.resourceId,token:commercialControl.lease.token,fence:commercialControl.lease.fence,now:this.now().toISOString()}))result={outcome:"EXTERNAL_RESULT_UNCERTAIN",externalReferenceId:result.externalReferenceId??`${providerId}:reconcile:${action.idempotencyKey}`,summary:"The mutation lease expired or was fenced before completion; reconciliation is required and the stale worker cannot commit canonical state."};
       const status=result.outcome;const finished=BusinessExecutionRecordSchema.parse({...executing,attemptCount:(existing?.attemptCount??0)+attempts,status,externalReferenceId:result.externalReferenceId,resultSummary:result.summary,verification:result.outcome==="VERIFIED"?"VERIFIED":result.outcome==="EXTERNAL_RESULT_UNCERTAIN"?"UNCERTAIN":"FAILED",updatedAt:this.now().toISOString()});await this.store.saveBusinessExecution(finished);
@@ -135,9 +229,16 @@ export class BusinessOperationsRuntime {
       if(commercialControl){if(result.outcome==="VERIFIED"){if(commercialControl.reservation)await this.store.settleCommercialAggregate(commercialControl.reservation.id,"COMMITTED");await this.store.recordCommercialMutation({ownerId:input.ownerId,companyId:commercialControl.companyId,provider:providerId,resourceType:commercialControl.resourceType,resourceId:commercialControl.resourceId,capability:action.capability,idempotencyKey:action.idempotencyKey,succeededAt:finished.updatedAt,fence:commercialControl.lease.fence});}else if(result.outcome==="FAILED"&&commercialControl.reservation)await this.store.settleCommercialAggregate(commercialControl.reservation.id,"RELEASED");}
       if(result.mapping)await this.store.saveEntityMapping(BusinessEntityMappingSchema.parse({id:crypto.randomUUID(),ownerId:input.ownerId,companyId:binding.companyId,integrationId,entityType:result.mapping.entityType,externalId:result.mapping.externalId,internalEntityId:result.mapping.internalEntityId,externalVersion:result.mapping.externalVersion,lastSyncedAt:finished.updatedAt,conflictPolicy:"REVIEW_REQUIRED"}));
       if(result.metric){const metricProvenance="periodStart" in action?{queryPeriodStart:action.periodStart,queryPeriodEnd:action.periodEnd,providerTimezone:action.timezone}:action.capability==="analytics.read_metric"?{queryPeriodStart:action.windowStart,queryPeriodEnd:action.windowEnd,providerTimezone:"UTC"}:undefined;await this.recordMetric(input.ownerId,providerId,action.references,result.metric,result.externalReferenceId,metricProvenance);}
-      const commercialAudit="externalResourceId" in action?{externalTarget:action.externalResourceId,amountMinor:action.amountMinor,currency:action.currency,previousAmountMinor:action.currentAmountMinor,proposedAmountMinor:action.proposedAmountMinor,expectedVersion:action.expectedVersion}:{};
-      await this.audit({eventType:result.outcome==="VERIFIED"?"INTEGRATION_OPERATION_COMPLETED":"INTEGRATION_OPERATION_FAILED",ownerId:input.ownerId,outcome:result.outcome==="VERIFIED"?"SUCCESS":"FAILURE",reason:result.summary,requestId:input.requestId,ipAddress:input.ipAddress,metadata:{executionId:id,companyId:binding.companyId,credentialBindingId:binding.id,integrationId,provider:providerId,capability:action.capability,idempotencyKey:action.idempotencyKey,agentId:action.references.agentId,approvalId:finished.approvalId,externalReferenceId:result.externalReferenceId,externalOutcome:result.outcome,leaseFence:commercialControl?.lease.fence??null,objectiveId:action.references.objectiveId,...commercialAudit}});
+      await this.audit({eventType:result.outcome==="VERIFIED"?"INTEGRATION_OPERATION_COMPLETED":"INTEGRATION_OPERATION_FAILED",ownerId:input.ownerId,outcome:result.outcome==="VERIFIED"?"SUCCESS":"FAILURE",reason:result.summary,requestId:input.requestId,ipAddress:input.ipAddress,metadata:{executionId:id,companyId:binding.companyId,credentialBindingId:binding.id,integrationId,provider:providerId,capability:action.capability,approvalId:finished.approvalId,externalOutcome:result.outcome,leaseFence:commercialControl?.lease.fence??null,objectiveId:action.references.objectiveId}});
       return finished;
+    } catch(error) {
+      const current=await this.store.findBusinessExecution(input.ownerId,integrationId,action.idempotencyKey);
+      if(current?.status==="EXECUTING"){
+        const uncertain=providerCallStarted&&EXTERNAL_WRITES.has(action.capability);
+        await this.store.saveBusinessExecution(BusinessExecutionRecordSchema.parse({...current,status:uncertain?"EXTERNAL_RESULT_UNCERTAIN":"DENIED",verification:uncertain?"UNCERTAIN":"FAILED",externalReferenceId:uncertain?current.externalReferenceId??`${providerId}:reconcile:${action.idempotencyKey}`:current.externalReferenceId,resultSummary:uncertain?"Dispatch was interrupted after a provider call; reconcile before retry.":"The execution boundary denied dispatch before a provider call.",updatedAt:this.now().toISOString()}));
+        if(!uncertain&&commercialControl?.reservation)await this.store.settleCommercialAggregate(commercialControl.reservation.id,"RELEASED");
+      }
+      throw error;
     } finally {if(commercialControl)await this.store.releaseCommercialMutationLease({ownerId:input.ownerId,companyId:commercialControl.companyId,provider:providerId,resourceType:commercialControl.resourceType,resourceId:commercialControl.resourceId,token:commercialControl.lease.token,fence:commercialControl.lease.fence});if(mutationKey)this.#resourceMutations.delete(mutationKey);this.#inFlight.set(key,Math.max(0,(this.#inFlight.get(key)??1)-1));}
   }
 
@@ -210,7 +311,7 @@ export class BusinessOperationsRuntime {
     const record=(await this.store.listBusinessExecutions(input.ownerId,500)).find((item)=>item.id===input.executionId);if(!record)throw new ExecutionError(404,"BUSINESS_EXECUTION_NOT_FOUND","The external execution was not found.");
     if(record.status!=="EXTERNAL_RESULT_UNCERTAIN"||!record.externalReferenceId)throw new ExecutionError(409,"RECONCILIATION_NOT_REQUIRED","Only uncertain external effects require reconciliation.");
     const binding=await this.resolveCredentialBinding(input.ownerId,record.integrationId,record.provider,record.capability,INTEGRATION_CAPABILITY[record.capability]);
-    const result=await this.#providers.get(record.provider)!.reconcile(record.externalReferenceId,{companyId:binding.companyId,credentialBindingId:binding.id,credential:binding.credential,...(record.commercialControl?{mutationFence:record.commercialControl.leaseFence}:{})});const updated=BusinessExecutionRecordSchema.parse({...record,status:result.outcome==="VERIFIED"?"VERIFIED":"REVIEW_REQUIRED",verification:result.outcome==="VERIFIED"?"VERIFIED":"FAILED",resultSummary:result.summary,updatedAt:this.now().toISOString()});await this.store.saveBusinessExecution(updated);if(result.outcome==="VERIFIED"&&record.commercialControl&&record.companyId){if(record.commercialControl.reservationId)await this.store.settleCommercialAggregate(record.commercialControl.reservationId,"COMMITTED");await this.store.recordCommercialMutation({ownerId:input.ownerId,companyId:record.companyId,provider:record.provider,resourceType:record.commercialControl.resourceType,resourceId:record.commercialControl.resourceId,capability:record.capability,idempotencyKey:record.idempotencyKey,succeededAt:updated.updatedAt,fence:record.commercialControl.leaseFence});}await this.audit({eventType:result.outcome==="VERIFIED"?"INTEGRATION_OPERATION_COMPLETED":"INTEGRATION_OPERATION_FAILED",ownerId:input.ownerId,outcome:result.outcome==="VERIFIED"?"SUCCESS":"FAILURE",reason:result.summary,requestId:input.requestId,ipAddress:input.ipAddress,metadata:{executionId:record.id,companyId:record.companyId,credentialBindingId:binding.id,provider:record.provider,capability:record.capability,idempotencyKey:record.idempotencyKey,externalReferenceId:result.externalReferenceId,reconciliation:true,leaseFence:record.commercialControl?.leaseFence??null}});return updated;
+    const result=BusinessProviderResultSchema.parse(await this.#providers.get(record.provider)!.reconcile(record.externalReferenceId,{companyId:binding.companyId,credentialBindingId:binding.id,credential:binding.credential,...(record.commercialControl?{mutationFence:record.commercialControl.leaseFence}:{})}));const updated=BusinessExecutionRecordSchema.parse({...record,status:result.outcome==="VERIFIED"?"VERIFIED":"REVIEW_REQUIRED",verification:result.outcome==="VERIFIED"?"VERIFIED":"FAILED",resultSummary:result.summary,updatedAt:this.now().toISOString()});await this.store.saveBusinessExecution(updated);if(result.outcome==="VERIFIED"&&record.commercialControl&&record.companyId){if(record.commercialControl.reservationId)await this.store.settleCommercialAggregate(record.commercialControl.reservationId,"COMMITTED");await this.store.recordCommercialMutation({ownerId:input.ownerId,companyId:record.companyId,provider:record.provider,resourceType:record.commercialControl.resourceType,resourceId:record.commercialControl.resourceId,capability:record.capability,idempotencyKey:record.idempotencyKey,succeededAt:updated.updatedAt,fence:record.commercialControl.leaseFence});}await this.audit({eventType:result.outcome==="VERIFIED"?"INTEGRATION_OPERATION_COMPLETED":"INTEGRATION_OPERATION_FAILED",ownerId:input.ownerId,outcome:result.outcome==="VERIFIED"?"SUCCESS":"FAILURE",reason:result.summary,requestId:input.requestId,ipAddress:input.ipAddress,metadata:{executionId:record.id,companyId:record.companyId,credentialBindingId:binding.id,provider:record.provider,capability:record.capability,reconciliation:true,leaseFence:record.commercialControl?.leaseFence??null}});return updated;
   }
 
   async ingestWebhook(input:{ownerId:string;body:unknown;signature:string;timestamp:string;secret:string;requestId:string;ipAddress:string}){

@@ -1,0 +1,4356 @@
+[
+  {
+    "path": "apps/api/src/advisor/service.ts",
+    "line": 548,
+    "field": "name",
+    "value": "Repository baseline",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/advisor/service.ts",
+    "line": 556,
+    "field": "name",
+    "value": "Human approval",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agent-evolution/postgres-store.ts",
+    "line": 29,
+    "field": "capability",
+    "value": "capability_versions",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agent-society/service.ts",
+    "line": 58,
+    "field": "role",
+    "value": "chief_planner",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agent-society/service.ts",
+    "line": 63,
+    "field": "role",
+    "value": "engineering_manager",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agent-society/service.ts",
+    "line": 68,
+    "field": "role",
+    "value": "technical_lead",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agent-society/service.ts",
+    "line": 73,
+    "field": "role",
+    "value": "security_engineer",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agent-society/service.ts",
+    "line": 78,
+    "field": "role",
+    "value": "qa_engineer",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agent-society/service.ts",
+    "line": 83,
+    "field": "role",
+    "value": "mentor",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agent-society/service.ts",
+    "line": 373,
+    "field": "name",
+    "value": "Personal Assistant Engineering Organization",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agent-workforce/service.ts",
+    "line": 781,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agent-workforce/service.ts",
+    "line": 789,
+    "field": "id",
+    "value": "alexa_governor",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agent-workforce/service.ts",
+    "line": 792,
+    "field": "name",
+    "value": "Athena Company Governor",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agent-workforce/service.ts",
+    "line": 793,
+    "field": "role",
+    "value": "engineering_manager",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agent-workforce/service.ts",
+    "line": 821,
+    "field": "name",
+    "value": "Athena Workforce",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agent-workforce/service.ts",
+    "line": 1108,
+    "field": "id",
+    "value": "alexa_governor",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agent-workforce/service.ts",
+    "line": 1399,
+    "field": "name",
+    "value": "Athena Workforce",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/builtins.ts",
+    "line": 15,
+    "field": "id",
+    "value": "engineering_manager",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/builtins.ts",
+    "line": 16,
+    "field": "role",
+    "value": "engineering_manager",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/builtins.ts",
+    "line": 24,
+    "field": "id",
+    "value": "planning_agent",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/builtins.ts",
+    "line": 25,
+    "field": "role",
+    "value": "planning",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/builtins.ts",
+    "line": 33,
+    "field": "id",
+    "value": "coding_agent",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/builtins.ts",
+    "line": 34,
+    "field": "role",
+    "value": "coding",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/builtins.ts",
+    "line": 42,
+    "field": "id",
+    "value": "review_agent",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/builtins.ts",
+    "line": 43,
+    "field": "role",
+    "value": "review",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/builtins.ts",
+    "line": 51,
+    "field": "id",
+    "value": "security_agent",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/builtins.ts",
+    "line": 52,
+    "field": "role",
+    "value": "security",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/builtins.ts",
+    "line": 60,
+    "field": "id",
+    "value": "testing_agent",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/builtins.ts",
+    "line": 61,
+    "field": "role",
+    "value": "testing",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/builtins.ts",
+    "line": 69,
+    "field": "id",
+    "value": "documentation_agent",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/builtins.ts",
+    "line": 70,
+    "field": "role",
+    "value": "documentation",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/builtins.ts",
+    "line": 78,
+    "field": "id",
+    "value": "release_agent",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/builtins.ts",
+    "line": 79,
+    "field": "role",
+    "value": "release",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/factory.ts",
+    "line": 51,
+    "field": "id",
+    "value": "software_architect",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/factory.ts",
+    "line": 52,
+    "field": "role",
+    "value": "Software Architect",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/factory.ts",
+    "line": 71,
+    "field": "id",
+    "value": "qa_engineer",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/factory.ts",
+    "line": 72,
+    "field": "role",
+    "value": "QA Engineer",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/factory.ts",
+    "line": 91,
+    "field": "id",
+    "value": "research_engineer",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/factory.ts",
+    "line": 92,
+    "field": "role",
+    "value": "Research Engineer",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/factory.ts",
+    "line": 111,
+    "field": "id",
+    "value": "backend_engineer",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/factory.ts",
+    "line": 112,
+    "field": "role",
+    "value": "Backend Engineer",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/factory.ts",
+    "line": 126,
+    "field": "id",
+    "value": "frontend_engineer",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/factory.ts",
+    "line": 127,
+    "field": "role",
+    "value": "Frontend Engineer",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/factory.ts",
+    "line": 141,
+    "field": "id",
+    "value": "database_engineer",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/factory.ts",
+    "line": 142,
+    "field": "role",
+    "value": "Database Engineer",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/factory.ts",
+    "line": 155,
+    "field": "id",
+    "value": "devops_engineer",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/factory.ts",
+    "line": 156,
+    "field": "role",
+    "value": "DevOps Engineer",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/factory.ts",
+    "line": 169,
+    "field": "id",
+    "value": "performance_engineer",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/factory.ts",
+    "line": 170,
+    "field": "role",
+    "value": "Performance Engineer",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/factory.ts",
+    "line": 183,
+    "field": "id",
+    "value": "security_engineer",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/factory.ts",
+    "line": 184,
+    "field": "role",
+    "value": "Security Engineer",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/factory.ts",
+    "line": 595,
+    "field": "role",
+    "value": "coding",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/os-service.ts",
+    "line": 626,
+    "field": "name",
+    "value": "Existing agent permission boundary",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/os-service.ts",
+    "line": 644,
+    "field": "id",
+    "value": "repository_intelligence",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/os-service.ts",
+    "line": 645,
+    "field": "name",
+    "value": "Repository Intelligence",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/os-service.ts",
+    "line": 651,
+    "field": "id",
+    "value": "semantic_code_intelligence",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/os-service.ts",
+    "line": 652,
+    "field": "name",
+    "value": "Semantic Code Intelligence",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/os-service.ts",
+    "line": 658,
+    "field": "id",
+    "value": "workflow_context",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/os-service.ts",
+    "line": 659,
+    "field": "name",
+    "value": "Workflow Context",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/os-service.ts",
+    "line": 665,
+    "field": "id",
+    "value": "memory_retrieval",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/os-service.ts",
+    "line": 666,
+    "field": "name",
+    "value": "Memory Retrieval",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/os-service.ts",
+    "line": 672,
+    "field": "id",
+    "value": "policy_review",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/agents/os-service.ts",
+    "line": 673,
+    "field": "name",
+    "value": "Policy Review",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/ai/benchmark/production-executor.ts",
+    "line": 57,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/ai/benchmark/service.ts",
+    "line": 109,
+    "field": "name",
+    "value": "latency_ms",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/ai/benchmark/service.ts",
+    "line": 112,
+    "field": "name",
+    "value": "context_tokens",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/ai/benchmark/service.ts",
+    "line": 250,
+    "field": "name",
+    "value": "case_pass_rate",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/ai/benchmark/service.ts",
+    "line": 255,
+    "field": "name",
+    "value": "safety_critical_failures",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/ai/context/service.ts",
+    "line": 724,
+    "field": "id",
+    "value": "invariant:safety",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/ai/context/service.ts",
+    "line": 901,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/ai/economics/service.ts",
+    "line": 114,
+    "field": "toolName",
+    "value": "ai.economic_override",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/ai/health.ts",
+    "line": 19,
+    "field": "name",
+    "value": "deterministic",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/ai/health.ts",
+    "line": 24,
+    "field": "name",
+    "value": "context",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/ai/health.ts",
+    "line": 32,
+    "field": "name",
+    "value": "economics",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/ai/providers/ollama.ts",
+    "line": 25,
+    "field": "providerId",
+    "value": "ollama",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/ai/providers/openai.ts",
+    "line": 85,
+    "field": "providerId",
+    "value": "openai",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/ai/providers/openai.ts",
+    "line": 297,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/ai/providers/openai.ts",
+    "line": 321,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/app.ts",
+    "line": 1738,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/app.ts",
+    "line": 1800,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/app.ts",
+    "line": 1986,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/app.ts",
+    "line": 2043,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-adapters/service.ts",
+    "line": 27,
+    "field": "id",
+    "value": "profile.vscode",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-adapters/service.ts",
+    "line": 48,
+    "field": "id",
+    "value": "profile.finder",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-adapters/service.ts",
+    "line": 58,
+    "field": "id",
+    "value": "profile.browser",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-intelligence/service.ts",
+    "line": 26,
+    "field": "id",
+    "value": "domain.code-editing",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-intelligence/service.ts",
+    "line": 32,
+    "field": "id",
+    "value": "domain.note-taking",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-intelligence/service.ts",
+    "line": 38,
+    "field": "id",
+    "value": "domain.browser",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-intelligence/service.ts",
+    "line": 44,
+    "field": "id",
+    "value": "domain.file-management",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-intelligence/service.ts",
+    "line": 50,
+    "field": "id",
+    "value": "domain.terminal",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-intelligence/service.ts",
+    "line": 59,
+    "field": "capabilityId",
+    "value": "CodeEditing.CreateFile",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-intelligence/service.ts",
+    "line": 68,
+    "field": "capabilityId",
+    "value": "CodeEditing.OpenFile",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-intelligence/service.ts",
+    "line": 77,
+    "field": "capabilityId",
+    "value": "CodeEditing.OpenWorkspace",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-intelligence/service.ts",
+    "line": 86,
+    "field": "capabilityId",
+    "value": "CodeEditing.PatchFile",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-intelligence/service.ts",
+    "line": 95,
+    "field": "capabilityId",
+    "value": "CodeEditing.SaveFile",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-intelligence/service.ts",
+    "line": 104,
+    "field": "capabilityId",
+    "value": "CodeEditing.SearchWorkspace",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-intelligence/service.ts",
+    "line": 113,
+    "field": "capabilityId",
+    "value": "Browser.OpenUrl",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-intelligence/service.ts",
+    "line": 122,
+    "field": "capabilityId",
+    "value": "Browser.ReloadPage",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-intelligence/service.ts",
+    "line": 131,
+    "field": "capabilityId",
+    "value": "FileManagement.RevealFile",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-intelligence/service.ts",
+    "line": 140,
+    "field": "capabilityId",
+    "value": "FileManagement.CreateFolder",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-intelligence/service.ts",
+    "line": 149,
+    "field": "capabilityId",
+    "value": "NoteTaking.CreateNote",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-intelligence/service.ts",
+    "line": 158,
+    "field": "capabilityId",
+    "value": "NoteTaking.SearchNotes",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-intelligence/service.ts",
+    "line": 434,
+    "field": "id",
+    "value": "00000000-0000-4000-8000-0000000018a1",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-intelligence/service.ts",
+    "line": 436,
+    "field": "name",
+    "value": "Create code file and open in editor",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-interactions/benchmark.ts",
+    "line": 41,
+    "field": "id",
+    "value": "chatgpt",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-interactions/benchmark.ts",
+    "line": 263,
+    "field": "role",
+    "value": "AXSecureTextField",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-interactions/benchmark.ts",
+    "line": 302,
+    "field": "capability",
+    "value": "focus",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-interactions/benchmark.ts",
+    "line": 348,
+    "field": "capability",
+    "value": "open_url",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-interactions/benchmark.ts",
+    "line": 414,
+    "field": "capability",
+    "value": "insert_text",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-interactions/service.ts",
+    "line": 34,
+    "field": "role",
+    "value": "AXTextField",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-interactions/service.ts",
+    "line": 39,
+    "field": "role",
+    "value": "AXTextField",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-interactions/service.ts",
+    "line": 49,
+    "field": "role",
+    "value": "AXButton",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-interactions/service.ts",
+    "line": 50,
+    "field": "role",
+    "value": "AXButton",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-interactions/service.ts",
+    "line": 60,
+    "field": "role",
+    "value": "AXTextArea",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-interactions/service.ts",
+    "line": 61,
+    "field": "role",
+    "value": "AXTextArea",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-interactions/service.ts",
+    "line": 68,
+    "field": "role",
+    "value": "AXButton",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-interactions/service.ts",
+    "line": 69,
+    "field": "role",
+    "value": "AXButton",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-interactions/service.ts",
+    "line": 246,
+    "field": "capability",
+    "value": "open_url",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-interactions/service.ts",
+    "line": 268,
+    "field": "capability",
+    "value": "reload",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-interactions/service.ts",
+    "line": 297,
+    "field": "capability",
+    "value": "submit_composer",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/application-interactions/service.ts",
+    "line": 328,
+    "field": "capability",
+    "value": "activate_semantic_control",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/capability-studio/service.ts",
+    "line": 590,
+    "field": "toolName",
+    "value": "governance.update_registry",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/companies/service.ts",
+    "line": 78,
+    "field": "name",
+    "value": "Default Company",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/companies/service.ts",
+    "line": 83,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/companies/service.ts",
+    "line": 135,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/companies/service.ts",
+    "line": 143,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/companies/service.ts",
+    "line": 186,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/company-management/service.ts",
+    "line": 54,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/company-management/service.ts",
+    "line": 152,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/company-management/service.ts",
+    "line": 229,
+    "field": "id",
+    "value": "evidence-unavailable",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/company-management/service.ts",
+    "line": 230,
+    "field": "id",
+    "value": "data-quality",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/company-management/service.ts",
+    "line": 231,
+    "field": "id",
+    "value": "system",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/company-management/service.ts",
+    "line": 232,
+    "field": "id",
+    "value": "ai-quality",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/company-management/service.ts",
+    "line": 233,
+    "field": "id",
+    "value": "execution",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/company-management/service.ts",
+    "line": 234,
+    "field": "id",
+    "value": "integration",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/company-management/service.ts",
+    "line": 235,
+    "field": "id",
+    "value": "business",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 57,
+    "field": "id",
+    "value": "vscode",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 74,
+    "field": "capabilityId",
+    "value": "CodeEditing.OpenWorkspace",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 85,
+    "field": "capabilityId",
+    "value": "CodeEditing.OpenRepository",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 96,
+    "field": "capabilityId",
+    "value": "CodeEditing.OpenFile",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 107,
+    "field": "capabilityId",
+    "value": "CodeEditing.CreateFile",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 118,
+    "field": "capabilityId",
+    "value": "CodeEditing.PatchFile",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 129,
+    "field": "capabilityId",
+    "value": "CodeEditing.SaveFile",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 140,
+    "field": "capabilityId",
+    "value": "CodeEditing.SearchWorkspace",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 151,
+    "field": "capabilityId",
+    "value": "CodeEditing.FindSymbol",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 162,
+    "field": "capabilityId",
+    "value": "CodeEditing.RevealSymbol",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 173,
+    "field": "capabilityId",
+    "value": "CodeEditing.ShowProblems",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 184,
+    "field": "capabilityId",
+    "value": "CodeEditing.ShowTerminal",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 195,
+    "field": "capabilityId",
+    "value": "CodeEditing.ReadDiagnostics",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 206,
+    "field": "capabilityId",
+    "value": "CodeEditing.ReadContext",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 219,
+    "field": "id",
+    "value": "finder",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 227,
+    "field": "capabilityId",
+    "value": "FileManagement.OpenFolder",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 238,
+    "field": "capabilityId",
+    "value": "FileManagement.RevealFile",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 249,
+    "field": "capabilityId",
+    "value": "FileManagement.SearchFiles",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 260,
+    "field": "capabilityId",
+    "value": "FileManagement.CreateFolder",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 292,
+    "field": "id",
+    "value": "chrome",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 301,
+    "field": "id",
+    "value": "safari",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 310,
+    "field": "id",
+    "value": "terminal",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 319,
+    "field": "id",
+    "value": "apple_notes",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 328,
+    "field": "id",
+    "value": "calendar",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/core-adapters/service.ts",
+    "line": 337,
+    "field": "id",
+    "value": "reminders",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 61,
+    "field": "id",
+    "value": "0f7b1bd1-f10c-4d37-96e9-18f000000001",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 62,
+    "field": "name",
+    "value": "Development Session",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 70,
+    "field": "capabilityId",
+    "value": "CodeEditing.OpenWorkspace",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 80,
+    "field": "capabilityId",
+    "value": "CodeEditing.ShowTerminal",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 90,
+    "field": "capabilityId",
+    "value": "Browser.OpenLocalhost",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 100,
+    "field": "capabilityId",
+    "value": "CodeEditing.ShowProblems",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 110,
+    "field": "id",
+    "value": "0f7b1bd1-f10c-4d37-96e9-18f000000002",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 111,
+    "field": "name",
+    "value": "Meeting Preparation",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 119,
+    "field": "capabilityId",
+    "value": "Calendar.TodayEvents",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 129,
+    "field": "capabilityId",
+    "value": "NoteTaking.CreateNote",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 139,
+    "field": "capabilityId",
+    "value": "Browser.OpenUrl",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 149,
+    "field": "capabilityId",
+    "value": "FileManagement.SearchFiles",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 159,
+    "field": "id",
+    "value": "0f7b1bd1-f10c-4d37-96e9-18f000000003",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 160,
+    "field": "name",
+    "value": "Daily Planning",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 168,
+    "field": "capabilityId",
+    "value": "Calendar.TodayEvents",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 178,
+    "field": "capabilityId",
+    "value": "TaskManagement.TodayReminders",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 188,
+    "field": "capabilityId",
+    "value": "NoteTaking.CreateNote",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 198,
+    "field": "id",
+    "value": "0f7b1bd1-f10c-4d37-96e9-18f000000004",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 199,
+    "field": "name",
+    "value": "Research Session",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 207,
+    "field": "capabilityId",
+    "value": "Browser.OpenUrl",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 217,
+    "field": "capabilityId",
+    "value": "Browser.SearchBookmarks",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 227,
+    "field": "capabilityId",
+    "value": "NoteTaking.CreateNote",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 237,
+    "field": "id",
+    "value": "0f7b1bd1-f10c-4d37-96e9-18f000000005",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 238,
+    "field": "name",
+    "value": "Shutdown Routine",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 246,
+    "field": "capabilityId",
+    "value": "CodeEditing.ReadContext",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 256,
+    "field": "capabilityId",
+    "value": "Browser.ReadActiveTabMetadata",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 266,
+    "field": "id",
+    "value": "0f7b1bd1-f10c-4d37-96e9-18f000000006",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 267,
+    "field": "name",
+    "value": "Release Deployment",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 275,
+    "field": "capabilityId",
+    "value": "CodeEditing.OpenRepository",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 285,
+    "field": "capabilityId",
+    "value": "CodeEditing.ReadDiagnostics",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-application-workflows/service.ts",
+    "line": 295,
+    "field": "capabilityId",
+    "value": "Terminal.ExecuteApprovedCommand",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-device/service.ts",
+    "line": 169,
+    "field": "capability",
+    "value": "OPEN_URL",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/cross-device/service.ts",
+    "line": 336,
+    "field": "capability",
+    "value": "SHOW_SCREEN",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/deep-indexers/service.ts",
+    "line": 762,
+    "field": "providerId",
+    "value": "provider.unavailable",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/interaction-services.ts",
+    "line": 477,
+    "field": "id",
+    "value": "interaction.profile.default",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/interaction-services.ts",
+    "line": 479,
+    "field": "name",
+    "value": "Deterministic semantic interaction profile",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/interaction-services.ts",
+    "line": 877,
+    "field": "capabilityId",
+    "value": "accessibility.provider_required",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 670,
+    "field": "id",
+    "value": "desktop_metadata_provider",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 672,
+    "field": "name",
+    "value": "Desktop metadata provider",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 685,
+    "field": "id",
+    "value": "mac_agent_desktop_provider",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 687,
+    "field": "name",
+    "value": "Mac agent desktop provider",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 705,
+    "field": "id",
+    "value": "com.personalassistant.dashboard",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 721,
+    "field": "name",
+    "value": "No captured layout",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 743,
+    "field": "capabilityId",
+    "value": "desktop.context.read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 783,
+    "field": "id",
+    "value": "desktop.object.dashboard",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 787,
+    "field": "providerId",
+    "value": "desktop_metadata_provider",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 795,
+    "field": "id",
+    "value": "center",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 814,
+    "field": "id",
+    "value": "desktop.object.registered-applications",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 818,
+    "field": "providerId",
+    "value": "mac_agent_desktop_provider",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 826,
+    "field": "id",
+    "value": "dock",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 845,
+    "field": "id",
+    "value": "desktop.object.window-layout",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 849,
+    "field": "providerId",
+    "value": "mac_agent_desktop_provider",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 857,
+    "field": "id",
+    "value": "frame",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 881,
+    "field": "id",
+    "value": "desktop.profile.development",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 883,
+    "field": "name",
+    "value": "Development spatial desktop profile",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 897,
+    "field": "id",
+    "value": "desktop.overlay.default",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 911,
+    "field": "id",
+    "value": "desktop.dock.dashboard",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 925,
+    "field": "id",
+    "value": "desktop.panel.system-status",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 981,
+    "field": "role",
+    "value": "main",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 994,
+    "field": "role",
+    "value": "application",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 1007,
+    "field": "role",
+    "value": "window",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 1025,
+    "field": "role",
+    "value": "sidebar_item",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 1046,
+    "field": "role",
+    "value": "search_field",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 1067,
+    "field": "role",
+    "value": "panel",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 1192,
+    "field": "id",
+    "value": "desktop.highlight.default",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/desktop/service.ts",
+    "line": 1194,
+    "field": "name",
+    "value": "Accessible focus preview",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/durable-execution/production.ts",
+    "line": 50,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/durable-execution/production.ts",
+    "line": 158,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/durable-execution/production.ts",
+    "line": 226,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/durable-execution/production.ts",
+    "line": 271,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/durable-execution/production.ts",
+    "line": 299,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/durable-execution/service.ts",
+    "line": 256,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/durable-execution/service.ts",
+    "line": 312,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/durable-execution/service.ts",
+    "line": 1150,
+    "field": "toolName",
+    "value": "company.cross_company_service",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-delivery/service.ts",
+    "line": 410,
+    "field": "capability",
+    "value": "repository.dev_server_start",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-delivery/service.ts",
+    "line": 816,
+    "field": "capability",
+    "value": "repository.dev_server_start",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-delivery/service.ts",
+    "line": 1278,
+    "field": "id",
+    "value": "lint",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-delivery/service.ts",
+    "line": 1287,
+    "field": "id",
+    "value": "typecheck",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-delivery/service.ts",
+    "line": 1296,
+    "field": "id",
+    "value": "test",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-delivery/service.ts",
+    "line": 1305,
+    "field": "id",
+    "value": "build",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-delivery/service.ts",
+    "line": 1321,
+    "field": "id",
+    "value": "vite",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-delivery/session-service.ts",
+    "line": 113,
+    "field": "role",
+    "value": "ALEXA",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-delivery/session-service.ts",
+    "line": 189,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-delivery/session-service.ts",
+    "line": 217,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-delivery/session-service.ts",
+    "line": 218,
+    "field": "role",
+    "value": "ALEXA",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-delivery/session-service.ts",
+    "line": 264,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-delivery/session-service.ts",
+    "line": 265,
+    "field": "role",
+    "value": "ALEXA",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-delivery/session-service.ts",
+    "line": 277,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-delivery/session-service.ts",
+    "line": 291,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-delivery/session-service.ts",
+    "line": 299,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/ai-conflict-resolver.ts",
+    "line": 25,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/ai-reviewer.ts",
+    "line": 55,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/merge-action.ts",
+    "line": 12,
+    "field": "toolName",
+    "value": "engineering.merge_candidate",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/service.ts",
+    "line": 393,
+    "field": "capability",
+    "value": "repository.inspect",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/service.ts",
+    "line": 414,
+    "field": "capability",
+    "value": "repository.merge_candidate",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/service.ts",
+    "line": 547,
+    "field": "capability",
+    "value": "repository.git_status",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/service.ts",
+    "line": 572,
+    "field": "capability",
+    "value": "repository.git_diff",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/service.ts",
+    "line": 581,
+    "field": "capability",
+    "value": "repository.validate",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/service.ts",
+    "line": 592,
+    "field": "capability",
+    "value": "repository.git_status",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/service.ts",
+    "line": 922,
+    "field": "capability",
+    "value": "repository.worktree_inspect",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/service.ts",
+    "line": 986,
+    "field": "capability",
+    "value": "repository.validate",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/service.ts",
+    "line": 1029,
+    "field": "capability",
+    "value": "repository.prepare_commit",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/service.ts",
+    "line": 1060,
+    "field": "capability",
+    "value": "repository.worktree_inspect",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/service.ts",
+    "line": 1069,
+    "field": "capability",
+    "value": "repository.validate",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/service.ts",
+    "line": 1080,
+    "field": "capability",
+    "value": "repository.prepare_commit",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/service.ts",
+    "line": 1138,
+    "field": "capability",
+    "value": "repository.integrate_commit",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/service.ts",
+    "line": 1210,
+    "field": "capability",
+    "value": "repository.file_read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/service.ts",
+    "line": 1215,
+    "field": "capability",
+    "value": "repository.file_read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/service.ts",
+    "line": 1252,
+    "field": "capability",
+    "value": "repository.resolve_additive_docs_conflict",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/service.ts",
+    "line": 1318,
+    "field": "capability",
+    "value": "repository.validate",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/service.ts",
+    "line": 1371,
+    "field": "capability",
+    "value": "repository.integration_diff",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/service.ts",
+    "line": 1662,
+    "field": "capability",
+    "value": "repository.inspect",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-integration/service.ts",
+    "line": 1856,
+    "field": "capability",
+    "value": "repository.worktree_inspect",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/agent-os-gateway.ts",
+    "line": 26,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/agent-os-gateway.ts",
+    "line": 47,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/agent-os-gateway.ts",
+    "line": 75,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/agent-os-gateway.ts",
+    "line": 101,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/ai-worker.ts",
+    "line": 243,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/ai-worker.ts",
+    "line": 557,
+    "field": "capability",
+    "value": "engineering.proposal",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/ai-worker.ts",
+    "line": 585,
+    "field": "capability",
+    "value": "repository.validate",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/ai-worker.ts",
+    "line": 648,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 705,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 1182,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 1829,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 1864,
+    "field": "providerId",
+    "value": "unavailable",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 2019,
+    "field": "role",
+    "value": "GENERALIST_ENGINEER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 2036,
+    "field": "role",
+    "value": "GENERALIST_ENGINEER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 2060,
+    "field": "role",
+    "value": "GENERALIST_ENGINEER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 2077,
+    "field": "role",
+    "value": "GENERALIST_ENGINEER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 2098,
+    "field": "role",
+    "value": "DATABASE_ENGINEER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 2121,
+    "field": "role",
+    "value": "BACKEND_ENGINEER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 2141,
+    "field": "role",
+    "value": "FRONTEND_ENGINEER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 2161,
+    "field": "role",
+    "value": "MOBILE_ENGINEER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 2179,
+    "field": "role",
+    "value": "MAC_NATIVE_ENGINEER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 2196,
+    "field": "role",
+    "value": "DEVOPS_INFRASTRUCTURE_ENGINEER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 2214,
+    "field": "role",
+    "value": "GENERALIST_ENGINEER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 2231,
+    "field": "role",
+    "value": "TEST_QA_ENGINEER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 2248,
+    "field": "role",
+    "value": "SECURITY_REVIEWER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 2265,
+    "field": "role",
+    "value": "GENERALIST_ENGINEER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 2428,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 2548,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 2620,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/service.ts",
+    "line": 2643,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/signed-gateway.ts",
+    "line": 100,
+    "field": "capability",
+    "value": "repository.initialize_project",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/signed-gateway.ts",
+    "line": 143,
+    "field": "capability",
+    "value": "repository.worktree_inspect",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/signed-gateway.ts",
+    "line": 154,
+    "field": "capability",
+    "value": "repository.worktree_create",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/signed-gateway.ts",
+    "line": 195,
+    "field": "capability",
+    "value": "repository.worktree_inspect",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/signed-gateway.ts",
+    "line": 210,
+    "field": "capability",
+    "value": "repository.inspect",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/signed-gateway.ts",
+    "line": 272,
+    "field": "capability",
+    "value": "repository.worktree_create",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/signed-gateway.ts",
+    "line": 393,
+    "field": "capability",
+    "value": "repository.run_command",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-orchestration/signed-gateway.ts",
+    "line": 470,
+    "field": "capability",
+    "value": "repository.install_dependencies",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-runtime/service.ts",
+    "line": 361,
+    "field": "capability",
+    "value": "repository.worktree_create",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/engineering-runtime/service.ts",
+    "line": 702,
+    "field": "capability",
+    "value": "repository.worktree_remove",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/execution/server-key-store.ts",
+    "line": 29,
+    "field": "name",
+    "value": "Ed25519",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/execution/server-key-store.ts",
+    "line": 48,
+    "field": "name",
+    "value": "Ed25519",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/execution/service.ts",
+    "line": 473,
+    "field": "toolName",
+    "value": "engineering.merge_candidate",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/execution/service.ts",
+    "line": 611,
+    "field": "toolName",
+    "value": "engineering.repository_capability",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/execution/service.ts",
+    "line": 782,
+    "field": "toolName",
+    "value": "native.provider_capability",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/execution/service.ts",
+    "line": 808,
+    "field": "toolName",
+    "value": "native.provider_capability",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/executive/benchmark.ts",
+    "line": 167,
+    "field": "name",
+    "value": "Pass rate",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/executive/service.ts",
+    "line": 360,
+    "field": "name",
+    "value": "importance",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/executive/service.ts",
+    "line": 365,
+    "field": "name",
+    "value": "urgency",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/executive/service.ts",
+    "line": 373,
+    "field": "name",
+    "value": "goalAlignment",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/executive/service.ts",
+    "line": 378,
+    "field": "name",
+    "value": "dependency",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/executive/service.ts",
+    "line": 385,
+    "field": "name",
+    "value": "approval",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/executive/service.ts",
+    "line": 714,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/manifest.ts",
+    "line": 70,
+    "field": "id",
+    "value": "gbrain_brain_first_retrieval",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/manifest.ts",
+    "line": 85,
+    "field": "id",
+    "value": "gbrain_scoped_knowledge",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/manifest.ts",
+    "line": 96,
+    "field": "id",
+    "value": "gbrain_knowledge_gap",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/manifest.ts",
+    "line": 110,
+    "field": "id",
+    "value": "gbrain_maintenance",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/manifest.ts",
+    "line": 122,
+    "field": "id",
+    "value": "gbrain_trajectory",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/manifest.ts",
+    "line": 133,
+    "field": "id",
+    "value": "hermes_isolated_delegation",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/manifest.ts",
+    "line": 145,
+    "field": "id",
+    "value": "hermes_context_budget",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/manifest.ts",
+    "line": 160,
+    "field": "id",
+    "value": "hermes_sandbox",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/manifest.ts",
+    "line": 175,
+    "field": "id",
+    "value": "hermes_auto_approve",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/manifest.ts",
+    "line": 186,
+    "field": "id",
+    "value": "ecc_architect",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/manifest.ts",
+    "line": 198,
+    "field": "id",
+    "value": "ecc_qa",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/manifest.ts",
+    "line": 209,
+    "field": "id",
+    "value": "ecc_research",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/manifest.ts",
+    "line": 240,
+    "field": "id",
+    "value": "ecc_development_loop",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/manifest.ts",
+    "line": 255,
+    "field": "id",
+    "value": "ecc_vendor_runtime_assumptions",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/service.ts",
+    "line": 282,
+    "field": "id",
+    "value": "registered_validation_readonly",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/service.ts",
+    "line": 389,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/service.ts",
+    "line": 593,
+    "field": "providerId",
+    "value": "unavailable",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/service.ts",
+    "line": 689,
+    "field": "id",
+    "value": "memory",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/service.ts",
+    "line": 697,
+    "field": "id",
+    "value": "context",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/service.ts",
+    "line": 709,
+    "field": "id",
+    "value": "agents",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/service.ts",
+    "line": 719,
+    "field": "id",
+    "value": "skills",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/service.ts",
+    "line": 727,
+    "field": "id",
+    "value": "workflows",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/service.ts",
+    "line": 735,
+    "field": "id",
+    "value": "capabilities",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/service.ts",
+    "line": 743,
+    "field": "id",
+    "value": "ai",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/external-harvest/service.ts",
+    "line": 756,
+    "field": "id",
+    "value": "knowledge",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/human-understanding/corpus.ts",
+    "line": 570,
+    "field": "id",
+    "value": "identity.alexa",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/human-understanding/service.ts",
+    "line": 509,
+    "field": "name",
+    "value": "Athena Default",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/human-understanding/service.ts",
+    "line": 533,
+    "field": "name",
+    "value": "Athena Default",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/human-understanding/service.ts",
+    "line": 600,
+    "field": "role",
+    "value": "Personal Assistant OS",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/human-understanding/service.ts",
+    "line": 1711,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/identity/crypto.ts",
+    "line": 60,
+    "field": "name",
+    "value": "Ed25519",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/identity/crypto.ts",
+    "line": 87,
+    "field": "name",
+    "value": "Ed25519",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/index.ts",
+    "line": 406,
+    "field": "providerId",
+    "value": "openai",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 29,
+    "field": "id",
+    "value": "gmail",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 37,
+    "field": "id",
+    "value": "gmail.email.read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 37,
+    "field": "name",
+    "value": "Email retrieval",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 38,
+    "field": "id",
+    "value": "gmail.email.draft",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 38,
+    "field": "name",
+    "value": "Email drafts",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 39,
+    "field": "id",
+    "value": "gmail.email.send",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 39,
+    "field": "name",
+    "value": "Approved email send",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 43,
+    "field": "id",
+    "value": "crm",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 51,
+    "field": "id",
+    "value": "crm.lead.read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 51,
+    "field": "name",
+    "value": "CRM retrieval",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 52,
+    "field": "id",
+    "value": "crm.lead.write",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 52,
+    "field": "name",
+    "value": "Lead updates",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 56,
+    "field": "id",
+    "value": "support",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 59,
+    "field": "id",
+    "value": "support.ticket.read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 59,
+    "field": "name",
+    "value": "Ticket retrieval",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 60,
+    "field": "id",
+    "value": "support.ticket.draft",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 60,
+    "field": "name",
+    "value": "Response drafts",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 61,
+    "field": "id",
+    "value": "support.ticket.reply",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 61,
+    "field": "name",
+    "value": "Approved support reply",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 62,
+    "field": "id",
+    "value": "support.ticket.write",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 62,
+    "field": "name",
+    "value": "Ticket workflow updates",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 66,
+    "field": "id",
+    "value": "documents",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 69,
+    "field": "id",
+    "value": "documents.read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 69,
+    "field": "name",
+    "value": "Document retrieval",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 70,
+    "field": "id",
+    "value": "documents.write",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 70,
+    "field": "name",
+    "value": "Document changes",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 74,
+    "field": "id",
+    "value": "projects",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 77,
+    "field": "id",
+    "value": "projects.task.read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 77,
+    "field": "name",
+    "value": "Project and task retrieval",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 78,
+    "field": "id",
+    "value": "projects.task.write",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 78,
+    "field": "name",
+    "value": "Project task updates",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 82,
+    "field": "id",
+    "value": "analytics",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 90,
+    "field": "id",
+    "value": "analytics.metric.read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 90,
+    "field": "name",
+    "value": "Metric observations",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 94,
+    "field": "id",
+    "value": "accounting",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 96,
+    "field": "id",
+    "value": "accounting.read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 96,
+    "field": "name",
+    "value": "Accounting retrieval",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 97,
+    "field": "id",
+    "value": "accounting.prepare",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 97,
+    "field": "name",
+    "value": "Accounting drafts",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 98,
+    "field": "id",
+    "value": "accounting.write",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 98,
+    "field": "name",
+    "value": "Accounting review notes",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 102,
+    "field": "id",
+    "value": "payments",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 104,
+    "field": "id",
+    "value": "payments.read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 104,
+    "field": "name",
+    "value": "Payment retrieval",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 105,
+    "field": "id",
+    "value": "payments.prepare",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 105,
+    "field": "name",
+    "value": "Payment preparation",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 106,
+    "field": "id",
+    "value": "payments.execute",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 106,
+    "field": "name",
+    "value": "Payment execution",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 110,
+    "field": "id",
+    "value": "ads",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 112,
+    "field": "id",
+    "value": "ads.read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 112,
+    "field": "name",
+    "value": "Campaign analytics",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 113,
+    "field": "id",
+    "value": "ads.prepare",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 113,
+    "field": "name",
+    "value": "Campaign drafts",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 114,
+    "field": "id",
+    "value": "ads.write",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 114,
+    "field": "name",
+    "value": "Governed campaign changes",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 118,
+    "field": "id",
+    "value": "commerce",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 120,
+    "field": "id",
+    "value": "commerce.read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 120,
+    "field": "name",
+    "value": "Commerce retrieval",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 121,
+    "field": "id",
+    "value": "commerce.prepare",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 121,
+    "field": "name",
+    "value": "Commerce preparation",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 122,
+    "field": "id",
+    "value": "commerce.write",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 122,
+    "field": "name",
+    "value": "Governed commerce changes",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 126,
+    "field": "id",
+    "value": "github",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 136,
+    "field": "id",
+    "value": "github.repository.read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 137,
+    "field": "name",
+    "value": "Repository discovery",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 147,
+    "field": "id",
+    "value": "github.issue.write",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 148,
+    "field": "name",
+    "value": "Issue creation",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 157,
+    "field": "id",
+    "value": "github.pull_request.write",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 158,
+    "field": "name",
+    "value": "Pull request updates",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 169,
+    "field": "id",
+    "value": "jira",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 178,
+    "field": "id",
+    "value": "jira.issue.read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 179,
+    "field": "name",
+    "value": "Issue search",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 188,
+    "field": "id",
+    "value": "jira.issue.write",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 189,
+    "field": "name",
+    "value": "Issue updates",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 200,
+    "field": "id",
+    "value": "slack",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 209,
+    "field": "id",
+    "value": "slack.notification.send",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 210,
+    "field": "name",
+    "value": "Workflow notifications",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 222,
+    "field": "id",
+    "value": "notion",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 231,
+    "field": "id",
+    "value": "notion.page.read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 232,
+    "field": "name",
+    "value": "Documentation search",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 242,
+    "field": "id",
+    "value": "notion.page.write",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 243,
+    "field": "name",
+    "value": "Documentation drafts",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 254,
+    "field": "id",
+    "value": "vscode",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 264,
+    "field": "id",
+    "value": "vscode.navigation.open",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 265,
+    "field": "name",
+    "value": "IDE navigation",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 276,
+    "field": "id",
+    "value": "github_actions",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 286,
+    "field": "id",
+    "value": "github_actions.workflow.read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 287,
+    "field": "name",
+    "value": "CI status",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 296,
+    "field": "id",
+    "value": "github_actions.workflow.dispatch",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 297,
+    "field": "name",
+    "value": "Approved CI dispatch",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 308,
+    "field": "id",
+    "value": "vercel",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 318,
+    "field": "id",
+    "value": "vercel.deployment.read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 319,
+    "field": "name",
+    "value": "Deployment status",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 328,
+    "field": "id",
+    "value": "vercel.deployment.control",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/builtins.ts",
+    "line": 329,
+    "field": "name",
+    "value": "Approved deployment control",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/business-providers.ts",
+    "line": 74,
+    "field": "providerId",
+    "value": "gmail",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/business-providers.ts",
+    "line": 75,
+    "field": "providerId",
+    "value": "crm",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/business-providers.ts",
+    "line": 76,
+    "field": "providerId",
+    "value": "support",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/business-providers.ts",
+    "line": 77,
+    "field": "providerId",
+    "value": "documents",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/business-providers.ts",
+    "line": 78,
+    "field": "providerId",
+    "value": "projects",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/business-providers.ts",
+    "line": 79,
+    "field": "providerId",
+    "value": "accounting",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/business-providers.ts",
+    "line": 80,
+    "field": "providerId",
+    "value": "payments",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/business-providers.ts",
+    "line": 81,
+    "field": "providerId",
+    "value": "ads",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/business-providers.ts",
+    "line": 82,
+    "field": "providerId",
+    "value": "analytics",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/business-providers.ts",
+    "line": 83,
+    "field": "providerId",
+    "value": "commerce",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/business-runtime.ts",
+    "line": 332,
+    "field": "toolName",
+    "value": "business.execute_reviewed_capability",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/commercial-workflows.ts",
+    "line": 18,
+    "field": "capability",
+    "value": "payments.read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/commercial-workflows.ts",
+    "line": 19,
+    "field": "capability",
+    "value": "payments.prepare_refund",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/commercial-workflows.ts",
+    "line": 22,
+    "field": "capability",
+    "value": "payments.execute_refund",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/commercial-workflows.ts",
+    "line": 23,
+    "field": "capability",
+    "value": "payments.read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/commercial-workflows.ts",
+    "line": 25,
+    "field": "capability",
+    "value": "email.create_draft",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/commercial-workflows.ts",
+    "line": 28,
+    "field": "capability",
+    "value": "accounting.read_aging",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/commercial-workflows.ts",
+    "line": 30,
+    "field": "capability",
+    "value": "email.create_draft",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/commercial-workflows.ts",
+    "line": 32,
+    "field": "capability",
+    "value": "email.send_draft",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/commercial-workflows.ts",
+    "line": 34,
+    "field": "capability",
+    "value": "payments.read",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/commercial-workflows.ts",
+    "line": 37,
+    "field": "capability",
+    "value": "commerce.read_product",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/commercial-workflows.ts",
+    "line": 38,
+    "field": "capability",
+    "value": "commerce.read_inventory",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/commercial-workflows.ts",
+    "line": 41,
+    "field": "capability",
+    "value": "commerce.update_inventory",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/commercial-workflows.ts",
+    "line": 42,
+    "field": "capability",
+    "value": "commerce.read_inventory",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/commercial-workflows.ts",
+    "line": 45,
+    "field": "capability",
+    "value": "ads.read_performance",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/commercial-workflows.ts",
+    "line": 46,
+    "field": "capability",
+    "value": "analytics.query_metric",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/commercial-workflows.ts",
+    "line": 47,
+    "field": "capability",
+    "value": "ads.prepare_campaign",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/commercial-workflows.ts",
+    "line": 50,
+    "field": "capability",
+    "value": "ads.adjust_budget",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/commercial-workflows.ts",
+    "line": 51,
+    "field": "capability",
+    "value": "ads.read_performance",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/commercial-workflows.ts",
+    "line": 52,
+    "field": "capability",
+    "value": "analytics.query_metric",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/integrations/stripe-provider.ts",
+    "line": 31,
+    "field": "id",
+    "value": "balance",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/learning-engine/service.ts",
+    "line": 742,
+    "field": "name",
+    "value": "Recurring routine",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/local-ai/registry.ts",
+    "line": 9,
+    "field": "id",
+    "value": "gemma3-4b",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/local-ai/service.ts",
+    "line": 99,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/local-ai/service.ts",
+    "line": 131,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/native-providers/service.ts",
+    "line": 47,
+    "field": "id",
+    "value": "provider.vscode",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/native-providers/service.ts",
+    "line": 49,
+    "field": "name",
+    "value": "VSCodeProvider",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/native-providers/service.ts",
+    "line": 72,
+    "field": "id",
+    "value": "provider.finder",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/native-providers/service.ts",
+    "line": 74,
+    "field": "name",
+    "value": "FinderProvider",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/native-providers/service.ts",
+    "line": 91,
+    "field": "id",
+    "value": "provider.terminal",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/native-providers/service.ts",
+    "line": 93,
+    "field": "name",
+    "value": "TerminalProvider",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/native-providers/service.ts",
+    "line": 107,
+    "field": "id",
+    "value": "provider.chrome",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/native-providers/service.ts",
+    "line": 109,
+    "field": "name",
+    "value": "ChromeProvider",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/native-providers/service.ts",
+    "line": 129,
+    "field": "id",
+    "value": "provider.safari",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/native-providers/service.ts",
+    "line": 131,
+    "field": "name",
+    "value": "SafariProvider",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/native-providers/service.ts",
+    "line": 149,
+    "field": "id",
+    "value": "provider.chatgpt",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/native-providers/service.ts",
+    "line": 151,
+    "field": "name",
+    "value": "ChatGPTProvider",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/native-providers/service.ts",
+    "line": 164,
+    "field": "id",
+    "value": "provider.codex",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/native-providers/service.ts",
+    "line": 166,
+    "field": "name",
+    "value": "CodexProvider",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/native-providers/service.ts",
+    "line": 178,
+    "field": "id",
+    "value": "provider.figma",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/native-providers/service.ts",
+    "line": 180,
+    "field": "name",
+    "value": "FigmaProvider",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/objectives/service.ts",
+    "line": 403,
+    "field": "capabilityId",
+    "value": "web.research",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/observability/service.ts",
+    "line": 248,
+    "field": "toolName",
+    "value": "portfolio.allocate_credits",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/observability/service.ts",
+    "line": 252,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/observability/service.ts",
+    "line": 322,
+    "field": "toolName",
+    "value": "portfolio.fund_owner_reserve",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/patches/service.ts",
+    "line": 295,
+    "field": "toolName",
+    "value": "workspace.apply_patch",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/patches/service.ts",
+    "line": 322,
+    "field": "toolName",
+    "value": "workspace.apply_patch",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/persistence/test-database.ts",
+    "line": 47,
+    "field": "name",
+    "value": "Default Company",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/persistence/test-database.ts",
+    "line": 54,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/live-benchmark.ts",
+    "line": 49,
+    "field": "id",
+    "value": "phase-21c-local-reflection",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/live-benchmark.ts",
+    "line": 51,
+    "field": "name",
+    "value": "Phase 21C local reflection benchmark",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/live-benchmark.ts",
+    "line": 94,
+    "field": "name",
+    "value": "structured_first_pass",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/live-benchmark.ts",
+    "line": 95,
+    "field": "name",
+    "value": "structured_final",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/live-benchmark.ts",
+    "line": 96,
+    "field": "name",
+    "value": "grounded_evidence",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/live-benchmark.ts",
+    "line": 97,
+    "field": "name",
+    "value": "unsupported_causal_claims",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/live-benchmark.ts",
+    "line": 98,
+    "field": "name",
+    "value": "outcome_classification",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/live-benchmark.ts",
+    "line": 99,
+    "field": "name",
+    "value": "inconclusive_handling",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/live-benchmark.ts",
+    "line": 126,
+    "field": "name",
+    "value": "case_pass_rate",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/live-benchmark.ts",
+    "line": 127,
+    "field": "name",
+    "value": "structured_first_pass_rate",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/live-benchmark.ts",
+    "line": 128,
+    "field": "name",
+    "value": "structured_final_rate",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/live-benchmark.ts",
+    "line": 129,
+    "field": "name",
+    "value": "grounded_evidence_rate",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/live-benchmark.ts",
+    "line": 130,
+    "field": "name",
+    "value": "unsupported_causal_claim_count",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/live-benchmark.ts",
+    "line": 131,
+    "field": "name",
+    "value": "outcome_classification_rate",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/live-benchmark.ts",
+    "line": 132,
+    "field": "name",
+    "value": "inconclusive_handling_rate",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/live-benchmark.ts",
+    "line": 133,
+    "field": "name",
+    "value": "average_latency_ms",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/live-benchmark.ts",
+    "line": 134,
+    "field": "name",
+    "value": "p50_latency_ms",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/live-benchmark.ts",
+    "line": 135,
+    "field": "name",
+    "value": "p95_latency_ms",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/service.ts",
+    "line": 172,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/service.ts",
+    "line": 681,
+    "field": "name",
+    "value": "task_completion",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/service.ts",
+    "line": 689,
+    "field": "name",
+    "value": "effort",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/service.ts",
+    "line": 700,
+    "field": "name",
+    "value": "deadline",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/service.ts",
+    "line": 921,
+    "field": "name",
+    "value": "decision_process_quality",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/service.ts",
+    "line": 929,
+    "field": "name",
+    "value": "decision_outcome_quality",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/service.ts",
+    "line": 1028,
+    "field": "name",
+    "value": "goal_objective_progress",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/service.ts",
+    "line": 1104,
+    "field": "name",
+    "value": "kpi_deviation",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/service.ts",
+    "line": 1185,
+    "field": "name",
+    "value": "risk_realization",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/reflection/service.ts",
+    "line": 1496,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/repositories/service.ts",
+    "line": 211,
+    "field": "toolName",
+    "value": "repository.scan_metadata",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/routes/ai.ts",
+    "line": 76,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/routes/ai.ts",
+    "line": 214,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/routes/ai.ts",
+    "line": 253,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/routes/integrations.ts",
+    "line": 89,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/routes/local-ai.ts",
+    "line": 71,
+    "field": "providerId",
+    "value": "ollama",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/routes/local-ai.ts",
+    "line": 74,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/routes/portfolio.ts",
+    "line": 52,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/skill-evolution/service.ts",
+    "line": 883,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/skill-evolution/service.ts",
+    "line": 1442,
+    "field": "name",
+    "value": "input",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/skill-evolution/service.ts",
+    "line": 1462,
+    "field": "name",
+    "value": "output",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 198,
+    "field": "id",
+    "value": "spatial.scene.preferences",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 384,
+    "field": "id",
+    "value": "camera.permission-gated",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 614,
+    "field": "id",
+    "value": "native.camera.provider.pending",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 635,
+    "field": "name",
+    "value": "Native productivity",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 655,
+    "field": "providerId",
+    "value": "native.camera.provider.pending",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 701,
+    "field": "name",
+    "value": "Productivity",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 769,
+    "field": "id",
+    "value": "camera.permission-gated",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 823,
+    "field": "name",
+    "value": "Double pinch coding mode",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 837,
+    "field": "name",
+    "value": "Custom gesture slot",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 872,
+    "field": "id",
+    "value": "native.camera.provider.pending",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 893,
+    "field": "name",
+    "value": "Native productivity",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 913,
+    "field": "providerId",
+    "value": "native.camera.provider.pending",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 1023,
+    "field": "name",
+    "value": "Spatial Command Space",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 1035,
+    "field": "id",
+    "value": "spatial.scene.preferences",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 1049,
+    "field": "id",
+    "value": "spatial.theme.jarvis",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 1051,
+    "field": "name",
+    "value": "JARVIS command blue",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 1089,
+    "field": "id",
+    "value": "spatial.particles.default",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 1092,
+    "field": "name",
+    "value": "Ambient command particles",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 1144,
+    "field": "id",
+    "value": "spatial.layout.default",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 1201,
+    "field": "id",
+    "value": "spatial.physics.default",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 1203,
+    "field": "name",
+    "value": "Stable holographic cursor physics",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 1221,
+    "field": "name",
+    "value": "Inspect then confirm",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 1242,
+    "field": "name",
+    "value": "Default spatial motion",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 1255,
+    "field": "id",
+    "value": "spatial.interaction.default",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 1257,
+    "field": "name",
+    "value": "Stable dashboard targeting",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 1271,
+    "field": "id",
+    "value": "spatial.preferences.default",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 1302,
+    "field": "id",
+    "value": "spatial.nav.primary",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 1309,
+    "field": "id",
+    "value": "spatial.command-palette",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 1316,
+    "field": "id",
+    "value": "spatial.dashboard.cards",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 1323,
+    "field": "id",
+    "value": "spatial.agent.nodes",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/spatial/service.ts",
+    "line": 1330,
+    "field": "id",
+    "value": "spatial.dialogs",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/tasks/service.ts",
+    "line": 444,
+    "field": "name",
+    "value": "Workflow queue monitor",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/validation/profiles.ts",
+    "line": 5,
+    "field": "id",
+    "value": "pnpm_format_check",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/validation/profiles.ts",
+    "line": 14,
+    "field": "id",
+    "value": "pnpm_typecheck",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/validation/profiles.ts",
+    "line": 23,
+    "field": "id",
+    "value": "pnpm_lint",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/validation/profiles.ts",
+    "line": 32,
+    "field": "id",
+    "value": "pnpm_test",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/validation/profiles.ts",
+    "line": 41,
+    "field": "id",
+    "value": "pnpm_build",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/validation/profiles.ts",
+    "line": 50,
+    "field": "id",
+    "value": "pnpm_security_check",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/validation/profiles.ts",
+    "line": 59,
+    "field": "id",
+    "value": "pnpm_verify_production_config",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/validation/service.ts",
+    "line": 131,
+    "field": "toolName",
+    "value": "workspace.validate_profile",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/validation/service.ts",
+    "line": 156,
+    "field": "toolName",
+    "value": "workspace.validate_profile",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/voice/service.ts",
+    "line": 469,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/voice/service.ts",
+    "line": 1155,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/voice/service.ts",
+    "line": 1370,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/voice/service.ts",
+    "line": 1457,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/voice/service.ts",
+    "line": 1780,
+    "field": "providerId",
+    "value": "browser",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/voice/service.ts",
+    "line": 2033,
+    "field": "name",
+    "value": "Default Voice",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/voice/service.ts",
+    "line": 2164,
+    "field": "name",
+    "value": "Warm Technical Collaborator",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/workforce-runtime/service.ts",
+    "line": 927,
+    "field": "role",
+    "value": "user",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/workforce-runtime/service.ts",
+    "line": 1115,
+    "field": "name",
+    "value": "WORKFORCE_EXECUTION_FAILED",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/workforce-runtime/service.ts",
+    "line": 1149,
+    "field": "providerId",
+    "value": "none",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/workforce-runtime/service.ts",
+    "line": 1154,
+    "field": "name",
+    "value": "WORKFORCE_EXECUTION_FAILED",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/api/src/workforce-runtime/service.ts",
+    "line": 1408,
+    "field": "role",
+    "value": "OWNER",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/mac-agent/electron/device-key-store.ts",
+    "line": 134,
+    "field": "name",
+    "value": "Ed25519",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/mac-agent/electron/execution/execution-client.ts",
+    "line": 82,
+    "field": "name",
+    "value": "Ed25519",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/mac-agent/electron/execution/repository-scanner.ts",
+    "line": 1178,
+    "field": "name",
+    "value": ".",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/mac-agent/electron/main.ts",
+    "line": 687,
+    "field": "name",
+    "value": "JSON",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/mac-agent/electron/native-providers.ts",
+    "line": 62,
+    "field": "providerId",
+    "value": "provider.vscode",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/mac-agent/electron/native-providers.ts",
+    "line": 88,
+    "field": "providerId",
+    "value": "provider.finder",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/mac-agent/electron/native-providers.ts",
+    "line": 103,
+    "field": "providerId",
+    "value": "provider.chrome",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/mac-agent/electron/native-providers.ts",
+    "line": 126,
+    "field": "providerId",
+    "value": "provider.safari",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/mac-agent/electron/native-providers.ts",
+    "line": 143,
+    "field": "providerId",
+    "value": "provider.terminal",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/mac-agent/electron/native-providers.ts",
+    "line": 157,
+    "field": "providerId",
+    "value": "provider.chatgpt",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/mac-agent/electron/native-providers.ts",
+    "line": 172,
+    "field": "providerId",
+    "value": "provider.codex",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/mac-agent/electron/native-providers.ts",
+    "line": 195,
+    "field": "providerId",
+    "value": "provider.figma",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/mac-agent/electron/native-speech.ts",
+    "line": 9,
+    "field": "providerId",
+    "value": "apple_speech",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/mac-agent/electron/native-whisper.ts",
+    "line": 20,
+    "field": "providerId",
+    "value": "whisper_cpp",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/mac-agent/electron/native-whisper.ts",
+    "line": 42,
+    "field": "providerId",
+    "value": "whisper_cpp",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  },
+  {
+    "path": "apps/mac-agent/electron/services.ts",
+    "line": 138,
+    "field": "name",
+    "value": "Ed25519",
+    "evidenceType": "LITERAL_DECLARATION_NOT_LIVE_STATE"
+  }
+]

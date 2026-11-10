@@ -51,13 +51,27 @@ const setup = async () => {
   const execute=async(body:unknown)=>{
     const waiting=await request(companyA,body);
     if(waiting.status!=="WAITING_APPROVAL")return waiting;
-    await companyScope.run(context(ownerId,companyA),()=>approvals.approve(ownerId,waiting.approvalId!,sessionId,{ipAddress:"127.0.0.1",requestId:crypto.randomUUID()}));
+    await companyScope.run(context(ownerId,companyA),()=>approvals.approve(ownerId,waiting.approvalId!,sessionId,{ipAddress:"127.0.0.1",requestId:crypto.randomUUID()},true));
     return request(companyA,body);
   };
   return {ownerId,companyA,companyB,service,companyData,auditEvents,request,execute,bind};
 };
 
 describe("Phase 26.1 communication and customer operations",()=>{
+  it("projects owner-company provider readiness without secrets or invented live verification",async()=>{
+    const {ownerId,companyA,companyB,companyData,service}=await setup();
+    const ready=await companyScope.run(context(ownerId,companyA),()=>service.businessProviderReadiness(ownerId));
+    expect(ready.find((item)=>item.providerId==="gmail")).toMatchObject({adapterRegistered:true,credentialStatus:"READY",state:"UNVERIFIED",liveVerified:false});
+    expect(ready.find((item)=>item.providerId==="payments")).toMatchObject({adapterRegistered:false,state:"BLOCKED_EXTERNAL",reasonCode:"COMPANY_BINDING_MISSING"});
+    expect(ready.find((item)=>item.providerId==="github")).toMatchObject({adapterRegistered:false,state:"IMPLEMENTATION_REQUIRED"});
+    const sibling=await companyScope.run(context(ownerId,companyB),()=>service.businessProviderReadiness(ownerId));
+    expect(sibling.find((item)=>item.providerId==="gmail")).toMatchObject({bindingId:null,credentialStatus:"MISSING",state:"BLOCKED_EXTERNAL"});
+    const credential=companyData.listCredentialReferences(ownerId,companyA).find((item)=>item.provider==="gmail")!;
+    companyData.saveCredentialReference({...credential,status:"REVOKED"});
+    const revoked=await companyScope.run(context(ownerId,companyA),()=>service.businessProviderReadiness(ownerId));
+    expect(revoked.find((item)=>item.providerId==="gmail")).toMatchObject({state:"BLOCKED_EXTERNAL",reasonCode:"CREDENTIAL_REVOKED",credentialStatus:"REVOKED"});
+    expect(JSON.stringify(revoked)).not.toContain(credential.secretLocator);
+  });
   it("runs the lead follow-up path through governed provider adapters",async()=>{
     const {ownerId,companyA,service,request,execute}=await setup();
     expect((await request(companyA,{capability:"crm.read_lead",idempotencyKey:"lead-read-0001",reason:"Read the qualified lead.",references:{agentId:"sales"},externalLeadId:"lead-42"})).status).toBe("VERIFIED");

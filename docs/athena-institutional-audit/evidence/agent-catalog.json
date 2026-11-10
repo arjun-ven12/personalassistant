@@ -1,0 +1,607 @@
+{
+  "scope": "SOURCE_CONTROLLED_DEFINITIONS_ONLY; no deployed agents or humans enumerated",
+  "builtins": [
+    "engineering_manager",
+    "planning_agent",
+    "coding_agent",
+    "review_agent",
+    "security_agent",
+    "testing_agent",
+    "documentation_agent",
+    "release_agent"
+  ],
+  "externalCatalog": [
+    {
+      "id": "ecc_a11y_architect",
+      "upstreamDefinition": "agents/a11y-architect.md"
+    },
+    {
+      "id": "ecc_architect",
+      "upstreamDefinition": "agents/architect.md"
+    },
+    {
+      "id": "ecc_build_error_resolver",
+      "upstreamDefinition": "agents/build-error-resolver.md"
+    },
+    {
+      "id": "ecc_chief_of_staff",
+      "upstreamDefinition": "agents/chief-of-staff.md"
+    },
+    {
+      "id": "ecc_code_architect",
+      "upstreamDefinition": "agents/code-architect.md"
+    },
+    {
+      "id": "ecc_code_explorer",
+      "upstreamDefinition": "agents/code-explorer.md"
+    },
+    {
+      "id": "ecc_code_reviewer",
+      "upstreamDefinition": "agents/code-reviewer.md"
+    },
+    {
+      "id": "ecc_code_simplifier",
+      "upstreamDefinition": "agents/code-simplifier.md"
+    },
+    {
+      "id": "ecc_comment_analyzer",
+      "upstreamDefinition": "agents/comment-analyzer.md"
+    },
+    {
+      "id": "ecc_cpp_build_resolver",
+      "upstreamDefinition": "agents/cpp-build-resolver.md"
+    },
+    {
+      "id": "ecc_cpp_reviewer",
+      "upstreamDefinition": "agents/cpp-reviewer.md"
+    },
+    {
+      "id": "ecc_csharp_reviewer",
+      "upstreamDefinition": "agents/csharp-reviewer.md"
+    },
+    {
+      "id": "ecc_dart_build_resolver",
+      "upstreamDefinition": "agents/dart-build-resolver.md"
+    },
+    {
+      "id": "ecc_database_reviewer",
+      "upstreamDefinition": "agents/database-reviewer.md"
+    },
+    {
+      "id": "ecc_django_build_resolver",
+      "upstreamDefinition": "agents/django-build-resolver.md"
+    },
+    {
+      "id": "ecc_django_reviewer",
+      "upstreamDefinition": "agents/django-reviewer.md"
+    },
+    {
+      "id": "ecc_doc_updater",
+      "upstreamDefinition": "agents/doc-updater.md"
+    },
+    {
+      "id": "ecc_docs_lookup",
+      "upstreamDefinition": "agents/docs-lookup.md"
+    },
+    {
+      "id": "ecc_e2e_runner",
+      "upstreamDefinition": "agents/e2e-runner.md"
+    },
+    {
+      "id": "ecc_fastapi_reviewer",
+      "upstreamDefinition": "agents/fastapi-reviewer.md"
+    },
+    {
+      "id": "ecc_flutter_reviewer",
+      "upstreamDefinition": "agents/flutter-reviewer.md"
+    },
+    {
+      "id": "ecc_fsharp_reviewer",
+      "upstreamDefinition": "agents/fsharp-reviewer.md"
+    },
+    {
+      "id": "ecc_gan_generator",
+      "upstreamDefinition": "agents/gan-generator.md"
+    },
+    {
+      "id": "ecc_gan_planner",
+      "upstreamDefinition": "agents/gan-planner.md"
+    },
+    {
+      "id": "ecc_go_build_resolver",
+      "upstreamDefinition": "agents/go-build-resolver.md"
+    },
+    {
+      "id": "ecc_go_reviewer",
+      "upstreamDefinition": "agents/go-reviewer.md"
+    },
+    {
+      "id": "ecc_harmonyos_app_resolver",
+      "upstreamDefinition": "agents/harmonyos-app-resolver.md"
+    },
+    {
+      "id": "ecc_harness_optimizer",
+      "upstreamDefinition": "agents/harness-optimizer.md"
+    },
+    {
+      "id": "ecc_healthcare_reviewer",
+      "upstreamDefinition": "agents/healthcare-reviewer.md"
+    },
+    {
+      "id": "ecc_homelab_architect",
+      "upstreamDefinition": "agents/homelab-architect.md"
+    },
+    {
+      "id": "ecc_java_build_resolver",
+      "upstreamDefinition": "agents/java-build-resolver.md"
+    },
+    {
+      "id": "ecc_java_reviewer",
+      "upstreamDefinition": "agents/java-reviewer.md"
+    },
+    {
+      "id": "ecc_kotlin_build_resolver",
+      "upstreamDefinition": "agents/kotlin-build-resolver.md"
+    },
+    {
+      "id": "ecc_kotlin_reviewer",
+      "upstreamDefinition": "agents/kotlin-reviewer.md"
+    },
+    {
+      "id": "ecc_marketing_agent",
+      "upstreamDefinition": "agents/marketing-agent.md"
+    },
+    {
+      "id": "ecc_mle_reviewer",
+      "upstreamDefinition": "agents/mle-reviewer.md"
+    },
+    {
+      "id": "ecc_network_architect",
+      "upstreamDefinition": "agents/network-architect.md"
+    },
+    {
+      "id": "ecc_network_config_reviewer",
+      "upstreamDefinition": "agents/network-config-reviewer.md"
+    },
+    {
+      "id": "ecc_network_troubleshooter",
+      "upstreamDefinition": "agents/network-troubleshooter.md"
+    },
+    {
+      "id": "ecc_opensource_forker",
+      "upstreamDefinition": "agents/opensource-forker.md"
+    },
+    {
+      "id": "ecc_opensource_packager",
+      "upstreamDefinition": "agents/opensource-packager.md"
+    },
+    {
+      "id": "ecc_opensource_sanitizer",
+      "upstreamDefinition": "agents/opensource-sanitizer.md"
+    },
+    {
+      "id": "ecc_performance_optimizer",
+      "upstreamDefinition": "agents/performance-optimizer.md"
+    },
+    {
+      "id": "ecc_php_reviewer",
+      "upstreamDefinition": "agents/php-reviewer.md"
+    },
+    {
+      "id": "ecc_planner",
+      "upstreamDefinition": "agents/planner.md"
+    },
+    {
+      "id": "ecc_pr_test_analyzer",
+      "upstreamDefinition": "agents/pr-test-analyzer.md"
+    },
+    {
+      "id": "ecc_python_reviewer",
+      "upstreamDefinition": "agents/python-reviewer.md"
+    },
+    {
+      "id": "ecc_pytorch_build_resolver",
+      "upstreamDefinition": "agents/pytorch-build-resolver.md"
+    },
+    {
+      "id": "ecc_rag_pipeline_reviewer",
+      "upstreamDefinition": "agents/rag-pipeline-reviewer.md"
+    },
+    {
+      "id": "ecc_react_build_resolver",
+      "upstreamDefinition": "agents/react-build-resolver.md"
+    },
+    {
+      "id": "ecc_react_reviewer",
+      "upstreamDefinition": "agents/react-reviewer.md"
+    },
+    {
+      "id": "ecc_refactor_cleaner",
+      "upstreamDefinition": "agents/refactor-cleaner.md"
+    },
+    {
+      "id": "ecc_rust_build_resolver",
+      "upstreamDefinition": "agents/rust-build-resolver.md"
+    },
+    {
+      "id": "ecc_rust_reviewer",
+      "upstreamDefinition": "agents/rust-reviewer.md"
+    },
+    {
+      "id": "ecc_security_reviewer",
+      "upstreamDefinition": "agents/security-reviewer.md"
+    },
+    {
+      "id": "ecc_seo_specialist",
+      "upstreamDefinition": "agents/seo-specialist.md"
+    },
+    {
+      "id": "ecc_silent_failure_hunter",
+      "upstreamDefinition": "agents/silent-failure-hunter.md"
+    },
+    {
+      "id": "ecc_spec_miner",
+      "upstreamDefinition": "agents/spec-miner.md"
+    },
+    {
+      "id": "ecc_swift_build_resolver",
+      "upstreamDefinition": "agents/swift-build-resolver.md"
+    },
+    {
+      "id": "ecc_swift_reviewer",
+      "upstreamDefinition": "agents/swift-reviewer.md"
+    },
+    {
+      "id": "ecc_tdd_guide",
+      "upstreamDefinition": "agents/tdd-guide.md"
+    },
+    {
+      "id": "ecc_type_design_analyzer",
+      "upstreamDefinition": "agents/type-design-analyzer.md"
+    },
+    {
+      "id": "ecc_typescript_reviewer",
+      "upstreamDefinition": "agents/typescript-reviewer.md"
+    },
+    {
+      "id": "ecc_vue_reviewer",
+      "upstreamDefinition": "agents/vue-reviewer.md"
+    }
+  ],
+  "nativeCatalog": [
+    {
+      "id": "native_executive_lead",
+      "name": "Executive Operations Lead",
+      "department": "Executive",
+      "role": "engineering_manager",
+      "specialization": "Executive coordination"
+    },
+    {
+      "id": "native_strategy_analyst",
+      "name": "Strategy Analyst",
+      "department": "Executive",
+      "role": "planning",
+      "specialization": "Business strategy analysis"
+    },
+    {
+      "id": "native_risk_coordinator",
+      "name": "Enterprise Risk Coordinator",
+      "department": "Executive",
+      "role": "security",
+      "specialization": "Enterprise risk coordination"
+    },
+    {
+      "id": "native_development_lead",
+      "name": "Development Department Lead",
+      "department": "Development",
+      "role": "engineering_manager",
+      "specialization": "Engineering leadership"
+    },
+    {
+      "id": "native_backend_engineer",
+      "name": "Backend Systems Engineer",
+      "department": "Development",
+      "role": "coding",
+      "specialization": "Backend systems engineering"
+    },
+    {
+      "id": "native_frontend_engineer",
+      "name": "Frontend Systems Engineer",
+      "department": "Development",
+      "role": "coding",
+      "specialization": "Frontend systems engineering"
+    },
+    {
+      "id": "native_api_designer",
+      "name": "API Design Specialist",
+      "department": "Development",
+      "role": "planning",
+      "specialization": "API contract design"
+    },
+    {
+      "id": "native_data_engineer",
+      "name": "Data Platform Engineer",
+      "department": "Development",
+      "role": "coding",
+      "specialization": "Data platform engineering"
+    },
+    {
+      "id": "native_product_lead",
+      "name": "Product Department Lead",
+      "department": "Product",
+      "role": "engineering_manager",
+      "specialization": "Product leadership"
+    },
+    {
+      "id": "native_product_manager",
+      "name": "Product Manager",
+      "department": "Product",
+      "role": "planning",
+      "specialization": "Product planning"
+    },
+    {
+      "id": "native_ux_researcher",
+      "name": "UX Research Specialist",
+      "department": "Product",
+      "role": "review",
+      "specialization": "User experience research"
+    },
+    {
+      "id": "native_product_analyst",
+      "name": "Product Analytics Specialist",
+      "department": "Product",
+      "role": "planning",
+      "specialization": "Product analytics"
+    },
+    {
+      "id": "native_research_lead",
+      "name": "Research Department Lead",
+      "department": "Research",
+      "role": "engineering_manager",
+      "specialization": "Research leadership"
+    },
+    {
+      "id": "native_market_researcher",
+      "name": "Market Research Specialist",
+      "department": "Research",
+      "role": "planning",
+      "specialization": "Market research"
+    },
+    {
+      "id": "native_competitive_intelligence",
+      "name": "Competitive Intelligence Analyst",
+      "department": "Research",
+      "role": "review",
+      "specialization": "Competitive intelligence"
+    },
+    {
+      "id": "native_evidence_synthesizer",
+      "name": "Evidence Synthesis Specialist",
+      "department": "Research",
+      "role": "documentation",
+      "specialization": "Evidence synthesis"
+    },
+    {
+      "id": "native_sales_lead",
+      "name": "Sales Department Lead",
+      "department": "Sales",
+      "role": "engineering_manager",
+      "specialization": "Sales leadership"
+    },
+    {
+      "id": "native_account_researcher",
+      "name": "Account Research Specialist",
+      "department": "Sales",
+      "role": "planning",
+      "specialization": "Account research"
+    },
+    {
+      "id": "native_sales_operations",
+      "name": "Sales Operations Analyst",
+      "department": "Sales",
+      "role": "planning",
+      "specialization": "Sales operations"
+    },
+    {
+      "id": "native_proposal_specialist",
+      "name": "Proposal Specialist",
+      "department": "Sales",
+      "role": "documentation",
+      "specialization": "Sales proposal development"
+    },
+    {
+      "id": "native_marketing_lead",
+      "name": "Marketing Department Lead",
+      "department": "Marketing",
+      "role": "engineering_manager",
+      "specialization": "Marketing leadership"
+    },
+    {
+      "id": "native_content_strategist",
+      "name": "Content Strategy Specialist",
+      "department": "Marketing",
+      "role": "planning",
+      "specialization": "Content strategy"
+    },
+    {
+      "id": "native_growth_analyst",
+      "name": "Growth Analytics Specialist",
+      "department": "Marketing",
+      "role": "review",
+      "specialization": "Growth analytics"
+    },
+    {
+      "id": "native_brand_reviewer",
+      "name": "Brand Quality Reviewer",
+      "department": "Marketing",
+      "role": "review",
+      "specialization": "Brand quality review"
+    },
+    {
+      "id": "native_operations_lead",
+      "name": "Operations Department Lead",
+      "department": "Operations",
+      "role": "engineering_manager",
+      "specialization": "Operations leadership"
+    },
+    {
+      "id": "native_process_analyst",
+      "name": "Process Improvement Analyst",
+      "department": "Operations",
+      "role": "planning",
+      "specialization": "Process improvement"
+    },
+    {
+      "id": "native_vendor_analyst",
+      "name": "Vendor Operations Analyst",
+      "department": "Operations",
+      "role": "review",
+      "specialization": "Vendor operations"
+    },
+    {
+      "id": "native_incident_coordinator",
+      "name": "Incident Coordination Specialist",
+      "department": "Operations",
+      "role": "release",
+      "specialization": "Incident coordination"
+    },
+    {
+      "id": "native_finance_lead",
+      "name": "Finance Department Lead",
+      "department": "Finance",
+      "role": "engineering_manager",
+      "specialization": "Finance leadership"
+    },
+    {
+      "id": "native_financial_analyst",
+      "name": "Financial Planning Analyst",
+      "department": "Finance",
+      "role": "planning",
+      "specialization": "Financial planning analysis"
+    },
+    {
+      "id": "native_unit_economics",
+      "name": "Unit Economics Analyst",
+      "department": "Finance",
+      "role": "review",
+      "specialization": "Unit economics analysis"
+    },
+    {
+      "id": "native_forecast_reviewer",
+      "name": "Forecast Quality Reviewer",
+      "department": "Finance",
+      "role": "review",
+      "specialization": "Forecast quality review"
+    },
+    {
+      "id": "native_customer_success_lead",
+      "name": "Customer Success Department Lead",
+      "department": "Customer Success",
+      "role": "engineering_manager",
+      "specialization": "Customer success leadership"
+    },
+    {
+      "id": "native_onboarding_specialist",
+      "name": "Customer Onboarding Specialist",
+      "department": "Customer Success",
+      "role": "documentation",
+      "specialization": "Customer onboarding"
+    },
+    {
+      "id": "native_support_analyst",
+      "name": "Support Intelligence Analyst",
+      "department": "Customer Success",
+      "role": "review",
+      "specialization": "Support intelligence"
+    },
+    {
+      "id": "native_retention_analyst",
+      "name": "Customer Retention Analyst",
+      "department": "Customer Success",
+      "role": "planning",
+      "specialization": "Customer retention analysis"
+    },
+    {
+      "id": "native_quality_lead",
+      "name": "Quality Department Lead",
+      "department": "Quality & Review",
+      "role": "engineering_manager",
+      "specialization": "Quality leadership"
+    },
+    {
+      "id": "native_acceptance_reviewer",
+      "name": "Acceptance Criteria Reviewer",
+      "department": "Quality & Review",
+      "role": "review",
+      "specialization": "Acceptance criteria review"
+    },
+    {
+      "id": "native_security_lead",
+      "name": "Security Department Lead",
+      "department": "Security",
+      "role": "engineering_manager",
+      "specialization": "Security leadership"
+    },
+    {
+      "id": "native_privacy_reviewer",
+      "name": "Privacy Boundary Reviewer",
+      "department": "Security",
+      "role": "security",
+      "specialization": "Privacy boundary review"
+    }
+  ],
+  "departmentTemplates": [
+    {
+      "id": "operations",
+      "name": "Operations"
+    },
+    {
+      "id": "finance",
+      "name": "Finance"
+    },
+    {
+      "id": "sales-growth",
+      "name": "Sales & Growth"
+    },
+    {
+      "id": "marketing",
+      "name": "Marketing"
+    },
+    {
+      "id": "customer-success",
+      "name": "Customer Success"
+    },
+    {
+      "id": "product",
+      "name": "Product"
+    },
+    {
+      "id": "engineering",
+      "name": "Engineering"
+    },
+    {
+      "id": "design",
+      "name": "Design"
+    },
+    {
+      "id": "research",
+      "name": "Research"
+    },
+    {
+      "id": "strategy",
+      "name": "Strategy"
+    },
+    {
+      "id": "analytics",
+      "name": "Analytics"
+    },
+    {
+      "id": "quality-review",
+      "name": "Quality / Review"
+    },
+    {
+      "id": "delivery",
+      "name": "Delivery"
+    }
+  ]
+}

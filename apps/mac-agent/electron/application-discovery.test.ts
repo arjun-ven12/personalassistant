@@ -25,7 +25,7 @@ describe("discoverInstalledMacApplications", () => {
     await fs.rm(testBundle, { recursive: true, force: true });
   });
 
-  it("extracts safe metadata from fixed macOS application roots", async () => {
+  it.skipIf(process.platform !== "darwin")("extracts safe metadata from fixed macOS application roots", async () => {
     await fs.mkdir(path.join(testBundle, "Contents", "Resources"), {
       recursive: true,
     });

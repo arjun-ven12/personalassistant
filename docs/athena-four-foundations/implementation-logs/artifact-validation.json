@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "scope": "Program artifact integrity, not live/deployed acceptance",
+  "capabilities": 112,
+  "requiredProgramDocuments": 13,
+  "mermaidDiagrams": 2,
+  "mermaidRendering": "NOT_RUN",
+  "historicalEvidenceHashChangesFlaggedForReview": 79,
+  "unrelatedPreExistingFilesModified": [],
+  "checks": [
+    "Strict Zod register shape/status validation",
+    "Unique capability IDs and required metadata",
+    "Evidence path/symbol existence",
+    "Current hashes for unflagged claims; historical changes explicitly flagged",
+    "Verified assertions match final passing tests",
+    "Required documentation and balanced code fences",
+    "Pre-existing file hash preservation outside intentional changes"
+  ]
+}

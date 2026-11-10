@@ -224,9 +224,10 @@ export class PostgresGovernanceStore implements GovernanceStore {
   async updateApproval(approval: StoredApprovalRequest) {
     const allowedCurrentStatuses: ApprovalStatus[] =
       approval.status === "APPROVED" ||
-      approval.status === "REJECTED" ||
-      approval.status === "CANCELLED"
+      approval.status === "REJECTED"
         ? ["PENDING"]
+        : approval.status === "CANCELLED"
+          ? ["PENDING", "APPROVED"]
         : approval.status === "EXPIRED"
           ? ["PENDING", "APPROVED"]
           : approval.status === "CONSUMED"

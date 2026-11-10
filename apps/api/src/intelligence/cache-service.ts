@@ -23,9 +23,11 @@ export class CacheService {
 
   async getJson<T>(key: string, schema: { parse(value: unknown): T }) {
     if (!this.options.enabled) return null;
+    const scoped=this.scopedKey(key);
+    if(!scoped)return null;
     const start = performance.now();
     try {
-      const raw = await this.redis.get(this.scopedKey(key));
+      const raw = await this.redis.get(scoped);
       if (!raw) {
         this.#misses += 1;
         return null;
@@ -47,9 +49,11 @@ export class CacheService {
     ttlSeconds = this.options.defaultTtlSeconds,
   ) {
     if (!this.options.enabled) return;
+    const scoped=this.scopedKey(key);
+    if(!scoped)return;
     const start = performance.now();
     try {
-      await this.redis.set(this.scopedKey(key), JSON.stringify(value), ttlSeconds);
+      await this.redis.set(scoped, JSON.stringify(value), ttlSeconds);
       this.#writes += 1;
     } catch {
       // Cache loss must not replace PostgreSQL-backed canonical work with an error.
@@ -60,9 +64,11 @@ export class CacheService {
 
   async invalidate(key: string) {
     if (!this.options.enabled) return;
+    const scoped=this.scopedKey(key);
+    if(!scoped)return;
     const start = performance.now();
     try {
-      await this.redis.del(this.scopedKey(key));
+      await this.redis.del(scoped);
       this.#invalidations += 1;
     } catch {
       // A stale cache entry remains bounded by its TTL when Redis is unavailable.
@@ -73,9 +79,11 @@ export class CacheService {
 
   async publishInvalidation(topic: string, payload: unknown) {
     if (!this.options.enabled) return;
+    const scoped=this.scopedKey(topic);
+    if(!scoped)return;
     try {
       await this.redis.publish(
-        `cache-events:${this.scopedKey(topic)}`,
+        `cache-events:${scoped}`,
         JSON.stringify({ topic, payload, publishedAt: new Date().toISOString() }),
       );
     } catch {
@@ -103,8 +111,9 @@ export class CacheService {
   }
 
   private scopedKey(key: string) {
-    const companyId = companyScope.companyId();
-    return `cache:${companyId ? `company:${companyId}` : "global"}:${key}`;
+    const context=companyScope.current();
+    if(!context?.companyId)return null;
+    return `cache:owner:${context.ownerId}:company:${context.companyId}:${key}`;
   }
 
   recordLatency(start: number) {
