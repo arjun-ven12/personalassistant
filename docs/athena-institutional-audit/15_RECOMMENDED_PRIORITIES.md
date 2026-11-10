@@ -60,3 +60,7 @@ These decisions can be made from concrete options and evidence; implementation s
 ## Completion evidence for this audit
 
 The requested sixteen named files and supporting evidence indexes are present under this directory. The capability register distinguishes significant subsystem claims, narrower provider/runtime claims and UNKNOWN named ambitions. All twelve publication plans and ten proposed division mandates are included. Local typecheck/lint/test/build and repository/config invariants were rerun; current results and exclusions are in `14_EVIDENCE_AND_GAPS.md` and `evidence/validation-results.json`. No source implementation, production permission, external publication, commit or push is part of this audit.
+
+## MCP-1B supplemental evidence — 2026-10-26
+
+The historical audit baseline above is retained. The MCP-1B candidate based on merged `90c77ec` now has 63 passing focused assertions, including 16 PostgreSQL assertions against a newly created disposable local cluster. This closes the bounded MCP migration/store/replay/revocation/API-reconstruction evidence gap; it does not close all platform-wide durable governance or provider acceptance gaps. The historical ten Zod/Fastify/fast-uri advisory entries are resolved by scoped same-major updates, while the whole dependency audit still fails. Release decision: **REQUIRES_ADDITIONAL_VALIDATION**. See [current MCP-1B acceptance report](../athena-four-foundations/implementation-logs/mcp-1b/ACCEPTANCE_REPORT.md). No production enablement or permission expansion is authorized by this evidence.

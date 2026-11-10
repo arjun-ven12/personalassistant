@@ -50,4 +50,12 @@ The workspace ID is an authorization boundary; its host path/content is never se
 
 With supported Node/pnpm and installed reviewed dependencies, run `pnpm exec vitest run apps/api/src/mcp packages/config/src/mcp.test.ts`. This runs the real local SDK child and signed API test plus fault/authorization tests; no external server or credentials are needed. Run `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`, API `security:check`, and `pnpm verify:production-config` for regression acceptance. Use a clean test environment with live-provider flags off and no ambient production configuration. The recorded run additionally disabled implicit environment-file loading.
 
-A separate `TEST_DATABASE_URL` must point to an explicitly disposable test database with pgvector/migration prerequisites before running `postgres.integration.test.ts`; never use production. Migration 0111 is required for the new provider constraint. Production remains prohibited even after that migration. Linux portable build does not accept Mac native helpers or Android/device behavior.
+A separate `TEST_DATABASE_URL` must point to an explicitly disposable test database with pgvector/migration prerequisites before running `postgres.integration.test.ts`; never use production. Migration 0118 is required for the new provider constraint. Production remains prohibited even after that migration. Linux portable build does not accept Mac native helpers or Android/device behavior.
+
+## MCP-1B acceptance increment — 2026-10-26
+
+The existing merged MCP implementation is present at `90c77ecceb35682e0b64bcc512b8d83ae23a78d1`. The original pre-MCP implementation map above is historical. MCP-1B adds durable acceptance tests and scoped dependency patches; it adds no runtime tool, transport, server registration, approval bypass or production enablement. Migration `0118_mcp_local_fixture_provider.sql` remains unchanged. See [the current acceptance report](implementation-logs/mcp-1b/ACCEPTANCE_REPORT.md) and [reproduction instructions](implementation-logs/mcp-1b/REPRODUCING_ACCEPTANCE.md).
+
+PostgreSQL-backed API/pool reconstruction, company isolation, persisted replay and duplicate races, approval digest/expiry, revocation, and bounded in-flight stop/cancellation are exercised against a newly created local disposable cluster and the actual local SDK fixture. Scripted protocol-poisoning cases remain fault-injection evidence. No remote/live provider acceptance or host-power-loss guarantee is inferred.
+
+The previously reported ten Zod/Fastify/fast-uri advisory entries are removed by tested same-major updates. The whole dependency audit still fails on additional inherited packages. Production remains prohibited.

@@ -1,0 +1,22 @@
+{
+  "passed": 1499,
+  "failed": 6,
+  "skipped": 104,
+  "allFailuresReproducedOnCleanBaseSource": true,
+  "baselineSourceRevision": "90c77ecceb35682e0b64bcc512b8d83ae23a78d1",
+  "baselineUsesSamePatchedDependencyGraph": true,
+  "failedTestNames": [
+    "Image Builder infrastructure boundary rejects traversal, symlinks, duplicate members and wrong digest without privileged execution",
+    "Personality seed corpus compiles the canonical markdown into structured deterministic runtime entries",
+    "Personality seed corpus imports idempotently into existing runtime stores and seeds vector memory records",
+    "Personality seed corpus treats negative examples as first-class non-execution data",
+    "Personality seed corpus validates corpus ambiguity without treating ordinary contextual ambiguity as startup-fatal",
+    "discoverInstalledMacApplications extracts safe metadata from fixed macOS application roots"
+  ],
+  "reasons": [
+    "Four corpus assertions require an unavailable developer-local source file.",
+    "One Mac application-discovery fixture is not portable to this Linux environment.",
+    "One worker-image test requires Python hashlib.file_digest, absent in Python 3.10.12."
+  ],
+  "databaseScope": "No DATABASE_URL or TEST_DATABASE_URL in full-suite environment. The separate MCP acceptance command uses only the new disposable cluster."
+}
